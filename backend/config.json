@@ -1,0 +1,6 @@
+{
+  "CLIENT_ID": "ABggXrg5R5vTam1w60FrBEtQyU6elmDAE61qfOf0bz6gbzYH24",
+  "CLIENT_SECRET": "0sK7zgLKiQgXBwDi3gFFu1uBC8UcKpYMvIhAOk6k",
+  "REDIRECT_URI": "http://localhost:8000/callback",
+  "BACKEND_PORT": "5033"
+}

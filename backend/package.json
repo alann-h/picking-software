@@ -2,9 +2,11 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Picking software",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node app",
+    "start": "nodemon -r esm src/server.js --ignore database.json",
+    "reset": "npx rimraf database.json",
+    "lint": "eslint src/*.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
