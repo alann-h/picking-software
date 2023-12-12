@@ -2,8 +2,11 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Picking software",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "nodemon -r esm src/server.js --ignore database.json",
+    "reset": "npx rimraf database.json",
+    "lint": "eslint src/*.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,14 +21,25 @@
   "homepage": "https://github.com/alann-h/picking-software#readme",
   "dependencies": {
     "body-parser": "^1.20.2",
-    "dotenv": "^5.0.1",
-    "ejs": "^2.5.2",
+    "cors": "^2.8.5",
+    "esm": "^3.2.25",
     "express": "^4.18.2",
-    "express-session": "^1.14.2",
     "intuit-oauth": "^1.2.0",
+    "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "ngrok": "^2.2.9",
+    "nodemon": "^3.0.2",
     "path": "^0.12.7",
-    "read-excel-file": "^5.6.1"
+    "read-excel-file": "^5.6.1",
+    "swagger-ui-express": "^5.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.23.4",
+    "@babel/core": "^7.23.5",
+    "@babel/preset-env": "^7.23.5",
+    "eslint": "^8.55.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-n": "^16.3.1",
+    "eslint-plugin-promise": "^6.1.1"
   }
 }

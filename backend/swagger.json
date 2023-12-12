@@ -1,0 +1,229 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Picking-software CRUD Server",
+    "version": "1.0.0",
+    "description": "Server that powers the picking-software frontend"
+  },
+  "tags": [
+    {
+      "name": "User Auth",
+      "description": "Managing user authentication and authorisation"
+    },
+    {
+      "name": "Quote functions",
+      "description": "Managing quotes"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "AuthToken": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Authorization Bearer Token"
+          }
+        }
+      }
+    },
+    "fields": {
+      "Email": {
+        "type": "string",
+        "example": "tes@gmail.com",
+        "description": "Email address of the user attempting to login"
+      },
+      "Password": {
+        "type": "string",
+        "description": "Password of the user attempting to login",
+        "example": "adummypassword"
+      },
+      "Admin": {
+        "type": "string",
+        "description": "Name (single or full name) of the user registering",
+        "example": "John Smith"
+      }
+    },
+    "parameters": {
+      "AuthRegisterBody": {
+        "name": "Register info",
+        "in": "body",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "$ref": "#/components/fields/Email"
+            },
+            "password": {
+              "$ref": "#/components/fields/Password"
+            },
+            "name": {
+              "$ref": "#/components/fields/Admin"
+            }
+          }
+        }
+      },
+      "AuthLoginBody": {
+        "name": "Login info",
+        "in": "body",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "$ref": "#/components/fields/Email"
+            },
+            "password": {
+              "$ref": "#/components/fields/Password"
+            }
+          }
+        }
+      },
+      "Authorization": {
+        "name": "Authorization",
+        "in": "header",
+        "schema": {
+          "type": "string",
+          "example": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImhheWRlbkB1bnN3LmVkdS5hdSIsImlhdCI6MTYwMzk0MzIzMH0.b37PfwlcH_cue6yhgvDt2IiNvhRACf79hTNtacYB94Q"
+        },
+        "required": true,
+        "description": "Bearer [token]"
+      }
+    },
+    "responses": {
+      "200": {
+        "Token": {
+          "description": "OK",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "description": "JWT Token to provide authorisation",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImhheWRlbkB1bnN3LmVkdS5hdSIsImlhdCI6MTYwMzk0MzIzMH0.b37PfwlcH_cue6yhgvDt2IiNvhRACf79hTNtacYB94Q"
+              }
+            }
+          }
+        },
+        "Empty": {
+          "description": "OK",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        }
+      },
+      "400": {
+        "description": "Bad Input",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Error message returned from server",
+              "example": "Invalid input"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "string",
+              "description": "Error message returned from server",
+              "example": "Invalid Token"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/user/auth/register": {
+      "post": {
+        "summary": "Send registration request for a new user to join AirBrB",
+        "tags": [
+          "User Auth"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AuthRegisterBody"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200/Token"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          }
+        }
+      }
+    },
+    "/user/auth/login": {
+      "post": {
+        "summary": "Given correct user credentials, return an authorised access token to make subsequent user calls",
+        "tags": [
+          "User Auth"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AuthLoginBody"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200/Token"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          }
+        }
+      }
+    },
+    "/user/auth/logout": {
+      "post": {
+        "summary": "Invalidate a particular authorised token",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "User Auth"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Authorization"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200/Empty"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        }
+      }
+    }
+  }
+}
