@@ -2,7 +2,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
-import { getAuthUri, handleCallback } from './service.js'
+import { getAuthUri, handleCallback, getFilteredEstimates } from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
@@ -14,20 +14,34 @@ app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 app.use(morgan(':method :url :status'))
 
+let oauthToken = null
+
 /***************************************************************
                        User Auth Functions
 ***************************************************************/
 
 app.get('/authUri', (req, res) => {
-  getAuthUri(req)
+  getAuthUri()
     .then(authUri => res.send(authUri))
     .catch(error => res.status(500).json({ error: error.message }))
 })
 
 app.get('/callback', (req, res) => {
-  handleCallback(req)
-    .then(token => res.json({ token }))
-    .catch(error => res.status(500).json({ error: error.message }))
+  oauthToken = handleCallback(req)
+  res.send('')
+})
+
+app.get('/retrieveToken', function (req, res) {
+  res.send(oauthToken)
+})
+/***************************************************************
+                       Quote Functions
+***************************************************************/
+
+app.get('/estimates', function (req, res) {
+  getFilteredEstimates(req)
+    .then(estimates => res.send(estimates))
+    .catch(() => res.status(500).send('An error occurred while retrieving the estimate.'))
 })
 
 /***************************************************************
