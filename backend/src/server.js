@@ -35,6 +35,7 @@ app.get('/callback', (req, res) => {
 app.get('/retrieveToken', function (req, res) {
   res.send(oauthToken)
 })
+
 /***************************************************************
                        Quote Functions
 ***************************************************************/
