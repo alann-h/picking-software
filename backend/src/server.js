@@ -28,7 +28,8 @@ app.get('/authUri', (req, res) => {
 
 app.get('/callback', (req, res) => {
   oauthToken = handleCallback(req)
-  res.send('')
+    .then(res.send(''))
+    .catch(error => res.status(500).json({ error: error.message }))
 })
 
 app.get('/retrieveToken', function (req, res) {

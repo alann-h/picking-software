@@ -4,7 +4,7 @@ import config from '../config.json'
 const clientId = config.CLIENT_ID
 const clientSecret = config.CLIENT_SECRET
 const redirectUri = config.REDIRECT_URI
-let oauthClient = null
+let oauthClient = initializeOAuthClient()
 let oauthToken = null
 let filteredEstimates = null
 
@@ -12,25 +12,38 @@ let filteredEstimates = null
                        Auth Functions
 ***************************************************************/
 
-export function getAuthUri () {
-  oauthClient = new OAuthClient({
+function initializeOAuthClient () {
+  return new OAuthClient({
     clientId,
     clientSecret,
     environment: 'sandbox',
     redirectUri
   })
+}
+
+export function getAuthUri () {
+  if (!oauthClient) {
+    oauthClient = initializeOAuthClient()
+  }
   return Promise.resolve(oauthClient.authorizeUri({ scope: [OAuthClient.scopes.Accounting], state: 'intuit-test' }))
 }
 
 export function handleCallback (req) {
-  oauthClient.createToken(req.url)
+  if (!oauthClient) {
+    console.error('OAuth client is not initialized.')
+    return
+  }
+
+  return oauthClient.createToken(req.url)
     .then(function (authResponse) {
       oauthToken = JSON.stringify(authResponse.getJson(), null, 2)
+      console.log(oauthToken)
+      return oauthToken
     })
     .catch(function (e) {
       console.error(e)
+      return e
     })
-  return oauthToken
 }
 
 /***************************************************************
