@@ -37,7 +37,6 @@ export function handleCallback (req) {
   return oauthClient.createToken(req.url)
     .then(function (authResponse) {
       oauthToken = JSON.stringify(authResponse.getJson(), null, 2)
-      console.log(oauthToken)
       return oauthToken
     })
     .catch(function (e) {
