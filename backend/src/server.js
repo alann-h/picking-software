@@ -46,10 +46,18 @@ app.get('/retrieveToken', function (req, res) {
                        Quote Functions
 ***************************************************************/
 
-app.get('/estimates', function (req, res) {
-  getFilteredEstimates(req)
-    .then(estimates => res.send(estimates))
-    .catch(() => res.status(500).send('An error occurred while retrieving the estimate.'))
+app.get('/estimates', (req, res) => {
+  const searchField = req.query.searchField // 'DocNumber' or 'PrivateNote'
+  const searchId = req.query.estimateNumber // The search ID entered by the user
+  getFilteredEstimates(searchField, searchId)
+    .then(estimate => {
+      const quote = JSON.stringify(estimate, null, 2)
+      res.send(quote)
+    })
+    .catch(error => {
+      console.error(error)
+      res.status(500).json({ error: error.message })
+    })
 })
 
 /***************************************************************

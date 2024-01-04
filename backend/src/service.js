@@ -6,7 +6,6 @@ const clientSecret = config.CLIENT_SECRET
 const redirectUri = config.REDIRECT_URI
 let oauthClient = initializeOAuthClient()
 let oauthToken = null
-let filteredEstimates = null
 
 /***************************************************************
                        Auth Functions
@@ -49,33 +48,32 @@ export function handleCallback (req) {
                        Quote Functions
 ***************************************************************/
 
-export function getFilteredEstimates (req) {
-  // Retrieve the Estimate Number or PrivateNote entered by the user from query parameters
-  const searchField = req.query.searchField // 'DocNumber' or 'PrivateNote'
-  const searchTerm = req.query.estimateNumber // The search term entered by the user
-
-  const companyID = oauthClient.getToken().realmId
-  const url = oauthClient.environment === 'sandbox' ? OAuthClient.environment.sandbox : OAuthClient.environment.production
-  let isPrivateNote = false
-  let query
-  // Define the base query
-  if (searchField === 'DocNumber') {
-    query = "SELECT * FROM estimate WHERE DocNumber = '" + searchTerm + "'"
-  } else if (searchField === 'PrivateNote') {
-    query = 'SELECT * FROM estimate'
-    isPrivateNote = true
-  }
-  // Make an API call to retrieve estimates based on the modified query
-  oauthClient.makeApiCall({ url: url + 'v3/company/' + companyID + '/query?query=' + query })
-    .then(function (estimateResponse) {
-      const responseData = JSON.parse(estimateResponse.text())
-      filteredEstimates = filterEstimates(responseData, isPrivateNote, searchTerm)
-      return filteredEstimates
-    })
-    .catch(function (e) {
-      console.error(e)
-      return e
-    })
+export function getFilteredEstimates (searchField, searchTerm) {
+  return new Promise((resolve, reject) => {
+    // Retrieve the Estimate Number or PrivateNote entered by the user from query parameters
+    const companyID = oauthClient.getToken().realmId
+    const url = oauthClient.environment === 'sandbox' ? OAuthClient.environment.sandbox : OAuthClient.environment.production
+    let isPrivateNote = false
+    let query
+    // Define the base query
+    if (searchField === 'DocNumber') {
+      query = "SELECT * FROM estimate WHERE DocNumber = '" + searchTerm + "'"
+    } else if (searchField === 'PrivateNote') {
+      query = 'SELECT * FROM estimate'
+      isPrivateNote = true
+    }
+    // Make an API call to retrieve estimates based on the modified query
+    oauthClient.makeApiCall({ url: url + 'v3/company/' + companyID + '/query?query=' + query })
+      .then(function (estimateResponse) {
+        const responseData = JSON.parse(estimateResponse.text())
+        const filteredEstimates = filterEstimates(responseData, isPrivateNote, searchTerm)
+        resolve(filteredEstimates) // Resolve the promise with the filtered estimates
+      })
+      .catch(function (e) {
+        console.error(e)
+        reject(e) // Reject the promise with the error
+      })
+  })
 }
 
 function filterEstimates (responseData, isPrivateNote, searchTerm) {
