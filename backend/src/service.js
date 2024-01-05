@@ -1,5 +1,7 @@
 import OAuthClient from 'intuit-oauth'
 import config from '../config.json'
+import excelToJson from 'convert-excel-to-json'
+import fs from 'fs-extra'
 
 const clientId = config.CLIENT_ID
 const clientSecret = config.CLIENT_SECRET
@@ -144,5 +146,42 @@ function getSKUFromId (itemValue) {
         console.error(e)
         reject(e)
       })
+  })
+}
+
+export function processFile (filePath, databasePath) {
+  return new Promise((resolve, reject) => {
+    try {
+      const excelData = excelToJson({
+        sourceFile: filePath,
+        header: { rows: 1 },
+        columnToKey: { '*': '{{columnHeader}}' }
+      })
+
+      const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+      if (!database.products) {
+        database.products = []
+      }
+
+      for (const key in excelData) {
+        if (Object.prototype.hasOwnProperty.call(excelData, key)) {
+          const products = excelData[key]
+          products.forEach(product => {
+            database.products.push(product)
+          })
+        }
+      }
+
+      fs.writeFileSync(databasePath, JSON.stringify(database, null, 2))
+      fs.remove(filePath, err => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve('Products uploaded successfully')
+        }
+      })
+    } catch (error) {
+      reject(error)
+    }
   })
 }
