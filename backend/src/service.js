@@ -159,9 +159,7 @@ export function processFile (filePath, databasePath) {
       })
 
       const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
-      if (!database.products) {
-        database.products = []
-      }
+      database.products = []
 
       for (const key in excelData) {
         if (Object.prototype.hasOwnProperty.call(excelData, key)) {
@@ -173,6 +171,7 @@ export function processFile (filePath, databasePath) {
       }
 
       fs.writeFileSync(databasePath, JSON.stringify(database, null, 2))
+
       fs.remove(filePath, err => {
         if (err) {
           reject(err)
