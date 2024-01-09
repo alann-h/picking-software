@@ -112,13 +112,12 @@ function filterEstimates (responseData, isPrivateNote, searchTerm) {
       })).then(filteredLines => {
         filteredLines = filteredLines.filter(line => line !== null)
         const customerRef = estimate.CustomerRef
-
         resolve({
-          Id: estimate.Id,
-          QuoteNumber: estimate.DocNumber,
-          Customer: customerRef.name,
-          TotalAmount: '$' + estimate.TotalAmt,
-          ProductInfo: filteredLines
+          // Id: estimate.Id, dont think i need this
+          quoteNumber: estimate.DocNumber,
+          customer: customerRef.name,
+          productInfo: filteredLines,
+          totalAmount: '$' + estimate.TotalAmt
         })
       })
     })
@@ -159,13 +158,18 @@ export function processFile (filePath, databasePath) {
       })
 
       const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
-      database.products = []
+      // clears db in order to ensure the list is correct (theres probably a better way to avoid duplicates and find removed items)
+      // but since my db isnt too big it is okay
+      database.products = {} // Initialize as an empty object
 
       for (const key in excelData) {
         if (Object.prototype.hasOwnProperty.call(excelData, key)) {
           const products = excelData[key]
           products.forEach(product => {
-            database.products.push(product)
+            const productInfo = {
+              Name: product.Name
+            }
+            database.products[product.Barcode] = productInfo
           })
         }
       }
@@ -183,4 +187,28 @@ export function processFile (filePath, databasePath) {
       reject(error)
     }
   })
+}
+
+export function estimateToDB (estimateString, databasePath) {
+  const estimate = JSON.parse(estimateString)
+
+  const estimateInfo = {
+    customer: estimate.name,
+    productInfo: estimate.productInfo,
+    totalAmount: estimate.totalAmount
+    // status: true
+  }
+  const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+  if (!database.quotes[estimate.quoteNumber]) {
+    database.quotes[estimate.quoteNumber] = estimateInfo
+    fs.writeFileSync(databasePath, JSON.stringify(database, null, 2))
+  }
+}
+// checks if estimate exists in database if it is return it or else return null
+export function estimateExists (docNumber, databasePath) {
+  const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+  if (database.quotes[docNumber]) {
+    return database.quotes[docNumber]
+  }
+  return null
 }

@@ -2,7 +2,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
-import { getAuthUri, handleCallback, getFilteredEstimates, processFile } from './service.js'
+import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists } from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
@@ -18,6 +18,7 @@ app.use(morgan(':method :url :status'))
 const upload = multer({ dest: process.cwd() })
 
 let oauthToken = null
+const databasePath = 'database.json'
 
 /***************************************************************
                        User Auth Functions
@@ -51,10 +52,16 @@ app.get('/retrieveToken', function (req, res) {
 
 app.get('/estimates', (req, res) => {
   const searchField = req.query.searchField // 'DocNumber' or 'PrivateNote'
-  const searchId = req.query.estimateNumber // The search ID entered by the user
-  getFilteredEstimates(searchField, searchId)
+  const estimateNumber = req.query.estimateNumber // The estimate number entered by the user
+  let quote = estimateExists(estimateNumber, databasePath)
+  if (quote != null) {
+    res.send(JSON.stringify(quote, null, 2))
+    return
+  }
+  getFilteredEstimates(searchField, estimateNumber)
     .then(estimate => {
-      const quote = JSON.stringify(estimate, null, 2)
+      quote = JSON.stringify(estimate[0], null, 2)
+      estimateToDB(quote, databasePath)
       res.send(quote)
     })
     .catch(error => {
@@ -69,7 +76,6 @@ app.post('/upload', upload.single('input'), (req, res) => {
   }
 
   const filePath = process.cwd() + '/' + req.file.filename
-  const databasePath = 'database.json'
 
   processFile(filePath, databasePath)
     .then(message => {
@@ -80,6 +86,11 @@ app.post('/upload', upload.single('input'), (req, res) => {
       res.status(500).json({ error: error.message })
     })
 })
+
+// app.get('/productScan', (req, res) => {
+//   const barcode = req.query.barcode
+
+// })
 
 /***************************************************************
                        Running Server
