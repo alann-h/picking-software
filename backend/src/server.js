@@ -2,11 +2,12 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
-import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists } from './service.js'
+import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists, processBarcode } from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
 import multer from 'multer'
+import fs from 'fs'
 
 const app = express()
 
@@ -87,10 +88,22 @@ app.post('/upload', upload.single('input'), (req, res) => {
     })
 })
 
-// app.get('/productScan', (req, res) => {
-//   const barcode = req.query.barcode
+app.post('/productScan', (req, res) => {
+  const barcode = req.query.barcode
+  const docNumber = req.query.docNumber
+  const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
 
-// })
+  const productName = database.products[barcode].Name
+  if (productName === null) return res.status(400).json('Product does not exist')
+  processBarcode(productName, databasePath, docNumber)
+    .then(message => {
+      res.status(200).json(message)
+    })
+    .catch(error => {
+      console.error('Error finding product in quote:', error)
+      res.status(500).json({ error: error.message })
+    })
+})
 
 /***************************************************************
                        Running Server

@@ -10,7 +10,7 @@ let oauthClient = initializeOAuthClient()
 let oauthToken = null
 
 /***************************************************************
-                       Auth Functions
+                      Auth Functions
 ***************************************************************/
 
 function initializeOAuthClient () {
@@ -104,19 +104,26 @@ function filterEstimates (responseData, isPrivateNote, searchTerm) {
         const Description = line.Description
         const itemRef = line.SalesItemLineDetail && line.SalesItemLineDetail.ItemRef
         const itemValue = itemRef.value
-        return getSKUFromId(itemValue).then(itemSKU => ({
-          SKU: itemSKU,
-          Name: Description,
-          Qty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
-        }))
-      })).then(filteredLines => {
-        filteredLines = filteredLines.filter(line => line !== null)
+
+        return getSKUFromId(itemValue).then(itemSKU => {
+          return {
+            [Description]: {
+              SKU: itemSKU,
+              Qty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
+            }
+          }
+        })
+      })).then(productObjects => {
+        // Merge all product objects into a single object
+        const productInfo = productObjects.reduce((acc, productObj) => {
+          return { ...acc, ...productObj }
+        }, {})
         const customerRef = estimate.CustomerRef
         resolve({
           // Id: estimate.Id, dont think i need this
           quoteNumber: estimate.DocNumber,
           customer: customerRef.name,
-          productInfo: filteredLines,
+          productInfo,
           totalAmount: '$' + estimate.TotalAmt
         })
       })
@@ -211,4 +218,25 @@ export function estimateExists (docNumber, databasePath) {
     return database.quotes[docNumber]
   }
   return null
+}
+
+export function processBarcode (productName, databasePath, docNumber) {
+  return new Promise((resolve, reject) => {
+    try {
+      const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+      const estimate = database.quotes[docNumber]
+
+      if (estimate && estimate.productInfo[productName]) {
+        let qty = estimate.productInfo[productName].Qty
+        qty = qty - 1
+        estimate.productInfo[productName].Qty = qty
+        fs.writeFileSync(databasePath, JSON.stringify(database, null, 2))
+        resolve('Successfully scanned product')
+      } else {
+        resolve(null)
+      }
+    } catch (error) {
+      reject(error)
+    }
+  })
 }
