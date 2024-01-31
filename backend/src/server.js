@@ -51,7 +51,7 @@ app.get('/retrieveToken', function (req, res) {
                        Quote Functions
 ***************************************************************/
 
-app.get('/estimates', (req, res) => {
+app.post('/estimates', (req, res) => {
   const searchField = req.query.searchField // 'DocNumber' or 'PrivateNote'
   const estimateNumber = req.query.estimateNumber // The estimate number entered by the user
   let quote = estimateExists(estimateNumber, databasePath)
