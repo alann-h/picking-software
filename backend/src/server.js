@@ -7,7 +7,6 @@ import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
 import multer from 'multer'
-import fs from 'fs'
 
 const app = express()
 
@@ -19,7 +18,6 @@ app.use(morgan(':method :url :status'))
 const upload = multer({ dest: process.cwd() })
 
 let oauthToken = null
-const databasePath = 'database.json'
 
 /***************************************************************
                        User Auth Functions
@@ -54,7 +52,7 @@ app.get('/retrieveToken', function (req, res) {
 app.post('/estimates', (req, res) => {
   const searchField = req.query.searchField // 'DocNumber' or 'PrivateNote'
   const estimateNumber = req.query.estimateNumber // The estimate number entered by the user
-  let quote = estimateExists(estimateNumber, databasePath)
+  let quote = estimateExists(estimateNumber)
   if (quote != null) {
     res.send(JSON.stringify(quote, null, 2))
     return
@@ -62,7 +60,7 @@ app.post('/estimates', (req, res) => {
   getFilteredEstimates(searchField, estimateNumber)
     .then(estimate => {
       quote = JSON.stringify(estimate[0], null, 2)
-      estimateToDB(quote, databasePath)
+      estimateToDB(quote)
       res.send(quote)
     })
     .catch(error => {
@@ -78,7 +76,7 @@ app.post('/upload', upload.single('input'), (req, res) => {
 
   const filePath = process.cwd() + '/' + req.file.filename
 
-  processFile(filePath, databasePath)
+  processFile(filePath)
     .then(message => {
       res.status(200).json(message)
     })
@@ -91,11 +89,9 @@ app.post('/upload', upload.single('input'), (req, res) => {
 app.post('/productScan', (req, res) => {
   const barcode = req.query.barcode
   const docNumber = req.query.docNumber
-  const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+  const newQty = req.query.qty
 
-  const productName = database.products[barcode].Name
-  if (productName === null) return res.status(400).json('Product does not exist')
-  processBarcode(productName, databasePath, docNumber)
+  processBarcode(barcode, docNumber, newQty)
     .then(message => {
       res.status(200).json(message)
     })

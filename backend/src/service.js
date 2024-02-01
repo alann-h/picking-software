@@ -2,12 +2,14 @@ import OAuthClient from 'intuit-oauth'
 import config from '../config.json'
 import excelToJson from 'convert-excel-to-json'
 import fs from 'fs-extra'
+import { InputError, AccessError } from './error'
 
 const clientId = config.CLIENT_ID
 const clientSecret = config.CLIENT_SECRET
 const redirectUri = config.REDIRECT_URI
 let oauthClient = initializeOAuthClient()
 let oauthToken = null
+const databasePath = './database.json'
 
 /***************************************************************
                       Auth Functions
@@ -155,7 +157,7 @@ function getSKUFromId (itemValue) {
   })
 }
 
-export function processFile (filePath, databasePath) {
+export function processFile (filePath) {
   return new Promise((resolve, reject) => {
     try {
       const excelData = excelToJson({
@@ -174,7 +176,7 @@ export function processFile (filePath, databasePath) {
           const products = excelData[key]
           products.forEach(product => {
             const productInfo = {
-              Name: product.Name
+              name: product.Name
             }
             database.products[product.Barcode] = productInfo
           })
@@ -196,7 +198,7 @@ export function processFile (filePath, databasePath) {
   })
 }
 
-export function estimateToDB (estimateString, databasePath) {
+export function estimateToDB (estimateString) {
   const estimate = JSON.parse(estimateString)
 
   const estimateInfo = {
@@ -212,7 +214,7 @@ export function estimateToDB (estimateString, databasePath) {
   }
 }
 // checks if estimate exists in database if it is return it or else return null
-export function estimateExists (docNumber, databasePath) {
+export function estimateExists (docNumber) {
   const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
   if (database.quotes[docNumber]) {
     return database.quotes[docNumber]
@@ -220,23 +222,43 @@ export function estimateExists (docNumber, databasePath) {
   return null
 }
 
-export function processBarcode (productName, databasePath, docNumber) {
+export function processBarcode (barcode, docNumber, newQty) {
   return new Promise((resolve, reject) => {
     try {
-      const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+      const database = readDatabase(databasePath)
+      const productName = database.products[barcode].name
+      if (productName === null) reject(new InputError('This product does not exists within the database'))
       const estimate = database.quotes[docNumber]
 
       if (estimate && estimate.productInfo[productName]) {
         let qty = estimate.productInfo[productName].Qty
-        qty = qty - 1
+        if (qty === 0 || (qty - newQty) < 0) reject(new InputError('The new quantity is below 0'))
+        qty = qty - newQty
         estimate.productInfo[productName].Qty = qty
-        fs.writeFileSync(databasePath, JSON.stringify(database, null, 2))
+        writeDatabase(databasePath, database)
         resolve('Successfully scanned product')
       } else {
-        resolve(null)
+        reject(new InputError('Quote number is invalid or scanned product does not exist on quote'))
       }
     } catch (error) {
-      reject(error)
+      reject(new InputError(error))
     }
   })
+}
+
+function readDatabase (databasePath) {
+  try {
+    const data = fs.readFileSync(databasePath, 'utf8')
+    return JSON.parse(data)
+  } catch {
+    throw new AccessError('Cannot access database')
+  }
+}
+
+function writeDatabase (databasePath, data) {
+  try {
+    fs.writeFileSync(databasePath, JSON.stringify(data, null, 2))
+  } catch {
+    throw new AccessError('Cannot write to database')
+  }
 }
