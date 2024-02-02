@@ -41,8 +41,7 @@ export function getAuthUri () {
 
 export function handleCallback (req) {
   if (!oauthClient) {
-    console.error('OAuth client is not initialized.')
-    return
+    return new AccessError('OAuth client is not initialized.')
   }
 
   return oauthClient.createToken(req.url)
@@ -78,9 +77,8 @@ export function getFilteredEstimates (searchField, searchTerm) {
         const filteredEstimates = filterEstimates(responseData, isPrivateNote, searchTerm)
         resolve(filteredEstimates)
       })
-      .catch(function (e) {
-        console.error(e)
-        reject(e)
+      .catch(e => {
+        reject(new AccessError('Wrong input or quote with this Id does not exist'))
       })
   })
 }
@@ -166,7 +164,7 @@ export function processFile (filePath) {
         columnToKey: { '*': '{{columnHeader}}' }
       })
 
-      const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+      const database = readDatabase(databasePath)
       // clears db in order to ensure the list is correct (theres probably a better way to avoid duplicates and find removed items)
       // but since my db isnt too big it is okay
       database.products = {} // Initialize as an empty object
@@ -183,7 +181,7 @@ export function processFile (filePath) {
         }
       }
 
-      fs.writeFileSync(databasePath, JSON.stringify(database, null, 2))
+      writeDatabase(databasePath, database)
 
       fs.remove(filePath, err => {
         if (err) {
@@ -210,7 +208,7 @@ export function estimateToDB (estimateString) {
   const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
   if (!database.quotes[estimate.quoteNumber]) {
     database.quotes[estimate.quoteNumber] = estimateInfo
-    fs.writeFileSync(databasePath, JSON.stringify(database, null, 2))
+    writeDatabase(databasePath, database)
   }
 }
 // checks if estimate exists in database if it is return it or else return null
