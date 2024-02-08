@@ -2,7 +2,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
-import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists } from './service.js'
+import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists, processBarcode } from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
@@ -18,7 +18,6 @@ app.use(morgan(':method :url :status'))
 const upload = multer({ dest: process.cwd() })
 
 let oauthToken = null
-const databasePath = 'database.json'
 
 /***************************************************************
                        User Auth Functions
@@ -50,10 +49,10 @@ app.get('/retrieveToken', function (req, res) {
                        Quote Functions
 ***************************************************************/
 
-app.get('/estimates', (req, res) => {
+app.post('/estimates', (req, res) => {
   const searchField = req.query.searchField // 'DocNumber' or 'PrivateNote'
   const estimateNumber = req.query.estimateNumber // The estimate number entered by the user
-  let quote = estimateExists(estimateNumber, databasePath)
+  let quote = estimateExists(estimateNumber)
   if (quote != null) {
     res.send(JSON.stringify(quote, null, 2))
     return
@@ -61,7 +60,7 @@ app.get('/estimates', (req, res) => {
   getFilteredEstimates(searchField, estimateNumber)
     .then(estimate => {
       quote = JSON.stringify(estimate[0], null, 2)
-      estimateToDB(quote, databasePath)
+      estimateToDB(quote)
       res.send(quote)
     })
     .catch(error => {
@@ -77,7 +76,7 @@ app.post('/upload', upload.single('input'), (req, res) => {
 
   const filePath = process.cwd() + '/' + req.file.filename
 
-  processFile(filePath, databasePath)
+  processFile(filePath)
     .then(message => {
       res.status(200).json(message)
     })
@@ -87,10 +86,20 @@ app.post('/upload', upload.single('input'), (req, res) => {
     })
 })
 
-// app.get('/productScan', (req, res) => {
-//   const barcode = req.query.barcode
+app.post('/productScan', (req, res) => {
+  const barcode = req.query.barcode
+  const docNumber = req.query.docNumber
+  const newQty = req.query.qty
 
-// })
+  processBarcode(barcode, docNumber, newQty)
+    .then(message => {
+      res.status(200).json(message)
+    })
+    .catch(error => {
+      console.error('Error finding product in quote:', error)
+      res.status(500).json({ error: error.message })
+    })
+})
 
 /***************************************************************
                        Running Server
