@@ -25,7 +25,7 @@ let oauthToken = null
 
 app.get('/authUri', (req, res) => {
   getAuthUri()
-    .then(authUri => res.send(authUri))
+    .then(authUri => res.send(JSON.stringify(authUri)))
     .catch(error => res.status(500).json({ error: error.message }))
 })
 
@@ -33,7 +33,7 @@ app.get('/callback', (req, res) => {
   handleCallback(req)
     .then(token => {
       oauthToken = token
-      res.send('Token received and stored successfully.')
+      res.send('')
     })
     .catch(error => {
       console.error(error)
