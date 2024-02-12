@@ -11,3 +11,12 @@ export const login = async () => {
     return data
   }
 }
+
+export const callback= async (url: string) => {
+  const token = await apiCallGet(url);
+  if (token.error) {
+    throw new Error(token.error);
+  } else {
+    return token
+  }
+}

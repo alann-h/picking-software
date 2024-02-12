@@ -43,7 +43,7 @@ export function handleCallback (req) {
   if (!oauthClient) {
     return new AccessError('OAuth client is not initialized.')
   }
-
+  console.log(req.url)
   return oauthClient.createToken(req.url)
     .then(function (authResponse) {
       oauthToken = JSON.stringify(authResponse.getJson(), null, 2)

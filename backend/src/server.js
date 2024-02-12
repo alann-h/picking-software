@@ -33,7 +33,7 @@ app.get('/callback', (req, res) => {
   handleCallback(req)
     .then(token => {
       oauthToken = token
-      res.send('')
+      res.send(oauthToken)
     })
     .catch(error => {
       console.error(error)
