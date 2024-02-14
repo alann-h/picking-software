@@ -36,7 +36,6 @@ const Dashboard = () => {
       </Button>
       <Paper elevation={8} style={{ padding: 3, marginTop: 3 }}>
         {quoteData ? (
-          // Set Typography component as "pre" to directly use preformatted text
           <Typography component="pre" variant="body1" style={{ margin: 0 }}>
             {JSON.stringify(quoteData, null, 2)}
           </Typography>
