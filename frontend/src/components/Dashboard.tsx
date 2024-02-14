@@ -1,17 +1,26 @@
 import React, { useState } from 'react';
-import { Container, Paper, TextField, Button } from '@mui/material';
+import { Container, Paper, TextField, Button, Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import { extractQuote } from '../api/quote';
 
 const Dashboard = () => {
   const [quoteNumber, setQuoteNumber] = useState('');
+  const [quoteData, setQuoteData] = useState(null);
 
-  const handleSearch = () => {
-    console.log(quoteNumber);
+  const handleSearch = async () => {
+    const searchField = 'DocNumber';
+    try {
+      const data = await extractQuote(searchField, quoteNumber);
+      setQuoteData(data);
+    } catch (error) {
+      console.error(error);
+      setQuoteData(null);
+    }
+  };
 
-  }
   return (
     <Container>
-        <TextField 
+      <TextField 
         required 
         id="quote-number" 
         label="Quote Number"
@@ -22,13 +31,19 @@ const Dashboard = () => {
         color='success' 
         variant="contained"
         onClick={handleSearch}
-        >
+      >
         <SearchIcon/>
       </Button>
-      <Paper elevation={8}>
-          test
+      <Paper elevation={8} style={{ padding: '20px', marginTop: '20px' }}>
+        {quoteData ? (
+          // Set Typography component as "pre" to directly use preformatted text
+          <Typography component="pre" variant="body1" style={{ margin: 0 }}>
+            {JSON.stringify(quoteData, null, 2)}
+          </Typography>
+        ) : (
+          <Typography variant="body2">No data to display</Typography>
+        )}
       </Paper>
-      
     </Container>
   );
 };
