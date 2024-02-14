@@ -4,6 +4,7 @@ import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { CssBaseline, Box } from '@mui/material';
 import Login from './components/Login'
 import OAuthCallbackHandler from './components/OAuthCallbackHandler'
+import Dashboard from './components/Dashboard';
 
 const App = () => {
   return (
@@ -16,7 +17,8 @@ const App = () => {
         <Box sx={{ flexGrow: 1, padding: 3 }}>
             <Routes>
               <Route path="/" element={<Login />} />
-              <Route path="/oauth/callback" Component={OAuthCallbackHandler} />
+              <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
+              <Route path="/dashboard" element={<Dashboard />} />
             </Routes>
         </Box>
       </Box>
