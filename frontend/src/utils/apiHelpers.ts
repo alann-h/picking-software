@@ -1,12 +1,12 @@
 import config from '../config.json';
-import { isLoggedIn, getToken } from './storage';
+import { isLoggedIn, getAccessToken } from './storage';
 
 /**
  * GET request to API
  */
 export const apiCallGet = async (path: string) => {
   const headers: Record<string, string> = { accept: 'application/json' };
-  if (isLoggedIn()) headers.Authorization = `Bearer ${getToken()}`;
+  if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
 
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'GET',
@@ -26,7 +26,7 @@ export const apiCallPost = async (path: string, body: object) => {
     'Content-Type': 'application/json',
     accept: 'application/json'
   };
-  if (isLoggedIn()) headers.Authorization = `Bearer ${getToken()}`;
+  if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
 
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'POST',
@@ -47,7 +47,7 @@ export const apiCallPut = async (path: string, body: object) => {
     'Content-Type': 'application/json',
     accept: 'application/json'
   };
-  if (isLoggedIn()) headers.Authorization = `Bearer ${getToken()}`;
+  if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
 
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'PUT',
@@ -65,7 +65,7 @@ export const apiCallPut = async (path: string, body: object) => {
  */
 export const apiCallDelete = async (path: string) => {
   const headers: Record<string, string> = { accept: 'application/json' };
-  if (isLoggedIn()) headers.Authorization = `Bearer ${getToken()}`;
+  if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
 
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'DELETE',

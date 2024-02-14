@@ -11,9 +11,11 @@ export const login = async () => {
     return data
   }
 }
-
-export const callback= async (url: string) => {
-  const token = await apiCallGet(url);
+/**
+ * Gets tokens
+ */
+export const retrieveToken= async () => {
+  const token = await apiCallGet('retrieveToken');
   if (token.error) {
     throw new Error(token.error);
   } else {
