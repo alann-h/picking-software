@@ -1,11 +1,26 @@
 import React, { useState } from 'react';
-import { Container, Paper, TextField, Button, Typography } from '@mui/material';
+import { Container, Paper, TextField, Button, Typography, Grid, Card } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { extractQuote } from '../api/quote';
 
-const Dashboard = () => {
-  const [quoteNumber, setQuoteNumber] = useState('');
-  const [quoteData, setQuoteData] = useState(null);
+interface ProductDetails {
+  SKU: string;
+  Qty: number;
+}
+
+interface ProductInfo {
+  [productName: string]: ProductDetails;
+}
+
+interface QuoteData {
+  customer: string;
+  productInfo: ProductInfo;
+  totalAmount: string;
+}
+
+const Dashboard: React.FC = () => {
+  const [quoteNumber, setQuoteNumber] = useState<string>('');
+  const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
 
   const handleSearch = async () => {
     const searchField = 'DocNumber';
@@ -32,13 +47,28 @@ const Dashboard = () => {
         variant="contained"
         onClick={handleSearch}
       >
-        <SearchIcon/>
+        <SearchIcon />
       </Button>
-      <Paper elevation={8} style={{ padding: 3, marginTop: 3 }}>
+      <Paper elevation={8} sx={{ padding: 3, marginTop: 3 }}>
         {quoteData ? (
-          <Typography component="pre" variant="body1" style={{ margin: 0 }}>
-            {JSON.stringify(quoteData, null, 2)}
-          </Typography>
+          <>
+            <Paper variant="outlined" sx={{ padding: 2, marginBottom: 2 }}>
+              <Typography variant="body1" sx={{ margin: 0 }}>
+                Customer: {quoteData.customer}
+              </Typography>
+            </Paper>
+            <Grid container spacing={2}>
+              {Object.entries(quoteData.productInfo || {}).slice(0, 20).map(([name, details], index) => (
+                <Grid item xs={12} key={index}>
+                  <Card sx={{ display: 'flex', justifyContent: 'space-between', padding: 2 }}>
+                    <Typography variant="body2">{details.SKU}</Typography>
+                    <Typography variant="body2">{name}</Typography>
+                    <Typography variant="body2">{details.Qty}</Typography>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </>
         ) : (
           <Typography variant="body2">No data to display</Typography>
         )}

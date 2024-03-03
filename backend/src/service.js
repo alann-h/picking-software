@@ -43,7 +43,6 @@ export function handleCallback (req) {
   if (!oauthClient) {
     return new AccessError('OAuth client is not initialized.')
   }
-  console.log(req.url)
   return oauthClient.createToken(req.url)
     .then(function (authResponse) {
       oauthToken = JSON.stringify(authResponse.getJson(), null, 2)
@@ -51,7 +50,7 @@ export function handleCallback (req) {
     })
     .catch(function (e) {
       console.error(e)
-      return e
+      return new AccessError('Could not create token.')
     })
 }
 
@@ -200,12 +199,12 @@ export function estimateToDB (estimateString) {
   const estimate = JSON.parse(estimateString)
 
   const estimateInfo = {
-    customer: estimate.name,
+    customer: estimate.customer,
     productInfo: estimate.productInfo,
     totalAmount: estimate.totalAmount
     // status: true
   }
-  const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+  const database = readDatabase(databasePath)
   if (!database.quotes[estimate.quoteNumber]) {
     database.quotes[estimate.quoteNumber] = estimateInfo
     writeDatabase(databasePath, database)
@@ -213,7 +212,7 @@ export function estimateToDB (estimateString) {
 }
 // checks if estimate exists in database if it is return it or else return null
 export function estimateExists (docNumber) {
-  const database = JSON.parse(fs.readFileSync(databasePath, 'utf8'))
+  const database = readDatabase(databasePath)
   if (database.quotes[docNumber]) {
     return database.quotes[docNumber]
   }

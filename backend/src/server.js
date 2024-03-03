@@ -59,12 +59,12 @@ app.post('/estimates', (req, res) => {
   getFilteredEstimates(searchField, estimateNumber)
     .then(estimate => {
       quote = JSON.stringify(estimate[0], null, 2)
-      estimateToDB(quote)
-      res.send(quote)
+      estimateToDB(quote);
+      res.send(quote);
     })
     .catch(error => {
       console.error(error)
-      res.status(500).json({ error: error.message })
+      res.status(400).json({ error: error.message })
     })
 })
 
