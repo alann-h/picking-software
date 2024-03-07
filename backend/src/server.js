@@ -48,10 +48,9 @@ app.get('/retrieveToken', function (req, res) {
 /***************************************************************
                        Quote Functions
 ***************************************************************/
-
+// should spilit this into two functions one for getting the estimate and the other for putting the estimate in database
 app.post('/estimates', (req, res) => {
-  const searchField = req.query.searchField // 'DocNumber' or 'PrivateNote'
-  const estimateNumber = req.query.estimateNumber // The estimate number entered by the user
+  const { searchField, estimateNumber } = req.body // searchField can either be 'DocNumber' or 'PrivateNote
   let quote = estimateExists(estimateNumber)
   if (quote != null) {
     res.send(JSON.stringify(quote, null, 2))
@@ -60,12 +59,12 @@ app.post('/estimates', (req, res) => {
   getFilteredEstimates(searchField, estimateNumber)
     .then(estimate => {
       quote = JSON.stringify(estimate[0], null, 2)
-      estimateToDB(quote)
-      res.send(quote)
+      estimateToDB(quote);
+      res.send(quote);
     })
     .catch(error => {
       console.error(error)
-      res.status(500).json({ error: error.message })
+      res.status(400).json({ error: error.message })
     })
 })
 
@@ -87,10 +86,7 @@ app.post('/upload', upload.single('input'), (req, res) => {
 })
 
 app.post('/productScan', (req, res) => {
-  const barcode = req.query.barcode
-  const docNumber = req.query.docNumber
-  const newQty = req.query.qty
-
+  const { barcode, docNumber, newQty } = req.body
   processBarcode(barcode, docNumber, newQty)
     .then(message => {
       res.status(200).json(message)

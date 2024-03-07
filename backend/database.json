@@ -1652,18 +1652,19 @@
     }
   },
   "quotes": {
-    "1021": {
+    "1007": {
+      "customer": "Himateja Madala",
       "productInfo": {
-        "Olive Kalamata Pitted 10KG": {
+        "Employee training off site": {
           "SKU": "A101",
-          "Qty": 7
+          "Qty": 1
         },
-        "Water Bottles": {
-          "SKU": "WB-0025",
-          "Qty": 100
+        "Employee celebration -- Anniversary / Retirement": {
+          "SKU": "A102",
+          "Qty": 5
         }
       },
-      "totalAmount": "$2100"
+      "totalAmount": "$4400"
     }
   }
 }
