@@ -1,5 +1,6 @@
-export const isLoggedIn = () => localStorage.getItem('refreshToken') !== null;
+export const isLoggedIn = () => localStorage.getItem('accessToken') !== null;
 export const getAccessToken = () => localStorage.getItem('accessToken');
-export const getRefreshToken = () => localStorage.getItem('refreshToken');
-export const setToken = (name: string, token: string) => localStorage.setItem(name, token);
-export const deleteToken = (tokenName: string) => localStorage.removeItem(tokenName);
+export const getUserId = () => localStorage.getItem('userId');
+export const setUserId = (userId: string) => localStorage.setItem('userId', userId);
+export const setToken = (token: string) => localStorage.setItem('accessToken', token);
+export const deleteToken = () => localStorage.removeItem('accessToken');

@@ -3,12 +3,11 @@ import config from '../config.json'
 import excelToJson from 'convert-excel-to-json'
 import fs from 'fs-extra'
 import { InputError, AccessError } from './error'
+import { v4 as uuidv4 } from '.uuid'
 
 const clientId = config.CLIENT_ID
 const clientSecret = config.CLIENT_SECRET
 const redirectUri = config.REDIRECT_URI
-let oauthClient = initializeOAuthClient()
-let oauthToken = null
 const databasePath = './database.json'
 
 /***************************************************************
@@ -24,29 +23,34 @@ function initializeOAuthClient () {
   })
 }
 
-function getBaseURL () {
+function getBaseURL (oauthClient) {
   return oauthClient.environment === 'sandbox' ? OAuthClient.environment.sandbox : OAuthClient.environment.production
 }
 
-function getCompanyId () {
+function getCompanyId (oauthClient) {
   return oauthClient.getToken().realmId
 }
 
-export function getAuthUri () {
-  if (!oauthClient) {
-    oauthClient = initializeOAuthClient()
-  }
-  return Promise.resolve(oauthClient.authorizeUri({ scope: [OAuthClient.scopes.Accounting], state: 'intuit-test' }))
+export function getAuthUri (req) {
+  const oauthClient = initializeOAuthClient()
+  const authUri = oauthClient.authorizeUri({ scope: [OAuthClient.scopes.Accounting], state: 'intuit-test' })
+
+  req.session.oauthClient = oauthClient.getToken()
+  return Promise.resolve(authUri)
 }
 
 export function handleCallback (req) {
-  if (!oauthClient) {
-    return new AccessError('OAuth client is not initialized.')
-  }
+  const oauthClient = initializeOAuthClient()
+
   return oauthClient.createToken(req.url)
     .then(function (authResponse) {
-      oauthToken = JSON.stringify(authResponse.getJson(), null, 2)
-      return oauthToken
+      const token = authResponse.getToken()
+      const userId = uuidv4()
+
+      req.session.userId = userId
+
+      saveUser(userId, token)
+      return token
     })
     .catch(function (e) {
       console.error(e)
@@ -54,14 +58,67 @@ export function handleCallback (req) {
     })
 }
 
+function saveUser (userId, token) {
+  const userToken = {
+    realmId: token.realmId,
+    token_type: token.token_type,
+    access_token: token.access_token,
+    refresh_token: token.refresh_token,
+    x_refresh_token_expires_in: token.x_refresh_token_expires_in
+  }
+  const database = readDatabase(databasePath)
+  database.users[userId] = userToken
+  writeDatabase(databasePath, database)
+}
+
+async function getOAuthClient (userId) {
+  if (userId) {
+    try {
+      const userToken = await getUserToken(userId)
+      if (userToken) {
+        const oauthClient = initializeOAuthClient()
+        oauthClient.setToken(userToken)
+        return oauthClient
+      }
+    } catch (error) {
+      console.error('Error getting OAuth client:', error)
+    }
+  }
+  return null
+}
+
+export function getUserToken (userId) {
+  return new Promise((resolve, reject) => {
+    if (!userId) {
+      reject(new InputError('User Id is not valid'))
+    } else {
+      const database = readDatabase(databasePath)
+      const userToken = database.users[userId]
+
+      if (!userToken) {
+        reject(new InputError('User not found'))
+      } else if (!userToken.access_token || !userToken.refresh_token) {
+        reject(new AccessError('Token not found for user'))
+      } else {
+        resolve(userToken)
+      }
+    }
+  })
+}
+
 /***************************************************************
                        Quote Functions
 ***************************************************************/
 
-export function getFilteredEstimates (searchField, searchTerm) {
-  return new Promise((resolve, reject) => {
-    const companyID = getCompanyId()
-    const baseURL = getBaseURL()
+export async function getFilteredEstimates (searchField, searchTerm, userId) {
+  try {
+    const oauthClient = await getOAuthClient(userId)
+    if (!oauthClient) {
+      throw new Error('OAuth client could not be initialized')
+    }
+
+    const companyID = getCompanyId(oauthClient)
+    const baseURL = getBaseURL(oauthClient)
     let isPrivateNote = false
     let query
     if (searchField === 'DocNumber') {
@@ -70,19 +127,20 @@ export function getFilteredEstimates (searchField, searchTerm) {
       query = 'SELECT * FROM estimate'
       isPrivateNote = true
     }
-    oauthClient.makeApiCall({ url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69` })
-      .then(function (estimateResponse) {
-        const responseData = JSON.parse(estimateResponse.text())
-        const filteredEstimates = filterEstimates(responseData, isPrivateNote, searchTerm)
-        resolve(filteredEstimates)
-      })
-      .catch(e => {
-        reject(new AccessError('Wrong input or quote with this Id does not exist'))
-      })
-  })
+
+    const estimateResponse = await oauthClient.makeApiCall({
+      url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`
+    })
+
+    const responseData = JSON.parse(estimateResponse.text())
+    const filteredEstimates = filterEstimates(responseData, isPrivateNote, searchTerm, oauthClient)
+    return filteredEstimates
+  } catch (error) {
+    throw new AccessError('Wrong input or quote with this Id does not exist')
+  }
 }
 
-function filterEstimates (responseData, isPrivateNote, searchTerm) {
+function filterEstimates (responseData, isPrivateNote, searchTerm, oauthClient) {
   function hasPrivateNoteMatching (estimate, searchTerm) {
     return estimate.PrivateNote && estimate.PrivateNote.toLowerCase().includes(searchTerm.toLowerCase())
   }
@@ -104,7 +162,7 @@ function filterEstimates (responseData, isPrivateNote, searchTerm) {
         const itemRef = line.SalesItemLineDetail && line.SalesItemLineDetail.ItemRef
         const itemValue = itemRef.value
 
-        return getSKUFromId(itemValue).then(itemSKU => {
+        return getSKUFromId(itemValue, oauthClient).then(itemSKU => {
           return {
             [Description]: {
               SKU: itemSKU,
@@ -132,10 +190,10 @@ function filterEstimates (responseData, isPrivateNote, searchTerm) {
   return Promise.all(filteredEstimatesPromises)
 }
 
-function getSKUFromId (itemValue) {
+function getSKUFromId (itemValue, oauthClient) {
   const query = `SELECT * from Item WHERE Id = '${itemValue}'`
-  const companyID = getCompanyId()
-  const baseURL = getBaseURL()
+  const companyID = getCompanyId(oauthClient)
+  const baseURL = getBaseURL(oauthClient)
 
   return new Promise((resolve, reject) => {
     oauthClient.makeApiCall({ url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69` })

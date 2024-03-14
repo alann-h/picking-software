@@ -1,19 +1,23 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { retrieveToken } from '../api/auth';
-import {setToken} from '../utils/storage'
+import {setToken, setUserId} from '../utils/storage'
 
 const OAuthCallbackHandler = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    retrieveToken()
+    const userId = searchParams.get('userId');
+    if (userId) {
+      retrieveToken(userId)
       .then(oauthToken => {
         if (oauthToken != null) {
-          setToken('accessToken', oauthToken.access_token);
-          setToken('refreshToken', oauthToken.refresh_token);
+          setToken(oauthToken.access_token);
+          setUserId(userId);
           navigate('/dashboard');
         } else {
+          console.log(userId, oauthToken);
           navigate('/');
         }
       })
@@ -21,7 +25,10 @@ const OAuthCallbackHandler = () => {
         console.log(error);
         navigate('/');
       });
-  }, [navigate]);
+    } else {
+      navigate('/');
+    }
+  }, [navigate, searchParams]);
 
   return <div>Processing login...</div>;
 };

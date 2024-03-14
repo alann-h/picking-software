@@ -14,8 +14,8 @@ export const login = async () => {
 /**
  * Gets tokens
  */
-export const retrieveToken= async () => {
-  const token = await apiCallGet('retrieveToken');
+export const retrieveToken= async (userId: string) => {
+  const token = await apiCallGet(`retrieveToken/${userId}`);
   if (token.error) {
     throw new Error(token.error);
   } else {
