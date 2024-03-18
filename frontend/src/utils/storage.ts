@@ -1,6 +1,8 @@
-export const isLoggedIn = () => localStorage.getItem('accessToken') !== null;
-export const getAccessToken = () => localStorage.getItem('accessToken');
-export const getUserId = () => localStorage.getItem('userId');
-export const setUserId = (userId: string) => localStorage.setItem('userId', userId);
-export const setToken = (token: string) => localStorage.setItem('accessToken', token);
-export const deleteToken = () => localStorage.removeItem('accessToken');
+import Cookies from 'js-cookie';
+
+export const isLoggedIn = () => Cookies.get('accessToken') !== undefined;
+export const getAccessToken = () => Cookies.get('accessToken');
+export const getUserId = () => Cookies.get('userId');
+export const setUserId = (userId: string) => Cookies.set('userId', userId, { expires: 7, secure: true, sameSite: 'strict' });
+export const setToken = (token: string) => Cookies.set('accessToken', token, { expires: 7, secure: true, sameSite: 'strict' });
+export const deleteToken = () => Cookies.remove('accessToken');

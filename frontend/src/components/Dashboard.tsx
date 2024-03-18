@@ -24,6 +24,7 @@ const Dashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 20;
 
+
   const handleSearch = async () => {
     const searchField = 'DocNumber';
     try {

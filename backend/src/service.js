@@ -3,7 +3,7 @@ import config from '../config.json'
 import excelToJson from 'convert-excel-to-json'
 import fs from 'fs-extra'
 import { InputError, AccessError } from './error'
-import { v4 as uuidv4 } from '.uuid'
+import { v4 as uuidv4 } from 'uuid'
 
 const clientId = config.CLIENT_ID
 const clientSecret = config.CLIENT_SECRET
@@ -59,15 +59,8 @@ export function handleCallback (req) {
 }
 
 function saveUser (userId, token) {
-  const userToken = {
-    realmId: token.realmId,
-    token_type: token.token_type,
-    access_token: token.access_token,
-    refresh_token: token.refresh_token,
-    x_refresh_token_expires_in: token.x_refresh_token_expires_in
-  }
   const database = readDatabase(databasePath)
-  database.users[userId] = userToken
+  database.users[userId] = token
   writeDatabase(databasePath, database)
 }
 
@@ -100,10 +93,35 @@ export function getUserToken (userId) {
       } else if (!userToken.access_token || !userToken.refresh_token) {
         reject(new AccessError('Token not found for user'))
       } else {
-        resolve(userToken)
+        const oauthClient = initializeOAuthClient()
+        oauthClient.setToken(userToken)
+
+        if (!oauthClient.isAccessTokenValid()) {
+          if (!oauthClient.token.isRefreshTokenValid()) {
+            deleteUserToken(userId)
+            reject(new AccessError('The Refresh token is invalid, please reauthenticate.'))
+          } else {
+            oauthClient.refreshUsingToken(userToken.refresh_token)
+              .then(newToken => {
+                saveUser(userId, newToken)
+                resolve(newToken)
+              })
+              .catch(_ => {
+                reject(new AccessError('Failed to refresh token'))
+              })
+          }
+        } else {
+          resolve(userToken)
+        }
       }
     }
   })
+}
+
+function deleteUserToken (userId) {
+  const database = readDatabase(databasePath)
+  delete database.users[userId]
+  writeDatabase(databasePath, database)
 }
 
 /***************************************************************

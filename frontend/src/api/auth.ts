@@ -22,3 +22,15 @@ export const retrieveToken= async (userId: string) => {
     return token
   }
 }
+/**
+ * Verifies user
+ */
+export const verifyUser = async (userId: string) => {
+  const response = await apiCallGet(`verifyUser/${userId}`);
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response
+  }
+};
+

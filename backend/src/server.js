@@ -57,12 +57,24 @@ app.get('/retrieveToken/:userId', function (req, res) {
     })
 })
 
+app.get('/verifyUser/:userId', (req, res) => {
+  const userId = req.params.userId
+  getUserToken(userId)
+    .then(userToken => {
+      res.json({ isValid: true, accessToken: userToken.access_token })
+    })
+    .catch(error => {
+      res.status(500).json({ isValid: false, error: error.message })
+    })
+})
+
 /***************************************************************
                        Quote Functions
 ***************************************************************/
 // should spilit this into two functions one for getting the estimate and the other for putting the estimate in database
 app.post('/estimates', (req, res) => {
   const { searchField, estimateNumber, userId } = req.body // searchField can either be 'DocNumber' or 'PrivateNote
+  console.log(req.session)
   let quote = estimateExists(estimateNumber)
   if (quote != null) {
     res.send(JSON.stringify(quote, null, 2))
