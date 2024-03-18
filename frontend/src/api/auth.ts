@@ -14,11 +14,23 @@ export const login = async () => {
 /**
  * Gets tokens
  */
-export const retrieveToken= async () => {
-  const token = await apiCallGet('retrieveToken');
+export const retrieveToken= async (userId: string) => {
+  const token = await apiCallGet(`retrieveToken/${userId}`);
   if (token.error) {
     throw new Error(token.error);
   } else {
     return token
   }
 }
+/**
+ * Verifies user
+ */
+export const verifyUser = async (userId: string) => {
+  const response = await apiCallGet(`verifyUser/${userId}`);
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response
+  }
+};
+

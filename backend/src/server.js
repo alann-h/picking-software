@@ -1,8 +1,9 @@
 import express from 'express'
+import session from 'express-session'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
-import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists, processBarcode } from './service.js'
+import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists, processBarcode, getUserToken } from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
@@ -17,23 +18,29 @@ app.use(morgan(':method :url :status'))
 
 const upload = multer({ dest: process.cwd() })
 
-let oauthToken = null
+app.use(session({
+  secret: 'Gold@nShore',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}))
 
 /***************************************************************
                        User Auth Functions
 ***************************************************************/
-
 app.get('/authUri', (req, res) => {
-  getAuthUri()
-    .then(authUri => res.send(JSON.stringify(authUri)))
+  getAuthUri(req)
+    .then(authUri => {
+      res.send(JSON.stringify(authUri))
+    })
     .catch(error => res.status(500).json({ error: error.message }))
 })
 
 app.get('/callback', (req, res) => {
   handleCallback(req)
-    .then(token => {
-      oauthToken = token
-      res.redirect('http://localhost:3000/oauth/callback')
+    .then(() => {
+      const userId = req.session.userId
+      res.redirect(`http://localhost:3000/oauth/callback?userId=${userId}`) // redirects to frontend dashboard with userId
     })
     .catch(error => {
       console.error(error)
@@ -41,8 +48,24 @@ app.get('/callback', (req, res) => {
     })
 })
 
-app.get('/retrieveToken', function (req, res) {
-  res.send(oauthToken)
+app.get('/retrieveToken/:userId', function (req, res) {
+  const userId = req.params.userId
+  getUserToken(userId)
+    .then(token => res.send(token))
+    .catch(error => {
+      res.status(500).json({ error: error.message })
+    })
+})
+
+app.get('/verifyUser/:userId', (req, res) => {
+  const userId = req.params.userId
+  getUserToken(userId)
+    .then(userToken => {
+      res.json({ isValid: true, accessToken: userToken.access_token })
+    })
+    .catch(error => {
+      res.status(500).json({ isValid: false, error: error.message })
+    })
 })
 
 /***************************************************************
@@ -50,17 +73,18 @@ app.get('/retrieveToken', function (req, res) {
 ***************************************************************/
 // should spilit this into two functions one for getting the estimate and the other for putting the estimate in database
 app.post('/estimates', (req, res) => {
-  const { searchField, estimateNumber } = req.body // searchField can either be 'DocNumber' or 'PrivateNote
+  const { searchField, estimateNumber, userId } = req.body // searchField can either be 'DocNumber' or 'PrivateNote
+  console.log(req.session)
   let quote = estimateExists(estimateNumber)
   if (quote != null) {
     res.send(JSON.stringify(quote, null, 2))
     return
   }
-  getFilteredEstimates(searchField, estimateNumber)
+  getFilteredEstimates(searchField, estimateNumber, userId)
     .then(estimate => {
       quote = JSON.stringify(estimate[0], null, 2)
-      estimateToDB(quote);
-      res.send(quote);
+      estimateToDB(quote)
+      res.send(quote)
     })
     .catch(error => {
       console.error(error)
