@@ -14,14 +14,18 @@ const Dashboard: React.FC = () => {
   const handleSearch = async () => {
     const searchField = 'DocNumber';
     try {
-      const data = await extractQuote(searchField, quoteNumber);
-      await saveQuote(data);
+      const response = await extractQuote(searchField, quoteNumber);
+      const { source, data } = response;
       setQuoteData(data);
+      if (source === 'api') {
+        await saveQuote(data);
+      }
     } catch (error) {
       console.error(error);
       setQuoteData(null);
     }
   };
+  
   const highlightStyle = {
     backgroundColor: 'yellow',
     padding: 2,
