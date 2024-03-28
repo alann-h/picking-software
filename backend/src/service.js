@@ -27,7 +27,6 @@ export function getAuthUri (req) {
   const oauthClient = initializeOAuthClient()
   const authUri = oauthClient.authorizeUri({ scope: [OAuthClient.scopes.Accounting], state: 'intuit-test' })
 
-  req.session.oauthClient = oauthClient.getToken()
   return Promise.resolve(authUri)
 }
 
@@ -269,21 +268,29 @@ export function processFile (filePath) {
   })
 }
 
-export function estimateToDB (estimateString) {
-  const estimate = JSON.parse(estimateString)
-
-  const estimateInfo = {
-    customer: estimate.customer,
-    productInfo: estimate.productInfo,
-    totalAmount: estimate.totalAmount
-    // status: true
-  }
-  const database = readDatabase(databasePath)
-  if (!database.quotes[estimate.quoteNumber]) {
-    database.quotes[estimate.quoteNumber] = estimateInfo
-    writeDatabase(databasePath, database)
-  }
+export function estimateToDB (estimate) {
+  return new Promise((resolve, reject) => {
+    try {
+      const quote = estimate.quote
+      const estimateInfo = {
+        customer: quote.customer,
+        productInfo: quote.productInfo,
+        totalAmount: quote.totalAmount
+      }
+      const database = readDatabase(databasePath)
+      if (!database.quotes[quote.quoteNumber]) {
+        database.quotes[quote.quoteNumber] = estimateInfo
+        writeDatabase(databasePath, database)
+        resolve()
+      } else {
+        reject(new AccessError('Quote already exists'))
+      }
+    } catch (error) {
+      reject(error)
+    }
+  })
 }
+
 // checks if estimate exists in database if it is return it or else return null
 export function estimateExists (docNumber) {
   const database = readDatabase(databasePath)
