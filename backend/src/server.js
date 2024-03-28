@@ -79,23 +79,30 @@ app.post('/saveQuote', (req, res) => {
 // Gathers quote information from either the local database or from the actual API
 app.get('/estimate/:quoteId/:userId', (req, res) => {
   const { quoteId, userId } = req.params
-  const { searchField } = req.query // searchField can either be 'DocNumber' or 'PrivateNote
+  const { searchField } = req.query // searchField can either be 'DocNumber' or 'PrivateNote'
   let quote = estimateExists(quoteId)
   if (quote != null) {
-    res.send(JSON.stringify(quote, null, 2))
+    res.json({
+      source: 'database',
+      data: quote
+    })
     return
   }
 
   getFilteredEstimates(searchField, quoteId, userId)
     .then(estimate => {
-      quote = JSON.stringify(estimate[0], null, 2)
-      res.send(quote)
+      quote = estimate[0]
+      res.json({
+        source: 'api',
+        data: quote
+      })
     })
     .catch(error => {
       console.error(error)
       res.status(400).json({ error: error.message })
     })
 })
+
 app.post('/upload', upload.single('input'), (req, res) => {
   if (!req.file || req.file.filename === null || req.file.filename === 'undefined') {
     return res.status(400).json('No File')
