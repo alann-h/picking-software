@@ -23,20 +23,20 @@ function initializeOAuthClient () {
   })
 }
 
-function getBaseURL (oauthClient) {
-  return oauthClient.environment === 'sandbox' ? OAuthClient.environment.sandbox : OAuthClient.environment.production
-}
-
-function getCompanyId (oauthClient) {
-  return oauthClient.getToken().realmId
-}
-
 export function getAuthUri (req) {
   const oauthClient = initializeOAuthClient()
   const authUri = oauthClient.authorizeUri({ scope: [OAuthClient.scopes.Accounting], state: 'intuit-test' })
 
   req.session.oauthClient = oauthClient.getToken()
   return Promise.resolve(authUri)
+}
+
+function getBaseURL (oauthClient) {
+  return oauthClient.environment === 'sandbox' ? OAuthClient.environment.sandbox : OAuthClient.environment.production
+}
+
+function getCompanyId (oauthClient) {
+  return oauthClient.getToken().realmId
 }
 
 export function handleCallback (req) {
@@ -47,10 +47,8 @@ export function handleCallback (req) {
       const token = authResponse.getToken()
       const userId = uuidv4()
 
-      req.session.userId = userId
-
       saveUser(userId, token)
-      return token
+      return userId
     })
     .catch(function (e) {
       console.error(e)

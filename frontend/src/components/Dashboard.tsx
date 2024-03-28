@@ -1,22 +1,8 @@
 import React, { useState } from 'react';
 import { Container, Paper, TextField, Button, Typography, Grid, Card, CardContent, Pagination, Box } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import { extractQuote } from '../api/quote';
-
-interface ProductDetails {
-  SKU: string;
-  Qty: number;
-}
-
-interface ProductInfo {
-  [productName: string]: ProductDetails;
-}
-
-interface QuoteData {
-  customer: string;
-  productInfo: ProductInfo;
-  totalAmount: string;
-}
+import { extractQuote, saveQuote } from '../api/quote';
+import { QuoteData } from '../utils/types';
 
 const Dashboard: React.FC = () => {
   const [quoteNumber, setQuoteNumber] = useState<string>('');
@@ -29,6 +15,7 @@ const Dashboard: React.FC = () => {
     const searchField = 'DocNumber';
     try {
       const data = await extractQuote(searchField, quoteNumber);
+      await saveQuote(data);
       setQuoteData(data);
     } catch (error) {
       console.error(error);
