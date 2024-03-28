@@ -1,5 +1,5 @@
 import express from 'express'
-import session from 'express-session'
+
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
@@ -18,13 +18,6 @@ app.use(morgan(':method :url :status'))
 
 const upload = multer({ dest: process.cwd() })
 
-app.use(session({
-  secret: 'Gold@nShore',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
-}))
-
 /***************************************************************
                        User Auth Functions
 ***************************************************************/
@@ -38,8 +31,7 @@ app.get('/authUri', (req, res) => {
 
 app.get('/callback', (req, res) => {
   handleCallback(req)
-    .then(() => {
-      const userId = req.session.userId
+    .then(userId => {
       res.redirect(`http://localhost:3000/oauth/callback?userId=${userId}`) // redirects to frontend dashboard with userId
     })
     .catch(error => {
@@ -71,19 +63,32 @@ app.get('/verifyUser/:userId', (req, res) => {
 /***************************************************************
                        Quote Functions
 ***************************************************************/
-// should spilit this into two functions one for getting the estimate and the other for putting the estimate in database
-app.post('/estimates', (req, res) => {
-  const { searchField, estimateNumber, userId } = req.body // searchField can either be 'DocNumber' or 'PrivateNote
-  console.log(req.session)
-  let quote = estimateExists(estimateNumber)
+// saves quote to the database
+app.post('/saveQuote', (req, res) => {
+  const quote = req.body
+  estimateToDB(quote)
+    .then(() => {
+      res.status(200).json({ message: 'Quote saved successfully in database' })
+    })
+    .catch((error) => {
+      console.error(error)
+      res.status(400).json({ error: error.message })
+    })
+})
+
+// Gathers quote information from either the local database or from the actual API
+app.get('/estimate/:quoteId/:userId', (req, res) => {
+  const { quoteId, userId } = req.params
+  const { searchField } = req.query // searchField can either be 'DocNumber' or 'PrivateNote
+  let quote = estimateExists(quoteId)
   if (quote != null) {
     res.send(JSON.stringify(quote, null, 2))
     return
   }
-  getFilteredEstimates(searchField, estimateNumber, userId)
+
+  getFilteredEstimates(searchField, quoteId, userId)
     .then(estimate => {
       quote = JSON.stringify(estimate[0], null, 2)
-      estimateToDB(quote)
       res.send(quote)
     })
     .catch(error => {
@@ -91,7 +96,6 @@ app.post('/estimates', (req, res) => {
       res.status(400).json({ error: error.message })
     })
 })
-
 app.post('/upload', upload.single('input'), (req, res) => {
   if (!req.file || req.file.filename === null || req.file.filename === 'undefined') {
     return res.status(400).json('No File')
