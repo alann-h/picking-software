@@ -13,3 +13,14 @@ export interface QuoteData {
     productInfo: ProductInfo;
     totalAmount: string;
 }
+
+export interface QuoteProps {
+    quoteData: QuoteData | null;
+    quoteNumber: string;
+    currentPage: number;
+    itemsPerPage: number;
+}
+export interface BarcodeListenerProps {
+    onBarcodeScanned: (barcode: string) => void;
+}
+  
