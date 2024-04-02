@@ -300,21 +300,21 @@ export function estimateExists (docNumber) {
   return null
 }
 
-export function processBarcode (barcode, docNumber, newQty) {
+export function processBarcode (barcode, quoteId, newQty) {
   return new Promise((resolve, reject) => {
     try {
       const database = readDatabase(databasePath)
       const productName = database.products[barcode].name
-      if (productName === null) reject(new InputError('This product does not exists within the database'))
-      const estimate = database.quotes[docNumber]
+      if (productName === null) return reject(new InputError('This product does not exists within the database'))
+      const estimate = database.quotes[quoteId]
 
       if (estimate && estimate.productInfo[productName]) {
         let qty = estimate.productInfo[productName].Qty
-        if (qty === 0 || (qty - newQty) < 0) reject(new InputError('The new quantity is below 0'))
+        if (qty === 0 || (qty - newQty) < 0) return resolve({ productName, updatedQty: 0 })
         qty = qty - newQty
         estimate.productInfo[productName].Qty = qty
         writeDatabase(databasePath, database)
-        resolve('Successfully scanned product')
+        resolve({ productName, updatedQty: qty })
       } else {
         reject(new InputError('Quote number is invalid or scanned product does not exist on quote'))
       }

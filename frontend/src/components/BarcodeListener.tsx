@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface BarcodeListenerProps {
-  onBarcodeScanned: (barcode: string) => void;
-}
+import { BarcodeListenerProps } from '../utils/types';
 
 const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned }) => {
   const [barcode, setBarcode] = useState<string>('');

@@ -111,8 +111,8 @@ app.post('/upload', upload.single('input'), (req, res) => {
   const filePath = process.cwd() + '/' + req.file.filename
 
   processFile(filePath)
-    .then(message => {
-      res.status(200).json(message)
+    .then(data => {
+      res.status(200).json(data)
     })
     .catch(error => {
       console.error('Error processing file:', error)
@@ -121,8 +121,8 @@ app.post('/upload', upload.single('input'), (req, res) => {
 })
 
 app.post('/productScan', (req, res) => {
-  const { barcode, docNumber, newQty } = req.body
-  processBarcode(barcode, docNumber, newQty)
+  const { barcode, quoteId, newQty } = req.body
+  processBarcode(barcode, quoteId, newQty)
     .then(message => {
       res.status(200).json(message)
     })
