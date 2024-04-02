@@ -23,3 +23,12 @@ export const saveQuote = async (quote: QuoteData) => {
     return data
   }
 }
+
+export const barcodeScan = async (barcode: string, quoteId: string, newQty: number) => {
+  const data = await apiCallPost('productScan', { barcode, quoteId, newQty });
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data
+  }
+}

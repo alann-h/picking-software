@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, CardContent, Grid, Paper, Typography } from '@mui/material';
 import { QuoteData } from '../utils/types';
+import { barcodeScan } from '../api/quote';
+import BarcodeListener from './BarcodeListener';
 
 interface QuoteProps {
   quoteData: QuoteData | null;
@@ -16,8 +18,18 @@ const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, item
     borderRadius: 3,
   };
 
+  const handleBarcodeScanned = (barcode: string) => {
+    barcodeScan(barcode, quoteNumber, 1)
+    .then(data => {
+      console.log('Barcode scanned successfully:', data);
+    })
+    .catch(error => {
+      console.error('Error scanning barcode:', error);
+    })
+  }
   return (
     <Paper elevation={8} sx={{ padding: 3, marginTop: 3 }}>
+      <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
       {quoteData ? (
         <>
           <Paper variant="outlined" sx={{ padding: 2, marginBottom: 2, display: 'flex', justifyContent: 'space-between' }}>
