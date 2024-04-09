@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Snackbar, Alert, Box } from '@mui/material';
+import React, { useEffect } from 'react';
+import { Button, Box } from '@mui/material';
 import { login, verifyUser } from '../api/auth';
 import { getUserId, setToken } from '../utils/storage';
+import { useSnackbarContext } from './SnackbarContext';
+
 
 const Login: React.FC = () => {
-  const [error, setError] = useState<string>('');
-  const [openSnackbar, setOpenSnackbar] = useState<boolean>(false);
+  const { handleOpenSnackbar } = useSnackbarContext();
 
   useEffect(() => {
     const userId = getUserId();
@@ -18,28 +19,19 @@ const Login: React.FC = () => {
           }
         })
         .catch((err: Error) => {
-          setError(err.message);
-          setOpenSnackbar(true);
+          handleOpenSnackbar(err.message, 'error');
         });
     }
-  }, []);
+  }, [handleOpenSnackbar]);
 
   const handleLoginClick = () => {
     login()
       .then((authUri: string) => (window.location.href = authUri))
       .catch((err: Error) => {
-        setError(err.message);
-        setOpenSnackbar(true);
+        handleOpenSnackbar(err.message, 'error');
       });
   };
 
-  const handleCloseSnackbar = (_event?: React.SyntheticEvent | Event, reason?: string) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setOpenSnackbar(false);
-  };
-  
   return (
     <Box
       display="flex"
@@ -55,11 +47,6 @@ const Login: React.FC = () => {
       >
         Login with QuickBooks
       </Button>
-      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

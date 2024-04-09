@@ -302,21 +302,39 @@ export function estimateExists (docNumber) {
 
 export function processBarcode (barcode, quoteId, newQty) {
   return new Promise((resolve, reject) => {
+    getProductName(barcode)
+      .then(productName => {
+        const database = readDatabase(databasePath)
+        const estimate = database.quotes[quoteId]
+
+        if (estimate && estimate.productInfo[productName]) {
+          let qty = estimate.productInfo[productName].Qty
+          if (qty === 0 || (qty - newQty) < 0) {
+            return resolve({ productName, updatedQty: 0 })
+          }
+          qty = qty - newQty
+          estimate.productInfo[productName].Qty = qty
+          writeDatabase(databasePath, database)
+          resolve({ productName, updatedQty: qty })
+        } else {
+          reject(new InputError('Quote number is invalid or scanned product does not exist on quote'))
+        }
+      })
+      .catch(error => {
+        reject(error)
+      })
+  })
+}
+
+export function getProductName (barcode) {
+  return new Promise((resolve, reject) => {
     try {
       const database = readDatabase(databasePath)
       const productName = database.products[barcode].name
-      if (productName === null) return reject(new InputError('This product does not exists within the database'))
-      const estimate = database.quotes[quoteId]
-
-      if (estimate && estimate.productInfo[productName]) {
-        let qty = estimate.productInfo[productName].Qty
-        if (qty === 0 || (qty - newQty) < 0) return resolve({ productName, updatedQty: 0 })
-        qty = qty - newQty
-        estimate.productInfo[productName].Qty = qty
-        writeDatabase(databasePath, database)
-        resolve({ productName, updatedQty: qty })
+      if (productName === null) {
+        reject(new InputError('This product does not exist within the database'))
       } else {
-        reject(new InputError('Quote number is invalid or scanned product does not exist on quote'))
+        resolve(productName)
       }
     } catch (error) {
       reject(new InputError(error))
