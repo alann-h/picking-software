@@ -32,3 +32,12 @@ export const barcodeScan = async (barcode: string, quoteId: string, newQty: numb
     return data
   }
 }
+
+export const barcodeToName = async (barcode: string) => {
+  const data = await apiCallGet(`barcodeToName/${barcode}`);
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data
+  }
+}

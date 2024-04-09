@@ -3,7 +3,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
-import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists, processBarcode, getUserToken } from './service.js'
+import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists, processBarcode, getUserToken, getProductName } from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
@@ -129,6 +129,18 @@ app.post('/productScan', (req, res) => {
     .catch(error => {
       console.error('Error finding product in quote:', error)
       res.status(500).json({ error: error.message })
+    })
+})
+
+app.get('/barcodeToName/:barcode', (req, res) => {
+  const { barcode } = req.params
+
+  getProductName(barcode)
+    .then(productName => {
+      res.json({ productName })
+    })
+    .catch(error => {
+      res.status(400).json({ error: error.message })
     })
 })
 

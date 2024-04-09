@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, Grid, Paper, Typography } from '@mui/material';
 import { QuoteData } from '../utils/types';
-import { barcodeScan } from '../api/quote';
+import { barcodeScan, barcodeToName } from '../api/quote';
 import BarcodeListener from './BarcodeListener';
 import { QuoteProps } from '../utils/types';
+import QtyModal from './QtyModal';
+import { useSnackbarContext } from './SnackbarContext';
 
 const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, itemsPerPage }) => {
   const [updatedQuoteData, setUpdatedQuoteData] = useState<QuoteData | null>(quoteData);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [inputQty, setInputQty] = useState(1);
+  const [scannedBarcode, setScannedBarcode] = useState('');
+  const [availableQty, setAvailableQty] = useState(0);
+
+  const { handleOpenSnackbar } = useSnackbarContext();
 
   useEffect(() => {
     setUpdatedQuoteData(quoteData);
@@ -19,14 +27,40 @@ const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, item
   };
 
   const handleBarcodeScanned = (barcode: string) => {
-    barcodeScan(barcode, quoteNumber, 1)
-      .then(data => {
-        console.log('Barcode scanned successfully:', data);
-        updateProductQuantity(data.productName, data.updatedQty);
+    setScannedBarcode(barcode);
+    barcodeToName(barcode)
+      .then(({ productName }) => {
+        const product = updatedQuoteData?.productInfo[productName];
+  
+        if (product) {
+          setAvailableQty(product.Qty);
+          setIsModalOpen(true);
+        } else {
+          handleOpenSnackbar('Product not found in quote data', 'error');
+        }
       })
       .catch(error => {
-        console.error('Error scanning barcode:', error);
+        handleOpenSnackbar(error.message, 'error');
       });
+  };
+  
+  const handleModalConfirm = () => {
+    barcodeScan(scannedBarcode, quoteNumber, inputQty)
+      .then(data => {
+        handleOpenSnackbar('Barcode scanned successfully!', 'success');
+        updateProductQuantity(data.productName, data.updatedQty);
+        setIsModalOpen(false);
+        setInputQty(0);
+      })
+      .catch(error => {
+        handleOpenSnackbar(`Error scanning barcode: ${error.message}`, 'error');
+      });
+  };
+  
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    handleOpenSnackbar('Modal Closed!', 'error');
+    setInputQty(1); 
   };
 
   const updateProductQuantity = (productName: string, updatedQty: number) => {
@@ -41,6 +75,14 @@ const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, item
   return (
     <Paper elevation={8} sx={{ padding: 3, marginTop: 3 }}>
       <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
+      <QtyModal
+        isModalOpen={isModalOpen}
+        inputQty={inputQty}
+        onModalClose={handleModalClose}
+        onQtyChange={setInputQty}
+        availableQty={availableQty}
+        onModalConfirm={handleModalConfirm}
+      />
       {updatedQuoteData ? (
         <>
           <Paper variant="outlined" sx={{ padding: 2, marginBottom: 2, display: 'flex', justifyContent: 'space-between' }}>
