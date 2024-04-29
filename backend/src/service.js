@@ -2,7 +2,7 @@ import OAuthClient from 'intuit-oauth'
 import config from '../config.json'
 import excelToJson from 'convert-excel-to-json'
 import fs from 'fs-extra'
-import { InputError, AccessError } from './error'
+import { InputError, AccessError, NotFoundError, AuthenticationError } from './error'
 import { v4 as uuidv4 } from 'uuid'
 
 const clientId = config.CLIENT_ID
@@ -71,7 +71,7 @@ async function getOAuthClient (userId) {
         return oauthClient
       }
     } catch (error) {
-      console.error('Error getting OAuth client:', error)
+      return new AccessError('Error getting OAuth client')
     }
   }
   return null
@@ -80,38 +80,40 @@ async function getOAuthClient (userId) {
 export function getUserToken (userId) {
   return new Promise((resolve, reject) => {
     if (!userId) {
-      reject(new InputError('User Id is not valid'))
-    } else {
-      const database = readDatabase(databasePath)
-      const userToken = database.users[userId]
-
-      if (!userToken) {
-        reject(new InputError('User not found'))
-      } else if (!userToken.access_token || !userToken.refresh_token) {
-        reject(new AccessError('Token not found for user'))
-      } else {
-        const oauthClient = initializeOAuthClient()
-        oauthClient.setToken(userToken)
-
-        if (!oauthClient.isAccessTokenValid()) {
-          if (!oauthClient.token.isRefreshTokenValid()) {
-            deleteUserToken(userId)
-            reject(new AccessError('The Refresh token is invalid, please reauthenticate.'))
-          } else {
-            oauthClient.refreshUsingToken(userToken.refresh_token)
-              .then(newToken => {
-                saveUser(userId, newToken)
-                resolve(newToken)
-              })
-              .catch(_ => {
-                reject(new AccessError('Failed to refresh token'))
-              })
-          }
-        } else {
-          resolve(userToken)
-        }
-      }
+      return reject(new InputError('User Id is not valid'))
     }
+
+    const database = readDatabase(databasePath)
+    const userToken = database.users[userId]
+    if (!userToken) {
+      return reject(new NotFoundError('User not found'))
+    }
+
+    if (!userToken.access_token || !userToken.refresh_token) {
+      return reject(new AccessError('Token not found for user'))
+    }
+
+    const oauthClient = initializeOAuthClient()
+    oauthClient.setToken(userToken)
+
+    if (oauthClient.isAccessTokenValid()) {
+      return resolve(userToken)
+    }
+
+    if (!oauthClient.token.isRefreshTokenValid()) {
+      deleteUserToken(userId)
+      return reject(new AuthenticationError('The Refresh token is invalid, please reauthenticate.'))
+    }
+
+    oauthClient.refreshUsingToken(userToken.refresh_token)
+      .then(response => {
+        const newToken = response.getToken()
+        saveUser(userId, newToken)
+        resolve(newToken)
+      })
+      .catch(() => {
+        reject(new NotFoundError('Failed to refresh token'))
+      })
   })
 }
 
@@ -129,7 +131,7 @@ export async function getFilteredEstimates (searchField, searchTerm, userId) {
   try {
     const oauthClient = await getOAuthClient(userId)
     if (!oauthClient) {
-      throw new Error('OAuth client could not be initialized')
+      throw new AccessError('OAuth client could not be initialized')
     }
 
     const companyID = getCompanyId(oauthClient)
@@ -151,7 +153,7 @@ export async function getFilteredEstimates (searchField, searchTerm, userId) {
     const filteredEstimates = filterEstimates(responseData, isPrivateNote, searchTerm, oauthClient)
     return filteredEstimates
   } catch (error) {
-    throw new AccessError('Wrong input or quote with this Id does not exist')
+    throw new InputError('Wrong input or quote with this Id does not exist')
   }
 }
 

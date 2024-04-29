@@ -1651,46 +1651,6 @@
       "name": "Plum Golden 16X400G"
     }
   },
-  "quotes": {
-    "1007": {
-      "customer": "Himateja Madala",
-      "productInfo": {
-        "Employee training off site": {
-          "SKU": "A101",
-          "Qty": 1
-        },
-        "Employee celebration -- Anniversary / Retirement": {
-          "SKU": "A102",
-          "Qty": 5
-        },
-        "Olive Kalamata Pitted 10KG": {
-          "SKU": "B101",
-          "Qty": 10
-        }
-      },
-      "totalAmount": "$4650"
-    }
-  },
-  "users": {
-    "88fe2a73-cfdc-465e-ac0d-46c1d4e196c7": {
-      "token_type": "bearer",
-      "access_token": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..QSaK2nG1x7R1arGPlhmMkA.tL6zS65hVwV4sKhC7EEQbxi-YXDTrFeXdjAUJoDigTgGYT-BeZE0oO714xO8zSxMu2v5m-6T__CjFdK5hkwOOZQWuAUC39YFfJZgLynxU4gGL-2Z0jEE3Oot3UfHNT_-J26P1_iKEeKrd5r8WsGp50Tk8Jdr0jeI17mPjyhI5Vx07CUybm8IwkyohK0lP9__7tgXmdd9mukEt6qvBlR5nbZgj3k2DluPvPnTL3JApkp-BFbQjUBjubp8Zz619RYRG6QMLqTS9uTmt-2RxgxZRRX8d7JTzGzyQEFHI3_esVUCfSFxtyF3rzJWAuPhtM0FnrllvuWfn-OWwgdrhkNr-OehL9UU_xrNWzjXMF4cnOqVRsLbP1G9n8b78sDYU9MhLlYBlD-htjZZb5zdhOj5EPtA-wXYAHSPVZwxjfPX5b_BdxiKQ5tratRiuTt3UldK6mQKMo-LmOjxJVjmbaqEVrVACX1dR-NBFw_QbJ4OulC1aVJBkuEkjfstPmIUQb7nmBodZfxOn4ltXCzYDBfJRgCYOtz2CcrOUiCserCqV6b_tx2WNs09e_tCrxUqS3xA-UKRN8BkmbMIZR9TDY7OprRXChZqAn3tcS4XWsssu8mBxGVtIvEjWzBMW8ZBLlB8gX5KX0T0pz4ubLdM12rrt0QygGRGN7A0lqi6VPVhyDv7bQ-Lsv6nyxarERS-sDMMSrVm2V3pwEMDedg1xapX7Q_-1QUxeQZNSOwbQsWoMX8.nxS7U8FBrULthdBYpNpDSw",
-      "expires_in": 3600,
-      "refresh_token": "AB11720753016iTpKQro7s7KB3OazjCVHFxu8RfRY6vPsunlll",
-      "x_refresh_token_expires_in": 8726400,
-      "realmId": "9130357908851946",
-      "id_token": "",
-      "createdAt": 1712026617519
-    },
-    "c9e033d5-304c-42a1-842c-939602d5e7f3": {
-      "token_type": "bearer",
-      "access_token": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..jU4_DE1azy5uUJ90rYohYg.NDajLqNEylRa2094nzUQVWWJjjXF_mtue_uK38xgs6iFDFSP5YsyA4PKtYmwc4hm4_D_0BhR-x6MW6AOACs8Z8mEhljl9a0kTvaEm3_PzXImgxd8s5snHq_kiSbIT8Ysnw7CuURmLgNv3LEZMcJpn5um_x-fryS4yyQtgeAXYNLVfiCu4eKCmv5xrRyb01DT9GTm-45omgiquK9XTQ5H6rfreG4K16Hs4KtmiSA2gYRCoS-ShilmxkRuIRcZraIxuDoKVpF0P_Q4KsmjCaE9g45xfhb_nD8ugOIAUKu-pwZJkVyYHmWUb__Px95pvbwG54xoI9sztVMCJSpA771h4cbhPK5o4P_YVRx6dUGE3TDFd4FEIt7aTmgckZZsb1vLXusRyo5VjYR8q0wk6H1n7FMs3M4crJEs9ntMAukrEEUY89S0Qk982HQRuwXDRHYsivOMb16q8DUTZ0NG3thkWwqEq-Bj9W9nRXt4PUl3ks_6Fogh4s8QSTIQkEVx-Yokq6K5sNSTnJn0uehp2_53Qf7E-XqloHCSxOTh7i0dr0QFbUbVnUG0AAYVKbj4XehvvjPY-jYJoCgCKLgpVkWTO-ASYYp36C0D53A6wDcSn2ZuWk_F_KDFWlgRn4qZ5rRfhnTnuD-zPDtr0hFJu-YMTNh1mQusk2eUE4EFG5jNcGzRkoYZFuaL8KbJ9SEPGWh31WpfEo_LG-Hh6KFWUQiEXvlLJ587YuKQigTP_a0n761tJrze2eCarBHQSKS6ge7e.-tAiAeV7cO3kUMEBj_XW1Q",
-      "expires_in": 3600,
-      "refresh_token": "AB11721390334xhXAN0jN8SuX3YuTf0ZNckUS8RmcezjuMN3Nn",
-      "x_refresh_token_expires_in": 8726400,
-      "realmId": "9130357908851946",
-      "id_token": "",
-      "createdAt": 1712663936062
-    }
-  }
+  "quotes": {},
+  "users": {}
 }

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Button, Box } from '@mui/material';
 import { login, verifyUser } from '../api/auth';
-import { getUserId, setToken } from '../utils/storage';
+import { getUserId, setToken, deleteToken } from '../utils/storage';
 import { useSnackbarContext } from './SnackbarContext';
 
 
@@ -14,12 +14,13 @@ const Login: React.FC = () => {
       verifyUser(userId)
         .then((response) => {
           if (response.isValid) {
-            setToken(response.access_token);
+            setToken(response.accessToken);
             window.location.href = '/dashboard';
           }
         })
-        .catch((err: Error) => {
-          handleOpenSnackbar(err.message, 'error');
+        .catch(() => {
+          // if an error occurs then the userId given is not valid and should be cleared
+          deleteToken();
         });
     }
   }, [handleOpenSnackbar]);

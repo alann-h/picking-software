@@ -13,6 +13,7 @@ const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, item
   const [inputQty, setInputQty] = useState(1);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [availableQty, setAvailableQty] = useState(0);
+  const [scannedProductName, setscannedProductName] = useState("");
 
   const { handleOpenSnackbar } = useSnackbarContext();
 
@@ -35,6 +36,7 @@ const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, item
         if (product) {
           setAvailableQty(product.Qty);
           setIsModalOpen(true);
+          setscannedProductName(productName);
         } else {
           handleOpenSnackbar('Product not found in quote data', 'error');
         }
@@ -82,6 +84,7 @@ const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, item
         onQtyChange={setInputQty}
         availableQty={availableQty}
         onModalConfirm={handleModalConfirm}
+        productName={scannedProductName}
       />
       {updatedQuoteData ? (
         <>
