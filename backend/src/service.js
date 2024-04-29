@@ -80,38 +80,41 @@ async function getOAuthClient (userId) {
 export function getUserToken (userId) {
   return new Promise((resolve, reject) => {
     if (!userId) {
-      reject(new InputError('User Id is not valid'))
-    } else {
-      const database = readDatabase(databasePath)
-      const userToken = database.users[userId]
-
-      if (!userToken) {
-        reject(new InputError('User not found'))
-      } else if (!userToken.access_token || !userToken.refresh_token) {
-        reject(new AccessError('Token not found for user'))
-      } else {
-        const oauthClient = initializeOAuthClient()
-        oauthClient.setToken(userToken)
-
-        if (!oauthClient.isAccessTokenValid()) {
-          if (!oauthClient.token.isRefreshTokenValid()) {
-            deleteUserToken(userId)
-            reject(new AccessError('The Refresh token is invalid, please reauthenticate.'))
-          } else {
-            oauthClient.refreshUsingToken(userToken.refresh_token)
-              .then(newToken => {
-                saveUser(userId, newToken)
-                resolve(newToken)
-              })
-              .catch(_ => {
-                reject(new AccessError('Failed to refresh token'))
-              })
-          }
-        } else {
-          resolve(userToken)
-        }
-      }
+      return reject(new InputError('User Id is not valid'))
     }
+
+    const database = readDatabase(databasePath)
+    const userToken = database.users[userId]
+    if (!userToken) {
+      return reject(new InputError('User not found'))
+    }
+
+    if (!userToken.access_token || !userToken.refresh_token) {
+      return reject(new AccessError('Token not found for user'))
+    }
+
+    const oauthClient = initializeOAuthClient()
+    oauthClient.setToken(userToken)
+
+    if (oauthClient.isAccessTokenValid()) {
+      return resolve(userToken)
+    }
+
+    if (!oauthClient.token.isRefreshTokenValid()) {
+      deleteUserToken(userId)
+      return reject(new AccessError('The Refresh token is invalid, please reauthenticate.'))
+    }
+
+    oauthClient.refreshUsingToken(userToken.refresh_token)
+      .then(response => {
+        const newToken = response.getToken()
+        saveUser(userId, newToken)
+        resolve(newToken)
+      })
+      .catch(error => {
+        console.error(`Error refreshing token for user ${userId}: ${error}`)
+        reject(new AccessError('Failed to refresh token'))
+      })
   })
 }
 

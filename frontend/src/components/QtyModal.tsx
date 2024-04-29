@@ -8,9 +8,10 @@ interface QtyModalProps {
   onQtyChange: (qty: number) => void;
   availableQty: number;
   onModalConfirm: () => void;
+  productName: string;
 }
 
-const QtyModal: React.FC<QtyModalProps> = ({ isModalOpen, inputQty, onModalClose, onQtyChange, availableQty, onModalConfirm }) => {
+const QtyModal: React.FC<QtyModalProps> = ({ isModalOpen, inputQty, onModalClose, onQtyChange, availableQty, onModalConfirm, productName }) => {
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newQty = parseInt(e.target.value) || 1;
     if (newQty <= availableQty) {
@@ -19,7 +20,7 @@ const QtyModal: React.FC<QtyModalProps> = ({ isModalOpen, inputQty, onModalClose
   };
   return (
     <Dialog open={isModalOpen} onClose={onModalClose}>
-      <DialogTitle>Enter Quantity</DialogTitle>
+      <DialogTitle>{productName}</DialogTitle>
       <DialogContent>
         <TextField
           autoFocus
