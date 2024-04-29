@@ -1652,16 +1652,5 @@
     }
   },
   "quotes": {},
-  "users": {
-    "3f47e968-f117-4247-b753-71698a21c01f": {
-      "token_type": "bearer",
-      "access_token": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..FcLl_eCrXkS151Q4AdsItQ.2zZi7F9kGP9gQTcY2UObwUfkXcwGCTKzlmJHzWSiQyl_6cIcZJrjz-T1tGJPyHTMdCQ-6ntKGbUuHiwEldszv8G2vIlZlopVRfUi6hNzk3GV9Np2-mrem0etB0JCho0s8j2h-riaCFUTf3NBCAOKz4X6GbSYbI9eQHUQKYjpWo6k2CsrTzJhcWpAPRewPnkAgipxWkTRTp0HMBe_cm3dq9z345b0EMJQmiuwqJgb_mesWt1AD93uUfrk-aBpkf82HcCXXJSwd821RASYMMOEhxCNM9BXPuHAlvKhCB7J2k8MfzOgMXamhYtX7o_Zs-HnK45WTKdf7K2J-0K5Op27AWV9ZiyVNGQTjXcojEGSCx-5o8G9LjiOGBd0t37nR8-P_abpjD_RNhEIkxtr-RGEPZBz_WxU1lROIc-GTmVLsQ2wOm2Gaxk49GTuh3oFethH9xxc_9EkiOUOwwf0N6d21jxl0UphdWl-L_jSg_tSQXQ4MyVgEK0PpaMmBk5EIyp8npZkxtcBJjCFbVbpPlW4Z7vFaQukjxccUJc1mm7UpfoXA_D4B7Nz7rTtWstI76YTrlVELJF5nxXFgwvOs0xrHZJ0xuGTEvVvddjGf69LCFfEibpPvMCC4iWSYXTkFNCy8iUT6iodx01SpvlSiPmqoIEJj5UZpj3SaOZ6YuTAhnyGlJFg_JCKstTIiRxZGdFvhx0bly05kIQOTiXtm7blhnrVIpmy7uriIB10kUOVogQAOnOaparhGFirK0xl83nA.40amlVt9DgIwM7c2_-qXmQ",
-      "expires_in": 3600,
-      "refresh_token": "AB11723101739AnOfdEwA9h54o533oYe52J4Lrj23Rlmd4Ui8a",
-      "x_refresh_token_expires_in": 8726147,
-      "realmId": "9130357908851946",
-      "id_token": "",
-      "createdAt": 1714375594513
-    }
-  }
+  "users": {}
 }

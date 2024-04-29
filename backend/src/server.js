@@ -26,7 +26,7 @@ app.get('/authUri', (req, res) => {
     .then(authUri => {
       res.send(JSON.stringify(authUri))
     })
-    .catch(error => res.status(500).json({ error: error.message }))
+    .catch(error => res.status(error.statusCode || 500).json({ error: error.message }))
 })
 
 app.get('/callback', (req, res) => {
@@ -36,7 +36,7 @@ app.get('/callback', (req, res) => {
     })
     .catch(error => {
       console.error(error)
-      res.status(500).json({ error: error.message })
+      res.status(error.statusCode || 500).json({ error: error.message })
     })
 })
 
@@ -45,7 +45,7 @@ app.get('/retrieveToken/:userId', function (req, res) {
   getUserToken(userId)
     .then(token => res.send(token))
     .catch(error => {
-      res.status(500).json({ error: error.message })
+      res.status(error.statusCode || 500).json({ error: error.message })
     })
 })
 
@@ -56,7 +56,7 @@ app.get('/verifyUser/:userId', (req, res) => {
       res.json({ isValid: true, accessToken: userToken.access_token })
     })
     .catch(error => {
-      res.status(500).json({ isValid: false, error: error.message })
+      res.status(error.statusCode || 500).json({ isValid: false, error: error.message })
     })
 })
 
@@ -72,7 +72,7 @@ app.post('/saveQuote', (req, res) => {
     })
     .catch((error) => {
       console.error(error)
-      res.status(400).json({ error: error.message })
+      res.status(error.statusCode || 500).json({ error: error.message })
     })
 })
 
@@ -99,13 +99,13 @@ app.get('/estimate/:quoteId/:userId', (req, res) => {
     })
     .catch(error => {
       console.error(error)
-      res.status(400).json({ error: error.message })
+      res.status(error.statusCode || 500).json({ error: error.message })
     })
 })
 
 app.post('/upload', upload.single('input'), (req, res) => {
   if (!req.file || req.file.filename === null || req.file.filename === 'undefined') {
-    return res.status(400).json('No File')
+    return res.status(403).json('No File')
   }
 
   const filePath = process.cwd() + '/' + req.file.filename
@@ -116,7 +116,7 @@ app.post('/upload', upload.single('input'), (req, res) => {
     })
     .catch(error => {
       console.error('Error processing file:', error)
-      res.status(500).json({ error: error.message })
+      res.status(error.statusCode || 500).json({ error: error.message })
     })
 })
 
@@ -128,7 +128,7 @@ app.post('/productScan', (req, res) => {
     })
     .catch(error => {
       console.error('Error finding product in quote:', error)
-      res.status(500).json({ error: error.message })
+      res.status(error.statusCode || 500).json({ error: error.message })
     })
 })
 
@@ -140,7 +140,7 @@ app.get('/barcodeToName/:barcode', (req, res) => {
       res.json({ productName })
     })
     .catch(error => {
-      res.status(400).json({ error: error.message })
+      res.status(error.statusCode || 500).json({ error: error.message })
     })
 })
 

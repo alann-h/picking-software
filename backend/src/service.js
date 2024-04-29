@@ -2,7 +2,7 @@ import OAuthClient from 'intuit-oauth'
 import config from '../config.json'
 import excelToJson from 'convert-excel-to-json'
 import fs from 'fs-extra'
-import { InputError, AccessError } from './error'
+import { InputError, AccessError, NotFoundError, AuthenticationError } from './error'
 import { v4 as uuidv4 } from 'uuid'
 
 const clientId = config.CLIENT_ID
@@ -71,7 +71,7 @@ async function getOAuthClient (userId) {
         return oauthClient
       }
     } catch (error) {
-      console.error('Error getting OAuth client:', error)
+      return new AccessError('Error getting OAuth client')
     }
   }
   return null
@@ -86,7 +86,7 @@ export function getUserToken (userId) {
     const database = readDatabase(databasePath)
     const userToken = database.users[userId]
     if (!userToken) {
-      return reject(new InputError('User not found'))
+      return reject(new NotFoundError('User not found'))
     }
 
     if (!userToken.access_token || !userToken.refresh_token) {
@@ -102,7 +102,7 @@ export function getUserToken (userId) {
 
     if (!oauthClient.token.isRefreshTokenValid()) {
       deleteUserToken(userId)
-      return reject(new AccessError('The Refresh token is invalid, please reauthenticate.'))
+      return reject(new AuthenticationError('The Refresh token is invalid, please reauthenticate.'))
     }
 
     oauthClient.refreshUsingToken(userToken.refresh_token)
@@ -111,9 +111,8 @@ export function getUserToken (userId) {
         saveUser(userId, newToken)
         resolve(newToken)
       })
-      .catch(error => {
-        console.error(`Error refreshing token for user ${userId}: ${error}`)
-        reject(new AccessError('Failed to refresh token'))
+      .catch(() => {
+        reject(new NotFoundError('Failed to refresh token'))
       })
   })
 }
@@ -132,7 +131,7 @@ export async function getFilteredEstimates (searchField, searchTerm, userId) {
   try {
     const oauthClient = await getOAuthClient(userId)
     if (!oauthClient) {
-      throw new Error('OAuth client could not be initialized')
+      throw new AccessError('OAuth client could not be initialized')
     }
 
     const companyID = getCompanyId(oauthClient)
@@ -154,7 +153,7 @@ export async function getFilteredEstimates (searchField, searchTerm, userId) {
     const filteredEstimates = filterEstimates(responseData, isPrivateNote, searchTerm, oauthClient)
     return filteredEstimates
   } catch (error) {
-    throw new AccessError('Wrong input or quote with this Id does not exist')
+    throw new InputError('Wrong input or quote with this Id does not exist')
   }
 }
 

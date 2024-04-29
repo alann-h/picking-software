@@ -1,13 +1,30 @@
-export class InputError extends Error {
-  constructor (message) {
+export class HttpError extends Error {
+  constructor (message, statusCode) {
     super(message)
-    this.name = 'InputError'
+    this.statusCode = statusCode
   }
 }
 
-export class AccessError extends Error {
+export class InputError extends HttpError {
   constructor (message) {
-    super(message)
-    this.name = 'AccessError'
+    super(message, 400) // Bad Request
+  }
+}
+
+export class NotFoundError extends HttpError {
+  constructor (message) {
+    super(message, 404) // Not Found
+  }
+}
+
+export class AuthenticationError extends HttpError {
+  constructor (message) {
+    super(message, 401) // Unauthorized
+  }
+}
+
+export class AccessError extends HttpError {
+  constructor (message) {
+    super(message, 403) // Forbidden
   }
 }
