@@ -52,7 +52,7 @@ const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, item
         handleOpenSnackbar('Barcode scanned successfully!', 'success');
         updateProductQuantity(data.productName, data.updatedQty);
         setIsModalOpen(false);
-        setInputQty(0);
+        setInputQty(1);
       })
       .catch(error => {
         handleOpenSnackbar(`Error scanning barcode: ${error.message}`, 'error');
