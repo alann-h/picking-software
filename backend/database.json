@@ -1651,6 +1651,36 @@
       "name": "Plum Golden 16X400G"
     }
   },
-  "quotes": {},
-  "users": {}
+  "quotes": {
+    "1007": {
+      "customer": "Himateja Madala",
+      "productInfo": {
+        "Employee training off site": {
+          "SKU": "A101",
+          "Qty": 1
+        },
+        "Employee celebration -- Anniversary / Retirement": {
+          "SKU": "A102",
+          "Qty": 5
+        },
+        "Olive Kalamata Pitted 10KG": {
+          "SKU": "B101",
+          "Qty": 5
+        }
+      },
+      "totalAmount": "$4650"
+    }
+  },
+  "users": {
+    "3f679329-4848-4b62-b6d1-5a023a89b7b3": {
+      "token_type": "bearer",
+      "access_token": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..pd9aZIhVN4jUNJP---UOQg.EH1TEDoAN2sIX5cC2RsDP41zYdUg8BgeTBoWdGyomgNIDSQecVDv6ql_hXORz2WLuw5SsW03KIfVvwUyHrd4bFuMRRJZyLBqaCxLydlJTlsLPtvtEGnybge1kgdugma0-3Q-htFvxrRF3FpCTIDN8MO0gD7vOojc8eJBwEx5Jd9WnCb7xAGBDw4MQQp7Ke_3MkggBBdiziRL5axVQI0uG-Lqq1yOVdnjPN-3b6Vq4Us482ZkrkTZ9iy74RyxLVZr4zj5EnuQOsDw-xaPkuySE5-rPF5L8ck93Ugsd6TzV2v1mYSdAJvqnEpiFbBWPE2Rnz_oU6ccl4KqY9K_2JYUAzfuY_9WCwC8-CKJsNC_dZnxUyIXPHBgXRHmWQdYbYAj51M6J_TjU3gimOjr8ay0_-6aWcKD6VgIya5LhDPIc5eqJF5akJAQPFUcd6MeiAJ_H75gXxDpfP5hrTJkLNvjKpbCPI9__HxBxSX5tyVgu3Y5md_HuCgCjK8GKTFcOr6ATz1arXU_lOHcvs4aHVchuONaB_yyJe8emxZtRsenSpQhWE4hgPz19l7aJIhsqUS94FkNspB5qWglFh1oMBihzt1xEK8wVinwI_5ZQFSduz_ndXOL5bPIlsRuA-k4kHhng_s5fUv_XnQx2hx166guBVURcLi3TWqFWi7uRxN0dhN5-NVQp1A35ET2hIKtGuSrqnUiFoTOscjkd0FbksbHaeyQqnKbmlPc17tsaAv0Jwc.TRVdMyK7AC-MgRqqcX8MEQ",
+      "expires_in": 3600,
+      "refresh_token": "AB11724900187MftOHopTo5xGonEpTsRDwk1yh5W9PDoq8GQx4",
+      "x_refresh_token_expires_in": 8726400,
+      "realmId": "9130357908851946",
+      "id_token": "",
+      "createdAt": 1716173796656
+    }
+  }
 }
