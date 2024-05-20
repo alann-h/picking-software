@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, DialogContentText } from '@mui/material';
 
 interface QtyModalProps {
   isModalOpen: boolean;
@@ -21,6 +21,7 @@ const QtyModal: React.FC<QtyModalProps> = ({ isModalOpen, inputQty, onModalClose
   return (
     <Dialog open={isModalOpen} onClose={onModalClose}>
       <DialogTitle>{productName}</DialogTitle>
+      <DialogContentText>Enter the Quanity of the scanned product below.</DialogContentText>
       <DialogContent>
         <TextField
           autoFocus
