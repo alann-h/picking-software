@@ -21,7 +21,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
   };
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: '#f5f5f5' }}>
+    <AppBar position="static" sx={{ backgroundColor: '#b0bec5' }}>
       <Toolbar>
         <Typography
           variant="h6"
