@@ -8,16 +8,26 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const handleSettingsClick = () => {
-      navigate('/dashboard/settings');
-    };
-    
+  const handleSettingsClick = () => {
+    navigate('/dashboard/settings');
+  };
+
+  const handleLogoClick = () => {
+    if (!isLoginPage) {
+      navigate('/dashboard');
+    }
+  };
+
   return (
-    <AppBar position="static" color="default" sx={{ backgroundColor: '#f5f5f5' }}>
+    <AppBar position="static" sx={{ backgroundColor: '#b0bec5' }}>
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+        <Typography
+          variant="h6"
+          sx={{ flexGrow: 1, cursor: !isLoginPage ? 'pointer' : 'default' }}
+          onClick={handleLogoClick}
+        >
           SmartPicker
         </Typography>
         <IconButton color="inherit" disabled={isLoginPage} onClick={handleSettingsClick}>

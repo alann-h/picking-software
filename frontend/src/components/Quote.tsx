@@ -6,7 +6,7 @@ import BarcodeListener from './BarcodeListener';
 import { QuoteProps } from '../utils/types';
 import QtyModal from './QtyModal';
 import { useSnackbarContext } from './SnackbarContext';
-// test
+
 const Quote: React.FC<QuoteProps> = ({ quoteData, quoteNumber, currentPage, itemsPerPage }) => {
   const [updatedQuoteData, setUpdatedQuoteData] = useState<QuoteData | null>(quoteData);
   const [isModalOpen, setIsModalOpen] = useState(false);

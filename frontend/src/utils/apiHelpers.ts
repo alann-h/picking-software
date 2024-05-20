@@ -21,24 +21,30 @@ export const apiCallGet = async (path: string) => {
 /**
  * POST request to API
  */
-export const apiCallPost = async (path: string, body: object) => {
+export const apiCallPost = async (path: string, body: object | FormData) => {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     accept: 'application/json'
   };
   if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
 
-  const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
+  const options: RequestInit = {
     method: 'POST',
     headers,
-    body: JSON.stringify(body)
-  });
+    body: body instanceof FormData ? body : JSON.stringify(body)
+  };
+
+  if (!(body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, options);
+
   if (!response.ok) {
     console.log(response);
   }
+
   return await response.json();
 };
-
 /**
  * PUT request to API
  */
