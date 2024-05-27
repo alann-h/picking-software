@@ -23,4 +23,8 @@ export interface QuoteProps {
 export interface BarcodeListenerProps {
     onBarcodeScanned: (barcode: string) => void;
 }
-  
+
+export interface Customer {
+    name: string;
+    id: string;
+}

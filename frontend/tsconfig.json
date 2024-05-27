@@ -19,7 +19,7 @@
       "noUncheckedIndexedAccess": true,
       "noPropertyAccessFromIndexSignature": false,
       "noFallthroughCasesInSwitch": true,
-      "exactOptionalPropertyTypes": true,
+      "exactOptionalPropertyTypes": false,
       "forceConsistentCasingInFileNames": true,
       "resolveJsonModule": true
     },

@@ -3,7 +3,11 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import morgan from 'morgan'
-import { getAuthUri, handleCallback, getFilteredEstimates, processFile, estimateToDB, estimateExists, processBarcode, getUserToken, getProductName } from './service.js'
+import {
+  getAuthUri, handleCallback, getFilteredEstimates,
+  processFile, estimateToDB, estimateExists, processBarcode,
+  getUserToken, getProductName, fetchCustomers, saveCustomers
+} from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
@@ -63,6 +67,29 @@ app.get('/verifyUser/:userId', (req, res) => {
 /***************************************************************
                        Quote Functions
 ***************************************************************/
+app.get('/getCustomers/:userId', (req, res) => {
+  const userId = req.params.userId
+  fetchCustomers(userId)
+    .then(data => {
+      res.json(data)
+    })
+    .catch(error => {
+      res.status(error.statusCode || 500).json({ error: error.message })
+    })
+})
+
+app.post('/saveCustomers', (req, res) => {
+  const customers = req.body
+  saveCustomers(customers)
+    .then(() => {
+      res.status(200).json({ message: 'Quote saved successfully in database' })
+    })
+    .catch((error) => {
+      console.error(error)
+      res.status(error.statusCode || 500).json({ error: error.message })
+    })
+})
+
 // saves quote to the database
 app.post('/saveQuote', (req, res) => {
   const quote = req.body

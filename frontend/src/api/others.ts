@@ -1,4 +1,6 @@
-import { apiCallPost } from '../utils/apiHelpers';
+import { apiCallGet, apiCallPost } from '../utils/apiHelpers';
+import { getUserId } from '../utils/storage';
+import { Customer } from '../utils/types';
 
 
 export const uploadProducts = async (file: File) => {
@@ -12,3 +14,22 @@ export const uploadProducts = async (file: File) => {
       return data;
     }
 };
+
+export const getCustomers = async () => {
+  const userId = getUserId();
+  const customers = await apiCallGet(`getCustomers/${userId}`);
+  if (customers.error) {
+    throw new Error(customers.error);
+  } else {
+    return customers
+  }
+}
+
+export const saveCustomers = async (customers: Customer[]) => {
+  const data = await apiCallPost(`saveCustomers`, customers);
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data
+  }
+}

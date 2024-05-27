@@ -1,56 +1,43 @@
-import React, { useState } from 'react';
-import { Container, TextField, Button, Pagination, Box } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import { extractQuote, saveQuote } from '../api/quote';
-import { QuoteData } from '../utils/types';
-import Quote from './Quote';
+import React, { useState, useEffect } from 'react';
+import { Container, Autocomplete, TextField } from '@mui/material';
+import { Customer } from '../utils/types';
+import { getCustomers, saveCustomers } from '../api/others';
+import { useSnackbarContext } from './SnackbarContext';
 
 const Dashboard: React.FC = () => {
-  const [quoteNumber, setQuoteNumber] = useState<string>('');
-  const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 20;
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [inputValue, setInputValue] = useState<string>('');
+  const { handleOpenSnackbar } = useSnackbarContext();
 
-  const handleSearch = async () => {
-    const searchField = 'DocNumber';
-    try {
-      const response = await extractQuote(searchField, quoteNumber);
-      const { source, data } = response;
-      setQuoteData(data);
-      if (source === 'api') {
-        await saveQuote(data);
-      }
-    } catch (error) {
-      console.error(error);
-      setQuoteData(null);
+  useEffect(() => {
+    getCustomers()
+      .then((data) => {
+        setCustomers(data);
+        saveCustomers(data);
+      })
+      .catch((err: Error) => {
+        handleOpenSnackbar(err.message, 'error');
+      });
+  }, [handleOpenSnackbar]);
+
+  const handleChange = (_: React.SyntheticEvent, newValue: string | null) => {
+    if (newValue) {
+      setInputValue(newValue);
+      console.log('User selected:', newValue);
     }
-  };  
+  };
 
   return (
     <Container>
-      <TextField
-        required
-        id="quote-number"
-        label="Quote Number"
-        value={quoteNumber}
-        onChange={(e) => setQuoteNumber(e.target.value)}
+      <Autocomplete
+        id="customer-box"
+        options={customers.map((option) => option.name)}
+        inputValue={inputValue}
+        onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
+        onChange={handleChange}
+        sx={{ width: 300 }}
+        renderInput={(params) => <TextField {...params} label="Customer" />}
       />
-      <Button
-        color='success'
-        variant="contained"
-        onClick={handleSearch}
-        sx={{ margin: 2 }}
-      >
-        <SearchIcon />
-      </Button>
-      <Quote quoteData={quoteData} quoteNumber={quoteNumber} currentPage={currentPage} itemsPerPage={itemsPerPage} />
-      <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
-        <Pagination
-          count={Math.ceil(Object.keys(quoteData?.productInfo || {}).length / itemsPerPage)}
-          page={currentPage}
-          onChange={(_, page) => setCurrentPage(page)}
-        />
-      </Box>
     </Container>
   );
 };
