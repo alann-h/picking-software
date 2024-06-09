@@ -33,3 +33,12 @@ export const saveCustomers = async (customers: Customer[]) => {
     return data
   }
 }
+
+export const getCustomerId = async (customerName: string) => {
+  const data = await apiCallGet(`getCustomerId/${customerName}`)
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data
+  }
+}

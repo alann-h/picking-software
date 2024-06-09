@@ -7,7 +7,7 @@ import {
   getAuthUri, handleCallback, getFilteredEstimates,
   processFile, estimateToDB, estimateExists, processBarcode,
   getUserToken, getProductName, fetchCustomers, saveCustomers,
-  getCustomerQuotes
+  getCustomerQuotes, getCustomerId
 } from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
@@ -91,6 +91,16 @@ app.post('/saveCustomers', (req, res) => {
     })
 })
 
+app.get('/getCustomerId/:customerName', (req, res) => {
+  const { customerName } = req.params
+  getCustomerId(customerName)
+    .then(customerId => {
+      res.json({ customerId })
+    })
+    .catch(error => {
+      res.status(error.statusCode || 500).json({ error: error.message })
+    })
+})
 // saves quote to the database
 app.post('/saveQuote', (req, res) => {
   const quote = req.body

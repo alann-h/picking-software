@@ -13,6 +13,17 @@ export const extractQuote = async (searchField: string, quoteId: string) => {
     }
 }
 
+export const getCustomerQuotes = async (customerId: string) => {
+  const userId = getUserId()
+  const url = `getEstimates/${customerId}/${userId}`
+  const data = await apiCallGet(url);
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data
+  }
+}
+
 export const saveQuote = async (quote: QuoteData) => {
   const data = await apiCallPost(`saveQuote`, { quote });
   if (data.error) {

@@ -123,6 +123,22 @@ function deleteUserToken (userId) {
   writeDatabase(databasePath, database)
 }
 
+export function getCustomerId (customerName) {
+  return new Promise((resolve, reject) => {
+    try {
+      const database = readDatabase(databasePath)
+      const customerId = database.customers[customerName].id
+      if (customerId === null) {
+        reject(new InputError('This customer does not exist within the database'))
+      } else {
+        resolve(customerId)
+      }
+    } catch (error) {
+      reject(new InputError(error))
+    }
+  })
+}
+
 /***************************************************************
                        Quote Functions
 ***************************************************************/
@@ -144,7 +160,6 @@ export async function getCustomerQuotes (customerId, userId) {
 
     const responseJSON = JSON.parse(response.text())
     const filteredEstimates = responseJSON.QueryResponse.Estimate.filter(estimate => estimate.TxnStatus !== 'Closed')
-    console.log(filteredEstimates)
     return filteredEstimates
   } catch {
     throw new InputError('This quote does not exist')
