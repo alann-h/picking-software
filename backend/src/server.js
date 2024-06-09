@@ -6,7 +6,8 @@ import morgan from 'morgan'
 import {
   getAuthUri, handleCallback, getFilteredEstimates,
   processFile, estimateToDB, estimateExists, processBarcode,
-  getUserToken, getProductName, fetchCustomers, saveCustomers
+  getUserToken, getProductName, fetchCustomers, saveCustomers,
+  getCustomerQuotes
 } from './service.js'
 import config from '../config.json'
 import swaggerUi from 'swagger-ui-express'
@@ -103,7 +104,18 @@ app.post('/saveQuote', (req, res) => {
     })
 })
 
-// Gathers quote information from either the local database or from the actual API
+app.get('/getEstimates/:customerId/:userId', (req, res) => {
+  const { customerId, userId } = req.params
+  getCustomerQuotes(customerId, userId)
+    .then((quotes) => {
+      res.send(quotes)
+    })
+    .catch((error) => {
+      res.status(error.statusCode || 500).json({ error: error.message })
+    })
+})
+
+// Gathers quote information from either the local database or from the actual API will be replaced with a better system
 app.get('/estimate/:quoteId/:userId', (req, res) => {
   const { quoteId, userId } = req.params
   const { searchField } = req.query // searchField can either be 'DocNumber' or 'PrivateNote'

@@ -6,7 +6,7 @@ import { useSnackbarContext } from './SnackbarContext';
 
 const Dashboard: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [inputValue, setInputValue] = useState<string>('');
+  const [selectedCustomer, setInputValue] = useState<string>('');
   const { handleOpenSnackbar } = useSnackbarContext();
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const Dashboard: React.FC = () => {
       <Autocomplete
         id="customer-box"
         options={customers.map((option) => option.name)}
-        inputValue={inputValue}
+        inputValue={selectedCustomer}
         onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
         onChange={handleChange}
         sx={{ width: 300 }}

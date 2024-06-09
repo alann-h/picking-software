@@ -126,6 +126,30 @@ function deleteUserToken (userId) {
 /***************************************************************
                        Quote Functions
 ***************************************************************/
+// gets specific customer quotes that are not closed (might add time period as to not recieve and filter orders from years ago)
+export async function getCustomerQuotes (customerId, userId) {
+  try {
+    const oauthClient = await getOAuthClient(userId)
+    if (!oauthClient) {
+      throw new AccessError('OAuth client could not be initialized')
+    }
+    const companyID = getCompanyId(oauthClient)
+    const baseURL = getBaseURL(oauthClient)
+
+    const query = `SELECT * from estimate WHERE CustomerRef='${customerId}'`
+
+    const response = await oauthClient.makeApiCall({
+      url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`
+    })
+
+    const responseJSON = JSON.parse(response.text())
+    const filteredEstimates = responseJSON.QueryResponse.Estimate.filter(estimate => estimate.TxnStatus !== 'Closed')
+    console.log(filteredEstimates)
+    return filteredEstimates
+  } catch {
+    throw new InputError('This quote does not exist')
+  }
+}
 
 export async function getFilteredEstimates (searchField, searchTerm, userId) {
   try {
