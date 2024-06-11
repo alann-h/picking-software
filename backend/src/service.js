@@ -166,7 +166,7 @@ export async function getCustomerQuotes (customerId, userId) {
   }
 }
 
-export async function getFilteredEstimates (searchField, searchTerm, userId) {
+export async function getFilteredEstimates (quoteId, userId) {
   try {
     const oauthClient = await getOAuthClient(userId)
     if (!oauthClient) {
@@ -175,39 +175,22 @@ export async function getFilteredEstimates (searchField, searchTerm, userId) {
 
     const companyID = getCompanyId(oauthClient)
     const baseURL = getBaseURL(oauthClient)
-    let isPrivateNote = false
-    let query
-    if (searchField === 'DocNumber') {
-      query = `SELECT * FROM estimate WHERE DocNumber = '${searchTerm}'`
-    } else if (searchField === 'PrivateNote') {
-      query = 'SELECT * FROM estimate'
-      isPrivateNote = true
-    }
+    const query = `SELECT * FROM estimate WHERE Id = '${quoteId}'`
 
     const estimateResponse = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`
     })
 
     const responseData = JSON.parse(estimateResponse.text())
-    const filteredEstimates = filterEstimates(responseData, isPrivateNote, searchTerm, oauthClient)
+    const filteredEstimates = filterEstimates(responseData, oauthClient)
     return filteredEstimates
   } catch (error) {
     throw new InputError('Wrong input or quote with this Id does not exist')
   }
 }
 
-function filterEstimates (responseData, isPrivateNote, searchTerm, oauthClient) {
-  function hasPrivateNoteMatching (estimate, searchTerm) {
-    return estimate.PrivateNote && estimate.PrivateNote.toLowerCase().includes(searchTerm.toLowerCase())
-  }
-
-  const filteredEstimatesPromises = responseData.QueryResponse.Estimate.filter(function (estimate) {
-    if (isPrivateNote) {
-      return hasPrivateNoteMatching(estimate, searchTerm)
-    } else {
-      return true
-    }
-  }).map(function (estimate) {
+function filterEstimates (responseData, oauthClient) {
+  const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(function (estimate) {
     return new Promise((resolve) => {
       Promise.all(estimate.Line.map(function (line) {
         if (line.DetailType === 'SubTotalLineDetail') {
@@ -233,8 +216,7 @@ function filterEstimates (responseData, isPrivateNote, searchTerm, oauthClient) 
         }, {})
         const customerRef = estimate.CustomerRef
         resolve({
-          // Id: estimate.Id, dont think i need this
-          quoteNumber: estimate.DocNumber,
+          quoteNumber: estimate.Id,
           customer: customerRef.name,
           productInfo,
           totalAmount: '$' + estimate.TotalAmt
@@ -373,10 +355,10 @@ export function estimateToDB (estimate) {
 }
 
 // checks if estimate exists in database if it is return it or else return null
-export function estimateExists (docNumber) {
+export function estimateExists (quoteId) {
   const database = readDatabase(databasePath)
-  if (database.quotes[docNumber]) {
-    return database.quotes[docNumber]
+  if (database.quotes[quoteId]) {
+    return database.quotes[quoteId]
   }
   return null
 }
