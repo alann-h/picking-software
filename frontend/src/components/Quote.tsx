@@ -16,7 +16,7 @@ const Quote: React.FC = () => {
   const [availableQty, setAvailableQty] = useState(0);
   const [scannedProductName, setScannedProductName] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 2;
+  const itemsPerPage = 20;
 
   const { handleOpenSnackbar } = useSnackbarContext();
 
