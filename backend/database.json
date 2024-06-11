@@ -1652,30 +1652,6 @@
     }
   },
   "quotes": {
-    "181": {
-      "customer": "Himateja Madala",
-      "productInfo": {
-        "Employee training off site": {
-          "SKU": "A101",
-          "Qty": 1
-        }
-      },
-      "totalAmount": "$1650"
-    },
-    "197": {
-      "customer": "Himateja Madala",
-      "productInfo": {
-        "Olive Kalamata Pitted 10KG": {
-          "SKU": "B101",
-          "Qty": 100
-        },
-        "Employee training off site": {
-          "SKU": "A101",
-          "Qty": 20
-        }
-      },
-      "totalAmount": "$38000"
-    }
   },
   "users": {
     "f4919c5e-7c87-4271-8bc1-d93c865267d8": {
