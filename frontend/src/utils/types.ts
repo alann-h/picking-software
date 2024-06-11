@@ -1,7 +1,8 @@
 
 interface ProductDetails {
     SKU: string;
-    Qty: number;
+    pickingQty: number;
+    originalQty: number;
 }
   
 interface ProductInfo {

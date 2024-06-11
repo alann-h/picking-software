@@ -53,7 +53,7 @@ const Quote: React.FC = () => {
         const product = quoteData?.productInfo[productName];
 
         if (product) {
-          setAvailableQty(product.Qty);
+          setAvailableQty(product.pickingQty);
           setIsModalOpen(true);
           setScannedProductName(productName);
         } else {
@@ -88,7 +88,7 @@ const Quote: React.FC = () => {
     if (!quoteData) return;
     const newProductInfo = { ...quoteData.productInfo || {} };
     if (newProductInfo[productName]) {
-      newProductInfo[productName]!.Qty = updatedQty;
+      newProductInfo[productName]!.pickingQty = updatedQty;
       setQuoteData({ ...quoteData, productInfo: newProductInfo });
     }
   };
@@ -129,7 +129,7 @@ const Quote: React.FC = () => {
                     }}>
                       <Typography variant="body2">{details.SKU}</Typography>
                       <Typography variant="body2">{name}</Typography>
-                      <Typography variant="body2">{details.Qty}</Typography>
+                      <Typography variant="body2">{details.pickingQty}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>

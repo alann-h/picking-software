@@ -205,7 +205,8 @@ function filterEstimates (responseData, oauthClient) {
           return {
             [Description]: {
               SKU: itemSKU,
-              Qty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
+              pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
+              originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
             }
           }
         })
