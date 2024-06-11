@@ -3,13 +3,15 @@ import { Container, Autocomplete, TextField, List, ListItemText, Card, CardConte
 import { Customer } from '../utils/types';
 import { getCustomers, saveCustomers, getCustomerId } from '../api/others';
 import { useSnackbarContext } from './SnackbarContext';
-import { getCustomerQuotes, extractQuote, saveQuote } from '../api/quote';
+import { getCustomerQuotes } from '../api/quote';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setInputValue] = useState<string>('');
   const [quotes, setQuotes] = useState<any[]>([]); // I have many as the type for now as quotes when intially recieved are extremely long so unless i filter that on the backend any will have to stay
   const { handleOpenSnackbar } = useSnackbarContext();
+  const navigate = useNavigate();
 
   useEffect(() => {
     getCustomers()
@@ -51,15 +53,11 @@ const Dashboard: React.FC = () => {
   };
 
   const handleQuoteClick = (quoteId: string) => {
-    console.log(`Quote ID: ${quoteId} clicked`);
-    extractQuote(quoteId)
-      .then((quote) => {
-        console.log(quote.data);
-        saveQuote(quote.data);
-      })
-      .catch((err: Error) => {
-        handleOpenSnackbar(err.message, 'error');
-      });
+    if (!quoteId) {
+      return handleOpenSnackbar('Quote Id is undefined', 'error');
+    }
+    navigate(`/quote/${quoteId}`);
+
   };
 
   return (
