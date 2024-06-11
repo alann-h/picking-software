@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, Grid, Paper, Typography, Pagination, Box } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 import { QuoteData } from '../utils/types';
 import { barcodeScan, barcodeToName, extractQuote, saveQuote } from '../api/quote';
 import BarcodeListener from './BarcodeListener';
 import QtyModal from './QtyModal';
 import { useSnackbarContext } from './SnackbarContext';
-import { useParams } from 'react-router-dom';
+
+const useQuery = () => {
+  return new URLSearchParams(useLocation().search);
+};
 
 const Quote: React.FC = () => {
-  const { quoteId = ''} = useParams<{ quoteId: string }>();
+  const query = useQuery();
+  const quoteId = query.get('Id') || '';
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [inputQty, setInputQty] = useState(1);
@@ -21,16 +26,18 @@ const Quote: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
 
   useEffect(() => {
-    extractQuote(quoteId)
-      .then((response) => {
-        if (response.source === 'api') {
-          saveQuote(response.data);
-        }
-        setQuoteData(response.data);
-      })
-      .catch((err: Error) => {
-        handleOpenSnackbar(err.message, 'error');
-      });
+    if (quoteId) {
+      extractQuote(quoteId)
+        .then((response) => {
+          if (response.source === 'api') {
+            saveQuote(response.data);
+          }
+          setQuoteData(response.data);
+        })
+        .catch((err: Error) => {
+          handleOpenSnackbar(err.message, 'error');
+        });
+    }
   }, [quoteId, handleOpenSnackbar]);
 
   const highlightStyle = {

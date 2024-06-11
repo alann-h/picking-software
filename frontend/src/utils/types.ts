@@ -28,3 +28,10 @@ export interface Customer {
     name: string;
     id: string;
 }
+export interface SnackbarContextType {
+    openSnackbar: boolean;
+    snackbarMessage: string;
+    snackbarSeverity: 'error' | 'success';
+    handleOpenSnackbar: (message: string, severity: 'error' | 'success') => void;
+    handleCloseSnackbar: () => void;
+  }
