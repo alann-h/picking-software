@@ -2,9 +2,9 @@ import { apiCallGet, apiCallPost } from '../utils/apiHelpers';
 import { getUserId } from '../utils/storage';
 import { QuoteData } from '../utils/types';
 
-export const extractQuote = async (searchField: string, quoteId: string) => {
+export const extractQuote = async (quoteId: string) => {
     const userId = getUserId();
-    const url = `estimate/${quoteId}/${userId}?searchField=${searchField}`
+    const url = `estimate/${quoteId}/${userId}`
     const data = await apiCallGet(url);
     if (data.error) {
       throw new Error(data.error);
