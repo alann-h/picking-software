@@ -185,7 +185,7 @@ export async function getFilteredEstimates (quoteId, userId) {
     const filteredEstimates = filterEstimates(responseData, oauthClient)
     return filteredEstimates
   } catch (error) {
-    throw new InputError('Wrong input or quote with this Id does not exist')
+    throw new InputError('Quote Id does not exist!')
   }
 }
 
@@ -269,7 +269,7 @@ export async function fetchCustomers (userId) {
     }))
     return customers
   } catch (error) {
-    throw new InputError('Wrong userId')
+    throw new AccessError('UserId is invalid')
   }
 }
 
