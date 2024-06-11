@@ -33,7 +33,7 @@ const App: React.FC = () => {
                 <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/settings" element={<Settings />} />
-                <Route path="/quote/:quoteId" element={<Quote />} />
+                <Route path="/quote" element={<Quote />} />
               </Routes>
             </Box>
           </Box>

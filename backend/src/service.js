@@ -185,7 +185,7 @@ export async function getFilteredEstimates (quoteId, userId) {
     const filteredEstimates = filterEstimates(responseData, oauthClient)
     return filteredEstimates
   } catch (error) {
-    throw new InputError('Wrong input or quote with this Id does not exist')
+    throw new InputError('Quote Id does not exist!')
   }
 }
 
@@ -205,7 +205,8 @@ function filterEstimates (responseData, oauthClient) {
           return {
             [Description]: {
               SKU: itemSKU,
-              Qty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
+              pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
+              originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
             }
           }
         })
@@ -269,7 +270,7 @@ export async function fetchCustomers (userId) {
     }))
     return customers
   } catch (error) {
-    throw new InputError('Wrong userId')
+    throw new AccessError('UserId is invalid')
   }
 }
 

@@ -1,12 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-interface SnackbarContextType {
-  openSnackbar: boolean;
-  snackbarMessage: string;
-  snackbarSeverity: 'error' | 'success';
-  handleOpenSnackbar: (message: string, severity: 'error' | 'success') => void;
-  handleCloseSnackbar: () => void;
-}
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { SnackbarContextType } from '../utils/types';
 
 const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
 
@@ -15,11 +8,11 @@ export const SnackbarProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'error' | 'success'>('error');
 
-  const handleOpenSnackbar = (message: string, severity: 'error' | 'success') => {
+  const handleOpenSnackbar = useCallback((message: string, severity: 'error' | 'success') => {
     setSnackbarMessage(message);
     setSnackbarSeverity(severity);
     setOpenSnackbar(true);
-  };
+  }, []);
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
@@ -39,3 +32,4 @@ export const useSnackbarContext = () => {
   }
   return context;
 };
+

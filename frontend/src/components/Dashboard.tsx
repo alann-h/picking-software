@@ -56,8 +56,7 @@ const Dashboard: React.FC = () => {
     if (!quoteId) {
       return handleOpenSnackbar('Quote Id is undefined', 'error');
     }
-    navigate(`/quote/${quoteId}`);
-
+    navigate(`/quote?Id=${quoteId}`);
   };
 
   return (
