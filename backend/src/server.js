@@ -129,7 +129,6 @@ app.get('/getEstimates/:customerId/:userId', (req, res) => {
 // Gathers quote information from either the local database or from the actual API will be replaced with a better system
 app.get('/estimate/:quoteId/:userId', (req, res) => {
   const { quoteId, userId } = req.params
-  const { searchField } = req.query // searchField can either be 'DocNumber' or 'PrivateNote'
   let quote = estimateExists(quoteId)
   if (quote != null) {
     res.json({
@@ -139,7 +138,7 @@ app.get('/estimate/:quoteId/:userId', (req, res) => {
     return
   }
 
-  getFilteredEstimates(searchField, quoteId, userId)
+  getFilteredEstimates(quoteId, userId)
     .then(estimate => {
       quote = estimate[0]
       res.json({

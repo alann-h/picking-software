@@ -9,6 +9,7 @@ import Settings from './components/Settings';
 import { SnackbarProvider } from './components/SnackbarContext';
 import SnackbarComponent from './components/SnackbarComponent';
 import TopBar from './components/TopBar';
+import Quote from './components/Quote';
 import theme from './theme';
 
 const App: React.FC = () => {
@@ -32,6 +33,7 @@ const App: React.FC = () => {
                 <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/settings" element={<Settings />} />
+                <Route path="/quote" element={<Quote />} />
               </Routes>
             </Box>
           </Box>
