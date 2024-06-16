@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { retrieveToken } from '../api/auth';
-import {setToken, setUserId} from '../utils/storage'
+import {setToken, setUserId} from '../utils/storage';
 
 const OAuthCallbackHandler = () => {
   const navigate = useNavigate();

@@ -23,7 +23,7 @@ const Settings: React.FC = () => {
     }
 
     uploadProducts(selectedFile)
-      .then( _ => {
+      .then( () => {
         handleOpenSnackbar('File uploaded successfully!', 'success');
       })
       .catch((err) => {

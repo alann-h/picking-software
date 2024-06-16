@@ -1,6 +1,6 @@
 import React from 'react';
 import { Snackbar, Alert } from '@mui/material';
-import { useSnackbarContext } from './SnackbarContext'
+import { useSnackbarContext } from './SnackbarContext';
 
 const SnackbarComponent: React.FC = () => {
   const { openSnackbar, handleCloseSnackbar, snackbarMessage, snackbarSeverity } = useSnackbarContext();

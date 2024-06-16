@@ -21,24 +21,24 @@ export const getCustomers = async () => {
   if (customers.error) {
     throw new Error(customers.error);
   } else {
-    return customers
+    return customers;
   }
-}
+};
 
 export const saveCustomers = async (customers: Customer[]) => {
   const data = await apiCallPost(`saveCustomers`, customers);
   if (data.error) {
     throw new Error(data.error);
   } else {
-    return data
+    return data;
   }
-}
+};
 
 export const getCustomerId = async (customerName: string) => {
-  const data = await apiCallGet(`getCustomerId/${customerName}`)
+  const data = await apiCallGet(`getCustomerId/${customerName}`);
   if (data.error) {
     throw new Error(data.error);
   } else {
-    return data
+    return data;
   }
-}
+};

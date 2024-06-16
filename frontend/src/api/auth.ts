@@ -8,9 +8,9 @@ export const login = async () => {
   if (data.error) {
     throw new Error(data.error);
   } else {
-    return data
+    return data;
   }
-}
+};
 /**
  * Gets tokens
  */
@@ -19,9 +19,9 @@ export const retrieveToken= async (userId: string) => {
   if (token.error) {
     throw new Error(token.error);
   } else {
-    return token
+    return token;
   }
-}
+};
 /**
  * Verifies user
  */
@@ -30,7 +30,7 @@ export const verifyUser = async (userId: string) => {
   if (response.error) {
     throw new Error(response.error);
   } else {
-    return response
+    return response;
   }
 };
 
