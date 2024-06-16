@@ -9,7 +9,7 @@ import {
   getUserToken, getProductName, fetchCustomers, saveCustomers,
   getCustomerQuotes, getCustomerId
 } from './service.js'
-import config from '../config.json'
+import dotenv from 'dotenv'
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger.json'
 import multer from 'multer'
@@ -22,6 +22,7 @@ app.use(bodyParser.json())
 app.use(morgan(':method :url :status'))
 
 const upload = multer({ dest: process.cwd() })
+dotenv.config({ path: 'config.env' })
 
 /***************************************************************
                        User Auth Functions
@@ -200,7 +201,7 @@ app.get('/', (req, res) => res.redirect('/docs'))
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
-const port = config.BACKEND_PORT
+const port = process.env.BACKEND_PORT
 const server = app.listen(port, () => {
   console.log(`Backend is now listening on port ${port}!`)
   console.log(`For API docs, navigate to http://localhost:${port}`)

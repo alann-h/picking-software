@@ -1,13 +1,15 @@
 import OAuthClient from 'intuit-oauth'
-import config from '../config.json'
+import dotenv from 'dotenv'
 import excelToJson from 'convert-excel-to-json'
 import fs from 'fs-extra'
 import { InputError, AccessError, NotFoundError, AuthenticationError } from './error'
 import { v4 as uuidv4 } from 'uuid'
 
-const clientId = config.CLIENT_ID
-const clientSecret = config.CLIENT_SECRET
-const redirectUri = config.REDIRECT_URI
+dotenv.config({ path: 'config.env' })
+
+const clientId = process.env.CLIENT_ID
+const clientSecret = process.env.CLIENT_SECRET
+const redirectUri = process.env.REDIRECT_URI
 const databasePath = './database.json'
 
 /***************************************************************
