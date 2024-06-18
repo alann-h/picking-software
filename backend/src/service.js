@@ -344,13 +344,9 @@ export function estimateToDB (estimate) {
         totalAmount: quote.totalAmount
       };
       const database = readDatabase(databasePath);
-      if (!database.quotes[quote.quoteNumber]) {
-        database.quotes[quote.quoteNumber] = estimateInfo;
-        writeDatabase(databasePath, database);
-        resolve();
-      } else {
-        reject(new AccessError('Quote already exists'));
-      }
+      database.quotes[quote.quoteNumber] = estimateInfo;
+      writeDatabase(databasePath, database);
+      resolve();
     } catch (error) {
       reject(error);
     }
