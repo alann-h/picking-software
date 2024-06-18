@@ -3,9 +3,11 @@ import { Button, Box, Typography, Container } from '@mui/material';
 import { login, verifyUser } from '../api/auth';
 import { getUserId, setToken, deleteToken } from '../utils/storage';
 import { useSnackbarContext } from './SnackbarContext';
+import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const userId = getUserId();
@@ -14,14 +16,14 @@ const Login: React.FC = () => {
         .then((response) => {
           if (response.isValid) {
             setToken(response.accessToken);
-            window.location.href = '/dashboard';
+            navigate('/dashboard');
           }
         })
         .catch(() => {
           deleteToken();
         });
     }
-  }, [handleOpenSnackbar]);
+  }, [handleOpenSnackbar, navigate]);
 
   const handleLoginClick = () => {
     login()
