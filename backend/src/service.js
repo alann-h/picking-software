@@ -40,10 +40,10 @@ function getCompanyId (oauthClient) {
   return oauthClient.getToken().realmId;
 }
 
-export function handleCallback (req) {
+export function handleCallback (url) {
   const oauthClient = initializeOAuthClient();
 
-  return oauthClient.createToken(req.url)
+  return oauthClient.createToken(url)
     .then(function (authResponse) {
       const token = authResponse.getToken();
       const userId = uuidv4();
@@ -370,12 +370,12 @@ export function processBarcode (barcode, quoteId, newQty) {
         const estimate = database.quotes[quoteId];
 
         if (estimate && estimate.productInfo[productName]) {
-          let qty = estimate.productInfo[productName].Qty;
+          let qty = estimate.productInfo[productName].pickingQty;
           if (qty === 0 || (qty - newQty) < 0) {
             return resolve({ productName, updatedQty: 0 });
           }
-          qty = qty - newQty;
-          estimate.productInfo[productName].Qty = qty;
+          qty -= newQty;
+          estimate.productInfo[productName].pickingQty = qty;
           writeDatabase(databasePath, database);
           resolve({ productName, updatedQty: qty });
         } else {

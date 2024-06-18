@@ -36,7 +36,8 @@ app.get('/authUri', (_, res) => {
 });
 
 app.get('/callback', (req, res) => {
-  handleCallback(req)
+  const url = req.url;
+  handleCallback(url)
     .then(userId => {
       res.redirect(`http://localhost:3000/oauth/callback?userId=${userId}`); // redirects to frontend dashboard with userId
     })
@@ -169,7 +170,7 @@ app.post('/upload', upload.single('input'), (req, res) => {
     });
 });
 
-app.post('/productScan', (req, res) => {
+app.put('/productScan', (req, res) => {
   const { barcode, quoteId, newQty } = req.body;
   processBarcode(barcode, quoteId, newQty)
     .then(message => {

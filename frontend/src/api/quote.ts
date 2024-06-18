@@ -1,4 +1,4 @@
-import { apiCallGet, apiCallPost } from '../utils/apiHelpers';
+import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
 import { getUserId } from '../utils/storage';
 import { QuoteData } from '../utils/types';
 
@@ -34,7 +34,7 @@ export const saveQuote = async (quote: QuoteData) => {
 };
 
 export const barcodeScan = async (barcode: string, quoteId: string, newQty: number) => {
-  const data = await apiCallPost('productScan', { barcode, quoteId, newQty });
+  const data = await apiCallPut('productScan', { barcode, quoteId, newQty });
   if (data.error) {
     throw new Error(data.error);
   } else {

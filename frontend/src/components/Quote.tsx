@@ -53,9 +53,13 @@ const Quote: React.FC = () => {
         const product = quoteData?.productInfo[productName];
 
         if (product) {
-          setAvailableQty(product.pickingQty);
-          setIsModalOpen(true);
-          setScannedProductName(productName);
+          if (product.pickingQty === 0) {
+            handleOpenSnackbar('Product quantity is already 0!', 'error');
+          } else {
+            setAvailableQty(product.pickingQty);
+            setIsModalOpen(true);
+            setScannedProductName(productName);
+          }
         } else {
           handleOpenSnackbar('Product not found in quote data', 'error');
         }
