@@ -40,21 +40,19 @@ function getCompanyId (oauthClient) {
   return oauthClient.getToken().realmId;
 }
 
-export function handleCallback (url) {
+export async function handleCallback (url) {
   const oauthClient = initializeOAuthClient();
+  try {
+    const authResponse = await oauthClient.createToken(url);
+    const token = authResponse.getToken();
+    const userId = uuidv4();
 
-  return oauthClient.createToken(url)
-    .then(function (authResponse) {
-      const token = authResponse.getToken();
-      const userId = uuidv4();
-
-      saveUser(userId, token);
-      return userId;
-    })
-    .catch(function (e) {
-      console.error(e);
-      return new AccessError('Could not create token.');
-    });
+    saveUser(userId, token);
+    return userId;
+  } catch (e) {
+    console.error(e);
+    throw new AccessError('Could not create token.');
+  }
 }
 
 function saveUser (userId, token) {
@@ -64,59 +62,57 @@ function saveUser (userId, token) {
 }
 
 async function getOAuthClient (userId) {
-  if (userId) {
-    try {
-      const userToken = await getUserToken(userId);
-      if (userToken) {
-        const oauthClient = initializeOAuthClient();
-        oauthClient.setToken(userToken);
-        return oauthClient;
-      }
-    } catch (e) {
-      return new AccessError('Error getting OAuth client: ' + e.message);
+  if (!userId) {
+    return null;
+  }
+  try {
+    const userToken = await getUserToken(userId);
+    if (userToken) {
+      const oauthClient = initializeOAuthClient();
+      oauthClient.setToken(userToken);
+      return oauthClient;
     }
+  } catch (e) {
+    throw new AccessError('Error getting OAuth client: ' + e.message);
   }
   return null;
 }
 
-export function getUserToken (userId) {
-  return new Promise((resolve, reject) => {
-    if (!userId) {
-      return reject(new InputError('User Id is not valid'));
-    }
+export async function getUserToken (userId) {
+  if (!userId) {
+    throw new InputError('User Id is not valid');
+  }
 
-    const database = readDatabase(databasePath);
-    const userToken = database.users[userId];
-    if (!userToken) {
-      return reject(new NotFoundError('User not found'));
-    }
+  const database = readDatabase(databasePath);
+  const userToken = database.users[userId];
+  if (!userToken) {
+    throw new NotFoundError('User not found');
+  }
 
-    if (!userToken.access_token || !userToken.refresh_token) {
-      return reject(new AccessError('Token not found for user'));
-    }
+  if (!userToken.access_token || !userToken.refresh_token) {
+    throw new AccessError('Token not found for user');
+  }
 
-    const oauthClient = initializeOAuthClient();
-    oauthClient.setToken(userToken);
+  const oauthClient = initializeOAuthClient();
+  oauthClient.setToken(userToken);
 
-    if (oauthClient.isAccessTokenValid()) {
-      return resolve(userToken);
-    }
+  if (oauthClient.isAccessTokenValid()) {
+    return userToken;
+  }
 
-    if (!oauthClient.token.isRefreshTokenValid()) {
-      deleteUserToken(userId);
-      return reject(new AuthenticationError('The Refresh token is invalid, please reauthenticate.'));
-    }
+  if (!oauthClient.token.isRefreshTokenValid()) {
+    deleteUserToken(userId);
+    throw new AuthenticationError('The Refresh token is invalid, please reauthenticate.');
+  }
 
-    oauthClient.refreshUsingToken(userToken.refresh_token)
-      .then(response => {
-        const newToken = response.getToken();
-        saveUser(userId, newToken);
-        resolve(newToken);
-      })
-      .catch(() => {
-        reject(new NotFoundError('Failed to refresh token'));
-      });
-  });
+  try {
+    const response = await oauthClient.refreshUsingToken(userToken.refresh_token);
+    const newToken = response.getToken();
+    saveUser(userId, newToken);
+    return newToken;
+  } catch (e) {
+    throw new NotFoundError('Failed to refresh token');
+  }
 }
 
 function deleteUserToken (userId) {
@@ -125,26 +121,23 @@ function deleteUserToken (userId) {
   writeDatabase(databasePath, database);
 }
 
-export function getCustomerId (customerName) {
-  return new Promise((resolve, reject) => {
-    try {
-      const database = readDatabase(databasePath);
-      const customerId = database.customers[customerName].id;
-      if (customerId === null) {
-        reject(new InputError('This customer does not exist within the database'));
-      } else {
-        resolve(customerId);
-      }
-    } catch (error) {
-      reject(new InputError(error));
+export async function getCustomerId (customerName) {
+  try {
+    const database = readDatabase(databasePath);
+    const customerId = database.customers[customerName].id;
+    if (!customerId) {
+      throw new InputError('This customer does not exist within the database');
     }
-  });
+    return customerId;
+  } catch (error) {
+    throw new InputError(error.message);
+  }
 }
 
 /***************************************************************
                        Quote Functions
 ***************************************************************/
-// gets specific customer quotes that are not closed (might add time period as to not recieve and filter orders from years ago)
+
 export async function getCustomerQuotes (customerId, userId) {
   try {
     const oauthClient = await getOAuthClient(userId);
@@ -155,7 +148,6 @@ export async function getCustomerQuotes (customerId, userId) {
     const baseURL = getBaseURL(oauthClient);
 
     const query = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
-
     const response = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`
     });
@@ -184,75 +176,67 @@ export async function getFilteredEstimates (quoteId, userId) {
     });
 
     const responseData = JSON.parse(estimateResponse.text());
-    const filteredEstimates = filterEstimates(responseData, oauthClient);
+    const filteredEstimates = await filterEstimates(responseData, oauthClient);
     return filteredEstimates;
   } catch (e) {
     throw new InputError('Quote Id does not exist: ' + e.message);
   }
 }
 
-function filterEstimates (responseData, oauthClient) {
-  const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(function (estimate) {
-    return new Promise((resolve) => {
-      Promise.all(estimate.Line.map(function (line) {
-        if (line.DetailType === 'SubTotalLineDetail') {
-          return Promise.resolve(null);
+async function filterEstimates (responseData, oauthClient) {
+  const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
+    const productObjects = await Promise.all(estimate.Line.map(async (line) => {
+      if (line.DetailType === 'SubTotalLineDetail') {
+        return null;
+      }
+
+      const Description = line.Description;
+      const itemRef = line.SalesItemLineDetail && line.SalesItemLineDetail.ItemRef;
+      const itemValue = itemRef.value;
+
+      const itemSKU = await getSKUFromId(itemValue, oauthClient);
+      return {
+        [Description]: {
+          SKU: itemSKU,
+          pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
+          originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
         }
+      };
+    }));
 
-        const Description = line.Description;
-        const itemRef = line.SalesItemLineDetail && line.SalesItemLineDetail.ItemRef;
-        const itemValue = itemRef.value;
-
-        return getSKUFromId(itemValue, oauthClient).then(itemSKU => {
-          return {
-            [Description]: {
-              SKU: itemSKU,
-              pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
-              originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
-            }
-          };
-        });
-      })).then(productObjects => {
-        // Merge all product objects into a single object
-        const productInfo = productObjects.reduce((acc, productObj) => {
-          return { ...acc, ...productObj };
-        }, {});
-        const customerRef = estimate.CustomerRef;
-        resolve({
-          quoteNumber: estimate.Id,
-          customer: customerRef.name,
-          productInfo,
-          totalAmount: '$' + estimate.TotalAmt
-        });
-      });
-    });
+    const productInfo = productObjects.reduce((acc, productObj) => ({ ...acc, ...productObj }), {});
+    const customerRef = estimate.CustomerRef;
+    return {
+      quoteNumber: estimate.Id,
+      customer: customerRef.name,
+      productInfo,
+      totalAmount: '$' + estimate.TotalAmt
+    };
   });
 
   return Promise.all(filteredEstimatesPromises);
 }
 
-function getSKUFromId (itemValue, oauthClient) {
-  const query = `SELECT * from Item WHERE Id = '${itemValue}'`;
-  const companyID = getCompanyId(oauthClient);
-  const baseURL = getBaseURL(oauthClient);
+async function getSKUFromId(itemValue, oauthClient) {
+  try {
+    const query = `SELECT * from Item WHERE Id = '${itemValue}'`;
+    const companyID = getCompanyId(oauthClient);
+    const baseURL = getBaseURL(oauthClient);
+    const url = `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`;
 
-  return new Promise((resolve, reject) => {
-    oauthClient.makeApiCall({ url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69` })
-      .then(function (response) {
-        const responseData = JSON.parse(response.text());
-        if (responseData.QueryResponse && responseData.QueryResponse.Item && responseData.QueryResponse.Item.length > 0) {
-          resolve(responseData.QueryResponse.Item[0].Sku);
-        } else {
-          resolve(null);
-        }
-      })
-      .catch(e => {
-        console.error(e);
-        reject(e);
-      });
-  });
+    const response = await oauthClient.makeApiCall({ url });
+    const responseData = JSON.parse(response.text());
+
+    if (responseData.QueryResponse && responseData.QueryResponse.Item && responseData.QueryResponse.Item.length > 0) {
+      return responseData.QueryResponse.Item[0].Sku;
+    } else {
+      return null;
+    }
+  } catch (e) {
+    throw e;
+  }
 }
-// Gather all customers
+
 export async function fetchCustomers (userId) {
   try {
     const oauthClient = await getOAuthClient(userId);
@@ -276,132 +260,107 @@ export async function fetchCustomers (userId) {
   }
 }
 
-export function saveCustomers (customers) {
-  return new Promise((resolve, reject) => {
-    try {
-      const database = readDatabase(databasePath);
-      const customerObject = customers.reduce((obj, customer) => {
-        obj[customer.name] = { id: customer.id };
-        return obj;
-      }, {});
-      database.customers = customerObject;
-      writeDatabase(databasePath, database);
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
+export async function saveCustomers (customers) {
+  try {
+    const database = readDatabase(databasePath);
+    const customerObject = customers.reduce((obj, customer) => {
+      obj[customer.name] = { id: customer.id };
+      return obj;
+    }, {});
+    database.customers = customerObject;
+    writeDatabase(databasePath, database);
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
 }
 
-export function processFile (filePath) {
-  return new Promise((resolve, reject) => {
-    try {
-      const excelData = excelToJson({
-        sourceFile: filePath,
-        header: { rows: 1 },
-        columnToKey: { '*': '{{columnHeader}}' }
-      });
+export async function processFile (filePath) {
+  try {
+    const excelData = excelToJson({
+      sourceFile: filePath,
+      header: { rows: 1 },
+      columnToKey: { '*': '{{columnHeader}}' }
+    });
 
-      const database = readDatabase(databasePath);
-      // clears db in order to ensure the list is correct (theres probably a better way to avoid duplicates and find removed items)
-      // but since my db isnt too big it is okay
-      database.products = {}; // Initialize as an empty object
+    const database = readDatabase(databasePath);
+    database.products = {}; // Initialize as an empty object
 
-      for (const key in excelData) {
-        if (Object.prototype.hasOwnProperty.call(excelData, key)) {
-          const products = excelData[key];
-          products.forEach(product => {
-            const productInfo = {
-              name: product.Name
-            };
-            database.products[product.Barcode] = productInfo;
-          });
-        }
+    for (const key in excelData) {
+      if (Object.prototype.hasOwnProperty.call(excelData, key)) {
+        const products = excelData[key];
+        products.forEach(product => {
+          const productInfo = {
+            name: product.Name
+          };
+          database.products[product.Barcode] = productInfo;
+        });
       }
-
-      writeDatabase(databasePath, database);
-
-      fs.remove(filePath, err => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve('Products uploaded successfully');
-        }
-      });
-    } catch (error) {
-      reject(error);
     }
-  });
+
+    writeDatabase(databasePath, database);
+
+    await fs.remove(filePath);
+    return 'Products uploaded successfully';
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
 }
 
-export function estimateToDB (estimate) {
-  return new Promise((resolve, reject) => {
-    try {
-      const quote = estimate.quote;
-      const estimateInfo = {
-        customer: quote.customer,
-        productInfo: quote.productInfo,
-        totalAmount: quote.totalAmount
-      };
-      const database = readDatabase(databasePath);
-      database.quotes[quote.quoteNumber] = estimateInfo;
-      writeDatabase(databasePath, database);
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
+export async function estimateToDB (estimate) {
+  try {
+    const quote = estimate.quote;
+    const estimateInfo = {
+      customer: quote.customer,
+      productInfo: quote.productInfo,
+      totalAmount: quote.totalAmount
+    };
+    const database = readDatabase(databasePath);
+    database.quotes[quote.quoteNumber] = estimateInfo;
+    writeDatabase(databasePath, database);
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
 }
 
-// checks if estimate exists in database if it is return it or else return null
 export function estimateExists (quoteId) {
   const database = readDatabase(databasePath);
-  if (database.quotes[quoteId]) {
-    return database.quotes[quoteId];
-  }
-  return null;
+  return database.quotes[quoteId] || null;
 }
 
-export function processBarcode (barcode, quoteId, newQty) {
-  return new Promise((resolve, reject) => {
-    getProductName(barcode)
-      .then(productName => {
-        const database = readDatabase(databasePath);
-        const estimate = database.quotes[quoteId];
+export async function processBarcode (barcode, quoteId, newQty) {
+  try {
+    const productName = await getProductName(barcode);
+    const database = readDatabase(databasePath);
+    const estimate = database.quotes[quoteId];
 
-        if (estimate && estimate.productInfo[productName]) {
-          let qty = estimate.productInfo[productName].pickingQty;
-          if (qty === 0 || (qty - newQty) < 0) {
-            return resolve({ productName, updatedQty: 0 });
-          }
-          qty -= newQty;
-          estimate.productInfo[productName].pickingQty = qty;
-          writeDatabase(databasePath, database);
-          resolve({ productName, updatedQty: qty });
-        } else {
-          reject(new InputError('Quote number is invalid or scanned product does not exist on quote'));
-        }
-      })
-      .catch(error => {
-        reject(error);
-      });
-  });
-}
-
-export function getProductName (barcode) {
-  return new Promise((resolve, reject) => {
-    try {
-      const database = readDatabase(databasePath);
-      const productName = database.products[barcode].name;
-      if (productName === null) {
-        reject(new InputError('This product does not exist within the database'));
-      } else {
-        resolve(productName);
+    if (estimate && estimate.productInfo[productName]) {
+      let qty = estimate.productInfo[productName].pickingQty;
+      if (qty === 0 || (qty - newQty) < 0) {
+        return { productName, updatedQty: 0 };
       }
-    } catch (error) {
-      reject(new InputError(error));
+      qty -= newQty;
+      estimate.productInfo[productName].pickingQty = qty;
+      writeDatabase(databasePath, database);
+      return { productName, updatedQty: qty };
+    } else {
+      throw new InputError('Quote number is invalid or scanned product does not exist on quote');
     }
-  });
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
+}
+
+export async function getProductName (barcode) {
+  try {
+    const database = readDatabase(databasePath);
+    const productName = database.products[barcode].name;
+    if (!productName) {
+      throw new InputError('This product does not exist within the database');
+    }
+    return productName;
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
 }
 
 function readDatabase (databasePath) {
