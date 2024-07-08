@@ -22,7 +22,7 @@ const SnackbarComponent: React.FC = () => {
         <Alert
           onClose={handleCloseSnackbar}
           severity={snackbarSeverity}
-          sx={{ width: '100%', fontSize: '1.25rem' }}
+          sx={{ width: '100%' }}
         >
           {snackbarMessage}
         </Alert>
