@@ -49,9 +49,9 @@ export async function handleCallback(url) {
 }
 
 function saveUser(userId, token) {
-  const database = readDatabase(databasePath);
+  const database = readDatabase();
   database.users[userId] = token;
-  writeDatabase(databasePath, database);
+  writeDatabase(database);
 }
 
 export async function getOAuthClient(userId) {
@@ -76,7 +76,7 @@ export async function getUserToken(userId) {
     throw new InputError('User Id is not valid');
   }
 
-  const database = readDatabase(databasePath);
+  const database = readDatabase();
   const userToken = database.users[userId];
   if (!userToken) {
     throw new NotFoundError('User not found');
@@ -109,7 +109,7 @@ export async function getUserToken(userId) {
 }
 
 function deleteUserToken(userId) {
-  const database = readDatabase(databasePath);
+  const database = readDatabase();
   delete database.users[userId];
-  writeDatabase(databasePath, database);
+  writeDatabase(database);
 }

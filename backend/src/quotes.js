@@ -1,9 +1,7 @@
 import { AccessError, InputError } from './error';
 import { readDatabase, writeDatabase } from './helpers';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
-import { getProduct, getProductName } from './products';
-
-const databasePath = './database.json';
+import { getProductFromQB, getProductName } from './products';
 
 export async function getCustomerQuotes(customerId, userId) {
   try {
@@ -61,7 +59,7 @@ async function filterEstimates(responseData, oauthClient) {
       const itemRef = line.SalesItemLineDetail && line.SalesItemLineDetail.ItemRef;
       const itemValue = itemRef.value;
 
-      const item = await getProduct(itemValue, oauthClient);
+      const item = await getProductFromQB(itemValue, oauthClient);
       const itemSKU = item.sku;
       return {
         [Description]: {
@@ -93,23 +91,23 @@ export async function estimateToDB(estimate) {
       productInfo: quote.productInfo,
       totalAmount: quote.totalAmount
     };
-    const database = readDatabase(databasePath);
+    const database = readDatabase();
     database.quotes[quote.quoteNumber] = estimateInfo;
-    writeDatabase(databasePath, database);
+    writeDatabase(database);
   } catch (error) {
     throw new AccessError(error.message);
   }
 }
 
 export function estimateExists(quoteId) {
-  const database = readDatabase(databasePath);
+  const database = readDatabase();
   return database.quotes[quoteId] || null;
 }
 
 export async function processBarcode(barcode, quoteId, newQty) {
   try {
     const productName = await getProductName(barcode);
-    const database = readDatabase(databasePath);
+    const database = readDatabase();
     const estimate = database.quotes[quoteId];
 
     if (estimate && estimate.productInfo[productName]) {
@@ -119,7 +117,7 @@ export async function processBarcode(barcode, quoteId, newQty) {
       }
       qty -= newQty;
       estimate.productInfo[productName].pickingQty = qty;
-      writeDatabase(databasePath, database);
+      writeDatabase(database);
       return { productName, updatedQty: qty };
     } else {
       throw new InputError('Quote number is invalid or scanned product does not exist on quote');

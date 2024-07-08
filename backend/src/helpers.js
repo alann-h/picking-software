@@ -1,7 +1,9 @@
 import fs from 'fs-extra';
 import { AccessError } from './error';
 
-export function readDatabase(databasePath) {
+const databasePath = './database.json';
+
+export function readDatabase() {
   try {
     const data = fs.readFileSync(databasePath, 'utf8');
     return JSON.parse(data);
@@ -10,7 +12,7 @@ export function readDatabase(databasePath) {
   }
 }
 
-export function writeDatabase(databasePath, data) {
+export function writeDatabase(data) {
   try {
     fs.writeFileSync(databasePath, JSON.stringify(data, null, 2));
   } catch {
