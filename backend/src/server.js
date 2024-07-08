@@ -3,12 +3,10 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import morgan from 'morgan';
-import {
-  getAuthUri, handleCallback, getFilteredEstimates,
-  processFile, estimateToDB, estimateExists, processBarcode,
-  getUserToken, getProductName, fetchCustomers, saveCustomers,
-  getCustomerQuotes, getCustomerId
-} from './service.js';
+import { getAuthUri, handleCallback, getUserToken } from './auth.js';
+import { getFilteredEstimates, estimateToDB, estimateExists, getCustomerQuotes, processBarcode } from './quotes.js';
+import { processFile, getProductName } from './products.js';
+import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from '../swagger.json';
