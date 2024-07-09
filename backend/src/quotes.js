@@ -108,21 +108,58 @@ export async function processBarcode(barcode, quoteId, newQty) {
   try {
     const productName = await getProductName(barcode);
     const database = readDatabase();
-    const estimate = database.quotes[quoteId];
+    const quote = database.quotes[quoteId];
 
-    if (estimate && estimate.productInfo[productName]) {
-      let qty = estimate.productInfo[productName].pickingQty;
+    if (quote && quote.productInfo[productName]) {
+      let qty = quote.productInfo[productName].pickingQty;
       if (qty === 0 || (qty - newQty) < 0) {
         return { productName, updatedQty: 0 };
       }
       qty -= newQty;
-      estimate.productInfo[productName].pickingQty = qty;
+      quote.productInfo[productName].pickingQty = qty;
       writeDatabase(database);
       return { productName, updatedQty: qty };
     } else {
       throw new InputError('Quote number is invalid or scanned product does not exist on quote');
     }
   } catch (error) {
+    throw new AccessError(error.message);
+  }
+}
+
+export function addProductToQuote(productName, qty, quoteId) {
+  try {
+    const database = readDatabase();
+    if (!database.products[productName]) {
+      throw new AccessError('Product does not exisit in database!');
+    }
+    if (!database.quotes[quoteId]) {
+      throw new AccessError('Quote does not exisit in database!');
+    }
+    const quote = database.quotes[quoteId];
+    quote.productInfo[productName].pickingQty += qty;
+    quote.productInfo[productName].originalQty += qty;
+
+    writeDatabase(quote);
+  } catch (e) {
+    throw new AccessError(error.message);
+  }
+}
+
+export function removeProduct(productName, quoteId) {
+  try {
+    const database = readDatabase();
+    if (!database.products[productName]) {
+      throw new AccessError('Product does not exisit in database!');
+    }
+    if (!database.quotes[quoteId]) {
+      throw new AccessError('Quote does not exisit in database!');
+    }
+    const quote = database.quotes[quoteId];
+    delete quote.productInfo[productName]
+
+    writeDatabase(quote);
+  } catch (e) {
     throw new AccessError(error.message);
   }
 }

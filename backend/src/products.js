@@ -101,3 +101,14 @@ export async function getProductName(barcode) {
     throw new AccessError(error.message);
   }
 }
+
+export function getProductFromDB(productName) {
+    try {
+        const database = readDatabase();
+        if (database.products[productName]) {
+            return database.products[productName]
+        }
+    } catch (error) {
+        throw new AccessError('This product does not exist within the database');
+      }
+}
