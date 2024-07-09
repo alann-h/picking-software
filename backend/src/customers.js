@@ -2,11 +2,9 @@ import { AccessError, InputError } from './error';
 import { readDatabase, writeDatabase } from './helpers';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
 
-const databasePath = './database.json';
-
 export async function getCustomerId(customerName) {
   try {
-    const database = readDatabase(databasePath);
+    const database = readDatabase();
     const customerId = database.customers[customerName].id;
     if (!customerId) {
       throw new InputError('This customer does not exist within the database');
@@ -42,13 +40,13 @@ export async function fetchCustomers(userId) {
 
 export async function saveCustomers(customers) {
   try {
-    const database = readDatabase(databasePath);
+    const database = readDatabase();
     const customerObject = customers.reduce((obj, customer) => {
       obj[customer.name] = { id: customer.id };
       return obj;
     }, {});
     database.customers = customerObject;
-    writeDatabase(databasePath, database);
+    writeDatabase(database);
   } catch (error) {
     throw new AccessError(error.message);
   }

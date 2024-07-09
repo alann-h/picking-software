@@ -4,8 +4,6 @@ import { AccessError, InputError } from './error';
 import { readDatabase, writeDatabase } from './helpers';
 import { getBaseURL, getCompanyId } from './auth';
 
-const databasePath = './database.json';
-
 export async function processFile(filePath) {
   try {
     const excelData = excelToJson({
@@ -14,7 +12,7 @@ export async function processFile(filePath) {
       columnToKey: { '*': '{{columnHeader}}' }
     });
 
-    const database = readDatabase(databasePath);
+    const database = readDatabase();
     database.products = {}; // Initialize as an empty object
 
     for (const key in excelData) {
@@ -29,7 +27,7 @@ export async function processFile(filePath) {
       }
     }
 
-    writeDatabase(databasePath, database);
+    writeDatabase(database);
 
     await fs.remove(filePath);
     return 'Products uploaded successfully';
@@ -38,7 +36,7 @@ export async function processFile(filePath) {
   }
 }
 
-export async function getProduct(itemId, oauthClient) {
+export async function getProductFromQB(itemId, oauthClient) {
   try {
     const query = `SELECT * from Item WHERE Id = '${itemId}'`;
     const companyID = getCompanyId(oauthClient);
@@ -55,7 +53,7 @@ export async function getProduct(itemId, oauthClient) {
     const item = {
       id: itemData.Id,
       name: itemData.Name,
-      sku: itemData.Sku,
+      SKU: itemData.Sku,
       qtyOnHand: itemData.QtyOnHand,
     }
     saveProduct(item);
@@ -67,7 +65,7 @@ export async function getProduct(itemId, oauthClient) {
 
 function saveProduct(item) {
   try {
-    const database = readDatabase(databasePath);
+    const database = readDatabase();
 
     if (database.products[item.name]) {
       database.products[item.name] = {
@@ -79,7 +77,7 @@ function saveProduct(item) {
     } else {
       throw new AccessError(`Product with name ${item.name} does not exist in the database. Please upload excel file with new product.`);
     }
-    writeDatabase(databasePath, database);
+    writeDatabase(database);
   } catch (err) {
     throw new AccessError(`${err.message}`);
   }
@@ -87,7 +85,7 @@ function saveProduct(item) {
 
 export async function getProductName(barcode) {
   try {
-    const database = readDatabase(databasePath);
+    const database = readDatabase();
     let productName = null;
     for (const name in database.products) {
       if (database.products[name].barcode === barcode) {
@@ -101,5 +99,16 @@ export async function getProductName(barcode) {
     return productName;
   } catch (error) {
     throw new AccessError(error.message);
+  }
+}
+
+export function getProductFromDB(productName) {
+  try {
+    const database = readDatabase();
+    if (database.products[productName]) {
+      return database.products[productName]
+    }
+  } catch (error) {
+    throw new AccessError('This product does not exist within the database');
   }
 }

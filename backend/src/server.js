@@ -4,8 +4,10 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import morgan from 'morgan';
 import { getAuthUri, handleCallback, getUserToken } from './auth.js';
-import { getFilteredEstimates, estimateToDB, estimateExists, getCustomerQuotes, processBarcode } from './quotes.js';
-import { processFile, getProductName } from './products.js';
+import { getFilteredEstimates, estimateToDB, estimateExists, 
+  getCustomerQuotes, processBarcode, addProductToQuote, removeProduct
+} from './quotes.js';
+import { processFile, getProductName, getProductFromDB } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
@@ -101,18 +103,6 @@ app.get('/getCustomerId/:customerName', (req, res) => {
       res.status(error.statusCode || 500).json({ error: error.message });
     });
 });
-// saves quote to the database
-app.post('/saveQuote', (req, res) => {
-  const quote = req.body;
-  estimateToDB(quote)
-    .then(() => {
-      res.status(200).json({ message: 'Quote saved successfully in database' });
-    })
-    .catch((error) => {
-      console.error(error);
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
 
 app.get('/getEstimates/:customerId/:userId', (req, res) => {
   const { customerId, userId } = req.params;
@@ -147,6 +137,51 @@ app.get('/estimate/:quoteId/:userId', (req, res) => {
     })
     .catch(error => {
       console.error(error);
+      res.status(error.statusCode || 500).json({ error: error.message });
+    });
+});
+
+// saves quote to the database
+app.post('/saveQuote', (req, res) => {
+  const quote = req.body;
+  estimateToDB(quote)
+    .then(() => {
+      res.status(200).json({ message: 'Quote saved successfully in database' });
+    })
+    .catch((error) => {
+      res.status(error.statusCode || 500).json({ error: error.message });
+    });
+});
+
+app.get('/getProduct/:productName', (req, res) => {
+  const productName = req.params;
+  getProductFromDB(productName)
+    .then((productData) => {
+      res.status(200).json(productData);
+    })
+    .catch((error) => {
+      res.status(error.statusCode || 500).json({ error: error.message });
+    });
+});
+
+app.put('/addProduct', (req, res) => {
+  const { quoteId, productName, qty } = req.body;
+  addProductToQuote(productName, quoteId, qty)
+    .then(() => {
+      res.status(200).json({ message: 'Added product to quote successfully' });
+    })
+    .catch((error) => {
+      res.status(error.statusCode || 500).json({ error: error.message });
+    });
+});
+
+app.delete('/removeProduct', (req, res) => {
+  const { quoteId, productName } = req.body;
+  removeProduct(productName, quoteId)
+    .then(() => {
+      res.status(200).json({ message: 'Removed product from quote successfully' });
+    })
+    .catch((error) => {
       res.status(error.statusCode || 500).json({ error: error.message });
     });
 });
