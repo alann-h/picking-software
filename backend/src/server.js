@@ -154,7 +154,7 @@ app.post('/saveQuote', (req, res) => {
 });
 
 app.get('/getProduct/:productName', (req, res) => {
-  const productName = req.params;
+  const productName = req.params.productName;
   getProductFromDB(productName)
     .then((productData) => {
       res.status(200).json(productData);
@@ -175,8 +175,8 @@ app.put('/addProduct', (req, res) => {
     });
 });
 
-app.delete('/removeProduct', (req, res) => {
-  const { quoteId, productName } = req.body;
+app.delete('/removeProduct/;productName/;quoteId', (req, res) => {
+  const { quoteId, productName } = req.params;
   removeProduct(productName, quoteId)
     .then(() => {
       res.status(200).json({ message: 'Removed product from quote successfully' });

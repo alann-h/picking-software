@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, Grid, Paper, Typography, Pagination, Box } from '@mui/material';
 import { useLocation } from 'react-router-dom';
-import { QuoteData } from '../utils/types';
+import { QuoteData, ProductDetailsDB, ProductDetail } from '../utils/types';
 import { barcodeScan, barcodeToName, extractQuote, saveQuote } from '../api/quote';
+import { getProductInfo } from '../api/others';
 import BarcodeListener from './BarcodeListener';
 import QtyModal from './QtyModal';
 import { useSnackbarContext } from './SnackbarContext';
+import AddProduct from './AddProduct';
+import ProductDetails from './ProductDetails';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -22,6 +25,7 @@ const Quote: React.FC = () => {
   const [scannedProductName, setScannedProductName] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [selectedProduct, setSelectedProduct] = useState<{ name: string; details: ProductDetailsDB } | null>(null);
 
   const { handleOpenSnackbar } = useSnackbarContext();
 
@@ -97,6 +101,33 @@ const Quote: React.FC = () => {
     }
   };
 
+  const handleAddProduct = () => {
+    // Implement the logic for adding a new product here
+    console.log('Add Product button clicked');
+    // You might want to open a modal or navigate to a new page for adding a product
+  };
+
+  const handleProductClick = async (name: string, details: ProductDetail) => {
+    try {
+      const data = await getProductInfo(name);
+      setSelectedProduct({
+        name,
+        details: {
+          SKU: details.SKU,
+          pickingQty: details.pickingQty,
+          originalQty: details.originalQty,
+          qtyOnHand: data.qtyOnHand,
+        }
+      });
+    } catch (error) {
+      handleOpenSnackbar('Error fetching product details', 'error');
+    }
+  };
+
+  const handleCloseProductDetails = () => {
+    setSelectedProduct(null);
+  };
+
   return (
     <Paper elevation={8} sx={{ padding: 3, marginTop: 3 }}>
       <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
@@ -109,6 +140,14 @@ const Quote: React.FC = () => {
         onModalConfirm={handleModalConfirm}
         productName={scannedProductName}
       />
+        {selectedProduct && (
+        <ProductDetails
+          open={!!selectedProduct}
+          onClose={handleCloseProductDetails}
+          productName={selectedProduct.name}
+          productDetails={selectedProduct.details}
+        />
+      )}
       {quoteData ? (
         <>
           <Paper variant="outlined" sx={{ padding: 2, marginBottom: 2, display: 'flex', justifyContent: 'space-between' }}>
@@ -124,7 +163,11 @@ const Quote: React.FC = () => {
               .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
               .map(([name, details], index) => (
                 <Grid item xs={12} key={index}>
-                  <Card variant="outlined">
+                  <Card 
+                  variant="outlined"
+                  onClick={() => handleProductClick(name, details)}
+                  sx={{ cursor: 'pointer' }}
+                  >
                     <CardContent sx={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -149,6 +192,7 @@ const Quote: React.FC = () => {
               onChange={(_, page) => setCurrentPage(page)}
             />
           </Box>
+          <AddProduct onClick={handleAddProduct} />
         </>
       ) : (
         <Typography variant="body2">No data to display</Typography>

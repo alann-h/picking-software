@@ -42,3 +42,12 @@ export const getCustomerId = async (customerName: string) => {
     return data;
   }
 };
+
+export const getProductInfo =  async (productName: string) => {
+  const response = await apiCallGet(`getProduct/${productName}`);
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}

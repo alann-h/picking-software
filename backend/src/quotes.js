@@ -60,7 +60,7 @@ async function filterEstimates(responseData, oauthClient) {
       const itemValue = itemRef.value;
 
       const item = await getProductFromQB(itemValue, oauthClient);
-      const itemSKU = item.sku;
+      const itemSKU = item.SKU;
       return {
         [Description]: {
           SKU: itemSKU,

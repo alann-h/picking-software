@@ -103,12 +103,16 @@ export async function getProductName(barcode) {
 }
 
 export function getProductFromDB(productName) {
-  try {
-    const database = readDatabase();
-    if (database.products[productName]) {
-      return database.products[productName]
+  return new Promise((resolve, reject) => {
+    try {
+      const database = readDatabase();
+      if (database.products[productName]) {
+        resolve(database.products[productName]);
+      } else {
+        reject(new AccessError('This product does not exist within the database'));
+      }
+    } catch (error) {
+      reject(new AccessError('Error accessing the database'));
     }
-  } catch (error) {
-    throw new AccessError('This product does not exist within the database');
-  }
+  });
 }
