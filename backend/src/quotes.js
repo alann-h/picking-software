@@ -137,9 +137,18 @@ export function addProductToQuote(productName, qty, quoteId) {
       throw new AccessError('Quote does not exisit in database!');
     }
     const quote = database.quotes[quoteId];
-    quote.productInfo[productName].pickingQty += qty;
-    quote.productInfo[productName].originalQty += qty;
-
+    if (quote.productInfo[productName]){
+      quote.productInfo[productName].pickingQty += qty;
+      quote.productInfo[productName].originalQty += qty;
+    } else {
+      const productSKU = database.products[productName].SKU;
+      const jsonProductData = {
+        SKU: productSKU,
+        pickingQty: qty,
+        originalQty: qty,
+      }
+      quote.productInfo[productName] = jsonProductData;
+    }
     writeDatabase(quote);
   } catch (e) {
     throw new AccessError(error.message);

@@ -53,7 +53,7 @@ export async function getProductFromQB(itemId, oauthClient) {
     const item = {
       id: itemData.Id,
       name: itemData.Name,
-      sku: itemData.Sku,
+      SKU: itemData.Sku,
       qtyOnHand: itemData.QtyOnHand,
     }
     saveProduct(item);
