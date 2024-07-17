@@ -1664,11 +1664,11 @@
       "productInfo": {
         "Olive Kalamata Pitted 10KG": {
           "sku": "B101",
-          "pickingQty": 120,
-          "originalQty": 120
+          "pickingQty": 125,
+          "originalQty": 125
         }
       },
-      "totalAmount": 6000
+      "totalAmount": 6250
     }
   },
   "users": {

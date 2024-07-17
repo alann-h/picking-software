@@ -26,6 +26,7 @@ const Quote: React.FC = () => {
     currentPage,
     selectedProduct,
     isAddProductModalOpen,
+    allProducts,
     handleBarcodeScanned,
     handleModalConfirm,
     handleModalClose,
@@ -116,6 +117,7 @@ const Quote: React.FC = () => {
         open={isAddProductModalOpen}
         onClose={() => setIsAddProductModalOpen(false)}
         onSubmit={handleAddProductSubmit}
+        products={allProducts}
       />
     </Paper>
   );

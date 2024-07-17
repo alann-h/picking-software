@@ -43,3 +43,8 @@ export interface ProductDetailsDB {
     originalQty: number;
     qtyOnHand: number;
 }
+
+export interface Product {
+    productName: string;
+    barcode: number;
+}
