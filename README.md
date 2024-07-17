@@ -2,7 +2,9 @@
 A much cleaner and better verison of my quote-extractor (using quickbooks API) will add functionality soon! :)
 
 
-So far I have implemented a way to retreive and display quote data. Also have the ability to upload a product database. Once a quote Id is entered and the information about the quote is displayed I can scan a barcode which checks if it exisits within the invoices and decrements the quantity displayed by 1.
+So far I have implemented a way to retreive and display quote data. Also have the ability to upload a product database. Once a quote Id is entered and the information about the quote is displayed I can scan a barcode which checks if it exisits within the quote and a modal appears where you can input the amount of products placed. Also added features that include the following:
+- Add products
+- Upload excel sheet of product names and barcodes
 
 THINGS THAT WILL BE ADDED:
 - add products to the quote (DONE!)
