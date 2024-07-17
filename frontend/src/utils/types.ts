@@ -12,7 +12,7 @@ export interface ProductInfo {
 export interface QuoteData {
     customer: string;
     productInfo: ProductInfo;
-    totalAmount: string;
+    totalAmount: number;
 }
 
 export interface QuoteProps {
@@ -42,4 +42,9 @@ export interface ProductDetailsDB {
     pickingQty: number;
     originalQty: number;
     qtyOnHand: number;
+}
+
+export interface Product {
+    productName: string;
+    barcode: number;
 }

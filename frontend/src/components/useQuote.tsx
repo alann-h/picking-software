@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { QuoteData, ProductDetail, ProductDetailsDB } from '../utils/types';
+import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote } from '../api/quote';
-import { getProductInfo } from '../api/others';
+import { getProductInfo, getAllProducts } from '../api/others';
 import { useSnackbarContext } from '../components/SnackbarContext';
 
 export const useQuote = (quoteId: string) => {
@@ -15,6 +15,7 @@ export const useQuote = (quoteId: string) => {
   const [selectedProduct, setSelectedProduct] = useState<{ name: string; details: ProductDetailsDB } | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   const { handleOpenSnackbar } = useSnackbarContext();
 
@@ -32,6 +33,14 @@ export const useQuote = (quoteId: string) => {
         });
     }
   }, [quoteId, handleOpenSnackbar, refetchTrigger]);
+
+  useEffect(() => {
+    getAllProducts()
+      .then(products => setAllProducts(products))
+      .catch((err: Error) => {
+        handleOpenSnackbar(err.message, 'error');
+      });
+  }, [handleOpenSnackbar]);
 
   const handleBarcodeScanned = (barcode: string) => {
     setScannedBarcode(barcode);
@@ -134,6 +143,7 @@ export const useQuote = (quoteId: string) => {
     currentPage,
     selectedProduct,
     isAddProductModalOpen,
+    allProducts,
     handleBarcodeScanned,
     handleModalConfirm,
     handleModalClose,

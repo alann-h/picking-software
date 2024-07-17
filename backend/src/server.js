@@ -7,7 +7,7 @@ import { getAuthUri, handleCallback, getUserToken } from './auth.js';
 import { getFilteredEstimates, estimateToDB, estimateExists, 
   getCustomerQuotes, processBarcode, addProductToQuote, removeProduct
 } from './quotes.js';
-import { processFile, getProductName, getProductFromDB } from './products.js';
+import { processFile, getProductName, getProductFromDB, getAllProducts } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
@@ -180,6 +180,16 @@ app.delete('/removeProduct/;productName/;quoteId', (req, res) => {
   removeProduct(productName, quoteId)
     .then(() => {
       res.status(200).json({ message: 'Removed product from quote successfully' });
+    })
+    .catch((error) => {
+      res.status(error.statusCode || 500).json({ error: error.message });
+    });
+});
+
+app.get('/getAllProducts', (req, res) => {
+  getAllProducts()
+    .then((products) => {
+      res.status(200).json(products);
     })
     .catch((error) => {
       res.status(error.statusCode || 500).json({ error: error.message });

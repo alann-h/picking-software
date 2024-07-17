@@ -118,3 +118,19 @@ export function getProductFromDB(productName) {
     }
   });
 }
+
+export function getAllProducts() {
+  return new Promise((resolve, reject) => {
+    try {
+      const database = readDatabase();
+      const products = database.products;
+      const formattedProducts = Object.entries(products).map(([name, details]) => ({
+        productName: name,
+        barcode: details.barcode
+      }));
+      resolve(formattedProducts);
+    } catch (error) {
+      reject(new AccessError(error));
+    }
+  });
+}

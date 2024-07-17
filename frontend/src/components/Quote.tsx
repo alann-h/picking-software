@@ -26,6 +26,7 @@ const Quote: React.FC = () => {
     currentPage,
     selectedProduct,
     isAddProductModalOpen,
+    allProducts,
     handleBarcodeScanned,
     handleModalConfirm,
     handleModalClose,
@@ -99,7 +100,7 @@ const Quote: React.FC = () => {
               />
             ))}
           <Typography sx={{ textAlign: 'center', margin: 2 }}>
-            <span style={{ ...highlightStyle, fontWeight: 'bold' }}>Total Amount: {quoteData.totalAmount}</span>
+            <span style={{ ...highlightStyle, fontWeight: 'bold' }}>Total Amount: ${quoteData.totalAmount}</span>
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
             <Pagination
@@ -116,6 +117,7 @@ const Quote: React.FC = () => {
         open={isAddProductModalOpen}
         onClose={() => setIsAddProductModalOpen(false)}
         onSubmit={handleAddProductSubmit}
+        products={allProducts}
       />
     </Paper>
   );

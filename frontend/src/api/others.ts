@@ -51,3 +51,12 @@ export const getProductInfo =  async (productName: string) => {
     return response;  
   }
 }
+
+export const getAllProducts = async () => {
+  const response = await apiCallGet(`getAllProducts`);
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}
