@@ -1,4 +1,4 @@
-import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
+import { apiCallGet, apiCallPost, apiCallPut, apiCallDelete } from '../utils/apiHelpers';
 import { getUserId } from '../utils/storage';
 import { QuoteData } from '../utils/types';
 
@@ -50,3 +50,21 @@ export const barcodeToName = async (barcode: string) => {
     return data;
   }
 };
+
+export const addProductToQuote = async (productName: string, quoteId: string, qty: number) => {
+  const data = await apiCallPut('addProduct', { productName, quoteId, qty });
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data;
+  }
+}
+
+export const removeProductFromQuote = async (productName: string, quoteId: string) => {
+  const data = await apiCallDelete(`removeProduct/${productName}/${quoteId}`);
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data;
+  }
+}

@@ -1,12 +1,12 @@
 
-interface ProductDetails {
-    SKU: string;
+export interface ProductDetail {
+    sku: string;
     pickingQty: number;
     originalQty: number;
 }
   
-interface ProductInfo {
-    [productName: string]: ProductDetails;
+export interface ProductInfo {
+    [productName: string]: ProductDetail;
 }
   
 export interface QuoteData {
@@ -35,4 +35,11 @@ export interface SnackbarContextType {
     snackbarSeverity: 'error' | 'success';
     handleOpenSnackbar: (message: string, severity: 'error' | 'success') => void;
     handleCloseSnackbar: () => void;
-  }
+}
+
+export interface ProductDetailsDB {
+    SKU: string;
+    pickingQty: number;
+    originalQty: number;
+    qtyOnHand: number;
+}

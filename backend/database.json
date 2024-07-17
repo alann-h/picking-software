@@ -1,7 +1,11 @@
 {
   "products": {
     "Olive Kalamata Pitted 10KG": {
-      "barcode": 9300613108614
+      "barcode": 9300613108614,
+      "id": "27",
+      "sku": "B101",
+      "qtyOnHand": 235,
+      "price": 50
     },
     "Olive Kalamata Pitted Large 10KG": {
       "barcode": 9300613108615
@@ -1654,17 +1658,29 @@
       "barcode": 9300613109164
     }
   },
-  "quotes": {},
+  "quotes": {
+    "197": {
+      "customer": "Himateja Madala",
+      "productInfo": {
+        "Olive Kalamata Pitted 10KG": {
+          "sku": "B101",
+          "pickingQty": 114,
+          "originalQty": 114
+        }
+      },
+      "totalAmount": "$5000"
+    }
+  },
   "users": {
-    "8adbeb84-4b54-4528-ad8a-fc8e65ecf3b1": {
+    "992f003b-a701-4647-a31a-9cd60334a9f4": {
       "token_type": "bearer",
-      "access_token": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..4OaaA8u3kO3EGnilrC-7Ng.1agB7WaBI2h_FROtx3P4E_xM53qHKrOL1truRb5NBjwIzi1g5WgzpD4MNoWikWDoCYvfrEtXNtrqGN0Xe7bjda0xtcDm4zjuuEfkefTsiBwZVGv_vNkoN2d1gHD5A2E-23Wm8BoTHZNnWpaGbaDflhz0AEjM0c0DNoc81fr7CZm0Ii55xBTTeVpjhiiKw9B6QmsIUPgLDOfz-AvHOscsJ01MWkdVP89rMXoyKoS8v0PUuc8u5ebNqLpJgP4chRKHl2cVbCW6lsYfzJ-jQMcJ8dLQOwNabs0z3FG-KKPss7eHcMHzKokCGP0JDXyqgzOL_YGYghB1sNPJyTgZcxzpXYr129VLYrBGLw7YOn06ToT6nsPYpDaejTU_HqpNwVdP5G504KxueW5Wgn9TYGkBKBDQujUIjskr4JoVMKUbNXs0E8PWvGEmbN2K6T5Kvw3pygN_vfyBPM-V659QrvA5awMpB2Y5UbILAZy_u3F94ZVlCUXJ37BEUUBx0ZdJrjF9q0NiWOL2kKHm7bO16O0P8Prv2_PdwJUqcPE7YFnR91SL2gB7iSFQcTzs6AEml4n5bk3RvdS-RgDaL_3DwvNS4cLrEFfjUsBYj2d5ExKdfQSwRm8I-0kFJK8aa3Wm124RhKgWYvel-xRtm1hDwkxNpBjv37ffzyVQpUq9-UeIZs23ZisQK-Q7lhULcV4FTNDrF5N_rfojxlMR54n_iDTqcRbdsA_gp9IsFwuPWlYSCdeWbLXWK5JukoSYDd3lQEbV.xuETvl3hQKgYdl7Ie38Zfw",
+      "access_token": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..BiPVkY-ot8wCxgnR7_4MSQ.jb-7RtWDw9vXmTZwM5nd5UIYgZokK-SGFLjuA_JWligma2skBMTR4pCzZdncf7FucAp5J2d4N8vctaSvzgidkwaCyjsVyQzD0l0D9BYWm9rDmEbvfQwwCDATG7nR40x2hL5XzDv-8Jxp3jwL313kOvFTg2p5Tk-Tm_kHdo8SCQPuXncqhzapQGXeGiyC0jPqA5QdT2xzQie8kPYdcxCdaMWHlwUwcqguHNxqXdHgokvSTHEUopIXhxvSJpxMRxmDyDRwnT1i-ENHHGT4owZ7lw-StXc6hb02djiSwD2YPf6_C2E69uxmZMZCwvBpZsRa1pXb133wiGf8NQemte0PUJF77dkf2lfAiECEX02Bwrxl3Q9vBVj584LQiCIJdx6ZMIavzaoVc4pnEQzgKtTA3KOtnhSENvtZl45jp3VrHsWlMVLfT-TcpH0bZbgefYu9K1xBjYrtr5bc_NHiVOVbWkAsOE9nCTvW2R07CcHOgGLLKuxz2vWrMiJdvWXcbTcp-bsnw1sVmG7mUSrRlCYP9et9nYIcAhf1uX6Z0NsjRQEXYK07i21T8nNcuw4Ttwy_gUiz1s-3wKpDMjWSy8BfgV4Q3zgHvsoWkv1y_UY3xO0TWsgB7eHnr3FB-dD0uCM9jBXvwqABwE0yZN1LWYimEETAMGq3GuygVL7vQA0TjfWSmo6kHRusLZztTjmeoWZ2sQ5pr6WAeWqIY2d92dGusqhYlhIkbi_E_zdfnFmrXUb_db_qCG_FeZXmOA7eQprC.FmVDtwXfNLIoLmpQeHQU7A",
       "expires_in": 3600,
-      "refresh_token": "AB11729158174Ig9qKx6leBcAXoY8wSTTKtxFZwFK20se6iMEP",
+      "refresh_token": "AB117299156458lcAdWSgDwrj56Wtm9vT95iQ2dfr0fGmJi7B9",
       "x_refresh_token_expires_in": 8726400,
       "realmId": "9130357908851946",
       "id_token": "",
-      "createdAt": 1720431770887
+      "createdAt": 1721189245094
     }
   },
   "customers": {

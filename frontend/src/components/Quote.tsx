@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, Grid, Paper, Typography, Pagination, Box } from '@mui/material';
+import React from 'react';
+import { Paper, Typography, Pagination, Box } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { useLocation } from 'react-router-dom';
-import { QuoteData } from '../utils/types';
-import { barcodeScan, barcodeToName, extractQuote, saveQuote } from '../api/quote';
 import BarcodeListener from './BarcodeListener';
 import QtyModal from './QtyModal';
-import { useSnackbarContext } from './SnackbarContext';
+import ProductDetails from './ProductDetails';
+import AddProductButton from './AddProductButton';
+import AddProductModal from './AddProductModal';
+import ProductCard from './ProductCard';
+import { useQuote } from './useQuote';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -14,31 +17,26 @@ const useQuery = () => {
 const Quote: React.FC = () => {
   const query = useQuery();
   const quoteId = query.get('Id') || '';
-  const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [inputQty, setInputQty] = useState(1);
-  const [scannedBarcode, setScannedBarcode] = useState('');
-  const [availableQty, setAvailableQty] = useState(0);
-  const [scannedProductName, setScannedProductName] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
-
-  const { handleOpenSnackbar } = useSnackbarContext();
-
-  useEffect(() => {
-    if (quoteId) {
-      extractQuote(quoteId)
-        .then((response) => {
-          if (response.source === 'api') {
-            saveQuote(response.data);
-          }
-          setQuoteData(response.data);
-        })
-        .catch((err: Error) => {
-          handleOpenSnackbar(err.message, 'error');
-        });
-    }
-  }, [quoteId, handleOpenSnackbar]);
+  const {
+    quoteData,
+    isModalOpen,
+    inputQty,
+    availableQty,
+    scannedProductName,
+    currentPage,
+    selectedProduct,
+    isAddProductModalOpen,
+    handleBarcodeScanned,
+    handleModalConfirm,
+    handleModalClose,
+    handleAddProduct,
+    handleAddProductSubmit,
+    handleProductClick,
+    handleCloseProductDetails,
+    setCurrentPage,
+    setIsAddProductModalOpen,
+    setInputQty,
+  } = useQuote(quoteId);
 
   const highlightStyle = {
     backgroundColor: 'yellow',
@@ -46,59 +44,8 @@ const Quote: React.FC = () => {
     borderRadius: 3,
   };
 
-  const handleBarcodeScanned = (barcode: string) => {
-    setScannedBarcode(barcode);
-    barcodeToName(barcode)
-      .then(({ productName }) => {
-        const product = quoteData?.productInfo[productName];
-
-        if (product) {
-          if (product.pickingQty === 0) {
-            handleOpenSnackbar('Product quantity is already 0!', 'error');
-          } else {
-            setAvailableQty(product.pickingQty);
-            setIsModalOpen(true);
-            setScannedProductName(productName);
-          }
-        } else {
-          handleOpenSnackbar('Product not found in quote data', 'error');
-        }
-      })
-      .catch((error) => {
-        handleOpenSnackbar(error.message, 'error');
-      });
-  };
-
-  const handleModalConfirm = () => {
-    barcodeScan(scannedBarcode, quoteId, inputQty)
-      .then((data) => {
-        handleOpenSnackbar('Barcode scanned successfully!', 'success');
-        updateProductQuantity(data.productName, data.updatedQty);
-        setIsModalOpen(false);
-        setInputQty(1);
-      })
-      .catch((error) => {
-        handleOpenSnackbar(`Error scanning barcode: ${error.message}`, 'error');
-      });
-  };
-
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    handleOpenSnackbar('Modal Closed!', 'error');
-    setInputQty(1);
-  };
-
-  const updateProductQuantity = (productName: string, updatedQty: number) => {
-    if (!quoteData) return;
-    const newProductInfo = { ...quoteData.productInfo || {} };
-    if (newProductInfo[productName]) {
-      newProductInfo[productName]!.pickingQty = updatedQty;
-      setQuoteData({ ...quoteData, productInfo: newProductInfo });
-    }
-  };
-
   return (
-    <Paper elevation={8} sx={{ padding: 3, marginTop: 3 }}>
+    <Paper elevation={8} sx={{ padding: 3, marginTop: 3, position: 'relative' }}>
       <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
       <QtyModal
         isModalOpen={isModalOpen}
@@ -109,6 +56,28 @@ const Quote: React.FC = () => {
         onModalConfirm={handleModalConfirm}
         productName={scannedProductName}
       />
+      {selectedProduct && (
+        <ProductDetails
+          open={!!selectedProduct}
+          onClose={handleCloseProductDetails}
+          productName={selectedProduct.name}
+          productDetails={selectedProduct.details}
+        />
+      )}
+      <Box sx={{ position: 'absolute', top: 10, right: 10 }}>
+        <AddProductButton
+          onClick={handleAddProduct}
+          sx={{
+            minWidth: 0,
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            padding: 0,
+          }}
+        >
+          <AddIcon />
+        </AddProductButton>
+      </Box>
       {quoteData ? (
         <>
           <Paper variant="outlined" sx={{ padding: 2, marginBottom: 2, display: 'flex', justifyContent: 'space-between' }}>
@@ -119,32 +88,22 @@ const Quote: React.FC = () => {
               Quote Number: {quoteId}
             </Typography>
           </Paper>
-          <Grid container spacing={1}>
-            {Object.entries(quoteData.productInfo || {})
-              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-              .map(([name, details], index) => (
-                <Grid item xs={12} key={index}>
-                  <Card variant="outlined">
-                    <CardContent sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      '&.MuiCardContent-root': { padding: 2 },
-                      ...(details.SKU.toLowerCase().includes('but') ? highlightStyle : {})
-                    }}>
-                      <Typography variant="body2">{details.SKU}</Typography>
-                      <Typography variant="body2">{name}</Typography>
-                      <Typography variant="body2">{details.pickingQty}</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-          </Grid>
+          {Object.entries(quoteData.productInfo || {})
+            .slice((currentPage - 1) * 20, currentPage * 20)
+            .map(([name, details], index) => (
+              <ProductCard
+                key={index}
+                name={name}
+                details={details}
+                onClick={() => handleProductClick(name, details)}
+              />
+            ))}
           <Typography sx={{ textAlign: 'center', margin: 2 }}>
             <span style={{ ...highlightStyle, fontWeight: 'bold' }}>Total Amount: {quoteData.totalAmount}</span>
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
             <Pagination
-              count={Math.ceil(Object.keys(quoteData?.productInfo || {}).length / itemsPerPage)}
+              count={Math.ceil(Object.keys(quoteData?.productInfo || {}).length / 20)}
               page={currentPage}
               onChange={(_, page) => setCurrentPage(page)}
             />
@@ -153,6 +112,11 @@ const Quote: React.FC = () => {
       ) : (
         <Typography variant="body2">No data to display</Typography>
       )}
+      <AddProductModal
+        open={isAddProductModalOpen}
+        onClose={() => setIsAddProductModalOpen(false)}
+        onSubmit={handleAddProductSubmit}
+      />
     </Paper>
   );
 };

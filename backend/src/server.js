@@ -154,7 +154,7 @@ app.post('/saveQuote', (req, res) => {
 });
 
 app.get('/getProduct/:productName', (req, res) => {
-  const productName = req.params;
+  const productName = req.params.productName;
   getProductFromDB(productName)
     .then((productData) => {
       res.status(200).json(productData);
@@ -168,15 +168,15 @@ app.put('/addProduct', (req, res) => {
   const { quoteId, productName, qty } = req.body;
   addProductToQuote(productName, quoteId, qty)
     .then(() => {
-      res.status(200).json({ message: 'Added product to quote successfully' });
+      res.status(200).json({ message: 'Product updated successfully in database' });
     })
     .catch((error) => {
       res.status(error.statusCode || 500).json({ error: error.message });
     });
 });
 
-app.delete('/removeProduct', (req, res) => {
-  const { quoteId, productName } = req.body;
+app.delete('/removeProduct/;productName/;quoteId', (req, res) => {
+  const { quoteId, productName } = req.params;
   removeProduct(productName, quoteId)
     .then(() => {
       res.status(200).json({ message: 'Removed product from quote successfully' });

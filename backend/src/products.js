@@ -53,8 +53,9 @@ export async function getProductFromQB(itemId, oauthClient) {
     const item = {
       id: itemData.Id,
       name: itemData.Name,
-      SKU: itemData.Sku,
+      sku: itemData.Sku,
       qtyOnHand: itemData.QtyOnHand,
+      price: itemData.UnitPrice,
     }
     saveProduct(item);
     return item
@@ -73,6 +74,7 @@ function saveProduct(item) {
         id: item.id,
         sku: item.sku,
         qtyOnHand: item.qtyOnHand,
+        price: item.price
       };
     } else {
       throw new AccessError(`Product with name ${item.name} does not exist in the database. Please upload excel file with new product.`);
@@ -103,12 +105,16 @@ export async function getProductName(barcode) {
 }
 
 export function getProductFromDB(productName) {
-  try {
-    const database = readDatabase();
-    if (database.products[productName]) {
-      return database.products[productName]
+  return new Promise((resolve, reject) => {
+    try {
+      const database = readDatabase();
+      if (database.products[productName]) {
+        resolve(database.products[productName]);
+      } else {
+        reject(new AccessError('This product does not exist within the database'));
+      }
+    } catch (error) {
+      reject(new AccessError('Error accessing the database'));
     }
-  } catch (error) {
-    throw new AccessError('This product does not exist within the database');
-  }
+  });
 }
