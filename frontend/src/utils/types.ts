@@ -1,11 +1,11 @@
 
 export interface ProductDetail {
-    SKU: string;
+    sku: string;
     pickingQty: number;
     originalQty: number;
 }
   
-interface ProductInfo {
+export interface ProductInfo {
     [productName: string]: ProductDetail;
 }
   

@@ -60,10 +60,10 @@ async function filterEstimates(responseData, oauthClient) {
       const itemValue = itemRef.value;
 
       const item = await getProductFromQB(itemValue, oauthClient);
-      const itemSKU = item.SKU;
+      const itemSKU = item.sku;
       return {
         [Description]: {
-          SKU: itemSKU,
+          sku: itemSKU,
           pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
           originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
         }
@@ -127,33 +127,38 @@ export async function processBarcode(barcode, quoteId, newQty) {
   }
 }
 
-export function addProductToQuote(productName, qty, quoteId) {
-  try {
-    const database = readDatabase();
-    if (!database.products[productName]) {
-      throw new AccessError('Product does not exisit in database!');
-    }
-    if (!database.quotes[quoteId]) {
-      throw new AccessError('Quote does not exisit in database!');
-    }
-    const quote = database.quotes[quoteId];
-    if (quote.productInfo[productName]){
-      quote.productInfo[productName].pickingQty += qty;
-      quote.productInfo[productName].originalQty += qty;
-    } else {
-      const productSKU = database.products[productName].SKU;
-      const jsonProductData = {
-        SKU: productSKU,
-        pickingQty: qty,
-        originalQty: qty,
-      }
-      quote.productInfo[productName] = jsonProductData;
-    }
-    writeDatabase(quote);
-  } catch (e) {
-    throw new AccessError(error.message);
-  }
-}
+export function addProductToQuote(productName, quoteId, qty) {
+  return new Promise((resolve, reject) => {
+     try {
+       const database = readDatabase();
+       if (!database.products[productName]) {
+         throw new AccessError('Product does not exist in database!');
+       }
+       if (!database.quotes[quoteId]) {
+         throw new AccessError('Quote does not exist in database!');
+       }
+       const quote = database.quotes[quoteId];
+       let result;
+       if (quote.productInfo[productName]){
+         quote.productInfo[productName].pickingQty += qty;
+         quote.productInfo[productName].originalQty += qty;
+       } else {
+         const productSKU = database.products[productName].sku;
+         const jsonProductData = {
+           sku: productSKU,
+           pickingQty: qty,
+           originalQty: qty,
+         }
+         quote.productInfo[productName] = jsonProductData;
+       }
+       database.quotes[quoteId] = quote;
+       writeDatabase(database);
+       resolve();
+     } catch (e) {
+       reject(new AccessError(e.message));
+     }
+  });
+ }
 
 export function removeProduct(productName, quoteId) {
   try {
@@ -167,7 +172,7 @@ export function removeProduct(productName, quoteId) {
     const quote = database.quotes[quoteId];
     delete quote.productInfo[productName]
 
-    writeDatabase(quote);
+    writeDatabase(database);
   } catch (e) {
     throw new AccessError(error.message);
   }

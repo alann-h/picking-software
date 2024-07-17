@@ -168,7 +168,7 @@ app.put('/addProduct', (req, res) => {
   const { quoteId, productName, qty } = req.body;
   addProductToQuote(productName, quoteId, qty)
     .then(() => {
-      res.status(200).json({ message: 'Added product to quote successfully' });
+      res.status(200).json({ message: 'Product updated successfully in database' });
     })
     .catch((error) => {
       res.status(error.statusCode || 500).json({ error: error.message });
