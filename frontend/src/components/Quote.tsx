@@ -99,7 +99,7 @@ const Quote: React.FC = () => {
               />
             ))}
           <Typography sx={{ textAlign: 'center', margin: 2 }}>
-            <span style={{ ...highlightStyle, fontWeight: 'bold' }}>Total Amount: {quoteData.totalAmount}</span>
+            <span style={{ ...highlightStyle, fontWeight: 'bold' }}>Total Amount: ${quoteData.totalAmount}</span>
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
             <Pagination

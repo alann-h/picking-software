@@ -12,7 +12,7 @@ export interface ProductInfo {
 export interface QuoteData {
     customer: string;
     productInfo: ProductInfo;
-    totalAmount: string;
+    totalAmount: number;
 }
 
 export interface QuoteProps {

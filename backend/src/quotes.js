@@ -76,7 +76,8 @@ async function filterEstimates(responseData, oauthClient) {
       quoteNumber: estimate.Id,
       customer: customerRef.name,
       productInfo,
-      totalAmount: '$' + estimate.TotalAmt
+      totalAmount: Number(estimate.TotalAmt),
+      status: true,
     };
   });
 
@@ -138,12 +139,13 @@ export function addProductToQuote(productName, quoteId, qty) {
          throw new AccessError('Quote does not exist in database!');
        }
        const quote = database.quotes[quoteId];
-       let result;
+       const product = database.products[productName];
        if (quote.productInfo[productName]){
          quote.productInfo[productName].pickingQty += qty;
          quote.productInfo[productName].originalQty += qty;
+        
        } else {
-         const productSKU = database.products[productName].sku;
+         const productSKU = product.sku;
          const jsonProductData = {
            sku: productSKU,
            pickingQty: qty,
@@ -151,6 +153,9 @@ export function addProductToQuote(productName, quoteId, qty) {
          }
          quote.productInfo[productName] = jsonProductData;
        }
+       const price = product.price * qty;
+       quote.totalAmount += price;
+
        database.quotes[quoteId] = quote;
        writeDatabase(database);
        resolve();
