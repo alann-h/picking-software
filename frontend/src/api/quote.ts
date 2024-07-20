@@ -1,4 +1,4 @@
-import { apiCallGet, apiCallPost, apiCallPut, apiCallDelete } from '../utils/apiHelpers';
+import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
 import { getUserId } from '../utils/storage';
 import { QuoteData } from '../utils/types';
 
@@ -60,8 +60,8 @@ export const addProductToQuote = async (productName: string, quoteId: string, qt
   }
 }
 
-export const removeProductFromQuote = async (productName: string, quoteId: string) => {
-  const data = await apiCallDelete(`removeProduct/${productName}/${quoteId}`);
+export const adjustProductQty = async (productName: string, quoteId: string, newQty: number) => {
+  const data = await apiCallPut(`adjustProductQty`, {quoteId, productName, newQty});
   if (data.error) {
     throw new Error(data.error);
   } else {

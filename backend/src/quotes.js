@@ -165,20 +165,27 @@ export function addProductToQuote(productName, quoteId, qty) {
   });
  }
 
-export function removeProduct(productName, quoteId) {
-  try {
-    const database = readDatabase();
-    if (!database.products[productName]) {
-      throw new AccessError('Product does not exisit in database!');
+ export function adjustProductQuantity(quoteId, productName, newQty) {
+  console.log(quoteId, productName, newQty);
+  return new Promise((resolve, reject) => {
+    try {
+      const database = readDatabase();
+      if (!database.products[productName]) {
+        throw new AccessError('Product does not exist in database!');
+      }
+      if (!database.quotes[quoteId]) {
+        throw new AccessError('Quote does not exist in database!');
+      }
+      const quote = database.quotes[quoteId];
+      if (!quote.productInfo[productName]) {
+        throw new AccessError('Product does not exist in this quote!');
+      }
+      quote.productInfo[productName].pickingQty = newQty;
+      quote.productInfo[productName].originalQty = newQty;
+      writeDatabase(database);
+      resolve({ success: true, message: 'Product quantity adjusted successfully' });
+    } catch (error) {
+      reject(new AccessError(error.message));
     }
-    if (!database.quotes[quoteId]) {
-      throw new AccessError('Quote does not exisit in database!');
-    }
-    const quote = database.quotes[quoteId];
-    delete quote.productInfo[productName]
-
-    writeDatabase(database);
-  } catch (e) {
-    throw new AccessError(error.message);
-  }
+  });
 }

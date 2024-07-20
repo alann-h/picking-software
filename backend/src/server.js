@@ -5,7 +5,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { getAuthUri, handleCallback, getUserToken } from './auth.js';
 import { getFilteredEstimates, estimateToDB, estimateExists, 
-  getCustomerQuotes, processBarcode, addProductToQuote, removeProduct
+  getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
@@ -115,7 +115,6 @@ app.get('/getEstimates/:customerId/:userId', (req, res) => {
     });
 });
 
-// Gathers quote information from either the local database or from the actual API will be replaced with a better system
 app.get('/estimate/:quoteId/:userId', (req, res) => {
   const { quoteId, userId } = req.params;
   let quote = estimateExists(quoteId);
@@ -175,11 +174,11 @@ app.put('/addProduct', (req, res) => {
     });
 });
 
-app.delete('/removeProduct/;productName/;quoteId', (req, res) => {
-  const { quoteId, productName } = req.params;
-  removeProduct(productName, quoteId)
+app.put('/adjustProductQty', (req, res) => {
+  const { quoteId, productName, newQty } = req.body;
+  adjustProductQuantity(productName, quoteId, newQty)
     .then(() => {
-      res.status(200).json({ message: 'Removed product from quote successfully' });
+      res.status(200).json({ message: 'Adjusted quantity of product in quote successfully' });
     })
     .catch((error) => {
       res.status(error.statusCode || 500).json({ error: error.message });

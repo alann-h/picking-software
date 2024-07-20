@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
-import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote } from '../api/quote';
+import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
 import { getProductInfo, getAllProducts } from '../api/others';
 import { useSnackbarContext } from '../components/SnackbarContext';
 
@@ -134,6 +134,16 @@ export const useQuote = (quoteId: string) => {
     setSelectedProduct(null);
   };
 
+  const adjustProductQtyButton = async (productName: string, newQty: number) => {
+    try {
+      await adjustProductQty(quoteId,productName, newQty);
+      handleOpenSnackbar('Product adjusted successfully!', 'success');
+      setRefetchTrigger(prev => prev + 1);
+    } catch (error) {
+      handleOpenSnackbar(`Error adjusting product quantity ${error}`, 'error');
+    }
+  };
+
   return {
     quoteData,
     isModalOpen,
@@ -154,5 +164,6 @@ export const useQuote = (quoteId: string) => {
     setCurrentPage,
     setIsAddProductModalOpen,
     setInputQty,
+    adjustProductQtyButton,
   };
 };
