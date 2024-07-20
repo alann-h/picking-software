@@ -37,6 +37,7 @@ const Quote: React.FC = () => {
     setCurrentPage,
     setIsAddProductModalOpen,
     setInputQty,
+    adjustProductQtyButton,
   } = useQuote(quoteId);
 
   const highlightStyle = {
@@ -63,6 +64,7 @@ const Quote: React.FC = () => {
           onClose={handleCloseProductDetails}
           productName={selectedProduct.name}
           productDetails={selectedProduct.details}
+          adjustProductQtyButton={adjustProductQtyButton}
         />
       )}
       <Box sx={{ position: 'absolute', top: 10, right: 10 }}>

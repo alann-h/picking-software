@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
+import AdjustQuantityButton from './AdjustQuantityButton';
 
 interface ProductDetailsProps {
     open: boolean;
@@ -11,9 +12,10 @@ interface ProductDetailsProps {
       originalQty: number;
       qtyOnHand: number;
     };
+    adjustProductQtyButton: (productName: string, newQty: number) => Promise<void>;
   }
   
-  const ProductDetails: React.FC<ProductDetailsProps> = ({ open, onClose, productName, productDetails }) => {
+  const ProductDetails: React.FC<ProductDetailsProps> = ({ open, onClose, productName, productDetails, adjustProductQtyButton }) => {
     return (
       <Dialog open={open} onClose={onClose}>
         <DialogTitle>Product Details</DialogTitle>
@@ -25,6 +27,11 @@ interface ProductDetailsProps {
           <Typography>Quantity On Hand: {productDetails.qtyOnHand}</Typography>
         </DialogContent>
         <DialogActions>
+        <AdjustQuantityButton 
+          productName={productName}
+          currentQty={productDetails.pickingQty}
+          adjustProductQtyButton={adjustProductQtyButton}
+        />
           <Button onClick={onClose}>Close</Button>
         </DialogActions>
       </Dialog>
