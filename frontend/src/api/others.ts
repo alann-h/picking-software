@@ -1,4 +1,4 @@
-import { apiCallGet, apiCallPost } from '../utils/apiHelpers';
+import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
 import { getUserId } from '../utils/storage';
 import { Customer } from '../utils/types';
 
@@ -54,6 +54,15 @@ export const getProductInfo =  async (productName: string) => {
 
 export const getAllProducts = async () => {
   const response = await apiCallGet(`getAllProducts`);
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}
+
+export const saveProductForLater = async (quoteId: string, productName: string) => {
+  const response = await apiCallPut('saveProductForLater', { quoteId, productName });
   if (response.error) {
     throw new Error(response.error);
   } else {

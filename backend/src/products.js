@@ -134,3 +134,28 @@ export function getAllProducts() {
     }
   });
 }
+
+export function saveForLater(quoteId, productName) {
+  return new Promise((resolve, reject) => {
+    try {
+      const database = readDatabase();
+      const quote = database.quotes[quoteId];
+      if (!quote) {
+        throw new AccessError('Quote does not exist in database!');
+      }
+      const product = quote.productInfo[productName];
+      if (!product) {
+        throw new AccessError('Product does not exist in this quote!');
+      }
+      product.pickingStatus = product.pickingStatus === 'deferred' ? 'pending' : 'deferred';
+
+      writeDatabase(database);
+      resolve({
+        status: 'success',
+        message: `Product ${product.pickingStatus === 'deferred' ? 'saved for later' : 'set to picking'}`
+      });
+      } catch (error) {
+        reject(new AccessError(error.message));
+      }
+  })
+}

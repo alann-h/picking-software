@@ -27,7 +27,6 @@ const AdjustQuantityButton: React.FC<AdjustQuantityButtonProps> = ({
       await adjustProductQtyButton(productName, newQty);
       handleClose();
     } catch (error) {
-      // Error handling is done in the useQuote hook
       console.error("Error adjusting quantity:", error);
     }
   };

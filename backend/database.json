@@ -1663,24 +1663,26 @@
       "customer": "Himateja Madala",
       "productInfo": {
         "Olive Kalamata Pitted 10KG": {
+          "id": "27",
           "sku": "B101",
-          "pickingQty": 12,
-          "originalQty": 12
+          "pickingQty": 90,
+          "originalQty": 90,
+          "pickingStatus": "deferred"
         }
       },
-      "totalAmount": 6250
+      "totalAmount": 5000
     }
   },
   "users": {
     "ea9f8a2c-7527-4f8e-a113-b5c214d82461": {
       "token_type": "bearer",
-      "access_token": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..6ibLd_PCfVG-77r_gbP7SQ.R9kjFkbdv82A3VB0UrCTYpBltb7Qyw85-zYN7Vc2jBeDDfGaQU1fxJ0NbSKgrw4pANc2lC2pftY_o9j8er55Modhr3OH2bS7vXvRwCVrWsnjZopooV9j8laqpGwy-hQxVqjZodVwAm0aGAGmKsdYiwWEl1IMMIfxoqSTJbGg6mNzKcqJnFodz5n3AGegiU59Biy_pAU1z4ME-3QVzwsJouM1h1CRfCTxO0xsjR6goBT9Y-Tg8Zrdyqpa7-KrBeLwJSe8ncoNL_6w19-sD2cy6Hf_sUJJ0vg9bV3KI93ec8v9gO-Jm30ipdy-j_7SVLN4r5sRU_RGGPqbW8i2FF1rKQ_Gn35FKCLj1vDSVqNEPw3jfLgJFLFTi9BOomrQMyFVMn5s6DsQWjuM3hSW1t0QbmuTL-cx6olW-CJc-iESqdhJfC_InDA5BzZJGtAwlhLoSCZJsGvZBuJ0pe4OL_im2fq3YRd-CjzneGQ9M6Msn9kmRkY1uTNr6UHAxVyYvJk2raK6C2QEhtcyXWjqgMaoEMJKvFd2wiHO7jwk02tLFimPC0C5Rn6K7QFyY72IaWZy6FXcu9HrwL2_hSYVTizSnp60O-sZefaj7kODHrGopG7mTOC5HKykNmQD_baQd3Iq2fFGH0CbsmccJpyYj15_nDzPXtfs2HMX2moybePN57AyJIkqgw4CisHH1_i7ph88Rxn_UGYDLi9Vv0t9LJef4XJrKQ9qnlWMPQFElt0l8q_sYKbbG3kLPM11sEQhh_H6.sudYbOOcqy9FJ1X4w8q1qw",
+      "access_token": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwiYWxnIjoiZGlyIn0..MP__S9gkiWyUv9W5PH7BXw.yUhn9JzWA3oVM0fAp6GSzVZWRzgW-7mgutcEFOxK6Vkcyj5us8Wt1MZgqYRclvNiHsSjUgCXiZClWvb_TyhrTp_sVtyZEYUMpKKulcF0CQy-CeSzRZB4w8kN-OkmXDrhGjNHSi-nudyD8E4kmvSN5dIxiKBK_Ucs4uPfqcNqgf85s0TJi5cekvisbxnBMXAp_Nd1pu8sxWCIrmSo5_lUMqruo7uvJGj1vmAmPasRENwluCByW3Ii14sa8Huf-WjaktjeraFHHF85BOtFPl_F4mSBFChDTTUMuzmcnuP2zYfLNRZ_5ONJo0stI15NrvKrmyJBU1Y1euarSkowNNo0OMuDsHia-_ixnLOm9UbshSELkklqxehPgqhLVNkihYDswjDwl1kMpraC_O_H1ZKPqXRzjlfdRCGbQVXzx7YMb2prPI6evP_3x0xfD4tyZjludeR5XhZy9LRZxZ3o6dUSlk6zDqnM0HKw99KGDBvO-Xh9davgns8HwluNUIQe7tBPymN_2cmvARlDIAOSjKhU0ive3dA28RVeymYY2N3045-O6xZuXpKOG5Omwapa8zT9BHxiKrJgbEBohwva3j3CLLxCCR87To20IRc772vtHjiiJsVVa0gbNs_lxVOZgG-X4NlX7Prlvi8LqJ4J4sDyfDfFkWUyuV6sl1_fJxhb5qBKggfI3QKwBqecCXDR3mtPSHIjosTl6NjyNSwb7jEGXp5lKMWMSALcD9CsHdI6LuNLRi7c5DxXmO3hpz133Up0.akZVFlXbhRlWqbWORRDSeQ",
       "expires_in": 3600,
-      "refresh_token": "AB11730189843tHgRo7ki1uqgwy2WngNOseUvK8ASfGfpQvnMQ",
+      "refresh_token": "AB11730335255ieH8YYV7vJG1ZjH3gbzrX7OKXmk0MAKRNXuNp",
       "x_refresh_token_expires_in": 8726400,
       "realmId": "9130357908851946",
       "id_token": "",
-      "createdAt": 1721463443771
+      "createdAt": 1721608855612
     }
   },
   "customers": {
