@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
-import { getProductInfo, getAllProducts } from '../api/others';
+import { getProductInfo, getAllProducts, saveProductForLater } from '../api/others';
 import { useSnackbarContext } from '../components/SnackbarContext';
 
 export const useQuote = (quoteId: string) => {
@@ -123,6 +123,7 @@ export const useQuote = (quoteId: string) => {
           pickingQty: details.pickingQty,
           originalQty: details.originalQty,
           qtyOnHand: data.qtyOnHand,
+          pickingStatus: details.pickingStatus,
         }
       });
     } catch (error) {
@@ -144,6 +145,15 @@ export const useQuote = (quoteId: string) => {
     }
   };
 
+  const saveForLaterButton = async (productName: string)=> {
+    try {
+      const response = await saveProductForLater(quoteId, productName);
+      handleOpenSnackbar(response.message, 'success');
+      return response;
+    } catch (error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  }
   return {
     quoteData,
     isModalOpen,
@@ -165,5 +175,6 @@ export const useQuote = (quoteId: string) => {
     setIsAddProductModalOpen,
     setInputQty,
     adjustProductQtyButton,
+    saveForLaterButton,
   };
 };

@@ -60,12 +60,13 @@ async function filterEstimates(responseData, oauthClient) {
       const itemValue = itemRef.value;
 
       const item = await getProductFromQB(itemValue, oauthClient);
-      const itemSKU = item.sku;
       return {
         [Description]: {
-          sku: itemSKU,
+          id: item.id,
+          sku: item.sku,
           pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
-          originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty
+          originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
+          pickingStatus: 'pending',
         }
       };
     }));
@@ -77,7 +78,7 @@ async function filterEstimates(responseData, oauthClient) {
       customer: customerRef.name,
       productInfo,
       totalAmount: Number(estimate.TotalAmt),
-      status: true,
+      orderStatus: 'pending',
     };
   });
 
@@ -117,6 +118,9 @@ export async function processBarcode(barcode, quoteId, newQty) {
         return { productName, updatedQty: 0 };
       }
       qty -= newQty;
+      if (qty === 0) {
+        quote.productInfo[productName].pickingStatus = 'completed';
+      }
       quote.productInfo[productName].pickingQty = qty;
       writeDatabase(database);
       return { productName, updatedQty: qty };

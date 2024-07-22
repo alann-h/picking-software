@@ -7,7 +7,7 @@ import { getAuthUri, handleCallback, getUserToken } from './auth.js';
 import { getFilteredEstimates, estimateToDB, estimateExists, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity
 } from './quotes.js';
-import { processFile, getProductName, getProductFromDB, getAllProducts } from './products.js';
+import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
@@ -219,7 +219,6 @@ app.put('/productScan', (req, res) => {
       res.status(200).json(message);
     })
     .catch(error => {
-      console.error('Error finding product in quote:', error);
       res.status(error.statusCode || 500).json({ error: error.message });
     });
 });
@@ -235,6 +234,18 @@ app.get('/barcodeToName/:barcode', (req, res) => {
       res.status(error.statusCode || 500).json({ error: error.message });
     });
 });
+
+app.put('/saveProductForLater', (req, res) => {
+  const { quoteId, productName } = req.body;
+
+  saveForLater(quoteId, productName)
+    .then((result) => {
+      res.status(200).json(result)
+    })
+    .catch(error => {
+      res.status(error.statusCode || 500).json({ error: error.message });
+    });
+})
 
 /***************************************************************
                        Running Server

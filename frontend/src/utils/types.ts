@@ -3,6 +3,7 @@ export interface ProductDetail {
     sku: string;
     pickingQty: number;
     originalQty: number;
+    pickingStatus: string;
 }
   
 export interface ProductInfo {
@@ -42,6 +43,7 @@ export interface ProductDetailsDB {
     pickingQty: number;
     originalQty: number;
     qtyOnHand: number;
+    pickingStatus: string;
 }
 
 export interface Product {
