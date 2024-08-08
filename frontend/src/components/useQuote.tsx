@@ -26,6 +26,7 @@ export const useQuote = (quoteId: string) => {
           if (response.source === 'api') {
             saveQuote(response.data);
           }
+          console.log(response.data);
           setQuoteData(response.data);
         })
         .catch((err: Error) => {

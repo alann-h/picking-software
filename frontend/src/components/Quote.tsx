@@ -87,7 +87,7 @@ const Quote: React.FC = () => {
         <>
           <Paper variant="outlined" sx={{ padding: 2, marginBottom: 2, display: 'flex', justifyContent: 'space-between' }}>
             <Typography variant="body1" sx={{ margin: 0, fontWeight: 'bold' }}>
-              Customer: {quoteData.customer}
+              Customer: {quoteData.customername}
             </Typography>
             <Typography variant="body1" sx={{ margin: 0, fontWeight: 'bold' }}>
               Quote Number: {quoteId}

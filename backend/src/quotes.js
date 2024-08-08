@@ -1,5 +1,5 @@
 import { AccessError, InputError } from './error';
-import { readDatabase, writeDatabase } from './helpers';
+import { query, transaction } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
 import { getProductFromQB, getProductName } from './products';
 
@@ -12,9 +12,9 @@ export async function getCustomerQuotes(customerId, userId) {
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
 
-    const query = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
+    const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
     const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`
+      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
     });
 
     const responseJSON = JSON.parse(response.text());
@@ -34,10 +34,10 @@ export async function getFilteredEstimates(quoteId, userId) {
 
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
-    const query = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
+    const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
 
     const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`
+      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
     });
 
     const responseData = JSON.parse(estimateResponse.text());
@@ -61,23 +61,23 @@ async function filterEstimates(responseData, oauthClient) {
 
       const item = await getProductFromQB(itemValue, oauthClient);
       return {
-        [Description]: {
-          id: item.id,
-          sku: item.sku,
-          pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
-          originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
-          pickingStatus: 'pending',
-        }
+        productName: Description,
+        productId: item.id,
+        sku: item.sku,
+        pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
+        originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
+        pickingStatus: 'pending',
       };
     }));
 
-    const productInfo = productObjects.reduce((acc, productObj) => ({ ...acc, ...productObj }), {});
+    const quoteItems = productObjects.filter(item => item !== null);
     const customerRef = estimate.CustomerRef;
     return {
-      quoteNumber: estimate.Id,
-      customer: customerRef.name,
-      productInfo,
-      totalAmount: Number(estimate.TotalAmt),
+      quoteId: estimate.Id,
+      customerId: customerRef.value,
+      customerName: customerRef.name,
+      quoteItems,
+      totalAmount: parseFloat(estimate.TotalAmt),
       orderStatus: 'pending',
     };
   });
@@ -88,108 +88,92 @@ async function filterEstimates(responseData, oauthClient) {
 export async function estimateToDB(estimate) {
   try {
     const quote = estimate.quote;
-    const estimateInfo = {
-      customer: quote.customer,
-      productInfo: quote.productInfo,
-      totalAmount: quote.totalAmount
-    };
-    const database = readDatabase();
-    database.quotes[quote.quoteNumber] = estimateInfo;
-    writeDatabase(database);
+    await transaction(async (client) => {
+      // Insert into quotes table
+      await client.query(
+        'INSERT INTO quotes (quoteid, customerid, totalamount, customername) VALUES ($1, $2, $3, $4)',
+        [quote.quoteId, quote.customerId, quote.totalAmount, quote.customerName]
+      );
+
+      // Insert into quoteitems table
+      for (const item of quote.quoteItems) {
+        await client.query(
+          'INSERT INTO quoteitems (quoteid, productid, productname, pickingqty, originalqty, pickingstatus) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (quoteid, productid) DO UPDATE SET productname = $3, pickingqty = $4, originalqty = $5, pickingstatus = $6',
+          [quote.quoteId, item.productId, item.productName, item.pickingQty, item.originalQty, item.pickingStatus]
+        );
+      }
+    });
   } catch (error) {
     throw new AccessError(error.message);
   }
 }
 
 export function estimateExists(quoteId) {
-  const database = readDatabase();
-  return database.quotes[quoteId] || null;
+  return new Promise(async (resolve, reject) => {
+    try {
+      const result = await query('SELECT * FROM quotes WHERE quoteid = $1', [quoteId]);
+      resolve(result.length > 0 ? result[0] : null);
+    } catch (error) {
+      reject(error);
+    }
+  });
 }
 
 export async function processBarcode(barcode, quoteId, newQty) {
   try {
-    const productName = await getProductName(barcode);
-    const database = readDatabase();
-    const quote = database.quotes[quoteId];
-
-    if (quote && quote.productInfo[productName]) {
-      let qty = quote.productInfo[productName].pickingQty;
-      if (qty === 0 || (qty - newQty) < 0) {
-        return { productName, updatedQty: 0 };
-      }
-      qty -= newQty;
-      if (qty === 0) {
-        quote.productInfo[productName].pickingStatus = 'completed';
-      }
-      quote.productInfo[productName].pickingQty = qty;
-      writeDatabase(database);
-      return { productName, updatedQty: qty };
-    } else {
+    const product = await getProductName(barcode);
+    if (!product) {
+      throw new InputError('Product not found for this barcode');
+    }
+    const result = await query(
+      'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND productid = $3 RETURNING pickingqty, productname',
+      [newQty, quoteId, product.productid]
+    );
+    if (result.length === 0) {
       throw new InputError('Quote number is invalid or scanned product does not exist on quote');
     }
+    return { productName: result[0].productname, updatedQty: result[0].pickingqty };
   } catch (error) {
     throw new AccessError(error.message);
   }
 }
 
-export function addProductToQuote(productName, quoteId, qty) {
-  return new Promise((resolve, reject) => {
-     try {
-       const database = readDatabase();
-       if (!database.products[productName]) {
-         throw new AccessError('Product does not exist in database!');
-       }
-       if (!database.quotes[quoteId]) {
-         throw new AccessError('Quote does not exist in database!');
-       }
-       const quote = database.quotes[quoteId];
-       const product = database.products[productName];
-       if (quote.productInfo[productName]){
-         quote.productInfo[productName].pickingQty += qty;
-         quote.productInfo[productName].originalQty += qty;
-        
-       } else {
-         const productSKU = product.sku;
-         const jsonProductData = {
-           sku: productSKU,
-           pickingQty: qty,
-           originalQty: qty,
-         }
-         quote.productInfo[productName] = jsonProductData;
-       }
-       const price = product.price * qty;
-       quote.totalAmount += price;
-
-       database.quotes[quoteId] = quote;
-       writeDatabase(database);
-       resolve();
-     } catch (e) {
-       reject(new AccessError(e.message));
-     }
-  });
- }
-
- export function adjustProductQuantity(quoteId, productName, newQty) {
-  console.log(quoteId, productName, newQty);
-  return new Promise((resolve, reject) => {
-    try {
-      const database = readDatabase();
-      if (!database.products[productName]) {
-        throw new AccessError('Product does not exist in database!');
-      }
-      if (!database.quotes[quoteId]) {
-        throw new AccessError('Quote does not exist in database!');
-      }
-      const quote = database.quotes[quoteId];
-      if (!quote.productInfo[productName]) {
-        throw new AccessError('Product does not exist in this quote!');
-      }
-      quote.productInfo[productName].pickingQty = newQty;
-      quote.productInfo[productName].originalQty = newQty;
-      writeDatabase(database);
-      resolve({ success: true, message: 'Product quantity adjusted successfully' });
-    } catch (error) {
-      reject(new AccessError(error.message));
+export async function addProductToQuote(productName, quoteId, qty) {
+  try {
+    const product = await query('SELECT * FROM products WHERE productname = $1', [productName]);
+    if (product.length === 0) {
+      throw new AccessError('Product does not exist in database!');
     }
-  });
+    const quote = await query('SELECT * FROM quotes WHERE quoteid = $1', [quoteId]);
+    if (quote.length === 0) {
+      throw new AccessError('Quote does not exist in database!');
+    }
+    
+    await transaction(async (client) => {
+      await client.query(
+        'INSERT INTO quoteitems (quoteid, productid, productname, pickingqty, originalqty, pickingstatus) VALUES ($1, $2, $3, $4, $4, $5) ON CONFLICT (quoteid, productid) DO UPDATE SET pickingqty = quoteitems.pickingqty + $4, originalqty = quoteitems.originalqty + $4',
+        [quoteId, product[0].productid, productName, qty, 'pending']
+      );
+      
+      const price = product[0].price * qty;
+      await client.query('UPDATE quotes SET totalamount = totalamount + $1 WHERE quoteid = $2', [price, quoteId]);
+    });
+  } catch (e) {
+    throw new AccessError(e.message);
+  }
+}
+
+export async function adjustProductQuantity(quoteId, productId, newQty) {
+  try {
+    const result = await query(
+      'UPDATE quoteitems SET pickingqty = $1, originalqty = $1 WHERE quoteid = $2 AND productid = $3 RETURNING *',
+      [newQty, quoteId, productId]
+    );
+    if (result.length === 0) {
+      throw new AccessError('Product does not exist in this quote!');
+    }
+    return { success: true, message: 'Product quantity adjusted successfully' };
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
 }

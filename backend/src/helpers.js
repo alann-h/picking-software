@@ -1,21 +1,26 @@
-import fs from 'fs-extra';
-import { AccessError } from './error';
+import pool from './db.js';
 
-const databasePath = './database.json';
-
-export function readDatabase() {
+export async function query(text, params) {
+  const client = await pool.connect();
   try {
-    const data = fs.readFileSync(databasePath, 'utf8');
-    return JSON.parse(data);
-  } catch {
-    throw new AccessError('Cannot access database');
+    const result = await client.query(text, params);
+    return result.rows;
+  } finally {
+    client.release();
   }
 }
 
-export function writeDatabase(data) {
+export async function transaction(callback) {
+  const client = await pool.connect();
   try {
-    fs.writeFileSync(databasePath, JSON.stringify(data, null, 2));
-  } catch {
-    throw new AccessError('Cannot write to database');
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
   }
 }
