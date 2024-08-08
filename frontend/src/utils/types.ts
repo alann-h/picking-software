@@ -11,7 +11,7 @@ export interface ProductInfo {
 }
   
 export interface QuoteData {
-    customer: string;
+    customername: string;
     productInfo: ProductInfo;
     totalAmount: number;
 }
