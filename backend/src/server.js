@@ -126,8 +126,8 @@ app.get('/getAllProducts', asyncHandler(async (req, res) => {
 }));
 
 app.put('/saveProductForLater', asyncHandler(async (req, res) => {
-  const { quoteId, productName } = req.body;
-  const result = await saveForLater(quoteId, productName);
+  const { quoteId, productId } = req.body;
+  const result = await saveForLater(quoteId, productId);
   res.status(200).json(result);
 }));
 

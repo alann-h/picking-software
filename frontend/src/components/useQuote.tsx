@@ -150,9 +150,9 @@ export const useQuote = (quoteId: number) => {
     }
   };
 
-  const saveForLaterButton = async (productName: string)=> {
+  const saveForLaterButton = async (productId: number)=> {
     try {
-      const response = await saveProductForLater(quoteId, productName);
+      const response = await saveProductForLater(quoteId, productId);
       handleOpenSnackbar(response.message, 'success');
       return response;
     } catch (error) {
