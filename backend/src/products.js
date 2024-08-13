@@ -1,8 +1,9 @@
 import excelToJson from 'convert-excel-to-json';
 import fs from 'fs-extra';
 import { AccessError, InputError } from './error';
-import { readDatabase, writeDatabase } from './helpers';
+import { query, transaction } from './helpers.js';
 import { getBaseURL, getCompanyId } from './auth';
+import format from 'pg-format';
 
 export async function processFile(filePath) {
   try {
@@ -12,27 +13,29 @@ export async function processFile(filePath) {
       columnToKey: { '*': '{{columnHeader}}' }
     });
 
-    const database = readDatabase();
-    database.products = {}; // Initialize as an empty object
+    await transaction(async (client) => {
+      for (const key in excelData) {
+        if (Object.prototype.hasOwnProperty.call(excelData, key)) {
+          const products = excelData[key];
+          const values = products.map(product => [
+            product.Name,
+            product.Barcode.toString()
+          ]);
+          // This query checks if the barcode exists in the DB if it does change the name if not add the name and barcode
+          const query = format(
+            'INSERT INTO products (productname, barcode) VALUES %L ON CONFLICT (barcode) DO UPDATE SET productname = EXCLUDED.productname',
+            values
+          );
 
-    for (const key in excelData) {
-      if (Object.prototype.hasOwnProperty.call(excelData, key)) {
-        const products = excelData[key];
-        products.forEach(product => {
-          const productInfo = {
-            barcode: product.Barcode
-          };
-          database.products[product.Name] = productInfo;
-        });
+          await client.query(query);
+        }
       }
-    }
-
-    writeDatabase(database);
+    });
 
     await fs.remove(filePath);
     return 'Products uploaded successfully';
   } catch (error) {
-    throw new AccessError(error.message);
+    throw new Error(`Error processing file: ${error.message}`);
   }
 }
 
@@ -49,7 +52,8 @@ export async function getProductFromQB(itemId, oauthClient) {
 
     if (!itemData.Active) {
       throw new AccessError('Item is not active on quickbooks!');
-    } 
+    }
+    
     const item = {
       id: itemData.Id,
       name: itemData.Name,
@@ -57,105 +61,89 @@ export async function getProductFromQB(itemId, oauthClient) {
       qtyOnHand: itemData.QtyOnHand,
       price: itemData.UnitPrice,
     }
-    saveProduct(item);
-    return item
+    await saveProduct(item);
+    return item;
   } catch (e) {
-    throw new AccessError(e); 
+    throw new AccessError(e.message);
   }
 }
 
-function saveProduct(item) {
+async function saveProduct(item) {
   try {
-    const database = readDatabase();
-
-    if (database.products[item.name]) {
-      database.products[item.name] = {
-        ...database.products[item.name],
-        id: item.id,
-        sku: item.sku,
-        qtyOnHand: item.qtyOnHand,
-        price: item.price
-      };
-    } else {
-      throw new AccessError(`Product with name ${item.name} does not exist in the database. Please upload excel file with new product.`);
+    const result = await query(
+      'UPDATE products SET productid = $1, sku = $2, quantity_on_hand = $3, price = $4 WHERE productname = $5 RETURNING *',
+      [item.id, item.sku, item.qtyOnHand, item.price, item.name]
+    );
+    if (result.length === 0) {
+      const insertResult = await query(
+        'INSERT INTO products (productid, productname, sku, quantity_on_hand, price) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [item.id, item.name, item.sku, item.qtyOnHand, item.price]
+      );
+      if (insertResult.length === 0) {
+        throw new AccessError(`Failed to insert product ${item.name} into the database.`);
+      }
     }
-    writeDatabase(database);
   } catch (err) {
-    throw new AccessError(`${err.message}`);
+    throw new AccessError(err.message);
   }
 }
 
 export async function getProductName(barcode) {
   try {
-    const database = readDatabase();
-    let productName = null;
-    for (const name in database.products) {
-      if (database.products[name].barcode === barcode) {
-        productName = name;
-        break;
-      }
-    }
-    if (!productName) {
+    const result = await query('SELECT productname FROM products WHERE barcode = $1', [barcode]);
+    if (result.length === 0) {
       throw new InputError('This product does not exist within the database');
     }
-    return productName;
+    return result[0].productname;
   } catch (error) {
     throw new AccessError(error.message);
   }
 }
 
-export function getProductFromDB(productName) {
-  return new Promise((resolve, reject) => {
-    try {
-      const database = readDatabase();
-      if (database.products[productName]) {
-        resolve(database.products[productName]);
-      } else {
-        reject(new AccessError('This product does not exist within the database'));
-      }
-    } catch (error) {
-      reject(new AccessError('Error accessing the database'));
+export async function getProductFromDB(productId) {
+  try {
+    const result = await query('SELECT * FROM products WHERE productid = $1', [productId]);
+    if (result.length === 0) {
+      throw new AccessError('This product does not exist within the database');
     }
-  });
+    return result[0];
+  } catch (error) {
+    throw new AccessError('Error accessing the database');
+  }
 }
 
-export function getAllProducts() {
-  return new Promise((resolve, reject) => {
-    try {
-      const database = readDatabase();
-      const products = database.products;
-      const formattedProducts = Object.entries(products).map(([name, details]) => ({
-        productName: name,
-        barcode: details.barcode
-      }));
-      resolve(formattedProducts);
-    } catch (error) {
-      reject(new AccessError(error));
-    }
-  });
+export async function getAllProducts() {
+  try {
+    const result = await query('SELECT productname, barcode FROM products');
+    return result.map(product => ({
+      productName: product.productname,
+      barcode: product.barcode
+    }));
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
 }
 
-export function saveForLater(quoteId, productName) {
-  return new Promise((resolve, reject) => {
-    try {
-      const database = readDatabase();
-      const quote = database.quotes[quoteId];
-      if (!quote) {
-        throw new AccessError('Quote does not exist in database!');
-      }
-      const product = quote.productInfo[productName];
-      if (!product) {
-        throw new AccessError('Product does not exist in this quote!');
-      }
-      product.pickingStatus = product.pickingStatus === 'deferred' ? 'pending' : 'deferred';
-
-      writeDatabase(database);
-      resolve({
-        status: 'success',
-        message: `Product ${product.pickingStatus === 'deferred' ? 'saved for later' : 'set to picking'}`
-      });
-      } catch (error) {
-        reject(new AccessError(error.message));
-      }
-  })
+export async function saveForLater(quoteId, productId) {
+  try {
+    const result = await query(
+      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'deferred\' THEN \'pending\' ELSE \'deferred\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
+      [quoteId, productId]
+    );
+    
+    if (result.length === 0) {
+      throw new AccessError('Product does not exist in this quote!');
+    }
+    
+    const newStatus = result[0].pickingstatus;
+    const productName = result[0].productname;
+    
+    return {
+      status: 'success',
+      message: `Product "${productName}" ${newStatus === 'deferred' ? 'saved for later' : 'set to picking'}`,
+      newStatus: newStatus
+    };
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
 }

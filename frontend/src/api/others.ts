@@ -43,8 +43,8 @@ export const getCustomerId = async (customerName: string) => {
   }
 };
 
-export const getProductInfo =  async (productName: string) => {
-  const response = await apiCallGet(`getProduct/${productName}`);
+export const getProductInfo =  async (productId: number) => {
+  const response = await apiCallGet(`getProduct/${productId}`);
   if (response.error) {
     throw new Error(response.error);
   } else {

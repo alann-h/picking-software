@@ -1,10 +1,9 @@
 import express from 'express';
-
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import morgan from 'morgan';
 import { getAuthUri, handleCallback, getUserToken } from './auth.js';
-import { getFilteredEstimates, estimateToDB, estimateExists, 
+import { getFilteredEstimates, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater } from './products.js';
@@ -24,228 +23,138 @@ app.use(morgan(':method :url :status'));
 const upload = multer({ dest: process.cwd() });
 dotenv.config({ path: 'config.env' });
 
+// Wrapper for async route handlers
+const asyncHandler = fn => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 /***************************************************************
                        User Auth Functions
 ***************************************************************/
-app.get('/authUri', (_, res) => {
-  getAuthUri()
-    .then(authUri => {
-      res.send(JSON.stringify(authUri));
-    })
-    .catch(error => res.status(error.statusCode || 500).json({ error: error.message }));
-});
 
-app.get('/callback', (req, res) => {
-  const url = req.url;
-  handleCallback(url)
-    .then(userId => {
-      res.redirect(`http://localhost:3000/oauth/callback?userId=${userId}`); // redirects to frontend dashboard with userId
-    })
-    .catch(error => {
-      console.error(error);
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+app.get('/authUri', asyncHandler(async (_, res) => {
+  const authUri = await getAuthUri();
+  res.json(authUri);
+}));
 
-app.get('/retrieveToken/:userId', function (req, res) {
-  const userId = req.params.userId;
-  getUserToken(userId)
-    .then(token => res.send(token))
-    .catch(error => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+app.get('/callback', asyncHandler(async (req, res) => {
+  const userId = await handleCallback(req.url);
+  res.redirect(`http://localhost:3000/oauth/callback?userId=${userId}`);
+}));
 
-app.get('/verifyUser/:userId', (req, res) => {
-  const userId = req.params.userId;
-  getUserToken(userId)
-    .then(userToken => {
-      res.json({ isValid: true, accessToken: userToken.access_token });
-    })
-    .catch(error => {
-      res.status(error.statusCode || 500).json({ isValid: false, error: error.message });
-    });
-});
+app.get('/retrieveToken/:userId', asyncHandler(async (req, res) => {
+  const token = await getUserToken(req.params.userId);
+  res.json(token);
+}));
+
+app.get('/verifyUser/:userId', asyncHandler(async (req, res) => {
+  const userToken = await getUserToken(req.params.userId);
+  res.json({ isValid: true, accessToken: userToken.access_token });
+}));
+
+/***************************************************************
+                       Customer Functions
+***************************************************************/
+
+app.get('/getCustomers/:userId', asyncHandler(async (req, res) => {
+  const data = await fetchCustomers(req.params.userId);
+  res.json(data);
+}));
+
+app.post('/saveCustomers', asyncHandler(async (req, res) => {
+  await saveCustomers(req.body);
+  res.status(200).json({ message: 'Quote saved successfully in database' });
+}));
+
+app.get('/getCustomerId/:customerName', asyncHandler(async (req, res) => {
+  const customerId = await getCustomerId(req.params.customerName);
+  res.json({ customerId });
+}));
 
 /***************************************************************
                        Quote Functions
 ***************************************************************/
-app.get('/getCustomers/:userId', (req, res) => {
-  const userId = req.params.userId;
-  fetchCustomers(userId)
-    .then(data => {
-      res.json(data);
-    })
-    .catch(error => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
 
-app.post('/saveCustomers', (req, res) => {
-  const customers = req.body;
-  saveCustomers(customers)
-    .then(() => {
-      res.status(200).json({ message: 'Quote saved successfully in database' });
-    })
-    .catch((error) => {
-      console.error(error);
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
-
-app.get('/getCustomerId/:customerName', (req, res) => {
-  const { customerName } = req.params;
-  getCustomerId(customerName)
-    .then(customerId => {
-      res.json({ customerId });
-    })
-    .catch(error => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
-
-app.get('/getEstimates/:customerId/:userId', (req, res) => {
+app.get('/getEstimates/:customerId/:userId', asyncHandler(async (req, res) => {
   const { customerId, userId } = req.params;
-  getCustomerQuotes(customerId, userId)
-    .then((quotes) => {
-      res.send(quotes);
-    })
-    .catch((error) => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+  const quotes = await getCustomerQuotes(customerId, userId);
+  res.json(quotes);
+}));
 
-app.get('/estimate/:quoteId/:userId', (req, res) => {
+app.get('/estimate/:quoteId/:userId', asyncHandler(async (req, res) => {
   const { quoteId, userId } = req.params;
-  let quote = estimateExists(quoteId);
-  if (quote != null) {
-    res.json({
-      source: 'database',
-      data: quote
-    });
-    return;
+  const isValid = await checkQuoteExists(quoteId);
+
+  if (isValid) {
+    const quote = await fetchQuoteData(quoteId)
+    return res.json({ source: 'database', data: quote });
   }
+  const estimates = await getFilteredEstimates(quoteId, userId);
+  res.json({ source: 'api', data: estimates[0] });
+ }));
+ 
 
-  getFilteredEstimates(quoteId, userId)
-    .then(estimate => {
-      quote = estimate[0];
-      res.json({
-        source: 'api',
-        data: quote
-      });
-    })
-    .catch(error => {
-      console.error(error);
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+app.post('/saveQuote', asyncHandler(async (req, res) => {
+  await estimateToDB(req.body.quote);
+  res.status(200).json({ message: 'Quote saved successfully in database' });
+}));
 
-// saves quote to the database
-app.post('/saveQuote', (req, res) => {
-  const quote = req.body;
-  estimateToDB(quote)
-    .then(() => {
-      res.status(200).json({ message: 'Quote saved successfully in database' });
-    })
-    .catch((error) => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+/***************************************************************
+                       Product Functions
+***************************************************************/
 
-app.get('/getProduct/:productName', (req, res) => {
-  const productName = req.params.productName;
-  getProductFromDB(productName)
-    .then((productData) => {
-      res.status(200).json(productData);
-    })
-    .catch((error) => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+app.get('/getProduct/:productId', asyncHandler(async (req, res) => {
+  const productData = await getProductFromDB(req.params.productId);
+  res.status(200).json(productData);
+}));
 
-app.put('/addProduct', (req, res) => {
+app.put('/addProduct', asyncHandler(async (req, res) => {
   const { quoteId, productName, qty } = req.body;
-  addProductToQuote(productName, quoteId, qty)
-    .then(() => {
-      res.status(200).json({ message: 'Product updated successfully in database' });
-    })
-    .catch((error) => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+  await addProductToQuote(productName, quoteId, qty);
+  res.status(200).json({ message: 'Product updated successfully in database' });
+}));
 
-app.put('/adjustProductQty', (req, res) => {
+app.put('/adjustProductQty', asyncHandler(async (req, res) => {
   const { quoteId, productName, newQty } = req.body;
-  adjustProductQuantity(productName, quoteId, newQty)
-    .then(() => {
-      res.status(200).json({ message: 'Adjusted quantity of product in quote successfully' });
-    })
-    .catch((error) => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+  await adjustProductQuantity(productName, quoteId, newQty);
+  res.status(200).json({ message: 'Adjusted quantity of product in quote successfully' });
+}));
 
-app.get('/getAllProducts', (req, res) => {
-  getAllProducts()
-    .then((products) => {
-      res.status(200).json(products);
-    })
-    .catch((error) => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+app.get('/getAllProducts', asyncHandler(async (req, res) => {
+  const products = await getAllProducts();
+  res.status(200).json(products);
+}));
 
-app.post('/upload', upload.single('input'), (req, res) => {
+app.put('/saveProductForLater', asyncHandler(async (req, res) => {
+  const { quoteId, productName } = req.body;
+  const result = await saveForLater(quoteId, productName);
+  res.status(200).json(result);
+}));
+
+/***************************************************************
+                       Other Functions
+***************************************************************/
+
+app.post('/upload', upload.single('input'), asyncHandler(async (req, res) => {
   if (!req.file || req.file.filename === null || req.file.filename === 'undefined') {
     return res.status(403).json('No File');
   }
 
   const filePath = process.cwd() + '/' + req.file.filename;
+  const data = await processFile(filePath);
+  res.status(200).json(data);
+}));
 
-  processFile(filePath)
-    .then(data => {
-      res.status(200).json(data);
-    })
-    .catch(error => {
-      console.error('Error processing file:', error);
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
-
-app.put('/productScan', (req, res) => {
+app.put('/productScan', asyncHandler(async (req, res) => {
   const { barcode, quoteId, newQty } = req.body;
-  processBarcode(barcode, quoteId, newQty)
-    .then(message => {
-      res.status(200).json(message);
-    })
-    .catch(error => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
+  const message = await processBarcode(barcode, quoteId, newQty);
+  res.status(200).json(message);
+}));
 
-app.get('/barcodeToName/:barcode', (req, res) => {
-  const { barcode } = req.params;
-
-  getProductName(barcode)
-    .then(productName => {
-      res.json({ productName });
-    })
-    .catch(error => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-});
-
-app.put('/saveProductForLater', (req, res) => {
-  const { quoteId, productName } = req.body;
-
-  saveForLater(quoteId, productName)
-    .then((result) => {
-      res.status(200).json(result)
-    })
-    .catch(error => {
-      res.status(error.statusCode || 500).json({ error: error.message });
-    });
-})
+app.get('/barcodeToName/:barcode', asyncHandler(async (req, res) => {
+  const productName = await getProductName(req.params.barcode);
+  res.json({ productName });
+}));
 
 /***************************************************************
                        Running Server
@@ -253,6 +162,12 @@ app.put('/saveProductForLater', (req, res) => {
 app.get('/', (req, res) => res.redirect('/docs'));
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
+});
 
 const port = process.env.BACKEND_PORT;
 const server = app.listen(port, () => {

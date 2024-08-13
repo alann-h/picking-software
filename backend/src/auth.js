@@ -2,14 +2,13 @@ import OAuthClient from 'intuit-oauth';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
 import { InputError, AccessError, NotFoundError, AuthenticationError } from './error';
-import { readDatabase, writeDatabase } from './helpers';
+import { query } from './helpers';
 
 dotenv.config({ path: 'config.env' });
 
 const clientId = process.env.CLIENT_ID;
 const clientSecret = process.env.CLIENT_SECRET;
 const redirectUri = process.env.REDIRECT_URI;
-const databasePath = './database.json';
 
 function initializeOAuthClient() {
   return new OAuthClient({
@@ -40,7 +39,7 @@ export async function handleCallback(url) {
     const authResponse = await oauthClient.createToken(url);
     const token = authResponse.getToken();
     const userId = uuidv4();
-    saveUser(userId, token);
+    await saveUser(userId, token);
     return userId;
   } catch (e) {
     console.error(e);
@@ -48,10 +47,14 @@ export async function handleCallback(url) {
   }
 }
 
-function saveUser(userId, token) {
-  const database = readDatabase();
-  database.users[userId] = token;
-  writeDatabase(database);
+async function saveUser(userId, token) {
+  const text = 'INSERT INTO UserTokens(userId, tokenData) VALUES($1, $2) ON CONFLICT (userId) DO UPDATE SET tokenData = $2';
+  const values = [userId, JSON.stringify(token)];
+  try {
+    await query(text, values);
+  } catch (e) {
+    throw new AccessError('Could not save user token: ' + e.message);
+  }
 }
 
 export async function getOAuthClient(userId) {
@@ -76,40 +79,50 @@ export async function getUserToken(userId) {
     throw new InputError('User Id is not valid');
   }
 
-  const database = readDatabase();
-  const userToken = database.users[userId];
-  if (!userToken) {
-    throw new NotFoundError('User not found');
-  }
-
-  if (!userToken.access_token || !userToken.refresh_token) {
-    throw new AccessError('Token not found for user');
-  }
-
-  const oauthClient = initializeOAuthClient();
-  oauthClient.setToken(userToken);
-
-  if (oauthClient.isAccessTokenValid()) {
-    return userToken;
-  }
-
-  if (!oauthClient.token.isRefreshTokenValid()) {
-    deleteUserToken(userId);
-    throw new AuthenticationError('The Refresh token is invalid, please reauthenticate.');
-  }
+  const text = 'SELECT tokenData FROM UserTokens WHERE userId = $1';
+  const values = [userId];
 
   try {
+    const result = await query(text, values);
+    if (result.length === 0) {
+      throw new NotFoundError('User not found');
+    }
+    const userToken = result[0].tokendata;
+
+    if (!userToken.access_token || !userToken.refresh_token) {
+      throw new AccessError('Token not found for user');
+    }
+
+    const oauthClient = initializeOAuthClient();
+    oauthClient.setToken(userToken);
+
+    if (oauthClient.isAccessTokenValid()) {
+      return userToken;
+    }
+
+    if (!oauthClient.token.isRefreshTokenValid()) {
+      await deleteUserToken(userId);
+      throw new AuthenticationError('The Refresh token is invalid, please reauthenticate.');
+    }
+
     const response = await oauthClient.refreshUsingToken(userToken.refresh_token);
     const newToken = response.getToken();
-    saveUser(userId, newToken);
+    await saveUser(userId, newToken);
     return newToken;
   } catch (e) {
-    throw new NotFoundError('Failed to refresh token');
+    if (e instanceof NotFoundError || e instanceof AuthenticationError) {
+      throw e;
+    }
+    throw new NotFoundError('Failed to refresh token: ' + e.message);
   }
 }
 
-function deleteUserToken(userId) {
-  const database = readDatabase();
-  delete database.users[userId];
-  writeDatabase(database);
+async function deleteUserToken(userId) {
+  const text = 'DELETE FROM UserTokens WHERE userId = $1';
+  const values = [userId];
+  try {
+    await query(text, values);
+  } catch (e) {
+    throw new AccessError('Could not delete user token: ' + e.message);
+  }
 }

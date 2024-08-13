@@ -8,7 +8,7 @@ interface ProductDetailsProps {
   onClose: () => void;
   productName: string;
   productDetails: {
-    SKU: string;
+    sku: string;
     pickingQty: number;
     originalQty: number;
     qtyOnHand: number;
@@ -41,7 +41,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       <DialogTitle>Product Details</DialogTitle>
       <DialogContent>
         <Typography variant="h6">{productName}</Typography>
-        <Typography>SKU: {localProductDetails.SKU}</Typography>
+        <Typography>SKU: {localProductDetails.sku}</Typography>
         <Typography>Picking Quantity: {localProductDetails.pickingQty}</Typography>
         <Typography>Original Quantity: {localProductDetails.originalQty}</Typography>
         <Typography>Quantity On Hand: {localProductDetails.qtyOnHand}</Typography>
