@@ -57,10 +57,8 @@ async function filterEstimates(responseData, oauthClient) {
       }
 
       const Description = line.Description;
-      const itemRef = line.SalesItemLineDetail && line.SalesItemLineDetail.ItemRef;
-      const itemValue = itemRef.value;
 
-      const item = await getProductFromQB(itemValue, oauthClient);
+      const item = await getProductFromQB(Description, oauthClient);
       const barcodeItem = await getProductFromDB(item.id);
 
       productInfo[barcodeItem.barcode] = {
@@ -204,10 +202,30 @@ export async function addProductToQuote(productName, quoteId, qty) {
     }
     
     await transaction(async (client) => {
-      await client.query(
-        'INSERT INTO quoteitems (quoteid, productid, productname, pickingqty, originalqty, pickingstatus) VALUES ($1, $2, $3, $4, $4, $5) ON CONFLICT (quoteid, productid) DO UPDATE SET pickingqty = quoteitems.pickingqty + $4, originalqty = quoteitems.originalqty + $4',
-        [quoteId, product[0].productid, productName, qty, 'pending']
+      // Check if the product already exists in the quote
+      const existingItem = await client.query(
+        'SELECT * FROM quoteitems WHERE quoteid = $1 AND productid = $2',
+        [quoteId, product[0].productid]
       );
+      
+      if (existingItem.rows.length > 0) {
+        // If the product exists, update the quantities
+        await client.query(
+          'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1 WHERE quoteid = $2 AND productid = $3',
+          [qty, quoteId, product[0].productid]
+        );
+      } else {
+          const oauthClient = await getOAuthClient(userId);
+          if (!oauthClient) {
+            throw new AccessError('OAuth client could not be initialized');
+          }
+          // If the product doesn't exist, insert a new row
+          const productFromQB = await getProductFromQB(productName, oauthClient);
+          await client.query(
+            'INSERT INTO quoteitems (quoteid, productid, productname, pickingqty, originalqty, pickingstatus) VALUES ($1, $2, $3, $4, $4, $5)',
+            [quoteId, productFromQB.id, productName, qty, 'pending']
+          );
+      }
       
       const price = product[0].price * qty;
       await client.query('UPDATE quotes SET totalamount = totalamount + $1 WHERE quoteid = $2', [price, quoteId]);
