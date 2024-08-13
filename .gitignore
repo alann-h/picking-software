@@ -2,3 +2,4 @@ node_modules/
 backend/database.json
 .DS_Store
 backend/config.env
+backend/src/db.js
