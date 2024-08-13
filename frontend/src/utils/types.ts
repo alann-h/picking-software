@@ -1,17 +1,19 @@
-
 export interface ProductDetail {
     sku: string;
     pickingQty: number;
     originalQty: number;
     pickingStatus: string;
+    productName: string;
+    productId: number;
+    barcode: string;
 }
   
 export interface ProductInfo {
-    [productName: string]: ProductDetail;
+    [barcode: string]: ProductDetail;
 }
   
 export interface QuoteData {
-    customername: string;
+    customerName: string;
     productInfo: ProductInfo;
     totalAmount: number;
 }
@@ -39,7 +41,7 @@ export interface SnackbarContextType {
 }
 
 export interface ProductDetailsDB {
-    SKU: string;
+    sku: string;
     pickingQty: number;
     originalQty: number;
     qtyOnHand: number;

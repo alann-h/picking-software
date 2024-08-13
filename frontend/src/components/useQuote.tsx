@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
 import { getProductInfo, getAllProducts, saveProductForLater } from '../api/others';
@@ -19,14 +19,17 @@ export const useQuote = (quoteId: string) => {
 
   const { handleOpenSnackbar } = useSnackbarContext();
 
+  const saveQuoteEffectRan = useRef(false);
+
   useEffect(() => {
-    if (quoteId) {
+    if (quoteId && !saveQuoteEffectRan.current) {
+      saveQuoteEffectRan.current = true;
+  
       extractQuote(quoteId)
         .then((response) => {
           if (response.source === 'api') {
             saveQuote(response.data);
           }
-          console.log(response.data);
           setQuoteData(response.data);
         })
         .catch((err: Error) => {
@@ -47,7 +50,7 @@ export const useQuote = (quoteId: string) => {
     setScannedBarcode(barcode);
     barcodeToName(barcode)
       .then(({ productName }) => {
-        const product = quoteData?.productInfo[productName];
+        const product = quoteData?.productInfo[barcode];
 
         if (product) {
           if (product.pickingQty === 0) {
@@ -114,13 +117,13 @@ export const useQuote = (quoteId: string) => {
     }
   };
 
-  const handleProductClick = async (name: string, details: ProductDetail) => {
+  const handleProductClick = async (productId: number, productName: string, details: ProductDetail) => {
     try {
-      const data = await getProductInfo(name);
+      const data = await getProductInfo(productId);
       setSelectedProduct({
-        name,
+        name: productName,
         details: {
-          SKU: details.sku,
+          sku: details.sku,
           pickingQty: details.pickingQty,
           originalQty: details.originalQty,
           qtyOnHand: data.qtyOnHand,

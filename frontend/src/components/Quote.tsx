@@ -46,7 +46,6 @@ const Quote: React.FC = () => {
     padding: 2,
     borderRadius: 3,
   };
-
   return (
     <Paper elevation={8} sx={{ padding: 3, marginTop: 3, position: 'relative' }}>
       <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
@@ -87,20 +86,20 @@ const Quote: React.FC = () => {
         <>
           <Paper variant="outlined" sx={{ padding: 2, marginBottom: 2, display: 'flex', justifyContent: 'space-between' }}>
             <Typography variant="body1" sx={{ margin: 0, fontWeight: 'bold' }}>
-              Customer: {quoteData.customername}
+              Customer: {quoteData.customerName}
             </Typography>
             <Typography variant="body1" sx={{ margin: 0, fontWeight: 'bold' }}>
               Quote Number: {quoteId}
             </Typography>
           </Paper>
-          {Object.entries(quoteData.productInfo || {})
+          {Object.values(quoteData.productInfo)
             .slice((currentPage - 1) * 20, currentPage * 20)
-            .map(([name, details], index) => (
+            .map((product) => (
               <ProductCard
-                key={index}
-                name={name}
-                details={details}
-                onClick={() => handleProductClick(name, details)}
+                key={product.sku}
+                name={product.productName}
+                details={product}
+                onClick={() => handleProductClick(product.productId, product.productName, product)}
               />
             ))}
           <Typography sx={{ textAlign: 'center', margin: 2 }}>

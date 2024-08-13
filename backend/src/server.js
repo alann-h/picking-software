@@ -3,7 +3,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import morgan from 'morgan';
 import { getAuthUri, handleCallback, getUserToken } from './auth.js';
-import { getFilteredEstimates, estimateToDB, estimateExists, 
+import { getFilteredEstimates, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater } from './products.js';
@@ -31,6 +31,7 @@ const asyncHandler = fn => (req, res, next) => {
 /***************************************************************
                        User Auth Functions
 ***************************************************************/
+
 app.get('/authUri', asyncHandler(async (_, res) => {
   const authUri = await getAuthUri();
   res.json(authUri);
@@ -52,8 +53,9 @@ app.get('/verifyUser/:userId', asyncHandler(async (req, res) => {
 }));
 
 /***************************************************************
-                       Quote Functions
+                       Customer Functions
 ***************************************************************/
+
 app.get('/getCustomers/:userId', asyncHandler(async (req, res) => {
   const data = await fetchCustomers(req.params.userId);
   res.json(data);
@@ -69,6 +71,10 @@ app.get('/getCustomerId/:customerName', asyncHandler(async (req, res) => {
   res.json({ customerId });
 }));
 
+/***************************************************************
+                       Quote Functions
+***************************************************************/
+
 app.get('/getEstimates/:customerId/:userId', asyncHandler(async (req, res) => {
   const { customerId, userId } = req.params;
   const quotes = await getCustomerQuotes(customerId, userId);
@@ -77,23 +83,28 @@ app.get('/getEstimates/:customerId/:userId', asyncHandler(async (req, res) => {
 
 app.get('/estimate/:quoteId/:userId', asyncHandler(async (req, res) => {
   const { quoteId, userId } = req.params;
-  const quote = await estimateExists(quoteId);
-  
-  if (quote) {
+  const isValid = await checkQuoteExists(quoteId);
+
+  if (isValid) {
+    const quote = await fetchQuoteData(quoteId)
     return res.json({ source: 'database', data: quote });
   }
-
   const estimates = await getFilteredEstimates(quoteId, userId);
   res.json({ source: 'api', data: estimates[0] });
-}));
+ }));
+ 
 
 app.post('/saveQuote', asyncHandler(async (req, res) => {
-  await estimateToDB(req.body);
+  await estimateToDB(req.body.quote);
   res.status(200).json({ message: 'Quote saved successfully in database' });
 }));
 
-app.get('/getProduct/:productName', asyncHandler(async (req, res) => {
-  const productData = await getProductFromDB(req.params.productName);
+/***************************************************************
+                       Product Functions
+***************************************************************/
+
+app.get('/getProduct/:productId', asyncHandler(async (req, res) => {
+  const productData = await getProductFromDB(req.params.productId);
   res.status(200).json(productData);
 }));
 
@@ -114,6 +125,16 @@ app.get('/getAllProducts', asyncHandler(async (req, res) => {
   res.status(200).json(products);
 }));
 
+app.put('/saveProductForLater', asyncHandler(async (req, res) => {
+  const { quoteId, productName } = req.body;
+  const result = await saveForLater(quoteId, productName);
+  res.status(200).json(result);
+}));
+
+/***************************************************************
+                       Other Functions
+***************************************************************/
+
 app.post('/upload', upload.single('input'), asyncHandler(async (req, res) => {
   if (!req.file || req.file.filename === null || req.file.filename === 'undefined') {
     return res.status(403).json('No File');
@@ -133,12 +154,6 @@ app.put('/productScan', asyncHandler(async (req, res) => {
 app.get('/barcodeToName/:barcode', asyncHandler(async (req, res) => {
   const productName = await getProductName(req.params.barcode);
   res.json({ productName });
-}));
-
-app.put('/saveProductForLater', asyncHandler(async (req, res) => {
-  const { quoteId, productName } = req.body;
-  const result = await saveForLater(quoteId, productName);
-  res.status(200).json(result);
 }));
 
 /***************************************************************

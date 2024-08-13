@@ -100,9 +100,9 @@ export async function getProductName(barcode) {
   }
 }
 
-export async function getProductFromDB(productName) {
+export async function getProductFromDB(productId) {
   try {
-    const result = await query('SELECT * FROM products WHERE productname = $1', [productName]);
+    const result = await query('SELECT * FROM products WHERE productid = $1', [productId]);
     if (result.length === 0) {
       throw new AccessError('This product does not exist within the database');
     }
