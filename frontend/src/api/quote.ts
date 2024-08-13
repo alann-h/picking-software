@@ -2,7 +2,7 @@ import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
 import { getUserId } from '../utils/storage';
 import { QuoteData } from '../utils/types';
 
-export const extractQuote = async (quoteId: string) => {
+export const extractQuote = async (quoteId: number) => {
     const userId = getUserId();
     const url = `estimate/${quoteId}/${userId}`;
     const data = await apiCallGet(url);
@@ -33,7 +33,7 @@ export const saveQuote = async (quote: QuoteData) => {
   }
 };
 
-export const barcodeScan = async (barcode: string, quoteId: string, newQty: number) => {
+export const barcodeScan = async (barcode: string, quoteId: number, newQty: number) => {
   const data = await apiCallPut('productScan', { barcode, quoteId, newQty });
   if (data.error) {
     throw new Error(data.error);
@@ -51,7 +51,7 @@ export const barcodeToName = async (barcode: string) => {
   }
 };
 
-export const addProductToQuote = async (productName: string, quoteId: string, qty: number) => {
+export const addProductToQuote = async (productName: string, quoteId: number, qty: number) => {
   const data = await apiCallPut('addProduct', { productName, quoteId, qty });
   if (data.error) {
     throw new Error(data.error);
@@ -60,8 +60,8 @@ export const addProductToQuote = async (productName: string, quoteId: string, qt
   }
 }
 
-export const adjustProductQty = async (productName: string, quoteId: string, newQty: number) => {
-  const data = await apiCallPut(`adjustProductQty`, {quoteId, productName, newQty});
+export const adjustProductQty = async (quoteId: number, productId: number, newQty: number) => {
+  const data = await apiCallPut(`adjustProductQty`, {quoteId, productId, newQty});
   if (data.error) {
     throw new Error(data.error);
   } else {

@@ -13,9 +13,10 @@ interface ProductDetailsProps {
     originalQty: number;
     qtyOnHand: number;
     pickingStatus: string;
+    productId: number;
   };
-  adjustProductQtyButton: (productName: string, newQty: number) => Promise<void>;
-  saveForLaterButton: (productName: string) => Promise<{ message: string }>;
+  adjustProductQtyButton: (productId: number, newQty: number) => Promise<void>;
+  saveForLaterButton: (productId: number) => Promise<{ message: string }>;
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = ({ 
@@ -49,7 +50,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       </DialogContent>
       <DialogActions>
         <SaveForLaterButton
-          productName={productName}
+          productId={localProductDetails.productId}
           currentStatus={localProductDetails.pickingStatus}
           saveForLaterButton={saveForLaterButton}
           onStatusChange={handleStatusChange}
@@ -57,6 +58,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         <AdjustQuantityButton
           productName={productName}
           currentQty={localProductDetails.pickingQty}
+          productId={localProductDetails.productId}
           adjustProductQtyButton={adjustProductQtyButton}
         />
         <Button onClick={onClose}>Close</Button>

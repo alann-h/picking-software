@@ -2,21 +2,21 @@ import React from 'react';
 import { Button } from '@mui/material';
 
 interface SaveForLaterButtonProps {
-  productName: string;
+  productId: number;
   currentStatus: string;
-  saveForLaterButton: (productName: string) => Promise<{ message: string }>;
+  saveForLaterButton: (productId: number) => Promise<{ message: string }>;
   onStatusChange: (newStatus: string) => void;
 }
 
 const SaveForLaterButton: React.FC<SaveForLaterButtonProps> = ({
-  productName,
+  productId,
   currentStatus,
   saveForLaterButton,
   onStatusChange
 }) => {
   const handleClick = async () => {
     try {
-      const response = await saveForLaterButton(productName);
+      const response = await saveForLaterButton(productId);
       const newStatus = response.message.includes('saved for later') ? 'deferred' : 'pending';
       onStatusChange(newStatus);
     } catch (error) {

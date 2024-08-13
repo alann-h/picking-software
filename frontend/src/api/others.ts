@@ -61,8 +61,8 @@ export const getAllProducts = async () => {
   }
 }
 
-export const saveProductForLater = async (quoteId: string, productName: string) => {
-  const response = await apiCallPut('saveProductForLater', { quoteId, productName });
+export const saveProductForLater = async (quoteId: number, productId: number) => {
+  const response = await apiCallPut('saveProductForLater', { quoteId, productId });
   if (response.error) {
     throw new Error(response.error);
   } else {

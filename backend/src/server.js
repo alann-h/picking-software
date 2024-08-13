@@ -109,14 +109,14 @@ app.get('/getProduct/:productId', asyncHandler(async (req, res) => {
 }));
 
 app.put('/addProduct', asyncHandler(async (req, res) => {
-  const { quoteId, productName, qty } = req.body;
-  await addProductToQuote(productName, quoteId, qty);
+  const { quoteId, productName, qty, userId } = req.body;
+  await addProductToQuote(productName, quoteId, qty, userId);
   res.status(200).json({ message: 'Product updated successfully in database' });
 }));
 
 app.put('/adjustProductQty', asyncHandler(async (req, res) => {
-  const { quoteId, productName, newQty } = req.body;
-  await adjustProductQuantity(productName, quoteId, newQty);
+  const { quoteId, productId, newQty } = req.body;
+  await adjustProductQuantity(quoteId, productId, newQty);
   res.status(200).json({ message: 'Adjusted quantity of product in quote successfully' });
 }));
 
@@ -126,8 +126,8 @@ app.get('/getAllProducts', asyncHandler(async (req, res) => {
 }));
 
 app.put('/saveProductForLater', asyncHandler(async (req, res) => {
-  const { quoteId, productName } = req.body;
-  const result = await saveForLater(quoteId, productName);
+  const { quoteId, productId } = req.body;
+  const result = await saveForLater(quoteId, productId);
   res.status(200).json(result);
 }));
 

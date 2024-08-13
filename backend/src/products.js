@@ -39,9 +39,9 @@ export async function processFile(filePath) {
   }
 }
 
-export async function getProductFromQB(itemId, oauthClient) {
+export async function getProductFromQB(productName, oauthClient) {
   try {
-    const query = `SELECT * from Item WHERE Id = '${itemId}'`;
+    const query = `SELECT * from Item WHERE Name = '${productName}'`;
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     const url = `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`;
