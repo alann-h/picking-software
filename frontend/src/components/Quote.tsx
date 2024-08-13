@@ -16,7 +16,7 @@ const useQuery = () => {
 
 const Quote: React.FC = () => {
   const query = useQuery();
-  const quoteId = query.get('Id') || '';
+  const quoteId = Number(query.get('Id') || '');
   const {
     quoteData,
     isModalOpen,
@@ -99,7 +99,7 @@ const Quote: React.FC = () => {
                 key={product.sku}
                 name={product.productName}
                 details={product}
-                onClick={() => handleProductClick(product.productId, product.productName, product)}
+                onClick={() => handleProductClick(product.productId, product)}
               />
             ))}
           <Typography sx={{ textAlign: 'center', margin: 2 }}>

@@ -4,12 +4,14 @@ import { Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle } 
 interface AdjustQuantityButtonProps {
   productName: string;
   currentQty: number;
-  adjustProductQtyButton: (productName: string, newQty: number) => Promise<void>;
+  productId: number;
+  adjustProductQtyButton: (productId: number, newQty: number) => Promise<void>;
 }
 
 const AdjustQuantityButton: React.FC<AdjustQuantityButtonProps> = ({
   productName,
   currentQty,
+  productId,
   adjustProductQtyButton
 }) => {
   const [open, setOpen] = useState(false);
@@ -24,7 +26,7 @@ const AdjustQuantityButton: React.FC<AdjustQuantityButtonProps> = ({
 
   const handleConfirm = async () => {
     try {
-      await adjustProductQtyButton(productName, newQty);
+      await adjustProductQtyButton(productId, newQty);
       handleClose();
     } catch (error) {
       console.error("Error adjusting quantity:", error);

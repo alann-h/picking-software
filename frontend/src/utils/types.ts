@@ -46,6 +46,7 @@ export interface ProductDetailsDB {
     originalQty: number;
     qtyOnHand: number;
     pickingStatus: string;
+    productId: number;
 }
 
 export interface Product {

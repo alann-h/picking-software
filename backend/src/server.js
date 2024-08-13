@@ -115,8 +115,8 @@ app.put('/addProduct', asyncHandler(async (req, res) => {
 }));
 
 app.put('/adjustProductQty', asyncHandler(async (req, res) => {
-  const { quoteId, productName, newQty } = req.body;
-  await adjustProductQuantity(productName, quoteId, newQty);
+  const { quoteId, productId, newQty } = req.body;
+  await adjustProductQuantity(quoteId, productId, newQty);
   res.status(200).json({ message: 'Adjusted quantity of product in quote successfully' });
 }));
 

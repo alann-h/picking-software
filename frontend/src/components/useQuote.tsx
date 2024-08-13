@@ -4,7 +4,7 @@ import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote,
 import { getProductInfo, getAllProducts, saveProductForLater } from '../api/others';
 import { useSnackbarContext } from '../components/SnackbarContext';
 
-export const useQuote = (quoteId: string) => {
+export const useQuote = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [inputQty, setInputQty] = useState(1);
@@ -117,17 +117,18 @@ export const useQuote = (quoteId: string) => {
     }
   };
 
-  const handleProductClick = async (productId: number, productName: string, details: ProductDetail) => {
+  const handleProductClick = async (productId: number, details: ProductDetail) => {
     try {
       const data = await getProductInfo(productId);
       setSelectedProduct({
-        name: productName,
+        name: data.productname,
         details: {
-          sku: details.sku,
+          sku: data.sku,
           pickingQty: details.pickingQty,
           originalQty: details.originalQty,
-          qtyOnHand: data.qtyOnHand,
+          qtyOnHand: data.quantity_on_hand,
           pickingStatus: details.pickingStatus,
+          productId: data.productid
         }
       });
     } catch (error) {
@@ -139,9 +140,9 @@ export const useQuote = (quoteId: string) => {
     setSelectedProduct(null);
   };
 
-  const adjustProductQtyButton = async (productName: string, newQty: number) => {
+  const adjustProductQtyButton = async (productId: number, newQty: number) => {
     try {
-      await adjustProductQty(quoteId,productName, newQty);
+      await adjustProductQty(quoteId,productId, newQty);
       handleOpenSnackbar('Product adjusted successfully!', 'success');
       setRefetchTrigger(prev => prev + 1);
     } catch (error) {
