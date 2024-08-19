@@ -11,10 +11,10 @@ import SnackbarComponent from './components/SnackbarComponent';
 import TopBar from './components/TopBar';
 import Quote from './components/Quote';
 import theme from './theme';
+import Footer from './components/Footer';
 
 const App: React.FC = () => {
   const location = useLocation();
-
   const isLoginPage = location.pathname === '/';
 
   return (
@@ -23,11 +23,12 @@ const App: React.FC = () => {
         <HelmetProvider>
           <Helmet>
             <title>Picking Software</title>
+            <link rel="icon" type="image/png" href="/SP.png" />          
           </Helmet>
           <CssBaseline />
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
             <TopBar isLoginPage={isLoginPage} />
-            <Box sx={{ flexGrow: 1, padding: 3 }}>
+            <Box sx={{ flexGrow: 1, width: '100%' }}>
               <Routes>
                 <Route path="/" element={<Login />} />
                 <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
@@ -38,6 +39,7 @@ const App: React.FC = () => {
             </Box>
           </Box>
           <SnackbarComponent />
+          <Footer />
         </HelmetProvider>
       </SnackbarProvider>
     </ThemeProvider>

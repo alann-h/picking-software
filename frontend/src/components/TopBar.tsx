@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, IconButton } from '@mui/material';
+import { AppBar, IconButton, Toolbar, Typography, useTheme } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,10 +9,7 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
   const navigate = useNavigate();
-
-  const handleSettingsClick = () => {
-    navigate('/dashboard/settings');
-  };
+  const theme = useTheme();
 
   const handleLogoClick = () => {
     if (!isLoginPage) {
@@ -20,19 +17,30 @@ const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
     }
   };
 
+  const handleSettingsClick = () => {
+    navigate('/dashboard/settings');
+  };
+
   return (
-    <AppBar position="static" sx={{ backgroundColor: '#b0bec5' }}>
-      <Toolbar>
+    <AppBar position="static" color="transparent" elevation={0}>
+      <Toolbar sx={{ justifyContent: 'space-between' }}>
         <Typography
           variant="h6"
-          sx={{ flexGrow: 1, cursor: !isLoginPage ? 'pointer' : 'default' }}
+          sx={{
+            flexGrow: 1,
+            cursor: !isLoginPage ? 'pointer' : 'default',
+            fontWeight: 'bold',
+            color: theme.palette.primary.main,
+          }}
           onClick={handleLogoClick}
         >
           SmartPicker
         </Typography>
-        <IconButton color="inherit" disabled={isLoginPage} onClick={handleSettingsClick}>
-          <SettingsIcon />
-        </IconButton>
+        {!isLoginPage && (
+          <IconButton color="inherit" onClick={handleSettingsClick}>
+            <SettingsIcon />
+          </IconButton>
+        )}
       </Toolbar>
     </AppBar>
   );
