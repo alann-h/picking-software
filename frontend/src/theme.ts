@@ -39,7 +39,16 @@ const theme = createTheme({
           margin: 0,
           padding: 0,
           minHeight: '100vh',
+          width: '100%',
           background: 'linear-gradient(to right, #ece9e6, #ffffff)',
+        },
+      },
+    },
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          paddingLeft: 0,
+          paddingRight: 0,
         },
       },
     },
