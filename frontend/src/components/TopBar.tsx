@@ -22,15 +22,15 @@ const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
   };
 
   return (
-    <AppBar position="static" color="transparent" elevation={0}>
+    <AppBar position="static" color="transparent" elevation={0} sx={{ background: 'linear-gradient(to right, #ece9e6, #ffffff)', borderBottom: "1px solid #dce0d7"}}>
       <Toolbar sx={{ justifyContent: 'space-between' }}>
         <Typography
           variant="h6"
           sx={{
-            flexGrow: 1,
             cursor: !isLoginPage ? 'pointer' : 'default',
             fontWeight: 'bold',
             color: theme.palette.primary.main,
+            display: 'inline-block',
           }}
           onClick={handleLogoClick}
         >
