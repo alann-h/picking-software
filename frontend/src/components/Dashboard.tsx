@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Container, Autocomplete, TextField, List, ListItemText, Card, CardContent, 
-  Paper, ListItemButton, Typography, Box, Grid, useTheme
+  Paper, ListItemButton, Typography, Box, Grid, useTheme, Chip
 } from '@mui/material';
+import {QrCodeScanner, Inventory } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { Customer } from '../utils/types';
 import { getCustomers, saveCustomers, getCustomerId } from '../api/others';
@@ -126,17 +127,19 @@ const Dashboard: React.FC = () => {
                           <CardContent>
                             <ListItemText
                               primary={
-                                <Typography variant="subtitle1" color="primary">
+                                <Typography variant="subtitle1" color="primary" sx={{fontWeight: 'bold'}}>
                                   Quote ID: {quote.Id}
                                 </Typography>
                               }
                               secondary={
                                 <Box>
-                                  <Typography variant="body2">Customer: {quote.CustomerRef.name}</Typography>
-                                  <Typography variant="body2">
+                                  <Typography variant="body2" sx={{fontWeight: 'bold'}}>
+                                    Customer: {quote.CustomerRef.name}
+                                  </Typography>
+                                  <Typography variant="body2" sx={{fontWeight: 'bold'}}>
                                     Last Updated: {new Date(quote.MetaData.LastUpdatedTime).toLocaleString()}
                                   </Typography>
-                                  <Typography variant="body2" color="secondary">
+                                  <Typography variant="body2" color="secondary" sx={{fontWeight: 'bold'}}>
                                     Total: ${quote.TotalAmt}
                                   </Typography>
                                 </Box>
@@ -152,6 +155,60 @@ const Dashboard: React.FC = () => {
             </AnimatedComponent>
           </Grid>
         </Grid>
+        
+        <AnimatedComponent yOffset={20} delay={0.8}>
+          <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
+            <Typography variant="h5" gutterBottom color="primary">
+              QuickBooks Integration
+            </Typography>
+            <Typography variant="body1" paragraph>
+              This application is integrated with QuickBooks, allowing you to:
+            </Typography>
+            <Typography variant="body1" component="ul" sx={{ pl: 2 }}>
+              <li>Access and manage customer quotes directly from QuickBooks</li>
+              <li>Synchronize order data with your QuickBooks account</li>
+              <li>Maintain consistent financial records across systems</li>
+            </Typography>
+          </Paper>
+        </AnimatedComponent>
+
+        <AnimatedComponent yOffset={20} delay={1}>
+          <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
+            <Typography variant="h5" gutterBottom color="primary">
+              Features
+            </Typography>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6} md={4}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      <QrCodeScanner sx={{ mr: 1 }} />
+                      Barcode Scanner
+                    </Typography>
+                    <Typography variant="body2">
+                      Quickly process orders and manage inventory with our integrated barcode scanning feature.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      <Inventory sx={{ mr: 1 }} />
+                      Inventory Management
+                    </Typography>
+                    <Typography variant="body2">
+                      Efficiently track and manage your stock levels.
+                    </Typography>
+                    <Chip label="Coming Soon" color="secondary" sx={{ mt: 2 }} />
+                  </CardContent>
+                </Card>
+              </Grid>
+              {/* Add more feature cards here */}
+            </Grid>
+          </Paper>
+        </AnimatedComponent>
       </Container>
     </Box>
   );
