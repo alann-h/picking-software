@@ -244,7 +244,16 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
     if (result.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
-    return { success: true, message: 'Product quantity adjusted successfully' };
+    const adjustedResult = {
+      quoteId: result[0].quoteid,
+      productId: result[0].productid,
+      productName: result[0].productname,
+      originalQty: result[0].originalqty,
+      pickingQty: result[0].pickingqty,
+      pickingStatus: result[0].pickingstatus,
+      sku: result[0].sku
+    }
+    return adjustedResult;
   } catch (error) {
     throw new AccessError(error.message);
   }

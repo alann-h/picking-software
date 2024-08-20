@@ -1,30 +1,26 @@
-import React, { ReactNode } from 'react';
-import { Button, SxProps, Theme } from '@mui/material';
+import React, { forwardRef } from 'react';
+import { Button, ButtonProps } from '@mui/material';
 
-interface AddProductButtonProps {
+interface AddProductButtonProps extends ButtonProps {
   onClick: () => void;
-  sx?: SxProps<Theme>;
-  children?: ReactNode;
 }
 
-const AddProductButton: React.FC<AddProductButtonProps> = ({ onClick, sx, children }) => {
-  return (
-    <Button
-      variant="contained"
-      color="primary"
-      onClick={onClick}
-      sx={{
-        minWidth: 0,
-        width: 40,
-        height: 40,
-        borderRadius: '50%',
-        padding: 0,
-        ...sx,
-      }}
-    >
-      {children}
-    </Button>
-  );
-};
+const AddProductButton = forwardRef<HTMLButtonElement, AddProductButtonProps>(
+  ({ onClick, children, ...props }, ref) => {
+    return (
+      <Button
+        ref={ref}
+        variant="contained"
+        color="primary"
+        onClick={onClick}
+        {...props}
+      >
+        {children}
+      </Button>
+    );
+  }
+);
+
+AddProductButton.displayName = 'AddProductButton';
 
 export default AddProductButton;
