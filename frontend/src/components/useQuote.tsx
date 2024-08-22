@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
 import { getProductInfo, getAllProducts, saveProductForLater } from '../api/others';
@@ -7,7 +7,6 @@ import { useSnackbarContext } from '../components/SnackbarContext';
 export const useQuote = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [inputQty, setInputQty] = useState(1);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [availableQty, setAvailableQty] = useState(0);
@@ -19,27 +18,25 @@ export const useQuote = (quoteId: number) => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   const { handleOpenSnackbar } = useSnackbarContext();
-  const refetchQuote = useCallback(() => {
-    setRefetchTrigger(prev => prev + 1);
-  }, []);
+
+  const saveQuoteEffectRan = useRef(false);
 
   useEffect(() => {
-    const fetchQuote = async () => {
-      setIsLoading(true);
-      try {
-        const response = await extractQuote(quoteId);
-        if (response.source === 'api') {
-          await saveQuote(response.data);
-        }
-        setQuoteData(response.data);
-      } catch (err) {
-        handleOpenSnackbar(err instanceof Error ? err.message : 'An unknown error occurred', 'error');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchQuote();
-  }, [quoteId, refetchTrigger, handleOpenSnackbar]);
+    if (quoteId && !saveQuoteEffectRan.current) {
+      saveQuoteEffectRan.current = true;
+  
+      extractQuote(quoteId)
+        .then((response) => {
+          if (response.source === 'api') {
+            saveQuote(response.data);
+          }
+          setQuoteData(response.data);
+        })
+        .catch((err: Error) => {
+          handleOpenSnackbar(err.message, 'error');
+        });
+    }
+  }, [quoteId, handleOpenSnackbar, refetchTrigger]);
 
   useEffect(() => {
     getAllProducts()
@@ -109,6 +106,7 @@ export const useQuote = (quoteId: number) => {
       await addProductToQuote(productName, quoteId, qty);
       handleOpenSnackbar('Product added successfully!', 'success');
       setIsAddProductModalOpen(false);
+      
       setRefetchTrigger(prev => prev + 1);
     } catch (error) {
       if (error instanceof Error) {
@@ -144,19 +142,18 @@ export const useQuote = (quoteId: number) => {
 
   const adjustProductQtyButton = async (productId: number, newQty: number) => {
     try {
-      await adjustProductQty(quoteId, productId, newQty);
+      await adjustProductQty(quoteId,productId, newQty);
       handleOpenSnackbar('Product adjusted successfully!', 'success');
-      refetchQuote();
+      setRefetchTrigger(prev => prev + 1);
     } catch (error) {
       handleOpenSnackbar(`Error adjusting product quantity ${error}`, 'error');
     }
   };
 
-  const saveForLaterButton = async (productId: number) => {
+  const saveForLaterButton = async (productId: number)=> {
     try {
       const response = await saveProductForLater(quoteId, productId);
       handleOpenSnackbar(response.message, 'success');
-      refetchQuote();
       return response;
     } catch (error) {
       handleOpenSnackbar(`${error}`, 'error');
@@ -164,7 +161,6 @@ export const useQuote = (quoteId: number) => {
   }
   return {
     quoteData,
-    isLoading,
     isModalOpen,
     inputQty,
     availableQty,

@@ -1,18 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
-import { ProductDetailsDB } from '../utils/types';
+import AdjustQuantityButton from './AdjustQuantityButton';
+import SaveForLaterButton from './SaveForLaterButton';
+
 interface ProductDetailsProps {
   open: boolean;
   onClose: () => void;
   productName: string;
-  productDetails: ProductDetailsDB
+  productDetails: {
+    sku: string;
+    pickingQty: number;
+    originalQty: number;
+    qtyOnHand: number;
+    pickingStatus: string;
+    productId: number;
+  };
+  adjustProductQtyButton: (productId: number, newQty: number) => Promise<void>;
+  saveForLaterButton: (productId: number) => Promise<{ message: string }>;
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = ({ 
   open, 
   onClose, 
   productName, 
-  productDetails
+  productDetails, 
+  adjustProductQtyButton, 
+  saveForLaterButton 
 }) => {
   const [localProductDetails, setLocalProductDetails] = useState(productDetails);
 
@@ -20,7 +33,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     setLocalProductDetails(productDetails);
   }, [productDetails]);
 
-
+  const handleStatusChange = (newStatus: string) => {
+    setLocalProductDetails(prev => ({ ...prev, pickingStatus: newStatus }));
+  };
 
   return (
     <Dialog open={open} onClose={onClose}>
@@ -34,6 +49,18 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         <Typography>Picking Status: {localProductDetails.pickingStatus}</Typography>
       </DialogContent>
       <DialogActions>
+        <SaveForLaterButton
+          productId={localProductDetails.productId}
+          currentStatus={localProductDetails.pickingStatus}
+          saveForLaterButton={saveForLaterButton}
+          onStatusChange={handleStatusChange}
+        />
+        <AdjustQuantityButton
+          productName={productName}
+          currentQty={localProductDetails.pickingQty}
+          productId={localProductDetails.productId}
+          adjustProductQtyButton={adjustProductQtyButton}
+        />
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>
