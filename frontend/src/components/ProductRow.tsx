@@ -6,14 +6,14 @@ import SaveForLaterButton from './SaveForLaterButton';
 
 interface ProductRowProps {
   product: ProductDetail;
-  onProductClick: (productId: number, product: ProductDetail) => void;
+  onProductDetails: (productId: number, product: ProductDetail) => void;
   onAdjustQuantity: (productId: number, newQty: number) => Promise<void>;
   onSaveForLater: (productId: number) => Promise<{ newStatus: string }>;
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({
   product,
-  onProductClick,
+  onProductDetails,
   onAdjustQuantity,
   onSaveForLater,
 }) => {
@@ -61,7 +61,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
       <TableCell>
         <Tooltip title="View detailed information about this product">
           <Button
-            onClick={() => onProductClick(product.productId, product)}
+            onClick={() => onProductDetails(product.productId, product)}
             variant="outlined"
             size="small"
             sx={{ mr: 1 }}

@@ -88,14 +88,15 @@ export const useQuote = (quoteId: number) => {
     barcodeScan(scannedBarcode, quoteId, inputQty)
       .then((data) => {
         handleOpenSnackbar('Barcode scanned successfully!', 'success');
-        updateQuoteData(prevProductInfo => {
-          const scannedProduct = Object.values(prevProductInfo).find(
+        updateQuoteData(prevQuoteData => {
+          const updatedProductInfo = { ...prevQuoteData.productInfo };
+          const scannedProduct = Object.values(updatedProductInfo).find(
             product => product.productName === data.productName
           );
           if (scannedProduct) {
             scannedProduct.pickingQty = data.updatedQty;
           }
-          return prevProductInfo;
+          return updatedProductInfo;
         });
         setIsModalOpen(false);
         setInputQty(1);
@@ -119,16 +120,33 @@ export const useQuote = (quoteId: number) => {
     try {
       const data = await addProductToQuote(productName, quoteId, qty);
       handleOpenSnackbar('Product added successfully!', 'success');
-      updateQuoteData(prevProductInfo => {
-        const product = Object.values(prevProductInfo).find(
-          product => product.productName === productName
-        );
-        if (product) {
-          product.pickingQty = data.pickingQty;
-          product.originalQty = data.originalQty;
+      
+      updateQuoteData(prevQuoteData => {
+        const updatedProductInfo = { ...prevQuoteData.productInfo };
+        console.log(updatedProductInfo)
+        if (data.status === 'new') {
+          const newProduct = data.productInfo;
+          updatedProductInfo[newProduct.barcode] = {
+            productId: newProduct.productid,
+            productName: newProduct.productname,
+            sku: newProduct.sku,
+            pickingQty: newProduct.pickingqty,
+            originalQty: newProduct.originalqty,
+            pickingStatus: newProduct.pickingstatus,
+            barcode: newProduct.barcode,
+          };
+        } else if (data.status === 'exists') {
+          const existingProduct = Object.values(updatedProductInfo).find(
+            product => product.productName === productName
+          );
+          if (existingProduct) {
+            existingProduct.pickingQty = data.pickingQty;
+            existingProduct.originalQty = data.originalQty;
+          }
         }
-        return prevProductInfo;
+        return updatedProductInfo;
       });
+      
       setIsAddProductModalOpen(false);
     } catch (error) {
       if (error instanceof Error) {
@@ -189,14 +207,16 @@ export const useQuote = (quoteId: number) => {
     try {
       const data = await saveProductForLater(quoteId, productId);
       handleOpenSnackbar(data.message, 'success');
-      updateQuoteData(prevProductInfo => {
-        const product = Object.values(prevProductInfo).find(
+      updateQuoteData(prevQuoteData => {
+        const updatedProductInfo = { ...prevQuoteData.productInfo };
+        const product = Object.values(updatedProductInfo).find(
           product => product.productId === productId
         );
+        console.log(product);
         if (product) {
           product.pickingStatus = data.newStatus;
         }
-        return prevProductInfo;
+        return updatedProductInfo;
       });
       return data.newStatus;
     } catch (error) {

@@ -144,7 +144,7 @@ const Quote: React.FC = () => {
               <ProductRow
                 key={barcode}
                 product={product}
-                onProductClick={handleProductDetails}
+                onProductDetails={handleProductDetails}
                 onAdjustQuantity={adjustProductQtyButton}
                 onSaveForLater={saveForLaterButton}
               />

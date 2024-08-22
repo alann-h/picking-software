@@ -219,8 +219,8 @@ export async function addProductToQuote(productName, quoteId, qty, userId) {
           // If the product doesn't exist, insert a new row
           const productFromQB = await getProductFromQB(productName, oauthClient);
           addNewProduct = await client.query(
-            'INSERT INTO quoteitems (quoteid, productid, productname, pickingqty, originalqty, pickingstatus) VALUES ($1, $2, $3, $4, $4, $5) returning *',
-            [quoteId, productFromQB.id, productName, qty, 'pending']
+            'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) returning *',
+            [quoteId, productFromQB.id, qty, qty,'pending', product[0].barcode, productName, product[0].sku]
           );
       }
       
@@ -228,9 +228,9 @@ export async function addProductToQuote(productName, quoteId, qty, userId) {
       await client.query('UPDATE quotes SET totalamount = totalamount + $1 WHERE quoteid = $2', [price, quoteId]);
     });
     if (addNewProduct) {
-      return addNewProduct[0];
+      return {status: 'new', productInfo: addNewProduct.rows[0]};
     } else if (addExisitingProduct){
-      return {pickingQty: addExisitingProduct.rows[0].pickingqty, originalQty: addExisitingProduct.rows[0].originalqty};
+      return {status: 'exisits', pickingQty: addExisitingProduct.rows[0].pickingqty, originalQty: addExisitingProduct.rows[0].originalqty};
     }
   } catch (e) {
     throw new AccessError(e.message);
