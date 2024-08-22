@@ -2,12 +2,13 @@ import React from 'react';
 import { TableRow, TableCell, Button, Chip, useTheme, Tooltip } from '@mui/material';
 import { ProductDetail } from '../utils/types';
 import AdjustQuantityButton from './AdjustQuantityButton';
+import SaveForLaterButton from './SaveForLaterButton';
 
 interface ProductRowProps {
   product: ProductDetail;
   onProductClick: (productId: number, product: ProductDetail) => void;
   onAdjustQuantity: (productId: number, newQty: number) => Promise<void>;
-  onSaveForLater: (productId: number) => void;
+  onSaveForLater: (productId: number) => Promise<{ newStatus: string }>;
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({
@@ -25,7 +26,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
       case 'pending':
         return theme.palette.warning.main;
       case 'deferred':
-        return theme.palette.info.main;
+        return theme.palette.error.main;
       default:
         return theme.palette.grey[500];
     }
@@ -74,15 +75,11 @@ const ProductRow: React.FC<ProductRowProps> = ({
           productId={product.productId}
           adjustProductQtyButton={onAdjustQuantity}
         />
-        <Tooltip title={product.pickingStatus === 'deferred' ? 'Resume picking this product' : 'Save this product for later picking'}>
-          <Button
-            onClick={() => onSaveForLater(product.productId)}
-            variant="outlined"
-            size="small"
-          >
-            {product.pickingStatus === 'deferred' ? 'picking' : 'Save for Later'}
-          </Button>
-        </Tooltip>
+        <SaveForLaterButton
+          productId={product.productId}
+          currentStatus={product.pickingStatus}
+          saveForLaterButton={onSaveForLater}
+        />
       </TableCell>
     </TableRow>
   );

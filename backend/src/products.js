@@ -60,7 +60,7 @@ export async function getProductFromQB(productName, oauthClient) {
       sku: itemData.Sku,
       qtyOnHand: itemData.QtyOnHand,
       price: itemData.UnitPrice,
-    }
+    };
     await saveProduct(item);
     return item;
   } catch (e) {

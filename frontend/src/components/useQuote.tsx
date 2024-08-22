@@ -170,9 +170,23 @@ export const useQuote = (quoteId: number) => {
 
   const saveForLaterButton = async (productId: number)=> {
     try {
-      const response = await saveProductForLater(quoteId, productId);
-      handleOpenSnackbar(response.message, 'success');
-      return response;
+      const data = await saveProductForLater(quoteId, productId);
+      handleOpenSnackbar(data.message, 'success');
+      setQuoteData(prevQuoteData => {
+        if (!prevQuoteData) return null;
+        const updatedProductInfo = { ...prevQuoteData.productInfo };
+        const product = Object.values(updatedProductInfo).find(
+          product => product.productId === productId
+        );
+        if (product) {
+          product.pickingStatus = data.newStatus;
+        }
+        return {
+          ...prevQuoteData,
+          productInfo: updatedProductInfo
+        };
+      });
+      return data.newStatus;
     } catch (error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
