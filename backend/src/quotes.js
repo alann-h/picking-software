@@ -1,7 +1,7 @@
 import { AccessError, InputError } from './error';
 import { query, transaction } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
-import { getProductFromDB, getProductFromQB, getProductName } from './products';
+import { getProductFromDB, getProductFromQB } from './products';
 
 export async function getCustomerQuotes(customerId, userId) {
   try {
@@ -173,13 +173,9 @@ export async function fetchQuoteData(quoteId) {
 
 export async function processBarcode(barcode, quoteId, newQty) {
   try {
-    const product = await getProductName(barcode);
-    if (!product) {
-      throw new InputError('Product not found for this barcode');
-    }
     const result = await query(
-      'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND productid = $3 RETURNING pickingqty, productname',
-      [newQty, quoteId, product.productid]
+      'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND barcode = $3 RETURNING pickingqty, productname',
+      [newQty, quoteId, barcode]
     );
     if (result.length === 0) {
       throw new InputError('Quote number is invalid or scanned product does not exist on quote');
@@ -190,7 +186,7 @@ export async function processBarcode(barcode, quoteId, newQty) {
   }
 }
 
-export async function addProductToQuote(productName, quoteId, qty) {
+export async function addProductToQuote(productName, quoteId, qty, userId) {
   try {
     const product = await query('SELECT * FROM products WHERE productname = $1', [productName]);
     if (product.length === 0) {
@@ -200,7 +196,8 @@ export async function addProductToQuote(productName, quoteId, qty) {
     if (quote.length === 0) {
       throw new AccessError('Quote does not exist in database!');
     }
-    
+    let addNewProduct = null;
+    let addExisitingProduct = null;
     await transaction(async (client) => {
       // Check if the product already exists in the quote
       const existingItem = await client.query(
@@ -210,8 +207,8 @@ export async function addProductToQuote(productName, quoteId, qty) {
       
       if (existingItem.rows.length > 0) {
         // If the product exists, update the quantities
-        await client.query(
-          'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1 WHERE quoteid = $2 AND productid = $3',
+        addExisitingProduct = await client.query(
+          'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1 WHERE quoteid = $2 AND productid = $3 returning pickingqty, originalqty',
           [qty, quoteId, product[0].productid]
         );
       } else {
@@ -221,8 +218,8 @@ export async function addProductToQuote(productName, quoteId, qty) {
           }
           // If the product doesn't exist, insert a new row
           const productFromQB = await getProductFromQB(productName, oauthClient);
-          await client.query(
-            'INSERT INTO quoteitems (quoteid, productid, productname, pickingqty, originalqty, pickingstatus) VALUES ($1, $2, $3, $4, $4, $5)',
+          addNewProduct = await client.query(
+            'INSERT INTO quoteitems (quoteid, productid, productname, pickingqty, originalqty, pickingstatus) VALUES ($1, $2, $3, $4, $4, $5) returning *',
             [quoteId, productFromQB.id, productName, qty, 'pending']
           );
       }
@@ -230,6 +227,11 @@ export async function addProductToQuote(productName, quoteId, qty) {
       const price = product[0].price * qty;
       await client.query('UPDATE quotes SET totalamount = totalamount + $1 WHERE quoteid = $2', [price, quoteId]);
     });
+    if (addNewProduct) {
+      return addNewProduct[0];
+    } else if (addExisitingProduct){
+      return {pickingQty: addExisitingProduct.rows[0].pickingqty, originalQty: addExisitingProduct.rows[0].originalqty};
+    }
   } catch (e) {
     throw new AccessError(e.message);
   }
@@ -244,7 +246,11 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
     if (result.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
-    return { success: true, message: 'Product quantity adjusted successfully' };
+    const product = await query('SELECT * FROM products WHERE productid = $1', [productId]);
+
+    const price = product[0].price * newQty;
+    const newTotalAmt = await query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [price, quoteId]);
+    return { pickingQty: result[0].pickingqty, originalQty: result[0].originalqty, totalAmount: newTotalAmt[0].totalamount };
   } catch (error) {
     throw new AccessError(error.message);
   }

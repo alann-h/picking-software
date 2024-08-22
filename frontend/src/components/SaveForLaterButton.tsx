@@ -4,21 +4,18 @@ import { Button } from '@mui/material';
 interface SaveForLaterButtonProps {
   productId: number;
   currentStatus: string;
-  saveForLaterButton: (productId: number) => Promise<{ message: string }>;
-  onStatusChange: (newStatus: string) => void;
+  saveForLaterButton: (productId: number) => Promise<{ newStatus: string }>;
 }
 
 const SaveForLaterButton: React.FC<SaveForLaterButtonProps> = ({
   productId,
   currentStatus,
   saveForLaterButton,
-  onStatusChange
 }) => {
   const handleClick = async () => {
     try {
-      const response = await saveForLaterButton(productId);
-      const newStatus = response.message.includes('saved for later') ? 'deferred' : 'pending';
-      onStatusChange(newStatus);
+      await saveForLaterButton(productId);
+      
     } catch (error) {
       console.error('Error toggling save for later status:', error);
     }
@@ -29,8 +26,8 @@ const SaveForLaterButton: React.FC<SaveForLaterButtonProps> = ({
   return (
     <Button
       onClick={handleClick}
-      color="primary"
-      variant="contained"
+      variant="outlined"
+      size="small"
     >
       {buttonText}
     </Button>

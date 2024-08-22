@@ -86,7 +86,7 @@ app.get('/estimate/:quoteId/:userId', asyncHandler(async (req, res) => {
   const isValid = await checkQuoteExists(quoteId);
 
   if (isValid) {
-    const quote = await fetchQuoteData(quoteId)
+    const quote = await fetchQuoteData(quoteId);
     return res.json({ source: 'database', data: quote });
   }
   const estimates = await getFilteredEstimates(quoteId, userId);
@@ -110,14 +110,14 @@ app.get('/getProduct/:productId', asyncHandler(async (req, res) => {
 
 app.put('/addProduct', asyncHandler(async (req, res) => {
   const { quoteId, productName, qty, userId } = req.body;
-  await addProductToQuote(productName, quoteId, qty, userId);
-  res.status(200).json({ message: 'Product updated successfully in database' });
+  const reponse = await addProductToQuote(productName, quoteId, qty, userId);
+  res.status(200).json(reponse);
 }));
 
 app.put('/adjustProductQty', asyncHandler(async (req, res) => {
   const { quoteId, productId, newQty } = req.body;
-  await adjustProductQuantity(quoteId, productId, newQty);
-  res.status(200).json({ message: 'Adjusted quantity of product in quote successfully' });
+  const data = await adjustProductQuantity(quoteId, productId, newQty);
+  res.status(200).json(data);
 }));
 
 app.get('/getAllProducts', asyncHandler(async (req, res) => {
@@ -153,7 +153,7 @@ app.put('/productScan', asyncHandler(async (req, res) => {
 
 app.get('/barcodeToName/:barcode', asyncHandler(async (req, res) => {
   const productName = await getProductName(req.params.barcode);
-  res.json({ productName });
+  res.status(200).json({ productName });
 }));
 
 /***************************************************************
@@ -164,7 +164,7 @@ app.get('/', (req, res) => res.redirect('/docs'));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
 });

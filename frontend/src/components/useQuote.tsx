@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
 import { getProductInfo, getAllProducts, saveProductForLater } from '../api/others';
@@ -6,6 +6,7 @@ import { useSnackbarContext } from '../components/SnackbarContext';
 
 export const useQuote = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [inputQty, setInputQty] = useState(1);
   const [scannedBarcode, setScannedBarcode] = useState('');
@@ -14,29 +15,28 @@ export const useQuote = (quoteId: number) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<{ name: string; details: ProductDetailsDB } | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
-  const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   const { handleOpenSnackbar } = useSnackbarContext();
 
-  const saveQuoteEffectRan = useRef(false);
-
   useEffect(() => {
-    if (quoteId && !saveQuoteEffectRan.current) {
-      saveQuoteEffectRan.current = true;
-  
-      extractQuote(quoteId)
-        .then((response) => {
-          if (response.source === 'api') {
-            saveQuote(response.data);
-          }
-          setQuoteData(response.data);
-        })
-        .catch((err: Error) => {
-          handleOpenSnackbar(err.message, 'error');
-        });
-    }
-  }, [quoteId, handleOpenSnackbar, refetchTrigger]);
+    const fetchQuoteData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await extractQuote(quoteId);
+        if (response.source === 'api') {
+          await saveQuote(response.data);
+        }
+        setQuoteData(response.data);
+      } catch (err) {
+        handleOpenSnackbar((err as Error).message, 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuoteData();
+  }, [quoteId, handleOpenSnackbar]);
 
   useEffect(() => {
     getAllProducts()
@@ -45,6 +45,21 @@ export const useQuote = (quoteId: number) => {
         handleOpenSnackbar(err.message, 'error');
       });
   }, [handleOpenSnackbar]);
+
+
+  const updateQuoteData = (
+    updater: (prevQuoteData: QuoteData) => Partial<QuoteData>
+  ) => {
+    setQuoteData(prevQuoteData => {
+      if (!prevQuoteData) return null;
+      const updates = updater(prevQuoteData);
+      return {
+        ...prevQuoteData,
+        ...updates,
+        productInfo: updates.productInfo || prevQuoteData.productInfo
+      };
+    });
+  };
 
   const handleBarcodeScanned = (barcode: string) => {
     setScannedBarcode(barcode);
@@ -73,7 +88,15 @@ export const useQuote = (quoteId: number) => {
     barcodeScan(scannedBarcode, quoteId, inputQty)
       .then((data) => {
         handleOpenSnackbar('Barcode scanned successfully!', 'success');
-        updateProductQuantity(data.productName, data.updatedQty);
+        updateQuoteData(prevProductInfo => {
+          const scannedProduct = Object.values(prevProductInfo).find(
+            product => product.productName === data.productName
+          );
+          if (scannedProduct) {
+            scannedProduct.pickingQty = data.updatedQty;
+          }
+          return prevProductInfo;
+        });
         setIsModalOpen(false);
         setInputQty(1);
       })
@@ -88,26 +111,25 @@ export const useQuote = (quoteId: number) => {
     setInputQty(1);
   };
 
-  const updateProductQuantity = (productName: string, updatedQty: number) => {
-    if (!quoteData) return;
-    const newProductInfo = { ...quoteData.productInfo || {} };
-    if (newProductInfo[productName]) {
-      newProductInfo[productName]!.pickingQty = updatedQty;
-      setQuoteData({ ...quoteData, productInfo: newProductInfo });
-    }
-  };
-
   const handleAddProduct = async () => {
     setIsAddProductModalOpen(true);
   };
 
   const handleAddProductSubmit = async (productName: string, qty: number) => {
     try {
-      await addProductToQuote(productName, quoteId, qty);
+      const data = await addProductToQuote(productName, quoteId, qty);
       handleOpenSnackbar('Product added successfully!', 'success');
+      updateQuoteData(prevProductInfo => {
+        const product = Object.values(prevProductInfo).find(
+          product => product.productName === productName
+        );
+        if (product) {
+          product.pickingQty = data.pickingQty;
+          product.originalQty = data.originalQty;
+        }
+        return prevProductInfo;
+      });
       setIsAddProductModalOpen(false);
-      
-      setRefetchTrigger(prev => prev + 1);
     } catch (error) {
       if (error instanceof Error) {
         handleOpenSnackbar(`Error adding product: ${error.message}`, 'error');
@@ -117,7 +139,7 @@ export const useQuote = (quoteId: number) => {
     }
   };
 
-  const handleProductClick = async (productId: number, details: ProductDetail) => {
+  const handleProductDetails = async (productId: number, details: ProductDetail) => {
     try {
       const data = await getProductInfo(productId);
       setSelectedProduct({
@@ -139,28 +161,52 @@ export const useQuote = (quoteId: number) => {
   const handleCloseProductDetails = () => {
     setSelectedProduct(null);
   };
-
+  
   const adjustProductQtyButton = async (productId: number, newQty: number) => {
     try {
-      await adjustProductQty(quoteId,productId, newQty);
+      const data = await adjustProductQty(quoteId, productId, newQty);
       handleOpenSnackbar('Product adjusted successfully!', 'success');
-      setRefetchTrigger(prev => prev + 1);
+      updateQuoteData(prevQuoteData => {
+        const updatedProductInfo = { ...prevQuoteData.productInfo };
+        const product = Object.values(updatedProductInfo).find(
+          product => product.productId === productId
+        );
+        if (product) {
+          product.pickingQty = data.pickingQty;
+          product.originalQty = data.originalQty;
+        }
+        return {
+          productInfo: updatedProductInfo,
+          totalAmount: data.totalAmount
+        };
+      });
     } catch (error) {
-      handleOpenSnackbar(`Error adjusting product quantity ${error}`, 'error');
+      handleOpenSnackbar(`Error adjusting product quantity: ${error}`, 'error');
     }
   };
 
-  const saveForLaterButton = async (productId: number)=> {
+  const saveForLaterButton = async (productId: number) => {
     try {
-      const response = await saveProductForLater(quoteId, productId);
-      handleOpenSnackbar(response.message, 'success');
-      return response;
+      const data = await saveProductForLater(quoteId, productId);
+      handleOpenSnackbar(data.message, 'success');
+      updateQuoteData(prevProductInfo => {
+        const product = Object.values(prevProductInfo).find(
+          product => product.productId === productId
+        );
+        if (product) {
+          product.pickingStatus = data.newStatus;
+        }
+        return prevProductInfo;
+      });
+      return data.newStatus;
     } catch (error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
-  }
+  };
+
   return {
     quoteData,
+    isLoading,
     isModalOpen,
     inputQty,
     availableQty,
@@ -174,7 +220,7 @@ export const useQuote = (quoteId: number) => {
     handleModalClose,
     handleAddProduct,
     handleAddProductSubmit,
-    handleProductClick,
+    handleProductDetails,
     handleCloseProductDetails,
     setCurrentPage,
     setIsAddProductModalOpen,
