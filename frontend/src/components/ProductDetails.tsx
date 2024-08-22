@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
-import AdjustQuantityButton from './AdjustQuantityButton';
-import SaveForLaterButton from './SaveForLaterButton';
-
 interface ProductDetailsProps {
   open: boolean;
   onClose: () => void;
@@ -15,17 +12,13 @@ interface ProductDetailsProps {
     pickingStatus: string;
     productId: number;
   };
-  adjustProductQtyButton: (productId: number, newQty: number) => Promise<void>;
-  saveForLaterButton: (productId: number) => Promise<{ message: string }>;
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = ({ 
   open, 
   onClose, 
   productName, 
-  productDetails, 
-  adjustProductQtyButton, 
-  saveForLaterButton 
+  productDetails,
 }) => {
   const [localProductDetails, setLocalProductDetails] = useState(productDetails);
 
@@ -33,9 +26,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     setLocalProductDetails(productDetails);
   }, [productDetails]);
 
-  const handleStatusChange = (newStatus: string) => {
-    setLocalProductDetails(prev => ({ ...prev, pickingStatus: newStatus }));
-  };
 
   return (
     <Dialog open={open} onClose={onClose}>
@@ -49,18 +39,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         <Typography>Picking Status: {localProductDetails.pickingStatus}</Typography>
       </DialogContent>
       <DialogActions>
-        <SaveForLaterButton
-          productId={localProductDetails.productId}
-          currentStatus={localProductDetails.pickingStatus}
-          saveForLaterButton={saveForLaterButton}
-          onStatusChange={handleStatusChange}
-        />
-        <AdjustQuantityButton
-          productName={productName}
-          currentQty={localProductDetails.pickingQty}
-          productId={localProductDetails.productId}
-          adjustProductQtyButton={adjustProductQtyButton}
-        />
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>

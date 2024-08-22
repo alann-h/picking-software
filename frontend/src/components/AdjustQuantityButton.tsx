@@ -35,7 +35,7 @@ const AdjustQuantityButton: React.FC<AdjustQuantityButtonProps> = ({
 
   return (
     <>
-      <Button variant="contained" color="primary" onClick={handleOpen}>
+      <Button variant="outlined" color="primary" size= "small" sx={{ mr: 1 }} onClick={handleOpen}>
         Adjust Quantity
       </Button>
       <Dialog open={open} onClose={handleClose}>

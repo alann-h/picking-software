@@ -121,7 +121,7 @@ export const useQuote = (quoteId: number) => {
     }
   };
 
-  const handleProductClick = async (productId: number, details: ProductDetail) => {
+  const handleProductDetails = async (productId: number, details: ProductDetail) => {
     try {
       const data = await getProductInfo(productId);
       setSelectedProduct({
@@ -146,10 +146,25 @@ export const useQuote = (quoteId: number) => {
 
   const adjustProductQtyButton = async (productId: number, newQty: number) => {
     try {
-      await adjustProductQty(quoteId,productId, newQty);
+      const data = await adjustProductQty(quoteId, productId, newQty);
       handleOpenSnackbar('Product adjusted successfully!', 'success');
+      setQuoteData(prevQuoteData => {
+        if (!prevQuoteData) return null;
+        const updatedProductInfo = { ...prevQuoteData.productInfo };
+        const product = Object.values(updatedProductInfo).find(
+          product => product.productId === productId
+        );
+        if (product) {
+          product.pickingQty = data.pickingQty;
+          product.originalQty = data.originalQty;
+        }
+        return {
+          ...prevQuoteData,
+          productInfo: updatedProductInfo
+        };
+      });
     } catch (error) {
-      handleOpenSnackbar(`Error adjusting product quantity ${error}`, 'error');
+      handleOpenSnackbar(`Error adjusting product quantity: ${error}`, 'error');
     }
   };
 
@@ -178,7 +193,7 @@ export const useQuote = (quoteId: number) => {
     handleModalClose,
     handleAddProduct,
     handleAddProductSubmit,
-    handleProductClick,
+    handleProductDetails,
     handleCloseProductDetails,
     setCurrentPage,
     setIsAddProductModalOpen,

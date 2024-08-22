@@ -1,11 +1,12 @@
 import React from 'react';
 import { TableRow, TableCell, Button, Chip, useTheme, Tooltip } from '@mui/material';
 import { ProductDetail } from '../utils/types';
+import AdjustQuantityButton from './AdjustQuantityButton';
 
 interface ProductRowProps {
   product: ProductDetail;
   onProductClick: (productId: number, product: ProductDetail) => void;
-  onAdjustQuantity: (productId: number, currentQty: number) => void;
+  onAdjustQuantity: (productId: number, newQty: number) => Promise<void>;
   onSaveForLater: (productId: number) => void;
 }
 
@@ -67,16 +68,12 @@ const ProductRow: React.FC<ProductRowProps> = ({
             Details
           </Button>
         </Tooltip>
-        <Tooltip title="Adjust the quantity to be picked">
-          <Button
-            onClick={() => onAdjustQuantity(product.productId, product.pickingQty)}
-            variant="outlined"
-            size="small"
-            sx={{ mr: 1 }}
-          >
-            Adjust Qty
-          </Button>
-        </Tooltip>
+        <AdjustQuantityButton
+          productName={product.productName}
+          currentQty={product.pickingQty}
+          productId={product.productId}
+          adjustProductQtyButton={onAdjustQuantity}
+        />
         <Tooltip title={product.pickingStatus === 'deferred' ? 'Resume picking this product' : 'Save this product for later picking'}>
           <Button
             onClick={() => onSaveForLater(product.productId)}

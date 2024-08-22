@@ -234,13 +234,13 @@ export async function addProductToQuote(productName, quoteId, qty) {
 export async function adjustProductQuantity(quoteId, productId, newQty) {
   try {
     const result = await query(
-      'UPDATE quoteitems SET pickingqty = $1, originalqty = $1 WHERE quoteid = $2 AND productid = $3 RETURNING *',
+      'UPDATE quoteitems SET pickingqty = $1, originalqty = $1 WHERE quoteid = $2 AND productid = $3 RETURNING pickingqty, originalqty',
       [newQty, quoteId, productId]
     );
     if (result.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
-    return { success: true, message: 'Product quantity adjusted successfully' };
+    return { pickingQty: result[0].pickingqty, originalQty: result[0].originalqty };
   } catch (error) {
     throw new AccessError(error.message);
   }

@@ -46,7 +46,7 @@ const Quote: React.FC = () => {
     handleModalClose,
     handleAddProduct,
     handleAddProductSubmit,
-    handleProductClick,
+    handleProductDetails,
     handleCloseProductDetails,
     setIsAddProductModalOpen,
     setInputQty,
@@ -86,8 +86,6 @@ const Quote: React.FC = () => {
           onClose={handleCloseProductDetails}
           productName={selectedProduct.name}
           productDetails={selectedProduct.details}
-          adjustProductQtyButton={adjustProductQtyButton}
-          saveForLaterButton={saveForLaterButton}
         />
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
@@ -146,7 +144,7 @@ const Quote: React.FC = () => {
               <ProductRow
                 key={barcode}
                 product={product}
-                onProductClick={handleProductClick}
+                onProductClick={handleProductDetails}
                 onAdjustQuantity={adjustProductQtyButton}
                 onSaveForLater={saveForLaterButton}
               />
