@@ -240,13 +240,17 @@ export async function addProductToQuote(productName, quoteId, qty, userId) {
 export async function adjustProductQuantity(quoteId, productId, newQty) {
   try {
     const result = await query(
-      'UPDATE quoteitems SET pickingqty = $1, originalqty = $1 WHERE quoteid = $2 AND productid = $3 RETURNING pickingqty, originalqty',
+      'UPDATE quoteitems SET pickingqty = $1, originalqty = $1 WHERE quoteid = $2 AND productid = $3 RETURNING *',
       [newQty, quoteId, productId]
     );
     if (result.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
-    return { pickingQty: result[0].pickingqty, originalQty: result[0].originalqty };
+    const product = await query('SELECT * FROM products WHERE productid = $1', [productId]);
+
+    const price = product[0].price * newQty;
+    const newTotalAmt = await query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [price, quoteId]);
+    return { pickingQty: result[0].pickingqty, originalQty: result[0].originalqty, totalAmount: newTotalAmt[0].totalamount };
   } catch (error) {
     throw new AccessError(error.message);
   }

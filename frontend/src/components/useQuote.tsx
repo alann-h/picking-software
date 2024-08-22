@@ -48,14 +48,15 @@ export const useQuote = (quoteId: number) => {
 
 
   const updateQuoteData = (
-    updater: (prevProductInfo: QuoteData['productInfo']) => QuoteData['productInfo']
+    updater: (prevQuoteData: QuoteData) => Partial<QuoteData>
   ) => {
     setQuoteData(prevQuoteData => {
       if (!prevQuoteData) return null;
-      const updatedProductInfo = updater({ ...prevQuoteData.productInfo });
+      const updates = updater(prevQuoteData);
       return {
         ...prevQuoteData,
-        productInfo: updatedProductInfo
+        ...updates,
+        productInfo: updates.productInfo || prevQuoteData.productInfo
       };
     });
   };
@@ -160,20 +161,24 @@ export const useQuote = (quoteId: number) => {
   const handleCloseProductDetails = () => {
     setSelectedProduct(null);
   };
-
+  
   const adjustProductQtyButton = async (productId: number, newQty: number) => {
     try {
       const data = await adjustProductQty(quoteId, productId, newQty);
       handleOpenSnackbar('Product adjusted successfully!', 'success');
-      updateQuoteData(prevProductInfo => {
-        const product = Object.values(prevProductInfo).find(
+      updateQuoteData(prevQuoteData => {
+        const updatedProductInfo = { ...prevQuoteData.productInfo };
+        const product = Object.values(updatedProductInfo).find(
           product => product.productId === productId
         );
         if (product) {
           product.pickingQty = data.pickingQty;
           product.originalQty = data.originalQty;
         }
-        return prevProductInfo;
+        return {
+          productInfo: updatedProductInfo,
+          totalAmount: data.totalAmount
+        };
       });
     } catch (error) {
       handleOpenSnackbar(`Error adjusting product quantity: ${error}`, 'error');
