@@ -116,10 +116,19 @@ export const useQuote = (quoteId: number) => {
 
   const handleAddProductSubmit = async (productName: string, qty: number) => {
     try {
-      await addProductToQuote(productName, quoteId, qty);
+      const data = await addProductToQuote(productName, quoteId, qty);
       handleOpenSnackbar('Product added successfully!', 'success');
+      updateQuoteData(prevProductInfo => {
+        const product = Object.values(prevProductInfo).find(
+          product => product.productName === productName
+        );
+        if (product) {
+          product.pickingQty = data.pickingQty;
+          product.originalQty = data.originalQty;
+        }
+        return prevProductInfo;
+      });
       setIsAddProductModalOpen(false);
-      
     } catch (error) {
       if (error instanceof Error) {
         handleOpenSnackbar(`Error adding product: ${error.message}`, 'error');

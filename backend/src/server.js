@@ -110,8 +110,8 @@ app.get('/getProduct/:productId', asyncHandler(async (req, res) => {
 
 app.put('/addProduct', asyncHandler(async (req, res) => {
   const { quoteId, productName, qty, userId } = req.body;
-  await addProductToQuote(productName, quoteId, qty, userId);
-  res.status(200).json({ message: 'Product updated successfully in database' });
+  const reponse = await addProductToQuote(productName, quoteId, qty, userId);
+  res.status(200).json(reponse);
 }));
 
 app.put('/adjustProductQty', asyncHandler(async (req, res) => {
