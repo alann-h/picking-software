@@ -74,7 +74,20 @@ export const useQuote = (quoteId: number) => {
     barcodeScan(scannedBarcode, quoteId, inputQty)
       .then((data) => {
         handleOpenSnackbar('Barcode scanned successfully!', 'success');
-        updateProductQuantity(data.productName, data.updatedQty);
+        setQuoteData(prevQuoteData => {
+          if (!prevQuoteData) return null;
+          const updatedProductInfo = { ...prevQuoteData.productInfo };
+          const scannedProduct = Object.values(updatedProductInfo).find(
+            product => product.productName === data.productName
+          );
+          if (scannedProduct) {
+            scannedProduct.pickingQty = data.updatedQty;
+          }
+          return {
+            ...prevQuoteData,
+            productInfo: updatedProductInfo
+          };
+        });
         setIsModalOpen(false);
         setInputQty(1);
       })
@@ -87,15 +100,6 @@ export const useQuote = (quoteId: number) => {
     setIsModalOpen(false);
     handleOpenSnackbar('Modal Closed!', 'error');
     setInputQty(1);
-  };
-
-  const updateProductQuantity = (productName: string, updatedQty: number) => {
-    if (!quoteData) return;
-    const newProductInfo = { ...quoteData.productInfo || {} };
-    if (newProductInfo[productName]) {
-      newProductInfo[productName]!.pickingQty = updatedQty;
-      setQuoteData({ ...quoteData, productInfo: newProductInfo });
-    }
   };
 
   const handleAddProduct = async () => {

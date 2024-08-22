@@ -86,7 +86,7 @@ app.get('/estimate/:quoteId/:userId', asyncHandler(async (req, res) => {
   const isValid = await checkQuoteExists(quoteId);
 
   if (isValid) {
-    const quote = await fetchQuoteData(quoteId)
+    const quote = await fetchQuoteData(quoteId);
     return res.json({ source: 'database', data: quote });
   }
   const estimates = await getFilteredEstimates(quoteId, userId);
@@ -164,7 +164,7 @@ app.get('/', (req, res) => res.redirect('/docs'));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
 });

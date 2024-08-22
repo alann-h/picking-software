@@ -1,7 +1,7 @@
 import { AccessError, InputError } from './error';
 import { query, transaction } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
-import { getProductFromDB, getProductFromQB, getProductName } from './products';
+import { getProductFromDB, getProductFromQB } from './products';
 
 export async function getCustomerQuotes(customerId, userId) {
   try {
@@ -173,13 +173,9 @@ export async function fetchQuoteData(quoteId) {
 
 export async function processBarcode(barcode, quoteId, newQty) {
   try {
-    const product = await getProductName(barcode);
-    if (!product) {
-      throw new InputError('Product not found for this barcode');
-    }
     const result = await query(
-      'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND productid = $3 RETURNING pickingqty, productname',
-      [newQty, quoteId, product.productid]
+      'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND barcode = $3 RETURNING pickingqty, productname',
+      [newQty, quoteId, barcode]
     );
     if (result.length === 0) {
       throw new InputError('Quote number is invalid or scanned product does not exist on quote');

@@ -94,11 +94,9 @@ const Quote: React.FC = () => {
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
           Quote Details
         </Typography>
-        <Tooltip title="Add a new product to this quote">
-          <AddProductButton onClick={handleAddProduct}>
-            <AddIcon />
-          </AddProductButton>
-        </Tooltip>
+        <AddProductButton onClick={handleAddProduct}>
+          <AddIcon />
+        </AddProductButton>
       </Box>
       <Box
         sx={{

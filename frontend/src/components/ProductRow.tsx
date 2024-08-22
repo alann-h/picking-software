@@ -42,7 +42,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
       </Tooltip>
       <Tooltip title="Quantity to be picked">
         <TableCell sx={{ color: theme.palette.secondary.main, fontWeight: 'bold' }}>
-          {product.pickingQty}
+          {product.pickingQty}/{product.originalQty}
         </TableCell>
       </Tooltip>
       <TableCell>
