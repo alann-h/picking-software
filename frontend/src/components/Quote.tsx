@@ -1,13 +1,26 @@
-import React from 'react';
-import { Paper, Typography, Pagination, Box } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import {
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Box,
+  useTheme,
+  Tooltip,
+  CircularProgress,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import BarcodeListener from './BarcodeListener';
 import QtyModal from './QtyModal';
 import ProductDetails from './ProductDetails';
 import AddProductButton from './AddProductButton';
 import AddProductModal from './AddProductModal';
-import ProductCard from './ProductCard';
+import ProductRow from './ProductRow';
 import { useQuote } from './useQuote';
 
 const useQuery = () => {
@@ -17,13 +30,14 @@ const useQuery = () => {
 const Quote: React.FC = () => {
   const query = useQuery();
   const quoteId = Number(query.get('Id') || '');
+  const theme = useTheme();
   const {
     quoteData,
+    isLoading,
     isModalOpen,
     inputQty,
     availableQty,
     scannedProductName,
-    currentPage,
     selectedProduct,
     isAddProductModalOpen,
     allProducts,
@@ -34,20 +48,28 @@ const Quote: React.FC = () => {
     handleAddProductSubmit,
     handleProductClick,
     handleCloseProductDetails,
-    setCurrentPage,
     setIsAddProductModalOpen,
     setInputQty,
     adjustProductQtyButton,
     saveForLaterButton,
   } = useQuote(quoteId);
 
-  const highlightStyle = {
-    backgroundColor: 'yellow',
-    padding: 2,
-    borderRadius: 3,
-  };
+  const [startedAt] = useState(new Date().toLocaleTimeString());
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress size={60} thickness={4} />
+      </Box>
+    );
+  }
+
+  if (!quoteData) {
+    return <Typography>No quote data available.</Typography>;
+  }
+
   return (
-    <Paper elevation={8} sx={{ padding: 3, marginTop: 3, position: 'relative' }}>
+    <Paper elevation={3} sx={{ padding: 3, margin: 2 }}>
       <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
       <QtyModal
         isModalOpen={isModalOpen}
@@ -68,54 +90,72 @@ const Quote: React.FC = () => {
           saveForLaterButton={saveForLaterButton}
         />
       )}
-      <Box sx={{ position: 'absolute', top: 10, right: 10 }}>
-        <AddProductButton
-          onClick={handleAddProduct}
-          sx={{
-            minWidth: 0,
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            padding: 0,
-          }}
-        >
-          <AddIcon />
-        </AddProductButton>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+        <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
+          Quote Details
+        </Typography>
+        <Tooltip title="Add a new product to this quote">
+          <AddProductButton onClick={handleAddProduct}>
+            <AddIcon />
+          </AddProductButton>
+        </Tooltip>
       </Box>
-      {quoteData ? (
-        <>
-          <Paper variant="outlined" sx={{ padding: 2, marginBottom: 2, display: 'flex', justifyContent: 'space-between' }}>
-            <Typography variant="body1" sx={{ margin: 0, fontWeight: 'bold' }}>
-              Customer: {quoteData.customerName}
-            </Typography>
-            <Typography variant="body1" sx={{ margin: 0, fontWeight: 'bold' }}>
-              Quote Number: {quoteId}
-            </Typography>
-          </Paper>
-          {Object.values(quoteData.productInfo)
-            .slice((currentPage - 1) * 20, currentPage * 20)
-            .map((product) => (
-              <ProductCard
-                key={product.sku}
-                name={product.productName}
-                details={product}
-                onClick={() => handleProductClick(product.productId, product)}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 2,
+          backgroundColor: theme.palette.background.paper,
+          padding: 2,
+          borderRadius: 1,
+        }}
+      >
+        <Tooltip title="Unique identifier for this quote">
+          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold' }}>
+            Quote #{quoteId}
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Name of the customer for this quote">
+          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold' }}>
+            Customer: {quoteData.customerName}
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Total amount for all items in this quote">
+          <Typography variant="h5" sx={{ color: theme.palette.secondary.main, fontWeight: 'bold' }}>
+            Total Amount: ${quoteData.totalAmount}
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Time when this picking session started">
+          <Typography sx={{ color: theme.palette.text.secondary }}>
+            Started: {startedAt}
+          </Typography>
+        </Tooltip>
+      </Box>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
+              <TableCell sx={{ fontWeight: 'bold' }}>SKU</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Quantity</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Picking Status</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {Object.entries(quoteData.productInfo).map(([barcode, product]) => (
+              <ProductRow
+                key={barcode}
+                product={product}
+                onProductClick={handleProductClick}
+                onAdjustQuantity={adjustProductQtyButton}
+                onSaveForLater={saveForLaterButton}
               />
             ))}
-          <Typography sx={{ textAlign: 'center', margin: 2 }}>
-            <span style={{ ...highlightStyle, fontWeight: 'bold' }}>Total Amount: ${quoteData.totalAmount}</span>
-          </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
-            <Pagination
-              count={Math.ceil(Object.keys(quoteData?.productInfo || {}).length / 20)}
-              page={currentPage}
-              onChange={(_, page) => setCurrentPage(page)}
-            />
-          </Box>
-        </>
-      ) : (
-        <Typography variant="body2">No data to display</Typography>
-      )}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <AddProductModal
         open={isAddProductModalOpen}
         onClose={() => setIsAddProductModalOpen(false)}

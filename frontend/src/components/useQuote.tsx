@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
 import { getProductInfo, getAllProducts, saveProductForLater } from '../api/others';
@@ -6,6 +6,7 @@ import { useSnackbarContext } from '../components/SnackbarContext';
 
 export const useQuote = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [inputQty, setInputQty] = useState(1);
   const [scannedBarcode, setScannedBarcode] = useState('');
@@ -14,29 +15,28 @@ export const useQuote = (quoteId: number) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<{ name: string; details: ProductDetailsDB } | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
-  const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   const { handleOpenSnackbar } = useSnackbarContext();
 
-  const saveQuoteEffectRan = useRef(false);
-
   useEffect(() => {
-    if (quoteId && !saveQuoteEffectRan.current) {
-      saveQuoteEffectRan.current = true;
-  
-      extractQuote(quoteId)
-        .then((response) => {
-          if (response.source === 'api') {
-            saveQuote(response.data);
-          }
-          setQuoteData(response.data);
-        })
-        .catch((err: Error) => {
-          handleOpenSnackbar(err.message, 'error');
-        });
-    }
-  }, [quoteId, handleOpenSnackbar, refetchTrigger]);
+    const fetchQuoteData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await extractQuote(quoteId);
+        if (response.source === 'api') {
+          await saveQuote(response.data);
+        }
+        setQuoteData(response.data);
+      } catch (err) {
+        handleOpenSnackbar((err as Error).message, 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuoteData();
+  }, [quoteId, handleOpenSnackbar]);
 
   useEffect(() => {
     getAllProducts()
@@ -45,6 +45,7 @@ export const useQuote = (quoteId: number) => {
         handleOpenSnackbar(err.message, 'error');
       });
   }, [handleOpenSnackbar]);
+
 
   const handleBarcodeScanned = (barcode: string) => {
     setScannedBarcode(barcode);
@@ -107,7 +108,6 @@ export const useQuote = (quoteId: number) => {
       handleOpenSnackbar('Product added successfully!', 'success');
       setIsAddProductModalOpen(false);
       
-      setRefetchTrigger(prev => prev + 1);
     } catch (error) {
       if (error instanceof Error) {
         handleOpenSnackbar(`Error adding product: ${error.message}`, 'error');
@@ -144,7 +144,6 @@ export const useQuote = (quoteId: number) => {
     try {
       await adjustProductQty(quoteId,productId, newQty);
       handleOpenSnackbar('Product adjusted successfully!', 'success');
-      setRefetchTrigger(prev => prev + 1);
     } catch (error) {
       handleOpenSnackbar(`Error adjusting product quantity ${error}`, 'error');
     }
@@ -161,6 +160,7 @@ export const useQuote = (quoteId: number) => {
   }
   return {
     quoteData,
+    isLoading,
     isModalOpen,
     inputQty,
     availableQty,
