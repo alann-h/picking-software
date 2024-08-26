@@ -88,13 +88,30 @@ async function filterEstimates(responseData, oauthClient) {
 export async function estimateToDB(quote) {
   try {
     await transaction(async (client) => {
-      // Insert into quotes table dont think I need customerid
-      await client.query(
-        'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus) VALUES ($1, $2, $3, $4, $5)',
-        [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus]
+      // Check if the quote already exists
+      const existingQuote = await client.query(
+        'SELECT quoteid FROM quotes WHERE quoteid = $1',
+        [quote.quoteId]
       );
 
-      // Insert into quoteitems table
+      if (existingQuote.rows.length > 0) {
+        // Quote exists, update it
+        await client.query(
+          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5 WHERE quoteid = $1',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus]
+        );
+      } else {
+        // Quote doesn't exist, insert it
+        await client.query(
+          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus) VALUES ($1, $2, $3, $4, $5)',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus]
+        );
+      }
+
+      // Delete existing quote items
+      await client.query('DELETE FROM quoteitems WHERE quoteid = $1', [quote.quoteId]);
+
+      // Insert new quote items
       for (const [barcode, item] of Object.entries(quote.productInfo)) {
         await client.query(
           'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',

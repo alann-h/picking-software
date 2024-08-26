@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
 import { getProductInfo, getAllProducts, saveProductForLater } from '../api/others';
@@ -18,25 +18,51 @@ export const useQuote = (quoteId: number) => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   const { handleOpenSnackbar } = useSnackbarContext();
+  const isSavingRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const saveQuoteWithDelay = useCallback(async (data: QuoteData) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (isSavingRef.current) return;
+      isSavingRef.current = true;
+      try {
+        await saveQuote(data);
+        handleOpenSnackbar('Quote saved successfully', 'success');
+      } catch (err) {
+        handleOpenSnackbar(`Error saving quote: ${(err as Error).message}`, 'error');
+      } finally {
+        isSavingRef.current = false;
+      }
+    }, 1000);  // 1 second delay
+  }, [handleOpenSnackbar]);
+
+  const fetchQuoteData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await extractQuote(quoteId);
+      setQuoteData(response.data);
+      if (response.source === 'api') {
+        saveQuoteWithDelay(response.data);
+      }
+    } catch (err) {
+      handleOpenSnackbar((err as Error).message, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [quoteId, handleOpenSnackbar, saveQuoteWithDelay]);
 
   useEffect(() => {
-    const fetchQuoteData = async () => {
-      setIsLoading(true);
-      try {
-        const response = await extractQuote(quoteId);
-        if (response.source === 'api') {
-          await saveQuote(response.data);
-        }
-        setQuoteData(response.data);
-      } catch (err) {
-        handleOpenSnackbar((err as Error).message, 'error');
-      } finally {
-        setIsLoading(false);
+    fetchQuoteData();
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
     };
-
-    fetchQuoteData();
-  }, [quoteId, handleOpenSnackbar]);
+  }, [fetchQuoteData]);
 
   useEffect(() => {
     getAllProducts()
@@ -116,46 +142,50 @@ export const useQuote = (quoteId: number) => {
     setIsAddProductModalOpen(true);
   };
 
-  const handleAddProductSubmit = async (productName: string, qty: number) => {
+  const handleAddProductSubmit = useCallback(async (productName: string, qty: number) => {
+    if (!quoteData) return;
+
     try {
-      const data = await addProductToQuote(productName, quoteId, qty);
-      handleOpenSnackbar('Product added successfully!', 'success');
+      const response = await addProductToQuote(productName, quoteId, qty);
       
-      updateQuoteData(prevQuoteData => {
-        const updatedProductInfo = { ...prevQuoteData.productInfo };
-        console.log(updatedProductInfo)
-        if (data.status === 'new') {
-          const newProduct = data.productInfo;
-          updatedProductInfo[newProduct.barcode] = {
-            productId: newProduct.productid,
-            productName: newProduct.productname,
-            sku: newProduct.sku,
-            pickingQty: newProduct.pickingqty,
-            originalQty: newProduct.originalqty,
-            pickingStatus: newProduct.pickingstatus,
-            barcode: newProduct.barcode,
-          };
-        } else if (data.status === 'exists') {
+      if (response.status === 'new') {
+        const newProduct: ProductDetail = {
+          productId: response.productInfo.productid,
+          productName: response.productInfo.productname,
+          sku: response.productInfo.sku,
+          pickingQty: response.productInfo.pickingqty,
+          originalQty: response.productInfo.originalqty,
+          pickingStatus: response.productInfo.pickingstatus,
+          barcode: response.productInfo.barcode,
+        };
+
+        updateQuoteData(prevQuoteData => ({
+          ...prevQuoteData,
+          productInfo: {
+            ...prevQuoteData.productInfo,
+            [newProduct.barcode]: newProduct
+          },
+          totalAmount: Number(prevQuoteData.totalAmount) + (newProduct.pickingQty * (response.productInfo.price || 0))
+        }));
+      } else if (response.status === 'exists') {
+        updateQuoteData(prevQuoteData => {
+          const updatedProductInfo = { ...prevQuoteData.productInfo };
           const existingProduct = Object.values(updatedProductInfo).find(
             product => product.productName === productName
           );
           if (existingProduct) {
-            existingProduct.pickingQty = data.pickingQty;
-            existingProduct.originalQty = data.originalQty;
+            existingProduct.pickingQty = response.pickingQty;
+            existingProduct.originalQty = response.originalQty;
           }
-        }
-        return updatedProductInfo;
-      });
-      
-      setIsAddProductModalOpen(false);
-    } catch (error) {
-      if (error instanceof Error) {
-        handleOpenSnackbar(`Error adding product: ${error.message}`, 'error');
-      } else {
-        handleOpenSnackbar('An unknown error occurred', 'error');
+          return { productInfo: updatedProductInfo };
+        });
       }
+      setIsAddProductModalOpen(false);
+      handleOpenSnackbar('Product added successfully', 'success');
+    } catch (error) {
+      handleOpenSnackbar(`Error adding product: ${error}`, 'error');
     }
-  };
+  }, [quoteId, quoteData, updateQuoteData, handleOpenSnackbar]);
 
   const handleProductDetails = async (productId: number, details: ProductDetail) => {
     try {
