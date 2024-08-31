@@ -215,6 +215,7 @@ export async function addProductToQuote(productName, quoteId, qty, userId) {
     }
     let addNewProduct = null;
     let addExisitingProduct = null;
+    let totalAmount = 0;
     await transaction(async (client) => {
       // Check if the product already exists in the quote
       const existingItem = await client.query(
@@ -242,12 +243,17 @@ export async function addProductToQuote(productName, quoteId, qty, userId) {
       }
       
       const price = product[0].price * qty;
-      await client.query('UPDATE quotes SET totalamount = totalamount + $1 WHERE quoteid = $2', [price, quoteId]);
+      totalAmount = await client.query('UPDATE quotes SET totalamount = totalamount + $1 WHERE quoteid = $2 returning totalamount', [price, quoteId]);
     });
     if (addNewProduct) {
-      return {status: 'new', productInfo: addNewProduct.rows[0]};
-    } else if (addExisitingProduct){
-      return {status: 'exisits', pickingQty: addExisitingProduct.rows[0].pickingqty, originalQty: addExisitingProduct.rows[0].originalqty};
+      return {status: 'new', productInfo: addNewProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount};
+    } else {
+      return {
+        status: 'exisits', 
+        pickingQty: addExisitingProduct.rows[0].pickingqty, 
+        originalQty: addExisitingProduct.rows[0].originalqty, 
+        totalAmt: totalAmount.rows[0].totalamount
+      };
     }
   } catch (e) {
     throw new AccessError(e.message);

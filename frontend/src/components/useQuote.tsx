@@ -73,7 +73,7 @@ export const useQuote = (quoteId: number) => {
   }, [handleOpenSnackbar]);
 
 
-  const updateQuoteData = (
+  const updateQuoteData = useCallback((
     updater: (prevQuoteData: QuoteData) => Partial<QuoteData>
   ) => {
     setQuoteData(prevQuoteData => {
@@ -85,7 +85,7 @@ export const useQuote = (quoteId: number) => {
         productInfo: updates.productInfo || prevQuoteData.productInfo
       };
     });
-  };
+  }, []);
 
   const handleBarcodeScanned = (barcode: string) => {
     setScannedBarcode(barcode);
@@ -147,7 +147,6 @@ export const useQuote = (quoteId: number) => {
 
     try {
       const response = await addProductToQuote(productName, quoteId, qty);
-      
       if (response.status === 'new') {
         const newProduct: ProductDetail = {
           productId: response.productInfo.productid,
@@ -165,7 +164,7 @@ export const useQuote = (quoteId: number) => {
             ...prevQuoteData.productInfo,
             [newProduct.barcode]: newProduct
           },
-          totalAmount: Number(prevQuoteData.totalAmount) + (newProduct.pickingQty * (response.productInfo.price || 0))
+          totalAmount: response.totalAmt
         }));
       } else if (response.status === 'exists') {
         updateQuoteData(prevQuoteData => {
@@ -177,7 +176,7 @@ export const useQuote = (quoteId: number) => {
             existingProduct.pickingQty = response.pickingQty;
             existingProduct.originalQty = response.originalQty;
           }
-          return { productInfo: updatedProductInfo };
+          return { productInfo: updatedProductInfo, totalAmount: response.totalAmt };
         });
       }
       setIsAddProductModalOpen(false);

@@ -156,7 +156,7 @@ const Quote: React.FC = () => {
           <TableBody>
             {displayProducts.map((product) => (
               <ProductRow
-                key={product.barcode}
+                key={`${product.barcode}-${product.productId}`}
                 product={product}
                 onProductDetails={handleProductDetails}
                 onAdjustQuantity={adjustProductQtyButton}

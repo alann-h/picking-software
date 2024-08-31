@@ -132,17 +132,17 @@ const Dashboard: React.FC = () => {
                                 </Typography>
                               }
                               secondary={
-                                <Box>
-                                  <Typography variant="body2" sx={{fontWeight: 'bold'}}>
-                                    Customer: {quote.CustomerRef.name}
-                                  </Typography>
-                                  <Typography variant="body2" sx={{fontWeight: 'bold'}}>
-                                    Last Updated: {new Date(quote.MetaData.LastUpdatedTime).toLocaleString()}
-                                  </Typography>
-                                  <Typography variant="body2" color="secondary" sx={{fontWeight: 'bold'}}>
-                                    Total: ${quote.TotalAmt}
-                                  </Typography>
-                                </Box>
+                                <Box component="span">
+                                <Typography variant="body2" component="span" sx={{fontWeight: 'bold', display: 'block'}}>
+                                  Customer: {quote.CustomerRef.name}
+                                </Typography>
+                                <Typography variant="body2" component="span" sx={{fontWeight: 'bold', display: 'block'}}>
+                                  Last Updated: {new Date(quote.MetaData.LastUpdatedTime).toLocaleString()}
+                                </Typography>
+                                <Typography variant="body2" component="span" color="secondary" sx={{fontWeight: 'bold', display: 'block'}}>
+                                  Total: ${quote.TotalAmt}
+                                </Typography>
+                              </Box>
                               }
                             />
                           </CardContent>
