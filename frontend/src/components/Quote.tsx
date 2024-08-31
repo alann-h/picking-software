@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Paper,
@@ -21,7 +21,9 @@ import ProductDetails from './ProductDetails';
 import AddProductButton from './AddProductButton';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
+import ProductFilter from './ProductFilter';
 import { useQuote } from './useQuote';
+import { ProductDetail } from '../utils/types';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -55,6 +57,11 @@ const Quote: React.FC = () => {
   } = useQuote(quoteId);
 
   const [startedAt] = useState(new Date().toLocaleTimeString());
+  const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
+
+  const productArray = useMemo(() => {
+    return quoteData ? Object.values(quoteData.productInfo) : [];
+  }, [quoteData]);
 
   if (isLoading) {
     return (
@@ -67,6 +74,12 @@ const Quote: React.FC = () => {
   if (!quoteData) {
     return <Typography>No quote data available.</Typography>;
   }
+
+  const handleFilterChange = (newFilteredProducts: ProductDetail[]) => {
+    setFilteredProducts(newFilteredProducts);
+  };
+
+  const displayProducts = filteredProducts.length > 0 ? filteredProducts : productArray;
 
   return (
     <Paper elevation={3} sx={{ padding: 3, margin: 2 }}>
@@ -128,6 +141,7 @@ const Quote: React.FC = () => {
           </Typography>
         </Tooltip>
       </Box>
+      <ProductFilter products={productArray} onFilterChange={handleFilterChange} />
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -140,11 +154,11 @@ const Quote: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {Object.entries(quoteData.productInfo).map(([barcode, product]) => (
+            {displayProducts.map((product) => (
               <ProductRow
-                key={barcode}
+                key={`${product.barcode}-${product.productId}`}
                 product={product}
-                onProductClick={handleProductDetails}
+                onProductDetails={handleProductDetails}
                 onAdjustQuantity={adjustProductQtyButton}
                 onSaveForLater={saveForLaterButton}
               />
