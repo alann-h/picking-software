@@ -69,3 +69,12 @@ export const saveProductForLater = async (quoteId: number, productId: number) =>
     return response;  
   }
 }
+
+export const setProductUnavailable = async (quoteId: number, productId: number) => {
+  const response = await apiCallPut('setProductUnavailable', { quoteId, productId });
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}

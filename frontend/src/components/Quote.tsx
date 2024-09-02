@@ -54,6 +54,7 @@ const Quote: React.FC = () => {
     setInputQty,
     adjustProductQtyButton,
     saveForLaterButton,
+    setUnavailableButton,
   } = useQuote(quoteId);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
@@ -160,6 +161,7 @@ const Quote: React.FC = () => {
                 onProductDetails={handleProductDetails}
                 onAdjustQuantity={adjustProductQtyButton}
                 onSaveForLater={saveForLaterButton}
+                onSetUnavailable={setUnavailableButton}
               />
             ))}
           </TableBody>

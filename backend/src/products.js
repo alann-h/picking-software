@@ -147,3 +147,27 @@ export async function saveForLater(quoteId, productId) {
     throw new AccessError(error.message);
   }
 }
+
+export async function setUnavailable(quoteId, productId) {
+  try {
+    const result = await query(
+      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'unavailable\' THEN \'pending\' ELSE \'unavailable\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
+      [quoteId, productId]
+    );
+    
+    if (result.length === 0) {
+      throw new AccessError('Product does not exist in this quote!');
+    }
+    
+    const newStatus = result[0].pickingstatus;
+    const productName = result[0].productname;
+    
+    return {
+      status: 'success',
+      message: `Product "${productName}" ${newStatus === 'unavailable' ? 'product is uunavailable' : 'set to picking'}`,
+      newStatus: newStatus
+    };
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
+}

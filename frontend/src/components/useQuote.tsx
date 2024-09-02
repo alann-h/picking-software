@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
-import { getProductInfo, getAllProducts, saveProductForLater } from '../api/others';
+import { getProductInfo, getAllProducts, saveProductForLater, setProductUnavailable } from '../api/others';
 import { useSnackbarContext } from '../components/SnackbarContext';
 
 export const useQuote = (quoteId: number) => {
@@ -242,7 +242,6 @@ export const useQuote = (quoteId: number) => {
         const product = Object.values(updatedProductInfo).find(
           product => product.productId === productId
         );
-        console.log(product);
         if (product) {
           product.pickingStatus = data.newStatus;
         }
@@ -254,6 +253,25 @@ export const useQuote = (quoteId: number) => {
     }
   };
 
+  const setUnavailableButton = async (productId: number) => {
+    try {
+      const data = await setProductUnavailable(quoteId, productId);
+      handleOpenSnackbar(data.message, 'success');
+      updateQuoteData(prevQuoteData => {
+        const updatedProductInfo = { ...prevQuoteData.productInfo };
+        const product = Object.values(updatedProductInfo).find(
+          product => product.productId === productId
+        );
+        if (product) {
+          product.pickingStatus = data.newStatus;
+        }
+        return updatedProductInfo;
+      });
+      return data.newStatus;
+    } catch (error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  };
   return {
     quoteData,
     isLoading,
@@ -277,5 +295,6 @@ export const useQuote = (quoteId: number) => {
     setInputQty,
     adjustProductQtyButton,
     saveForLaterButton,
+    setUnavailableButton,
   };
 };
