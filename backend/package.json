@@ -4,8 +4,7 @@
   "description": "Picking software",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon -r esm src/server.js --ignore database.json",
-    "reset": "npx rimraf database.json",
+    "start": "nodemon -r esm src/server.js",
     "lint": "eslint src/*.js",
     "test": "jest"
   },
