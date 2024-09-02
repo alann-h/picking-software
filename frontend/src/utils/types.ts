@@ -16,6 +16,7 @@ export interface QuoteData {
     customerName: string;
     productInfo: ProductInfo;
     totalAmount: number;
+    timeStarted: string;
 }
 
 export interface QuoteProps {

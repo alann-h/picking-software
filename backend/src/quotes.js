@@ -72,6 +72,15 @@ async function filterEstimates(responseData, oauthClient) {
     }
 
     const customerRef = estimate.CustomerRef;
+    const timeStarted = new Intl.DateTimeFormat('en-GB', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(new Date());
+
     return {
       quoteId: estimate.Id,
       customerId: customerRef.value,
@@ -79,6 +88,7 @@ async function filterEstimates(responseData, oauthClient) {
       productInfo,
       totalAmount: estimate.TotalAmt,
       orderStatus: 'pending',
+      timeStarted,
     };
   });
 
@@ -93,18 +103,17 @@ export async function estimateToDB(quote) {
         'SELECT quoteid FROM quotes WHERE quoteid = $1',
         [quote.quoteId]
       );
-
       if (existingQuote.rows.length > 0) {
         // Quote exists, update it
         await client.query(
-          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5 WHERE quoteid = $1',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus]
+          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, timestarted = $6 WHERE quoteid = $1',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted]
         );
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus) VALUES ($1, $2, $3, $4, $5)',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus]
+          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted) VALUES ($1, $2, $3, $4, $5, $6)',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted]
         );
       }
 
@@ -164,6 +173,7 @@ export async function fetchQuoteData(quoteId) {
       customerId: result[0].customerid,
       customerName: result[0].customername,
       totalAmount: result[0].totalamount,
+      timeStarted: result[0].timestarted,
       productInfo: {}
     };
 
