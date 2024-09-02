@@ -21,7 +21,7 @@ const SaveForLaterButton: React.FC<SaveForLaterButtonProps> = ({
     }
   };
 
-  const buttonText = currentStatus === 'deferred' ? 'Set to Picking' : 'Save for Later';
+  const buttonText = currentStatus === 'backorder' ? 'Set to Picking' : 'Save for Later';
 
   return (
     <Button

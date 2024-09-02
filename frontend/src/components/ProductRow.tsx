@@ -24,9 +24,11 @@ const ProductRow: React.FC<ProductRowProps> = ({
       case 'completed':
         return theme.palette.success.main;
       case 'pending':
+        return theme.palette.grey[500];
+      case 'backorder':
         return theme.palette.warning.main;
-      case 'deferred':
-        return theme.palette.error.main;
+      case 'unavailable':
+          return theme.palette.error.main;
       default:
         return theme.palette.grey[500];
     }

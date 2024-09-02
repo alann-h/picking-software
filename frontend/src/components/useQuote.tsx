@@ -121,6 +121,7 @@ export const useQuote = (quoteId: number) => {
           );
           if (scannedProduct) {
             scannedProduct.pickingQty = data.updatedQty;
+            scannedProduct.pickingStatus = data.pickingStatus;
           }
           return updatedProductInfo;
         });

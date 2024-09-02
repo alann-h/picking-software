@@ -127,7 +127,7 @@ export async function getAllProducts() {
 export async function saveForLater(quoteId, productId) {
   try {
     const result = await query(
-      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'deferred\' THEN \'pending\' ELSE \'deferred\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
+      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'backorder\' THEN \'pending\' ELSE \'backorder\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
       [quoteId, productId]
     );
     
@@ -140,7 +140,7 @@ export async function saveForLater(quoteId, productId) {
     
     return {
       status: 'success',
-      message: `Product "${productName}" ${newStatus === 'deferred' ? 'saved for later' : 'set to picking'}`,
+      message: `Product "${productName}" ${newStatus === 'backorder' ? 'saved for later' : 'set to picking'}`,
       newStatus: newStatus
     };
   } catch (error) {

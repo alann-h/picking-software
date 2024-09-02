@@ -200,14 +200,29 @@ export async function fetchQuoteData(quoteId) {
 
 export async function processBarcode(barcode, quoteId, newQty) {
   try {
-    const result = await query(
-      'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND barcode = $3 RETURNING pickingqty, productname',
-      [newQty, quoteId, barcode]
+    // check the current status of the item
+    const checkStatusResult = await query(
+      'SELECT pickingstatus FROM quoteitems WHERE quoteid = $1 AND barcode = $2 returning',
+      [quoteId, barcode]
     );
-    if (result.length === 0) {
+
+    if (checkStatusResult.length === 0) {
       throw new InputError('Quote number is invalid or scanned product does not exist on quote');
     }
-    return { productName: result[0].productname, updatedQty: result[0].pickingqty };
+
+    const currentStatus = checkStatusResult[0].pickingstatus;
+
+    if (currentStatus === 'completed') {
+      throw new InputError(`This item has already been fully picked`);
+    } else if (currentStatus !== 'pending') {
+      throw new InputError(`Cannot process item. Current status is ${currentStatus}. Please change the status to 'pending' before scanning.`);
+    }
+
+    const result = await query(
+      'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND barcode = $3 RETURNING pickingqty, productname, pickingstatus',
+      [newQty, quoteId, barcode]
+    );
+    return { productName: result[0].productname, updatedQty: result[0].pickingqty, pickingStatus: result[0].pickingstatus };
   } catch (error) {
     throw new AccessError(error.message);
   }
