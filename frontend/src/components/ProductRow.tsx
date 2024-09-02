@@ -3,12 +3,14 @@ import { TableRow, TableCell, Button, Chip, useTheme, Tooltip } from '@mui/mater
 import { ProductDetail } from '../utils/types';
 import AdjustQuantityButton from './AdjustQuantityButton';
 import SaveForLaterButton from './SaveForLaterButton';
+import SetProductUnavailableButton from './SetProductAvailableButton';
 
 interface ProductRowProps {
   product: ProductDetail;
   onProductDetails: (productId: number, product: ProductDetail) => void;
   onAdjustQuantity: (productId: number, newQty: number) => Promise<void>;
   onSaveForLater: (productId: number) => Promise<{ newStatus: string }>;
+  onSetUnavailable: (productId: number) => Promise<{ newStatus: string }>;
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({
@@ -16,6 +18,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
   onProductDetails,
   onAdjustQuantity,
   onSaveForLater,
+  onSetUnavailable,
 }) => {
   const theme = useTheme();
 
@@ -24,9 +27,11 @@ const ProductRow: React.FC<ProductRowProps> = ({
       case 'completed':
         return theme.palette.success.main;
       case 'pending':
+        return theme.palette.grey[500];
+      case 'backorder':
         return theme.palette.warning.main;
-      case 'deferred':
-        return theme.palette.error.main;
+      case 'unavailable':
+          return theme.palette.error.main;
       default:
         return theme.palette.grey[500];
     }
@@ -79,6 +84,11 @@ const ProductRow: React.FC<ProductRowProps> = ({
           productId={product.productId}
           currentStatus={product.pickingStatus}
           saveForLaterButton={onSaveForLater}
+        />
+        <SetProductUnavailableButton 
+          productId={product.productId}
+          currentStatus={product.pickingStatus}
+          setProductUnavailableButton={onSetUnavailable}
         />
       </TableCell>
     </TableRow>

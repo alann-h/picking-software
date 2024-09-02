@@ -127,7 +127,7 @@ export async function getAllProducts() {
 export async function saveForLater(quoteId, productId) {
   try {
     const result = await query(
-      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'deferred\' THEN \'pending\' ELSE \'deferred\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
+      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'backorder\' THEN \'pending\' ELSE \'backorder\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
       [quoteId, productId]
     );
     
@@ -140,7 +140,31 @@ export async function saveForLater(quoteId, productId) {
     
     return {
       status: 'success',
-      message: `Product "${productName}" ${newStatus === 'deferred' ? 'saved for later' : 'set to picking'}`,
+      message: `Product "${productName}" ${newStatus === 'backorder' ? 'saved for later' : 'set to picking'}`,
+      newStatus: newStatus
+    };
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
+}
+
+export async function setUnavailable(quoteId, productId) {
+  try {
+    const result = await query(
+      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'unavailable\' THEN \'pending\' ELSE \'unavailable\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
+      [quoteId, productId]
+    );
+    
+    if (result.length === 0) {
+      throw new AccessError('Product does not exist in this quote!');
+    }
+    
+    const newStatus = result[0].pickingstatus;
+    const productName = result[0].productname;
+    
+    return {
+      status: 'success',
+      message: `Product "${productName}" ${newStatus === 'unavailable' ? 'product is uunavailable' : 'set to picking'}`,
       newStatus: newStatus
     };
   } catch (error) {

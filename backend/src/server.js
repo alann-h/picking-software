@@ -6,7 +6,7 @@ import { getAuthUri, handleCallback, getUserToken } from './auth.js';
 import { getFilteredEstimates, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity
 } from './quotes.js';
-import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater } from './products.js';
+import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
@@ -131,6 +131,11 @@ app.put('/saveProductForLater', asyncHandler(async (req, res) => {
   res.status(200).json(result);
 }));
 
+app.put('/setProductUnavailable', asyncHandler(async (req, res) => {
+  const { quoteId, productId } = req.body;
+  const result = await setUnavailable(quoteId, productId);
+  res.status(200).json(result);
+}));
 /***************************************************************
                        Other Functions
 ***************************************************************/

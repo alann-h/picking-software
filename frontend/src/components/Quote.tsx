@@ -54,9 +54,9 @@ const Quote: React.FC = () => {
     setInputQty,
     adjustProductQtyButton,
     saveForLaterButton,
+    setUnavailableButton,
   } = useQuote(quoteId);
 
-  const [startedAt] = useState(new Date().toLocaleTimeString());
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
   const productArray = useMemo(() => {
@@ -137,7 +137,7 @@ const Quote: React.FC = () => {
         </Tooltip>
         <Tooltip title="Time when this picking session started">
           <Typography sx={{ color: theme.palette.text.secondary }}>
-            Started: {startedAt}
+            Started: {quoteData.timeStarted}
           </Typography>
         </Tooltip>
       </Box>
@@ -161,6 +161,7 @@ const Quote: React.FC = () => {
                 onProductDetails={handleProductDetails}
                 onAdjustQuantity={adjustProductQtyButton}
                 onSaveForLater={saveForLaterButton}
+                onSetUnavailable={setUnavailableButton}
               />
             ))}
           </TableBody>
