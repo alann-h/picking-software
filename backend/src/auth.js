@@ -48,7 +48,7 @@ export async function handleCallback(url) {
 }
 
 async function saveUser(userId, token) {
-  const text = 'INSERT INTO UserTokens(userId, tokenData) VALUES($1, $2) ON CONFLICT (userId) DO UPDATE SET tokenData = $2';
+  const text = 'INSERT INTO usertokens(userid, tokendata) VALUES($1, $2) ON CONFLICT (userid) DO UPDATE SET tokendata = $2';
   const values = [userId, JSON.stringify(token)];
   try {
     await query(text, values);
@@ -79,7 +79,7 @@ export async function getUserToken(userId) {
     throw new InputError('User Id is not valid');
   }
 
-  const text = 'SELECT tokenData FROM UserTokens WHERE userId = $1';
+  const text = 'SELECT tokendata FROM usertokens WHERE userid = $1';
   const values = [userId];
 
   try {
@@ -118,7 +118,7 @@ export async function getUserToken(userId) {
 }
 
 async function deleteUserToken(userId) {
-  const text = 'DELETE FROM UserTokens WHERE userId = $1';
+  const text = 'DELETE FROM usertokens WHERE userid = $1';
   const values = [userId];
   try {
     await query(text, values);
