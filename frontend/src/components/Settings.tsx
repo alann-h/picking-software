@@ -1,11 +1,13 @@
-import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import { Box, Typography, Button, Paper, useTheme, Grid, Tabs, Tab, Card, CardContent, CircularProgress } from '@mui/material';
-import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
+import React, { useState, useMemo } from 'react';
+import { Box, Typography, Paper, useTheme, Grid, Tabs, Tab } from '@mui/material';
 import { motion } from 'framer-motion';
 import { uploadProducts } from '../api/others';
 import { useSnackbarContext } from './SnackbarContext';
 import ExcelInfoComponent from './ExcelInfoComponent';
 import { useAllProducts } from './useAllProducts';
+import ProductList from './ProductList';
+import SearchBar from './SearchBar';
+import FileUpload from './FileUpload';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -36,43 +38,24 @@ function TabPanel(props: TabPanelProps) {
 const Settings: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [tabValue, setTabValue] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
   const { allProducts, isLoading, refetch } = useAllProducts();
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-    }
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
   };
 
-  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value.toLowerCase());
   };
 
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
-      setSelectedFile(file);
-    } else {
-      handleOpenSnackbar('Please upload an Excel file (.xlsx or .xls)', 'error');
-    }
-  };
+  const filteredProducts = useMemo(() => {
+    return allProducts.filter(product => 
+      product.productName.toLowerCase().includes(searchTerm)
+    );
+  }, [allProducts, searchTerm]);
 
   const handleUpload = () => {
     if (!selectedFile) {
@@ -84,124 +67,48 @@ const Settings: React.FC = () => {
       .then(() => {
         handleOpenSnackbar('File uploaded successfully!', 'success');
         setSelectedFile(null);
+        refetch();
       })
       .catch((err: Error) => {
         handleOpenSnackbar('Error uploading file: ' + err.message, 'error');
       });
   };
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
   return (
     <Box sx={{ padding: 3, maxWidth: 1200, margin: 'auto' }}>
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Typography variant="h4" gutterBottom color="primary" fontWeight="bold">
-        Settings
-      </Typography>
-    </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Typography variant="h4" gutterBottom color="primary" fontWeight="bold">
+          Settings
+        </Typography>
+      </motion.div>
 
-    <Paper elevation={3} sx={{ backgroundColor: theme.palette.background.paper }}>
-      <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
-        <Tab label="Current Products" />
-        <Tab label="Upload Data" />
-      </Tabs>
+      <Paper elevation={3} sx={{ backgroundColor: theme.palette.background.paper }}>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
+          <Tab label="Current Products" />
+          <Tab label="Upload Data" />
+        </Tabs>
 
-      <TabPanel value={tabValue} index={0}>
-        <Typography variant="h6" gutterBottom>Current Products in System</Typography>
-        {isLoading ? (
-          <Box display="flex" justifyContent="center" mt={4}>
-            <CircularProgress />
+        <TabPanel value={tabValue} index={0}>
+          <Typography variant="h6" gutterBottom>Current Products in System</Typography>
+          <Box mb={3}>
+            <SearchBar searchTerm={searchTerm} onSearchChange={handleSearchChange} />
           </Box>
-        ) : (
-          <Grid container spacing={3}>
-            {allProducts.map((product) => (
-              <Grid item xs={12} sm={6} md={4} key={product.barcode}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" component="div" gutterBottom>
-                      {product.productName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Barcode: {product.barcode}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-        <Box mt={3} display="flex" justifyContent="center">
-          <Button variant="contained" color="primary" onClick={refetch}>
-            Refresh Products
-          </Button>
-        </Box>
-      </TabPanel>
+          <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} />
+        </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <Paper elevation={3} sx={{ padding: 3, backgroundColor: theme.palette.background.paper }}>
-                  <Typography variant="h6" gutterBottom sx={{fontWeight: 'bold'}}>
-                    Upload Product Data
-                  </Typography>
-                  <Typography variant="body1" paragraph>
-                    Upload your Excel file (.xlsx or .xls) containing product data:
-                  </Typography>
-
-                  <Box
-                    sx={{
-                      border: `2px dashed ${isDragging ? theme.palette.primary.main : theme.palette.grey[300]}`,
-                      borderRadius: 2,
-                      padding: 3,
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      backgroundColor: isDragging ? theme.palette.primary.light : 'transparent',
-                    }}
-                    onDragEnter={handleDragEnter}
-                    onDragOver={handleDragEnter}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      type="file"
-                      accept=".xlsx, .xls"
-                      onChange={handleFileChange}
-                      ref={fileInputRef}
-                      style={{ display: 'none' }}
-                    />
-                    <CloudUploadIcon sx={{ fontSize: 48, color: theme.palette.primary.main, mb: 2 }} />
-                    <Typography variant="body1">
-                      {selectedFile ? selectedFile.name : 'Drag and drop your file here, or click to select'}
-                    </Typography>
-                  </Box>
-
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleUpload}
-                    disabled={!selectedFile}
-                    sx={{ mt: 3 }}
-                    fullWidth
-                  >
-                    Upload File
-                  </Button>
-                </Paper>
-              </motion.div>
+              <FileUpload 
+                onFileSelect={setSelectedFile} 
+                onUpload={handleUpload} 
+                selectedFile={selectedFile} 
+              />
             </Grid>
-
             <Grid item xs={12}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
