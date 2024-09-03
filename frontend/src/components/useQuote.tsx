@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { QuoteData, ProductDetail, ProductDetailsDB, Product } from '../utils/types';
+import { QuoteData, ProductDetail, ProductDetailsDB } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
-import { getProductInfo, getAllProducts, saveProductForLater, setProductUnavailable } from '../api/others';
+import { getProductInfo, saveProductForLater, setProductUnavailable } from '../api/others';
 import { useSnackbarContext } from '../components/SnackbarContext';
 
 export const useQuote = (quoteId: number) => {
@@ -15,7 +15,6 @@ export const useQuote = (quoteId: number) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<{ name: string; details: ProductDetailsDB } | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   const { handleOpenSnackbar } = useSnackbarContext();
   const isSavingRef = useRef(false);
@@ -53,7 +52,7 @@ export const useQuote = (quoteId: number) => {
     } finally {
       setIsLoading(false);
     }
-  }, [quoteId, handleOpenSnackbar, saveQuoteWithDelay]);
+  }, [quoteId, saveQuoteWithDelay, handleOpenSnackbar]);
 
   useEffect(() => {
     fetchQuoteData();
@@ -63,15 +62,6 @@ export const useQuote = (quoteId: number) => {
       }
     };
   }, [fetchQuoteData]);
-
-  useEffect(() => {
-    getAllProducts()
-      .then(products => setAllProducts(products))
-      .catch((err: Error) => {
-        handleOpenSnackbar(err.message, 'error');
-      });
-  }, [handleOpenSnackbar]);
-
 
   const updateQuoteData = useCallback((
     updater: (prevQuoteData: QuoteData) => Partial<QuoteData>
@@ -282,7 +272,6 @@ export const useQuote = (quoteId: number) => {
     currentPage,
     selectedProduct,
     isAddProductModalOpen,
-    allProducts,
     handleBarcodeScanned,
     handleModalConfirm,
     handleModalClose,

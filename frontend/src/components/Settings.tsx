@@ -1,10 +1,11 @@
 import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import { Box, Typography, Button, Paper, useTheme, Grid, Tabs, Tab } from '@mui/material';
+import { Box, Typography, Button, Paper, useTheme, Grid, Tabs, Tab, Card, CardContent, CircularProgress } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { uploadProducts } from '../api/others';
 import { useSnackbarContext } from './SnackbarContext';
 import ExcelInfoComponent from './ExcelInfoComponent';
+import { useAllProducts } from './useAllProducts';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -39,6 +40,7 @@ const Settings: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
+  const { allProducts, isLoading, refetch } = useAllProducts();
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -93,28 +95,53 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <Box sx={{ padding: 3, maxWidth: 800, margin: 'auto' }}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Typography variant="h4" gutterBottom color="primary" fontWeight="bold">
-          Settings
-        </Typography>
-      </motion.div>
+    <Box sx={{ padding: 3, maxWidth: 1200, margin: 'auto' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Typography variant="h4" gutterBottom color="primary" fontWeight="bold">
+        Settings
+      </Typography>
+    </motion.div>
 
-      <Paper elevation={3} sx={{ backgroundColor: theme.palette.background.paper }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
-          <Tab label="Current Products" />
-          <Tab label="Upload Data" />
-        </Tabs>
+    <Paper elevation={3} sx={{ backgroundColor: theme.palette.background.paper }}>
+      <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
+        <Tab label="Current Products" />
+        <Tab label="Upload Data" />
+      </Tabs>
 
-        <TabPanel value={tabValue} index={0}>
-          <Typography variant="h6" gutterBottom>Current Products in System</Typography>
-          {/* Add content for current products here */}
-          <Typography>Content for current products will be added here.</Typography>
-        </TabPanel>
+      <TabPanel value={tabValue} index={0}>
+        <Typography variant="h6" gutterBottom>Current Products in System</Typography>
+        {isLoading ? (
+          <Box display="flex" justifyContent="center" mt={4}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {allProducts.map((product) => (
+              <Grid item xs={12} sm={6} md={4} key={product.barcode}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" component="div" gutterBottom>
+                      {product.productName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Barcode: {product.barcode}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+        <Box mt={3} display="flex" justifyContent="center">
+          <Button variant="contained" color="primary" onClick={refetch}>
+            Refresh Products
+          </Button>
+        </Box>
+      </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
           <Grid container spacing={3}>
