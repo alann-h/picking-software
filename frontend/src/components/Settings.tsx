@@ -1,14 +1,42 @@
 import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import { Box, Typography, Button, Paper, useTheme, Grid } from '@mui/material';
+import { Box, Typography, Button, Paper, useTheme, Grid, Tabs, Tab } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { uploadProducts } from '../api/others';
 import { useSnackbarContext } from './SnackbarContext';
+import ExcelInfoComponent from './ExcelInfoComponent';
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 const Settings: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [tabValue, setTabValue] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
 
@@ -59,6 +87,11 @@ const Settings: React.FC = () => {
         handleOpenSnackbar('Error uploading file: ' + err.message, 'error');
       });
   };
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
   return (
     <Box sx={{ padding: 3, maxWidth: 800, margin: 'auto' }}>
       <motion.div
@@ -71,103 +104,89 @@ const Settings: React.FC = () => {
         </Typography>
       </motion.div>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Paper elevation={3} sx={{ padding: 3, backgroundColor: theme.palette.background.paper }}>
-              <Typography variant="h6" gutterBottom sx={{fontWeight: 'bold'}}>
-                Upload Product Data
-              </Typography>
-              <Typography variant="body1" paragraph>
-                Upload your Excel file (.xlsx or .xls) containing product data:
-              </Typography>
+      <Paper elevation={3} sx={{ backgroundColor: theme.palette.background.paper }}>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
+          <Tab label="Current Products" />
+          <Tab label="Upload Data" />
+        </Tabs>
 
-              <Box
-                sx={{
-                  border: `2px dashed ${isDragging ? theme.palette.primary.main : theme.palette.grey[300]}`,
-                  borderRadius: 2,
-                  padding: 3,
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  backgroundColor: isDragging ? theme.palette.primary.light : 'transparent',
-                }}
-                onDragEnter={handleDragEnter}
-                onDragOver={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
+        <TabPanel value={tabValue} index={0}>
+          <Typography variant="h6" gutterBottom>Current Products in System</Typography>
+          {/* Add content for current products here */}
+          <Typography>Content for current products will be added here.</Typography>
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <input
-                  type="file"
-                  accept=".xlsx, .xls"
-                  onChange={handleFileChange}
-                  ref={fileInputRef}
-                  style={{ display: 'none' }}
-                />
-                <CloudUploadIcon sx={{ fontSize: 48, color: theme.palette.primary.main, mb: 2 }} />
-                <Typography variant="body1">
-                  {selectedFile ? selectedFile.name : 'Drag and drop your file here, or click to select'}
-                </Typography>
-              </Box>
+                <Paper elevation={3} sx={{ padding: 3, backgroundColor: theme.palette.background.paper }}>
+                  <Typography variant="h6" gutterBottom sx={{fontWeight: 'bold'}}>
+                    Upload Product Data
+                  </Typography>
+                  <Typography variant="body1" paragraph>
+                    Upload your Excel file (.xlsx or .xls) containing product data:
+                  </Typography>
 
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleUpload}
-                disabled={!selectedFile}
-                sx={{ mt: 3 }}
-                fullWidth
+                  <Box
+                    sx={{
+                      border: `2px dashed ${isDragging ? theme.palette.primary.main : theme.palette.grey[300]}`,
+                      borderRadius: 2,
+                      padding: 3,
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      backgroundColor: isDragging ? theme.palette.primary.light : 'transparent',
+                    }}
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={handleFileChange}
+                      ref={fileInputRef}
+                      style={{ display: 'none' }}
+                    />
+                    <CloudUploadIcon sx={{ fontSize: 48, color: theme.palette.primary.main, mb: 2 }} />
+                    <Typography variant="body1">
+                      {selectedFile ? selectedFile.name : 'Drag and drop your file here, or click to select'}
+                    </Typography>
+                  </Box>
+
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleUpload}
+                    disabled={!selectedFile}
+                    sx={{ mt: 3 }}
+                    fullWidth
+                  >
+                    Upload File
+                  </Button>
+                </Paper>
+              </motion.div>
+            </Grid>
+
+            <Grid item xs={12}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
               >
-                Upload File
-              </Button>
-            </Paper>
-          </motion.div>
-        </Grid>
-
-        <Grid item xs={12}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <Paper elevation={3} sx={{ padding: 3, backgroundColor: theme.palette.background.paper }}>
-              <Typography variant="h6" gutterBottom sx={{fontWeight: 'bold'}}>
-                Excel File Structure
-              </Typography>
-              <Typography variant="body1" paragraph>
-                Your Excel file should have the following structure:
-              </Typography>
-              <Box component="img" src="/excel-example.png" alt="Excel structure example" sx={{ width: '100%', height: 'auto', mb: 2 }} />
-              <Typography variant="body2" paragraph>
-                - The <strong>Product Name</strong> column should be on the left and match exactly with the names in <strong>QuickBooks</strong>.
-              </Typography>
-              <Typography variant="body2" paragraph>
-                - The <strong>Barcode</strong> column should be on the right, containing unique barcodes for each product.
-              </Typography>
-              <Typography variant="h6" gutterBottom sx={{ mt: 3, fontWeight: 'bold' }}>
-                Exporting from QuickBooks
-              </Typography>
-              <Typography variant="body1" paragraph>
-                To export your product list from QuickBooks:
-              </Typography>
-              <ol>
-                <Typography component="li" variant="body2">Go to <strong>Reports</strong> &gt; <strong>List Reports</strong> &gt; <strong>Item Listing</strong></Typography>
-                <Typography component="li" variant="body2">Customize the report to include the <strong>Name</strong> field</Typography>
-                <Typography component="li" variant="body2">Export the report as an <strong>Excel file</strong></Typography>
-                <Typography component="li" variant="body2">Add a <strong>Barcode</strong> column to the exported file and fill in the unique barcodes</Typography>
-              </ol>
-              <Typography variant="body2" color="text.secondary" >
-                Note: Ensure that the product names in your Excel file match exactly with those in QuickBooks to avoid any discrepancies.
-              </Typography>
-            </Paper>
-          </motion.div>
-        </Grid>
-      </Grid>
+                <ExcelInfoComponent />
+              </motion.div>
+            </Grid>
+          </Grid>
+        </TabPanel>
+      </Paper>
     </Box>
   );
 };
