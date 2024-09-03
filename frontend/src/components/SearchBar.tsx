@@ -12,7 +12,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, onSearchChange }) => 
     <TextField
       fullWidth
       variant="outlined"
-      placeholder="Search products by name, SKU, or barcode"
+      placeholder="Search products by name"
       value={searchTerm}
       onChange={onSearchChange}
       InputProps={{

@@ -1,5 +1,17 @@
 import React from 'react';
-import { Typography, Grid, Card, CardContent, Box, Button, CircularProgress } from '@mui/material';
+import { 
+  Typography, 
+  Box, 
+  Button, 
+  CircularProgress, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow, 
+  Paper
+} from '@mui/material';
 import { Product } from '../utils/types';
 
 interface ProductListProps {
@@ -20,33 +32,29 @@ const ProductList: React.FC<ProductListProps> = ({ products, isLoading, onRefres
           <Typography variant="subtitle1" gutterBottom>
             Showing {products.length} products
           </Typography>
-          <Grid container spacing={3}>
-            {products.map((product) => (
-              <Grid item xs={12} sm={6} md={4} key={product.barcode}>
-                <Card sx={{ 
-                  height: 200, 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  transition: 'transform 0.3s, box-shadow 0.3s',
-                  '&:hover': {
-                    transform: 'translateY(-5px)',
-                    boxShadow: (theme) => theme.shadows[8],
-                  },
-                }}>
-                  <CardContent>
-                    <Typography variant="h6" component="div" gutterBottom>
+          <TableContainer component={Paper}>
+            <Table sx={{ minWidth: 650 }} aria-label="product table">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Product Name</TableCell>
+                  <TableCell>Barcode</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {products.map((product) => (
+                  <TableRow
+                    key={product.barcode}
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  >
+                    <TableCell component="th" scope="row">
                       {product.productName}
-                    </Typography>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        Barcode: {product.barcode}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+                    </TableCell>
+                    <TableCell>{product.barcode}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
           <Box mt={3} display="flex" justifyContent="center">
             <Button variant="contained" color="primary" onClick={onRefresh}>
               Refresh Products
