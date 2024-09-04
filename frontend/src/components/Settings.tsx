@@ -5,8 +5,8 @@ import { uploadProducts } from '../api/others';
 import { useSnackbarContext } from './SnackbarContext';
 import ExcelInfoComponent from './ExcelInfoComponent';
 import { useAllProducts } from './useAllProducts';
-import ProductList from './ProductList';
-import SearchBar from './SearchBar';
+import ProductList from './ProductListSettings';
+import SearchBar from './SearchBarSettings';
 import FileUpload from './FileUpload';
 
 interface TabPanelProps {
