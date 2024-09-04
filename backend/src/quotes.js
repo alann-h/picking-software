@@ -274,7 +274,7 @@ export async function addProductToQuote(productName, quoteId, qty, userId) {
       return {status: 'new', productInfo: addNewProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount};
     } else {
       return {
-        status: 'exisits', 
+        status: 'exists', 
         pickingQty: addExisitingProduct.rows[0].pickingqty, 
         originalQty: addExisitingProduct.rows[0].originalqty, 
         totalAmt: totalAmount.rows[0].totalamount

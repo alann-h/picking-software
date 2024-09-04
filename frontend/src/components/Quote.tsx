@@ -17,7 +17,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import BarcodeListener from './BarcodeListener';
 import QtyModal from './QtyModal';
-import ProductDetails from './ProductDetails';
+import ProductDetails from './ProductDetailsQuote';
 import AddProductButton from './AddProductButton';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
@@ -42,7 +42,6 @@ const Quote: React.FC = () => {
     scannedProductName,
     selectedProduct,
     isAddProductModalOpen,
-    allProducts,
     handleBarcodeScanned,
     handleModalConfirm,
     handleModalClose,
@@ -171,7 +170,6 @@ const Quote: React.FC = () => {
         open={isAddProductModalOpen}
         onClose={() => setIsAddProductModalOpen(false)}
         onSubmit={handleAddProductSubmit}
-        products={allProducts}
       />
     </Paper>
   );

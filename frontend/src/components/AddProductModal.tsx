@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Box,
@@ -11,23 +11,31 @@ import {
   Fade,
   useTheme,
   InputAdornment,
+  CircularProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { Product } from '../utils/types';
+import { useAllProducts } from './useAllProducts';
 
 interface AddProductModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (productName: string, qty: number) => void;
-  products: Product[];
 }
 
-const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubmit, products }) => {
+const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubmit }) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
+  const { allProducts, isLoading, refetch } = useAllProducts();
   const theme = useTheme();
+
+  useEffect(() => {
+    if (open) {
+      refetch();
+    }
+  }, [open, refetch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,15 +78,33 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
             </IconButton>
           </Box>
           <form onSubmit={handleSubmit}>
-            <Autocomplete
-              id="product-box"
-              options={products}
-              getOptionLabel={(option) => option.productName}
-              value={product}
-              onChange={(_, newValue) => setProduct(newValue)}
-              renderInput={(params) => <TextField {...params} label="Select Product" variant="outlined" />}
-              sx={{ mb: 3 }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Autocomplete
+                id="product-box"
+                options={allProducts}
+                getOptionLabel={(option) => option.productName}
+                isOptionEqualToValue={(option, value) => option.productName === value.productName}
+                value={product}
+                onChange={(_, newValue) => setProduct(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Product"
+                    variant="outlined"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {isLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                sx={{ flex: 1, mr: 1 }}
+              />
+            </Box>
 
             <TextField
               label="Quantity"
@@ -111,7 +137,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
               disabled={!product}
               fullWidth
               size="large"
-              startIcon={<AddIcon />}
               sx={{
                 borderRadius: 2,
                 py: 1.5,
@@ -121,7 +146,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                 },
               }}
             >
-              Add Product
+              <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
+                <AddIcon sx={{ mr: 1 }} />
+                Add Product
+              </Box>
             </Button>
           </form>
         </Paper>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { SnackbarContextType } from '../utils/types';
 
 const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
@@ -14,12 +14,20 @@ export const SnackbarProvider: React.FC<{ children: ReactNode }> = ({ children }
     setOpenSnackbar(true);
   }, []);
 
-  const handleCloseSnackbar = () => {
+  const handleCloseSnackbar = useCallback(() => {
     setOpenSnackbar(false);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    openSnackbar,
+    snackbarMessage,
+    snackbarSeverity,
+    handleOpenSnackbar,
+    handleCloseSnackbar
+  }), [openSnackbar, snackbarMessage, snackbarSeverity, handleOpenSnackbar, handleCloseSnackbar]);
 
   return (
-    <SnackbarContext.Provider value={{ openSnackbar, snackbarMessage, snackbarSeverity, handleOpenSnackbar, handleCloseSnackbar }}>
+    <SnackbarContext.Provider value={value}>
       {children}
     </SnackbarContext.Provider>
   );
@@ -32,4 +40,3 @@ export const useSnackbarContext = () => {
   }
   return context;
 };
-
