@@ -1,24 +1,42 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { QuoteData, ProductDetail, ProductDetailsDB } from '../utils/types';
+import { QuoteData, ProductDetail } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
 import { getProductInfo, saveProductForLater, setProductUnavailable } from '../api/others';
 import { useSnackbarContext } from '../components/SnackbarContext';
 
+
+type ModalType = 'quantity' | 'addProduct' | 'productDetails'| 'adjustQuantity';
+
+interface ModalState {
+  type: ModalType | null;
+  isOpen: boolean;
+  data: any;
+}
+
 export const useQuote = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalState, setModalState] = useState<ModalState>({
+    type: null,
+    isOpen: false,
+    data: null
+  });
   const [inputQty, setInputQty] = useState(1);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [availableQty, setAvailableQty] = useState(0);
   const [scannedProductName, setScannedProductName] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedProduct, setSelectedProduct] = useState<{ name: string; details: ProductDetailsDB } | null>(null);
-  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
 
   const { handleOpenSnackbar } = useSnackbarContext();
   const isSavingRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const openModal = (type: ModalType, data: any = null) => {
+    setModalState({ type, isOpen: true, data });
+  };
+
+  const closeModal = () => {
+    setModalState({ type: null, isOpen: false, data: null });
+  };
 
   const saveQuoteWithDelay = useCallback(async (data: QuoteData) => {
     if (saveTimeoutRef.current) {
@@ -88,7 +106,7 @@ export const useQuote = (quoteId: number) => {
             handleOpenSnackbar('Product quantity is already 0!', 'error');
           } else {
             setAvailableQty(product.pickingQty);
-            setIsModalOpen(true);
+            openModal('quantity', { productName });
             setScannedProductName(productName);
           }
         } else {
@@ -101,36 +119,32 @@ export const useQuote = (quoteId: number) => {
   };
 
   const handleModalConfirm = () => {
-    barcodeScan(scannedBarcode, quoteId, inputQty)
-      .then((data) => {
-        handleOpenSnackbar('Barcode scanned successfully!', 'success');
-        updateQuoteData(prevQuoteData => {
-          const updatedProductInfo = { ...prevQuoteData.productInfo };
-          const scannedProduct = Object.values(updatedProductInfo).find(
-            product => product.productName === data.productName
-          );
-          if (scannedProduct) {
-            scannedProduct.pickingQty = data.updatedQty;
-            scannedProduct.pickingStatus = data.pickingStatus;
-          }
-          return updatedProductInfo;
+    if (modalState.type === 'quantity') {
+      barcodeScan(scannedBarcode, quoteId, inputQty)
+        .then((data) => {
+          handleOpenSnackbar('Barcode scanned successfully!', 'success');
+          updateQuoteData(prevQuoteData => {
+            const updatedProductInfo = { ...prevQuoteData.productInfo };
+            const scannedProduct = Object.values(updatedProductInfo).find(
+              product => product.productName === data.productName
+            );
+            if (scannedProduct) {
+              scannedProduct.pickingQty = data.updatedQty;
+              scannedProduct.pickingStatus = data.pickingStatus;
+            }
+            return updatedProductInfo;
+          });
+          closeModal();
+          setInputQty(1);
+        })
+        .catch((error) => {
+          handleOpenSnackbar(`Error scanning barcode: ${error.message}`, 'error');
         });
-        setIsModalOpen(false);
-        setInputQty(1);
-      })
-      .catch((error) => {
-        handleOpenSnackbar(`Error scanning barcode: ${error.message}`, 'error');
-      });
+    }
   };
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    handleOpenSnackbar('Modal Closed!', 'error');
-    setInputQty(1);
-  };
-
-  const handleAddProduct = async () => {
-    setIsAddProductModalOpen(true);
+  const handleAddProduct = () => {
+    openModal('addProduct');
   };
 
   const handleAddProductSubmit = useCallback(async (productName: string, qty: number) => {
@@ -170,7 +184,7 @@ export const useQuote = (quoteId: number) => {
           return { productInfo: updatedProductInfo, totalAmount: response.totalAmt };
         });
       }
-      setIsAddProductModalOpen(false);
+      closeModal();
       handleOpenSnackbar('Product added successfully', 'success');
     } catch (error) {
       handleOpenSnackbar(`Error adding product: ${error}`, 'error');
@@ -180,7 +194,7 @@ export const useQuote = (quoteId: number) => {
   const handleProductDetails = async (productId: number, details: ProductDetail) => {
     try {
       const data = await getProductInfo(productId);
-      setSelectedProduct({
+      openModal('productDetails', {
         name: data.productname,
         details: {
           sku: data.sku,
@@ -196,11 +210,11 @@ export const useQuote = (quoteId: number) => {
     }
   };
 
-  const handleCloseProductDetails = () => {
-    setSelectedProduct(null);
+  const openAdjustQuantityModal = (productId: number, currentQty: number, productName: string) => {
+    openModal('adjustQuantity', { productId, currentQty, productName });
   };
   
-  const adjustProductQtyButton = async (productId: number, newQty: number) => {
+  const handleAdjustQuantity = async (productId: number, newQty: number) => {
     try {
       const data = await adjustProductQty(quoteId, productId, newQty);
       handleOpenSnackbar('Product adjusted successfully!', 'success');
@@ -218,6 +232,7 @@ export const useQuote = (quoteId: number) => {
           totalAmount: data.totalAmount
         };
       });
+      closeModal();
     } catch (error) {
       handleOpenSnackbar(`Error adjusting product quantity: ${error}`, 'error');
     }
@@ -265,24 +280,20 @@ export const useQuote = (quoteId: number) => {
   return {
     quoteData,
     isLoading,
-    isModalOpen,
+    modalState,
     inputQty,
     availableQty,
     scannedProductName,
-    currentPage,
-    selectedProduct,
-    isAddProductModalOpen,
+    closeModal,
+    openModal,
     handleBarcodeScanned,
     handleModalConfirm,
-    handleModalClose,
     handleAddProduct,
     handleAddProductSubmit,
     handleProductDetails,
-    handleCloseProductDetails,
-    setCurrentPage,
-    setIsAddProductModalOpen,
     setInputQty,
-    adjustProductQtyButton,
+    handleAdjustQuantity,
+    openAdjustQuantityModal,
     saveForLaterButton,
     setUnavailableButton,
   };
