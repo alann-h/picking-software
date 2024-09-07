@@ -14,13 +14,13 @@ import {
   Tooltip,
   CircularProgress,
   useMediaQuery,
+  Button,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import BarcodeListener from './BarcodeListener';
-import QtyModal from './QtyModal';
+import QtyModal from './BarcodeModal';
 import ProductDetails from './ProductDetailsQuote';
 import AdjustQuantityModal from './AdjustQuantityModal';
-import AddProductButton from './AddProductButton';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
 import ProductFilter from './ProductFilter';
@@ -116,9 +116,9 @@ const Quote: React.FC = () => {
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
           Quote Details
         </Typography>
-        <AddProductButton onClick={handleAddProduct}>
+        <Button variant="contained" color="primary" onClick={handleAddProduct}>
           <AddIcon />
-        </AddProductButton>
+        </Button>
       </Box>
       <Box
         sx={{
