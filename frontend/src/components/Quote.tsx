@@ -40,7 +40,6 @@ const Quote: React.FC = () => {
     quoteData,
     isLoading,
     modalState,
-    inputQty,
     availableQty,
     scannedProductName,
     closeModal,
@@ -49,7 +48,6 @@ const Quote: React.FC = () => {
     handleAddProduct,
     handleAddProductSubmit,
     handleProductDetails,
-    setInputQty,
     handleAdjustQuantity,
     openAdjustQuantityModal,
     saveForLaterButton,
@@ -83,14 +81,12 @@ const Quote: React.FC = () => {
   return (
     <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
       <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
-      {modalState.type === 'quantity' && (
+      {modalState.type === 'barcode' && (
         <QtyModal
-          isModalOpen={modalState.isOpen}
-          inputQty={inputQty}
-          onModalClose={closeModal}
-          onQtyChange={setInputQty}
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          onConfirm={handleModalConfirm}
           availableQty={availableQty}
-          onModalConfirm={handleModalConfirm}
           productName={scannedProductName}
         />
       )}

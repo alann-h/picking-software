@@ -3,25 +3,12 @@ import { QuoteData, ProductDetail } from '../utils/types';
 import { extractQuote, saveQuote, barcodeToName, barcodeScan, addProductToQuote, adjustProductQty } from '../api/quote';
 import { getProductInfo, saveProductForLater, setProductUnavailable } from '../api/others';
 import { useSnackbarContext } from '../components/SnackbarContext';
-
-
-type ModalType = 'quantity' | 'addProduct' | 'productDetails'| 'adjustQuantity';
-
-interface ModalState {
-  type: ModalType | null;
-  isOpen: boolean;
-  data: any;
-}
+import { useModalState } from '../utils/modalState';
 
 export const useQuote = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [modalState, setModalState] = useState<ModalState>({
-    type: null,
-    isOpen: false,
-    data: null
-  });
-  const [inputQty, setInputQty] = useState(1);
+  const { modalState, openModal, closeModal } = useModalState();
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [availableQty, setAvailableQty] = useState(0);
   const [scannedProductName, setScannedProductName] = useState('');
@@ -29,14 +16,6 @@ export const useQuote = (quoteId: number) => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const isSavingRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const openModal = (type: ModalType, data: any = null) => {
-    setModalState({ type, isOpen: true, data });
-  };
-
-  const closeModal = () => {
-    setModalState({ type: null, isOpen: false, data: null });
-  };
 
   const saveQuoteWithDelay = useCallback(async (data: QuoteData) => {
     if (saveTimeoutRef.current) {
@@ -95,18 +74,18 @@ export const useQuote = (quoteId: number) => {
     });
   }, []);
 
+
   const handleBarcodeScanned = (barcode: string) => {
     setScannedBarcode(barcode);
     barcodeToName(barcode)
       .then(({ productName }) => {
         const product = quoteData?.productInfo[barcode];
-
         if (product) {
           if (product.pickingQty === 0) {
             handleOpenSnackbar('Product quantity is already 0!', 'error');
           } else {
             setAvailableQty(product.pickingQty);
-            openModal('quantity', { productName });
+            openModal('barcode', { productName });
             setScannedProductName(productName);
           }
         } else {
@@ -117,30 +96,26 @@ export const useQuote = (quoteId: number) => {
         handleOpenSnackbar(error.message, 'error');
       });
   };
-
-  const handleModalConfirm = () => {
-    if (modalState.type === 'quantity') {
-      barcodeScan(scannedBarcode, quoteId, inputQty)
-        .then((data) => {
-          handleOpenSnackbar('Barcode scanned successfully!', 'success');
-          updateQuoteData(prevQuoteData => {
-            const updatedProductInfo = { ...prevQuoteData.productInfo };
-            const scannedProduct = Object.values(updatedProductInfo).find(
-              product => product.productName === data.productName
-            );
-            if (scannedProduct) {
-              scannedProduct.pickingQty = data.updatedQty;
-              scannedProduct.pickingStatus = data.pickingStatus;
-            }
-            return updatedProductInfo;
-          });
-          closeModal();
-          setInputQty(1);
-        })
-        .catch((error) => {
-          handleOpenSnackbar(`Error scanning barcode: ${error.message}`, 'error');
+  
+  const handleModalConfirm = (inputQty: number) => {
+    barcodeScan(scannedBarcode, quoteId, inputQty)
+      .then((data) => {
+        handleOpenSnackbar('Barcode scanned successfully!', 'success');
+        updateQuoteData(prevQuoteData => {
+          const updatedProductInfo = { ...prevQuoteData.productInfo };
+          const scannedProduct = Object.values(updatedProductInfo).find(
+            product => product.productName === data.productName
+          );
+          if (scannedProduct) {
+            scannedProduct.pickingQty = data.updatedQty;
+            scannedProduct.pickingStatus = data.pickingStatus;
+          }
+          return updatedProductInfo;
         });
-    }
+      })
+      .catch((error) => {
+        handleOpenSnackbar(`Error scanning barcode: ${error.message}`, 'error');
+      });
   };
 
   const handleAddProduct = () => {
@@ -281,7 +256,6 @@ export const useQuote = (quoteId: number) => {
     quoteData,
     isLoading,
     modalState,
-    inputQty,
     availableQty,
     scannedProductName,
     closeModal,
@@ -291,7 +265,6 @@ export const useQuote = (quoteId: number) => {
     handleAddProduct,
     handleAddProductSubmit,
     handleProductDetails,
-    setInputQty,
     handleAdjustQuantity,
     openAdjustQuantityModal,
     saveForLaterButton,
