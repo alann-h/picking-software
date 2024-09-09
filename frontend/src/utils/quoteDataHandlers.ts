@@ -23,31 +23,14 @@ export const createSaveQuoteWithDelay = async (
 
 export const createFetchQuoteData = async (
   quoteId: number,
-  setQuoteData: React.Dispatch<React.SetStateAction<QuoteData | null>>,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
 ) => {
     setIsLoading(true);
     try {
       const response = await extractQuote(quoteId);
-      setQuoteData(response.data);
       return response;
     } finally {
       setIsLoading(false);
     }
 };
 
-export const createUpdateQuoteData = (
-  setQuoteData: React.Dispatch<React.SetStateAction<QuoteData | null>>
-) => {
-  return (updater: (prevQuoteData: QuoteData) => Partial<QuoteData>) => {
-    setQuoteData(prevQuoteData => {
-      if (!prevQuoteData) return null;
-      const updates = updater(prevQuoteData);
-      return {
-        ...prevQuoteData,
-        ...updates,
-        productInfo: updates.productInfo || prevQuoteData.productInfo
-      };
-    });
-  };
-};

@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { QuoteData, ProductDetail, QuoteUpdateFunction } from '../utils/types';
-import { ModalType, useModalState } from '../utils/modalState';
+import { ModalType } from '../utils/modalState';
 import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandlers';
 import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, handleAddProduct } from '../utils/productHandlers';
-import { createSaveQuoteWithDelay, createFetchQuoteData, createUpdateQuoteData } from '../utils/quoteDataHandlers';
+import { createSaveQuoteWithDelay, createFetchQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
 
 type OpenModalFunction = (type: ModalType, data: any) => void;
@@ -31,7 +31,8 @@ export const useQuoteData = (quoteId: number) => {
 
   const fetchQuoteData = useCallback(async () => {
     try {
-      const response = await createFetchQuoteData(quoteId, setQuoteData, setIsLoading);
+      const response = await createFetchQuoteData(quoteId, setIsLoading);
+      setQuoteData(response.data);
       if (response.source === 'api') {
         saveQuoteWithDelay();
       }
@@ -50,13 +51,19 @@ export const useQuoteData = (quoteId: number) => {
     };
   }, [fetchQuoteData]);
 
-  const updateQuoteData = useCallback(async () => {
-    try {
-      await createUpdateQuoteData(setQuoteData);
-    } catch(error) {
-      handleOpenSnackbar(`${error}`, 'error');
-    }
-  }, [handleOpenSnackbar]);
+  const updateQuoteData = useCallback((
+    updater: (prevQuoteData: QuoteData) => Partial<QuoteData>
+  ) => {
+    setQuoteData(prevQuoteData => {
+      if (!prevQuoteData) return null;
+      const updates = updater(prevQuoteData);
+      return {
+        ...prevQuoteData,
+        ...updates,
+        productInfo: updates.productInfo || prevQuoteData.productInfo
+      };
+    });
+  }, []);
 
   return {
     quoteData,
@@ -136,7 +143,7 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
       handleOpenSnackbar(`${error}`, 'error');
     }
     
-  },[quoteId, updateQuoteData, handleOpenSnackbar, openModal]);
+  },[quoteId, updateQuoteData, handleOpenSnackbar]);
 
   const saveForLater = useCallback(async (productId: number) => {
     try {
@@ -175,7 +182,7 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
-  }, [handleOpenSnackbar, openModal, quoteId, updateQuoteData])
+  }, [handleOpenSnackbar, quoteId, updateQuoteData])
 
   return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal };
 };

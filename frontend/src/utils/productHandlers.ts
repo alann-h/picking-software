@@ -1,7 +1,6 @@
 import { ProductDetail, QuoteUpdateFunction } from '../utils/types';
 import { getProductInfo, saveProductForLater, setProductUnavailable } from '../api/others';
 import { addProductToQuote, adjustProductQty } from '../api/quote';
-import { ModalType } from './modalState';
 
 export const handleProductDetails = async (
   productId: number,
