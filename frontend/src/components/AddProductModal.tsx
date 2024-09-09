@@ -22,7 +22,7 @@ import { useAllProducts } from './useAllProducts';
 interface AddProductModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (productName: string, qty: number) => void;
+  onSubmit: (productName: string, qty: number) => Promise<void>;
 }
 
 const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubmit }) => {
@@ -37,12 +37,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
     }
   }, [open, refetch]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (product) {
-      onSubmit(product.productName, qty);
+      await onSubmit(product.productName, qty);
       setProduct(null);
       setQty(1);
+      onClose();
     }
   };
 

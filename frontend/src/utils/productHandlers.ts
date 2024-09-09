@@ -93,7 +93,7 @@ export const setUnavailableButton = async (
       }
       return data;
     });
-    return data.newStatus;
+    return data;
   } catch (error) {
     throw Error(`${error}`);
   }

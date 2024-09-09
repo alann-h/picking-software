@@ -162,7 +162,7 @@ const Quote: React.FC = () => {
                 key={`${product.barcode}-${product.productId}`}
                 product={product}
                 onProductDetails={productDetails}
-                onAdjustQuantity={openAdjustQuantityModal}
+                onAdjustQuantityModal={openAdjustQuantityModal}
                 onSaveForLater={saveForLater}
                 onSetUnavailable={setUnavailable}
                 isMobile={isMobile}

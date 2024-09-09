@@ -16,7 +16,7 @@ import { ProductDetail } from '../utils/types';
 interface ProductRowProps {
   product: ProductDetail;
   onProductDetails: (productId: number, product: ProductDetail) => void;
-  onAdjustQuantity: (productId: number, newQty: number, productName: string) => void;
+  onAdjustQuantityModal: (productId: number, newQty: number, productName: string) => void;
   onSaveForLater: (productId: number) => Promise<{ newStatus: string }>;
   onSetUnavailable: (productId: number) => Promise<{ newStatus: string }>;
   isMobile: boolean;
@@ -25,7 +25,7 @@ interface ProductRowProps {
 const ProductRow: React.FC<ProductRowProps> = ({
   product,
   onProductDetails,
-  onAdjustQuantity,
+  onAdjustQuantityModal,
   onSaveForLater,
   onSetUnavailable,
   isMobile,
@@ -64,7 +64,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
         onProductDetails(product.productId, product);
         break;
       case 'adjust':
-        onAdjustQuantity(product.productId, product.pickingQty, product.productName);
+        onAdjustQuantityModal(product.productId, product.pickingQty, product.productName);
         break;
       case 'saveForLater':
         onSaveForLater(product.productId);
@@ -130,7 +130,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
               <Chip label="Details" onClick={() => onProductDetails(product.productId, product)} />
-              <Chip label="Adjust Quantity" onClick={() => onAdjustQuantity(product.productId, product.pickingQty, product.productName)} />
+              <Chip label="Adjust Quantity" onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} />
               <Chip 
                 label={product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
                 onClick={() => onSaveForLater(product.productId)} 

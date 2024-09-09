@@ -126,9 +126,9 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   }, [handleOpenSnackbar, openModal]);
 
-  const openAdjustQuantityModal = useCallback(async (productId: number, newQty: number) => {
+  const openAdjustQuantityModal = useCallback(async (productId: number, newQty: number, productName: string) => {
     try {
-      openModal('adjustQuantity', { productId, newQty });
+      openModal('adjustQuantity', { productId, newQty, productName });
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }

@@ -18,14 +18,17 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
   productId,
   onConfirm
 }) => {
-  const [newQty, setNewQty] = useState<number>(currentQty);
+  const [newQty, setNewQty] = useState<number>(currentQty || 0);
 
   useEffect(() => {
-    setNewQty(currentQty);
-  }, [currentQty]);
+    if (isOpen) {
+      setNewQty(currentQty || 0);
+    }
+  }, [isOpen, currentQty]);
 
   const handleQtyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setNewQty(Number(event.target.value));
+    const value = Number(event.target.value);
+    setNewQty(isNaN(value) ? 0 : value);
   };
 
   const handleConfirm = async () => {
