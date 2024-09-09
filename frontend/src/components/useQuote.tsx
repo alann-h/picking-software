@@ -65,11 +65,10 @@ export const useQuoteData = (quoteId: number) => {
   };
 };
 
-export const useBarcodeHandling = (quoteId: number, quoteData: QuoteData | null, updateQuoteData: QuoteUpdateFunction) => {
+export const useBarcodeHandling = (quoteId: number, quoteData: QuoteData | null, updateQuoteData: QuoteUpdateFunction, openModal: OpenModalFunction) => {
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [availableQty, setAvailableQty] = useState(0);
   const [scannedProductName, setScannedProductName] = useState('');
-  const { openModal } = useModalState();
   const { handleOpenSnackbar } = useSnackbarContext();
 
 

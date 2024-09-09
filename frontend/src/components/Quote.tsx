@@ -39,7 +39,7 @@ const Quote: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { modalState, closeModal, openModal } = useModalState();
   const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
-  const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData);
+  const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
   const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
