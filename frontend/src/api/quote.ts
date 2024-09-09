@@ -24,7 +24,7 @@ export const getCustomerQuotes = async (customerId: string) => {
   }
 };
 
-export const saveQuote = async (quote: QuoteData) => {
+export const saveQuote = async (quote: QuoteData | null) => {
   const data = await apiCallPost(`saveQuote`, { quote });
   if (data.error) {
     throw new Error(data.error);

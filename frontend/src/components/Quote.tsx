@@ -24,7 +24,8 @@ import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
 import ProductFilter from './ProductFilter';
-import { useQuote } from './useQuote';
+import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote';
+import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
 
 const useQuery = () => {
@@ -36,23 +37,11 @@ const Quote: React.FC = () => {
   const quoteId = Number(query.get('Id') || '');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const {
-    quoteData,
-    isLoading,
-    modalState,
-    availableQty,
-    scannedProductName,
-    closeModal,
-    handleBarcodeScanned,
-    handleModalConfirm,
-    handleAddProduct,
-    handleAddProductSubmit,
-    handleProductDetails,
-    handleAdjustQuantity,
-    openAdjustQuantityModal,
-    saveForLaterButton,
-    setUnavailableButton,
-  } = useQuote(quoteId);
+  const { modalState, closeModal } = useModalState();
+  const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
+  const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData);
+  const { productDetails, adjustQuantity, saveForLater, setUnavailable, addProduct } = useProductActions(quoteId, updateQuoteData);
+
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
@@ -80,12 +69,12 @@ const Quote: React.FC = () => {
 
   return (
     <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
-      <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
+      <BarcodeListener onBarcodeScanned={handleBarcodeScan} />
       {modalState.type === 'barcode' && (
         <QtyModal
           isOpen={modalState.isOpen}
           onClose={closeModal}
-          onConfirm={handleModalConfirm}
+          onConfirm={handleBarcodeModal}
           availableQty={availableQty}
           productName={scannedProductName}
         />
@@ -105,14 +94,21 @@ const Quote: React.FC = () => {
             productName={modalState.data.productName}
             currentQty={modalState.data.pickingQty}
             productId={modalState.data.productId}
-            onConfirm={handleAdjustQuantity}
+            onConfirm={adjustQuantity}
           />
         )}
+        {modalState.type === 'addProduct' && (
+        <AddProductModal
+          open={modalState.isOpen}
+          onClose={closeModal}
+          onSubmit={addProduct}
+        />
+      )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, flexDirection: isMobile ? 'column' : 'row' }}>
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
           Quote Details
         </Typography>
-        <Button variant="contained" color="primary" onClick={handleAddProduct}>
+        <Button variant="contained" color="primary">
           <AddIcon />
         </Button>
       </Box>
@@ -166,23 +162,16 @@ const Quote: React.FC = () => {
               <ProductRow
                 key={`${product.barcode}-${product.productId}`}
                 product={product}
-                onProductDetails={handleProductDetails}
-                onAdjustQuantity={openAdjustQuantityModal}
-                onSaveForLater={saveForLaterButton}
-                onSetUnavailable={setUnavailableButton}
+                onProductDetails={productDetails}
+                onAdjustQuantity={adjustQuantity}
+                onSaveForLater={saveForLater}
+                onSetUnavailable={setUnavailable}
                 isMobile={isMobile}
               />
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-      {modalState.type === 'addProduct' && (
-        <AddProductModal
-          open={modalState.isOpen}
-          onClose={closeModal}
-          onSubmit={handleAddProductSubmit}
-        />
-      )}
     </Paper>
   );
 };
