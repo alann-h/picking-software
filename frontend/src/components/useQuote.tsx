@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { QuoteData, ProductDetail, QuoteUpdateFunction } from '../utils/types';
-import { useModalState } from '../utils/modalState';
+import { ModalType, useModalState } from '../utils/modalState';
 import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandlers';
 import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, handleAddProduct } from '../utils/productHandlers';
 import { createSaveQuoteWithDelay, createFetchQuoteData, createUpdateQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
+
+type OpenModalFunction = (type: ModalType, data: any) => void;
 
 export const useQuoteData = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
@@ -13,16 +15,20 @@ export const useQuoteData = (quoteId: number) => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { handleOpenSnackbar } = useSnackbarContext();
 
+  const quoteDataRef = useRef<QuoteData | null>(null);
+  useEffect(() => {
+    quoteDataRef.current = quoteData;
+  }, [quoteData]);
+
   const saveQuoteWithDelay = useCallback(async () => {
     try {
-      await createSaveQuoteWithDelay(saveTimeoutRef, isSavingRef, quoteData);
+      await createSaveQuoteWithDelay(saveTimeoutRef, isSavingRef, quoteDataRef.current);
       handleOpenSnackbar('Quote saved successfully', 'success');
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
-  }, [handleOpenSnackbar, quoteData]);
- 
- 
+  }, [handleOpenSnackbar]);
+
   const fetchQuoteData = useCallback(async () => {
     try {
       const response = await createFetchQuoteData(quoteId, setQuoteData, setIsLoading);
@@ -33,14 +39,6 @@ export const useQuoteData = (quoteId: number) => {
       handleOpenSnackbar(`${error}`, 'error');
     }
   }, [quoteId, saveQuoteWithDelay, handleOpenSnackbar]);
- 
-  const updateQuoteData = useCallback(async () => {
-    try {
-      await createUpdateQuoteData(setQuoteData);
-    } catch(error) {
-      handleOpenSnackbar(`${error}`, 'error');
-    }
-  }, [handleOpenSnackbar]);
 
   useEffect(() => {
     fetchQuoteData();
@@ -50,7 +48,15 @@ export const useQuoteData = (quoteId: number) => {
         clearTimeout(currentSaveTimeout);
       }
     };
-  }, []);
+  }, [fetchQuoteData]);
+
+  const updateQuoteData = useCallback(async () => {
+    try {
+      await createUpdateQuoteData(setQuoteData);
+    } catch(error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  }, [handleOpenSnackbar]);
 
   return {
     quoteData,
@@ -102,21 +108,29 @@ export const useBarcodeHandling = (quoteId: number, quoteData: QuoteData | null,
   return { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal };
 };
 
-export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateFunction) => {
-  const { openModal } = useModalState();
+export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateFunction, openModal: OpenModalFunction) => {
   const { handleOpenSnackbar } = useSnackbarContext();
 
   const productDetails = useCallback(async (productId: number, details: ProductDetail) => {
     try { 
-      await handleProductDetails(productId, details);
+      const data = await handleProductDetails(productId, details);
+      openModal('productDetails', data);
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
-  }, [handleOpenSnackbar]);
+  }, [handleOpenSnackbar, openModal]);
+
+  const openAdjustQuantityModal = useCallback(async (productId: number, newQty: number) => {
+    try {
+      openModal('adjustQuantity', { productId, newQty });
+    } catch(error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  }, [openModal, handleOpenSnackbar]);
 
   const adjustQuantity = useCallback(async (productId: number, newQty: number) => {
     try {
-      const data = await handleAdjustQuantity(quoteId, productId, newQty, updateQuoteData, openModal)
+      const data = await handleAdjustQuantity(quoteId, productId, newQty, updateQuoteData)
       handleOpenSnackbar('Product quantity adjusted successfully!', 'success');
       return data;
     } catch(error) {
@@ -146,9 +160,17 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     
     },[quoteId, updateQuoteData, handleOpenSnackbar]);
   
+  const openAddProductModal = () => {
+    try {
+      openModal('addProduct', null);
+    } catch(error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  };
+
   const addProduct = useCallback(async (productName: string, qty: number) => {
     try {
-      const data = await handleAddProduct(productName, quoteId, qty, updateQuoteData, openModal);
+      const data = await handleAddProduct(productName, quoteId, qty, updateQuoteData);
       handleOpenSnackbar(`${productName} Product added successfully!`, 'success');
       return data;
     } catch(error) {
@@ -156,5 +178,5 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   }, [handleOpenSnackbar, openModal, quoteId, updateQuoteData])
 
-  return { productDetails, adjustQuantity, saveForLater, setUnavailable, addProduct };
+  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal };
 };

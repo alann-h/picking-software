@@ -30,11 +30,8 @@ export const handleAdjustQuantity = async (
   productId: number, 
   newQty: number, 
   updateQuoteData: QuoteUpdateFunction, 
-  openModal: (type: ModalType, data: any) => void
 ) => {
-  try {
-    openModal('adjustQuantity', { productId, newQty });
-    
+  try {    
     const data = await adjustProductQty(quoteId, productId, newQty);
     
     updateQuoteData(prevQuoteData => {
@@ -106,10 +103,8 @@ export const setUnavailableButton = async (
 export const handleAddProduct = async (
   productName: string, quoteId: number, qty: number, 
   updateQuoteData: QuoteUpdateFunction,
-  openModal: (type: ModalType, data: any) => void
 ) => {
   try {
-    openModal('addProduct', {productName, quoteId, qty});
     const response = await addProductToQuote(productName, quoteId, qty);
     if (response.status === 'new') {
       const newProduct: ProductDetail = {

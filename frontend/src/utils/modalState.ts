@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 export type ModalType = 'barcode' | 'addProduct' | 'productDetails' | 'adjustQuantity';
 
@@ -15,13 +15,13 @@ export const useModalState = () => {
     data: null
   });
 
-  const openModal = (type: ModalType, data: any = null) => {
+  const openModal = useCallback((type: ModalType, data: any = null) => {
     setModalState({ type, isOpen: true, data });
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setModalState({ type: null, isOpen: false, data: null });
-  };
+  }, []);
 
   return { modalState, openModal, closeModal };
 };

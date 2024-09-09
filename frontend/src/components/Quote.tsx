@@ -37,11 +37,10 @@ const Quote: React.FC = () => {
   const quoteId = Number(query.get('Id') || '');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { modalState, closeModal } = useModalState();
+  const { modalState, closeModal, openModal } = useModalState();
   const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
   const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData);
-  const { productDetails, adjustQuantity, saveForLater, setUnavailable, addProduct } = useProductActions(quoteId, updateQuoteData);
-
+  const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
@@ -108,7 +107,7 @@ const Quote: React.FC = () => {
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
           Quote Details
         </Typography>
-        <Button variant="contained" color="primary">
+        <Button variant="contained" color="primary" onClick={openAddProductModal}>
           <AddIcon />
         </Button>
       </Box>
@@ -163,7 +162,7 @@ const Quote: React.FC = () => {
                 key={`${product.barcode}-${product.productId}`}
                 product={product}
                 onProductDetails={productDetails}
-                onAdjustQuantity={adjustQuantity}
+                onAdjustQuantity={openAdjustQuantityModal}
                 onSaveForLater={saveForLater}
                 onSetUnavailable={setUnavailable}
                 isMobile={isMobile}
