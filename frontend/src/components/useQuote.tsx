@@ -1,12 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { QuoteData, ProductDetail, QuoteUpdateFunction } from '../utils/types';
-import { ModalType } from '../utils/modalState';
+import { OpenModalFunction } from '../utils/modalState';
 import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandlers';
 import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, handleAddProduct } from '../utils/productHandlers';
 import { createSaveQuoteWithDelay, createFetchQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
 
-type OpenModalFunction = (type: ModalType, data: any) => void;
 
 export const useQuoteData = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
@@ -69,6 +68,7 @@ export const useQuoteData = (quoteId: number) => {
     quoteData,
     isLoading,
     updateQuoteData,
+    refetchQuote: fetchQuoteData // if i want to refetch the whole quote page for whatever reason (currently unused)
   };
 };
 

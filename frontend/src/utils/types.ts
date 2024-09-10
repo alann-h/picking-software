@@ -29,6 +29,7 @@ export interface BarcodeListenerProps {
     onBarcodeScanned: (barcode: string) => void;
 }
 export type QuoteUpdateFunction = (updater: (prevQuoteData: QuoteData) => Partial<QuoteData>) => void;
+
 export interface Customer {
     name: string;
     id: string;
