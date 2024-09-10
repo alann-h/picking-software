@@ -2,10 +2,7 @@ import { ProductDetail, QuoteUpdateFunction } from '../utils/types';
 import { getProductInfo, saveProductForLater, setProductUnavailable } from '../api/others';
 import { addProductToQuote, adjustProductQty } from '../api/quote';
 
-export const handleProductDetails = async (
-  productId: number,
-  details: ProductDetail,
-) => {
+export const handleProductDetails = async (productId: number, details: ProductDetail) => {
   try {
     const data = await getProductInfo(productId);
     return {
@@ -24,12 +21,7 @@ export const handleProductDetails = async (
   }
 };
 
-export const handleAdjustQuantity = async (
-  quoteId: number, 
-  productId: number, 
-  newQty: number, 
-  updateQuoteData: QuoteUpdateFunction, 
-) => {
+export const handleAdjustQuantity = async (quoteId: number, productId: number, newQty: number, updateQuoteData: QuoteUpdateFunction, ) => {
   try {    
     const data = await adjustProductQty(quoteId, productId, newQty);
     
@@ -52,11 +44,7 @@ export const handleAdjustQuantity = async (
   }
 };
 
-export const saveForLaterButton = async (
-  quoteId: number,
-  productId: number,
-  updateQuoteData: QuoteUpdateFunction
-) => {
+export const saveForLaterButton = async (quoteId: number, productId: number, updateQuoteData: QuoteUpdateFunction) => {
   try {
     const data = await saveProductForLater(quoteId, productId);
     updateQuoteData(prevQuoteData => {
@@ -75,11 +63,7 @@ export const saveForLaterButton = async (
   }
 };
 
-export const setUnavailableButton = async (
-  quoteId: number,
-  productId: number,
-  updateQuoteData: QuoteUpdateFunction
-) => {
+export const setUnavailableButton = async (quoteId: number, productId: number, updateQuoteData: QuoteUpdateFunction) => {
   try {
     const data = await setProductUnavailable(quoteId, productId);
     
@@ -99,10 +83,7 @@ export const setUnavailableButton = async (
   }
 };
 
-export const handleAddProduct = async (
-  productName: string, quoteId: number, qty: number, 
-  updateQuoteData: QuoteUpdateFunction,
-) => {
+export const handleAddProduct = async (productName: string, quoteId: number, qty: number, updateQuoteData: QuoteUpdateFunction) => {
   try {
     const response = await addProductToQuote(productName, quoteId, qty);
     if (response.status === 'new') {

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { retrieveToken } from '../api/auth';
 import {setToken, setUserId} from '../utils/storage';
+import { Box, CircularProgress } from '@mui/material';
 
 const OAuthCallbackHandler = () => {
   const navigate = useNavigate();
@@ -30,7 +31,11 @@ const OAuthCallbackHandler = () => {
     }
   }, [navigate, searchParams]);
 
-  return <div>Processing login...</div>;
+  return (
+    <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+      <CircularProgress />
+    </Box>
+  );
 };
 
 export default OAuthCallbackHandler;
