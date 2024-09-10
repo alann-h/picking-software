@@ -12,7 +12,7 @@ THINGS THAT WILL BE ADDED:
 - admin option which can turn quote into an invoice
 - show the past quotes within 2 days as being always displayed as well as that option to search for specific quotes (added better system now shows active quotes for customer DONE!)
 - Search by Customer not by id (DONE!)
-- Convert to a real database
-- Nice UI
+- Convert to a real database (done)
+- Nice UI (done)
 - MORE TESTS!
   
