@@ -28,16 +28,12 @@ SmartPicker is an advanced order preparation and inventory management system des
 - Integration with multiple accounting software platforms
 - Admin functionality to convert quotes to invoices
 - Enhanced quote history and search capabilities
-- Mobile app for on-the-go order processing
 
 ## Getting Started
 
-(Include installation and setup instructions here)
+(Will add when out of sandbox phase)
 
-## Contributing
-
-(Include guidelines for contributing to the project)
 
 ## License
 
-(Specify the license under which this project is released)
+(Will specify when project is released)
