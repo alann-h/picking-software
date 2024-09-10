@@ -1,5 +1,6 @@
 import React, { useState, ChangeEvent } from 'react';
-import { TextField, Select, MenuItem, FormControl, InputLabel, Box, Button, SelectChangeEvent } from '@mui/material';
+import { TextField, Select, MenuItem, FormControl, InputLabel, Box, IconButton, SelectChangeEvent } from '@mui/material';
+import { ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import { ProductDetail } from '../utils/types';
 
 interface ProductFilterProps {
@@ -75,13 +76,13 @@ const ProductFilter: React.FC<ProductFilterProps> = ({ products, onFilterChange 
           <MenuItem value="pickingStatus">Picking Status</MenuItem>
         </Select>
       </FormControl>
-      <Button
-        variant="outlined"
+      <IconButton
         onClick={handleSortOrderChange}
         disabled={!sortField}
+        size="small"
       >
-        {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-      </Button>
+        {sortOrder === 'asc' ? <ArrowUpward /> : <ArrowDownward />}
+      </IconButton>
     </Box>
   );
 };
