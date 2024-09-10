@@ -53,7 +53,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         return theme.palette.grey[500];
     }
   };
-
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ bgcolor: theme.palette.primary.main, color: 'white' }}>

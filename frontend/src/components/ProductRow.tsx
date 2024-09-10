@@ -1,26 +1,46 @@
-import React from 'react';
-import { TableRow, TableCell, Button, Chip, useTheme, Tooltip } from '@mui/material';
+import React, { useState } from 'react';
+import { 
+  TableRow, 
+  TableCell, 
+  Chip, 
+  useTheme, 
+  Tooltip, 
+  Box,
+  Menu,
+  MenuItem,
+  IconButton
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { ProductDetail } from '../utils/types';
-import AdjustQuantityButton from './AdjustQuantityButton';
-import SaveForLaterButton from './SaveForLaterButton';
-import SetProductUnavailableButton from './SetProductAvailableButton';
 
 interface ProductRowProps {
   product: ProductDetail;
   onProductDetails: (productId: number, product: ProductDetail) => void;
-  onAdjustQuantity: (productId: number, newQty: number) => Promise<void>;
+  onAdjustQuantityModal: (productId: number, newQty: number, productName: string) => void;
   onSaveForLater: (productId: number) => Promise<{ newStatus: string }>;
   onSetUnavailable: (productId: number) => Promise<{ newStatus: string }>;
+  isMobile: boolean;
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({
   product,
   onProductDetails,
-  onAdjustQuantity,
+  onAdjustQuantityModal,
   onSaveForLater,
   onSetUnavailable,
+  isMobile,
 }) => {
   const theme = useTheme();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -31,27 +51,39 @@ const ProductRow: React.FC<ProductRowProps> = ({
       case 'backorder':
         return theme.palette.warning.main;
       case 'unavailable':
-          return theme.palette.error.main;
+        return theme.palette.error.main;
       default:
         return theme.palette.grey[500];
     }
   };
 
+  const handleAction = (action: string) => {
+    handleClose();
+    switch (action) {
+      case 'details':
+        onProductDetails(product.productId, product);
+        break;
+      case 'adjust':
+        onAdjustQuantityModal(product.productId, product.pickingQty, product.productName);
+        break;
+      case 'saveForLater':
+        onSaveForLater(product.productId);
+        break;
+      case 'setUnavailable':
+        onSetUnavailable(product.productId);
+        break;
+    }
+  };
+
   return (
     <TableRow>
-      <Tooltip title="Stock Keeping Unit - unique identifier for this product">
-        <TableCell>{product.sku}</TableCell>
-      </Tooltip>
-      <Tooltip title="Product name">
-        <TableCell sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
-          {product.productName}
-        </TableCell>
-      </Tooltip>
-      <Tooltip title="Quantity to be picked">
-        <TableCell sx={{ color: theme.palette.secondary.main, fontWeight: 'bold' }}>
-          {product.pickingQty}/{product.originalQty}
-        </TableCell>
-      </Tooltip>
+      <TableCell>{product.sku}</TableCell>
+      <TableCell sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
+        {product.productName}
+      </TableCell>
+      <TableCell sx={{ color: theme.palette.secondary.main, fontWeight: 'bold' }}>
+        {product.pickingQty}/{product.originalQty}
+      </TableCell>
       <TableCell>
         <Tooltip title={`Current picking status: ${product.pickingStatus}`}>
           <Chip
@@ -64,35 +96,55 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </Tooltip>
       </TableCell>
       <TableCell>
-        <Tooltip title="View detailed information about this product">
-          <Button
-            onClick={() => onProductDetails(product.productId, product)}
-            variant="outlined"
-            size="small"
-            sx={{ mr: 1 }}
-          >
-            Details
-          </Button>
-        </Tooltip>
-        <AdjustQuantityButton
-          productName={product.productName}
-          currentQty={product.pickingQty}
-          productId={product.productId}
-          adjustProductQtyButton={onAdjustQuantity}
-        />
-        <SaveForLaterButton
-          productId={product.productId}
-          currentStatus={product.pickingStatus}
-          saveForLaterButton={onSaveForLater}
-        />
-        <SetProductUnavailableButton 
-          productId={product.productId}
-          currentStatus={product.pickingStatus}
-          setProductUnavailableButton={onSetUnavailable}
-        />
+        {isMobile ? (
+          <Box>
+            <IconButton
+              aria-label="more options"
+              id={`more-button-${product.productId}`}
+              aria-controls={open ? `actions-menu-${product.productId}` : undefined}
+              aria-expanded={open ? 'true' : undefined}
+              aria-haspopup="true"
+              onClick={handleClick}
+            >
+              <MoreVertIcon />
+            </IconButton>
+            <Menu
+              id={`actions-menu-${product.productId}`}
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+              MenuListProps={{
+                'aria-labelledby': `more-button-${product.productId}`,
+              }}
+            >
+              <MenuItem onClick={() => handleAction('details')}>Details</MenuItem>
+              <MenuItem onClick={() => handleAction('adjust')}>Adjust Quantity</MenuItem>
+              <MenuItem onClick={() => handleAction('saveForLater')}>
+                {product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
+              </MenuItem>
+              <MenuItem onClick={() => handleAction('setUnavailable')}>
+                {product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable'}
+              </MenuItem>
+            </Menu>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+              <Chip label="Details" onClick={() => onProductDetails(product.productId, product)} />
+              <Chip label="Adjust Quantity" onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} />
+              <Chip 
+                label={product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
+                onClick={() => onSaveForLater(product.productId)} 
+              />
+              <Chip 
+                label={product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable'}
+                onClick={() => onSetUnavailable(product.productId)}
+                color={product.pickingStatus === 'unavailable' ? 'error' : 'primary'}
+              />
+          </Box>
+        )}
       </TableCell>
     </TableRow>
   );
 };
 
-export default ProductRow;
+export default ProductRow

@@ -202,7 +202,7 @@ export async function processBarcode(barcode, quoteId, newQty) {
   try {
     // check the current status of the item
     const checkStatusResult = await query(
-      'SELECT pickingstatus FROM quoteitems WHERE quoteid = $1 AND barcode = $2 returning',
+      'SELECT pickingstatus FROM quoteitems WHERE quoteid = $1 AND barcode = $2',
       [quoteId, barcode]
     );
 
@@ -211,7 +211,7 @@ export async function processBarcode(barcode, quoteId, newQty) {
     }
 
     const currentStatus = checkStatusResult[0].pickingstatus;
-
+    
     if (currentStatus === 'completed') {
       throw new InputError(`This item has already been fully picked`);
     } else if (currentStatus !== 'pending') {

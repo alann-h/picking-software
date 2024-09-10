@@ -13,16 +13,19 @@ import {
   useTheme,
   Tooltip,
   CircularProgress,
+  useMediaQuery,
+  Button,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import BarcodeListener from './BarcodeListener';
-import QtyModal from './QtyModal';
+import QtyModal from './BarcodeModal';
 import ProductDetails from './ProductDetailsQuote';
-import AddProductButton from './AddProductButton';
+import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
 import ProductFilter from './ProductFilter';
-import { useQuote } from './useQuote';
+import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote';
+import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
 
 const useQuery = () => {
@@ -33,28 +36,11 @@ const Quote: React.FC = () => {
   const query = useQuery();
   const quoteId = Number(query.get('Id') || '');
   const theme = useTheme();
-  const {
-    quoteData,
-    isLoading,
-    isModalOpen,
-    inputQty,
-    availableQty,
-    scannedProductName,
-    selectedProduct,
-    isAddProductModalOpen,
-    handleBarcodeScanned,
-    handleModalConfirm,
-    handleModalClose,
-    handleAddProduct,
-    handleAddProductSubmit,
-    handleProductDetails,
-    handleCloseProductDetails,
-    setIsAddProductModalOpen,
-    setInputQty,
-    adjustProductQtyButton,
-    saveForLaterButton,
-    setUnavailableButton,
-  } = useQuote(quoteId);
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { modalState, closeModal, openModal } = useModalState();
+  const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
+  const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
+  const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
@@ -81,38 +67,56 @@ const Quote: React.FC = () => {
   const displayProducts = filteredProducts.length > 0 ? filteredProducts : productArray;
 
   return (
-    <Paper elevation={3} sx={{ padding: 3, margin: 2 }}>
-      <BarcodeListener onBarcodeScanned={handleBarcodeScanned} />
-      <QtyModal
-        isModalOpen={isModalOpen}
-        inputQty={inputQty}
-        onModalClose={handleModalClose}
-        onQtyChange={setInputQty}
-        availableQty={availableQty}
-        onModalConfirm={handleModalConfirm}
-        productName={scannedProductName}
-      />
-      {selectedProduct && (
-        <ProductDetails
-          open={!!selectedProduct}
-          onClose={handleCloseProductDetails}
-          productName={selectedProduct.name}
-          productDetails={selectedProduct.details}
+    <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
+      <BarcodeListener onBarcodeScanned={handleBarcodeScan} />
+      {modalState.type === 'barcode' && (
+        <QtyModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          onConfirm={handleBarcodeModal}
+          availableQty={availableQty}
+          productName={scannedProductName}
         />
       )}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-        <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
+        {modalState.type === 'productDetails' && modalState.data && (
+          <ProductDetails
+            open={modalState.isOpen}
+            onClose={closeModal}
+            productName={modalState.data.name}
+            productDetails={modalState.data.details}
+          />
+        )}
+          {modalState.type === 'adjustQuantity' && modalState.data && (
+          <AdjustQuantityModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            productName={modalState.data.productName}
+            currentQty={modalState.data.pickingQty}
+            productId={modalState.data.productId}
+            onConfirm={adjustQuantity}
+          />
+        )}
+        {modalState.type === 'addProduct' && (
+        <AddProductModal
+          open={modalState.isOpen}
+          onClose={closeModal}
+          onSubmit={addProduct}
+        />
+      )}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, flexDirection: isMobile ? 'column' : 'row' }}>
+        <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
           Quote Details
         </Typography>
-        <AddProductButton onClick={handleAddProduct}>
+        <Button variant="contained" color="primary" onClick={openAddProductModal}>
           <AddIcon />
-        </AddProductButton>
+        </Button>
       </Box>
       <Box
         sx={{
           display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: isMobile ? 'flex-start' : 'center',
           marginBottom: 2,
           backgroundColor: theme.palette.background.paper,
           padding: 2,
@@ -120,22 +124,22 @@ const Quote: React.FC = () => {
         }}
       >
         <Tooltip title="Unique identifier for this quote">
-          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold' }}>
+          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
             Quote #{quoteId}
           </Typography>
         </Tooltip>
         <Tooltip title="Name of the customer for this quote">
-          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold' }}>
+          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
             Customer: {quoteData.customerName}
           </Typography>
         </Tooltip>
         <Tooltip title="Total amount for all items in this quote">
-          <Typography variant="h5" sx={{ color: theme.palette.secondary.main, fontWeight: 'bold' }}>
+          <Typography variant="h5" sx={{ color: theme.palette.secondary.main, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
             Total Amount: ${quoteData.totalAmount}
           </Typography>
         </Tooltip>
         <Tooltip title="Time when this picking session started">
-          <Typography sx={{ color: theme.palette.text.secondary }}>
+          <Typography sx={{ color: theme.palette.text.secondary, fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
             Started: {quoteData.timeStarted}
           </Typography>
         </Tooltip>
@@ -157,20 +161,16 @@ const Quote: React.FC = () => {
               <ProductRow
                 key={`${product.barcode}-${product.productId}`}
                 product={product}
-                onProductDetails={handleProductDetails}
-                onAdjustQuantity={adjustProductQtyButton}
-                onSaveForLater={saveForLaterButton}
-                onSetUnavailable={setUnavailableButton}
+                onProductDetails={productDetails}
+                onAdjustQuantityModal={openAdjustQuantityModal}
+                onSaveForLater={saveForLater}
+                onSetUnavailable={setUnavailable}
+                isMobile={isMobile}
               />
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-      <AddProductModal
-        open={isAddProductModalOpen}
-        onClose={() => setIsAddProductModalOpen(false)}
-        onSubmit={handleAddProductSubmit}
-      />
     </Paper>
   );
 };
