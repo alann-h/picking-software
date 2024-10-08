@@ -138,7 +138,8 @@ const ProductRow: React.FC<ProductRowProps> = ({
               <Chip 
                 label={product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable'}
                 onClick={() => onSetUnavailable(product.productId)}
-                color={product.pickingStatus === 'unavailable' ? 'error' : 'primary'}
+                color={product.pickingStatus === 'unavailable' ? 'primary' : 'error'}
+                disabled={product.pickingStatus === 'completed'}
               />
           </Box>
         )}
