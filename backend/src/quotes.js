@@ -3,9 +3,9 @@ import { query, transaction } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
 import { getProductFromDB, getProductFromQB } from './products';
 
-export async function getCustomerQuotes(customerId, userId) {
+export async function getCustomerQuotes(customerId, token) {
   try {
-    const oauthClient = await getOAuthClient(userId);
+    const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialized');
     }
@@ -25,9 +25,9 @@ export async function getCustomerQuotes(customerId, userId) {
   }
 }
 
-export async function getFilteredEstimates(quoteId, userId) {
+export async function getFilteredEstimates(quoteId, token) {
   try {
-    const oauthClient = await getOAuthClient(userId);
+    const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialized');
     }
@@ -35,7 +35,6 @@ export async function getFilteredEstimates(quoteId, userId) {
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
-
     const estimateResponse = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
     });
@@ -51,13 +50,13 @@ async function filterEstimates(responseData, oauthClient) {
   const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
     const productInfo = {};
 
+
     for (const line of estimate.Line) {
       if (line.DetailType === 'SubTotalLineDetail') {
         continue;
       }
 
       const Description = line.Description;
-
       const item = await getProductFromQB(Description, oauthClient);
       const barcodeItem = await getProductFromDB(item.id);
 
@@ -70,7 +69,6 @@ async function filterEstimates(responseData, oauthClient) {
         pickingStatus: 'pending',
       };
     }
-
     const customerRef = estimate.CustomerRef;
     const timeStarted = new Intl.DateTimeFormat('en-GB', {
       year: 'numeric',
@@ -80,7 +78,6 @@ async function filterEstimates(responseData, oauthClient) {
       minute: '2-digit',
       hour12: true
     }).format(new Date());
-
     return {
       quoteId: estimate.Id,
       customerId: customerRef.value,
@@ -91,7 +88,6 @@ async function filterEstimates(responseData, oauthClient) {
       timeStarted,
     };
   });
-
   return Promise.all(filteredEstimatesPromises);
 }
 
@@ -228,7 +224,7 @@ export async function processBarcode(barcode, quoteId, newQty) {
   }
 }
 
-export async function addProductToQuote(productName, quoteId, qty, userId) {
+export async function addProductToQuote(productName, quoteId, qty, token) {
   try {
     const product = await query('SELECT * FROM products WHERE productname = $1', [productName]);
     if (product.length === 0) {
@@ -255,7 +251,7 @@ export async function addProductToQuote(productName, quoteId, qty, userId) {
           [qty, quoteId, product[0].productid]
         );
       } else {
-          const oauthClient = await getOAuthClient(userId);
+          const oauthClient = await getOAuthClient(token);
           if (!oauthClient) {
             throw new AccessError('OAuth client could not be initialized');
           }

@@ -3,14 +3,13 @@ import { QuoteData, ProductDetail, QuoteUpdateFunction } from '../utils/types';
 import { OpenModalFunction } from '../utils/modalState';
 import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandlers';
 import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, handleAddProduct } from '../utils/productHandlers';
-import { createSaveQuoteWithDelay, createFetchQuoteData } from '../utils/quoteDataHandlers';
+import { createFetchQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
 
 
 export const useQuoteData = (quoteId: number) => {
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const isSavingRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { handleOpenSnackbar } = useSnackbarContext();
 
@@ -19,26 +18,14 @@ export const useQuoteData = (quoteId: number) => {
     quoteDataRef.current = quoteData;
   }, [quoteData]);
 
-  const saveQuoteWithDelay = useCallback(async () => {
-    try {
-      await createSaveQuoteWithDelay(saveTimeoutRef, isSavingRef, quoteDataRef.current);
-      handleOpenSnackbar('Quote saved successfully', 'success');
-    } catch(error) {
-      handleOpenSnackbar(`${error}`, 'error');
-    }
-  }, [handleOpenSnackbar]);
-
   const fetchQuoteData = useCallback(async () => {
     try {
       const response = await createFetchQuoteData(quoteId, setIsLoading);
       setQuoteData(response.data);
-      if (response.source === 'api') {
-        saveQuoteWithDelay();
-      }
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
-  }, [quoteId, saveQuoteWithDelay, handleOpenSnackbar]);
+  }, [quoteId, handleOpenSnackbar]);
 
   useEffect(() => {
     fetchQuoteData();

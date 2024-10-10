@@ -1,10 +1,7 @@
-import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
-import { getUserId } from '../utils/storage';
-import { QuoteData } from '../utils/types';
+import { apiCallGet, apiCallPut } from '../utils/apiHelpers';
 
 export const extractQuote = async (quoteId: number) => {
-    const userId = getUserId();
-    const url = `estimate/${quoteId}/${userId}`;
+    const url = `estimate/${quoteId}`;
     const data = await apiCallGet(url);
     if (data.error) {
       throw new Error(data.error);
@@ -14,8 +11,7 @@ export const extractQuote = async (quoteId: number) => {
 };
 
 export const getCustomerQuotes = async (customerId: string) => {
-  const userId = getUserId();
-  const url = `getEstimates/${customerId}/${userId}`;
+  const url = `getEstimates/${customerId}`;
   const data = await apiCallGet(url);
   if (data.error) {
     throw new Error(data.error);
@@ -24,14 +20,14 @@ export const getCustomerQuotes = async (customerId: string) => {
   }
 };
 
-export const saveQuote = async (quote: QuoteData | null) => {
-  const data = await apiCallPost(`saveQuote`, { quote });
-  if (data.error) {
-    throw new Error(data.error);
-  } else {
-    return data;
-  }
-};
+// export const saveQuote = async (quote: QuoteData | null) => {
+//   const data = await apiCallPost(`saveQuote`, { quote });
+//   if (data.error) {
+//     throw new Error(data.error);
+//   } else {
+//     return data;
+//   }
+// };
 
 export const barcodeScan = async (barcode: string, quoteId: number, newQty: number) => {
   const data = await apiCallPut('productScan', { barcode, quoteId, newQty });
@@ -52,8 +48,7 @@ export const barcodeToName = async (barcode: string) => {
 };
 
 export const addProductToQuote = async (productName: string, quoteId: number, qty: number) => {
-  const userId = getUserId();
-  const data = await apiCallPut('addProduct', { productName, quoteId, qty, userId });
+  const data = await apiCallPut('addProduct', { productName, quoteId, qty });
   if (data.error) {
     throw new Error(data.error);
   } else {
