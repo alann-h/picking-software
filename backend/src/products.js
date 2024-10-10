@@ -150,21 +150,36 @@ export async function saveForLater(quoteId, productId) {
 
 export async function setUnavailable(quoteId, productId) {
   try {
-    const result = await query(
-      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'unavailable\' THEN \'pending\' ELSE \'unavailable\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
+    const checkResult = await query(
+      'SELECT pickingstatus, productname FROM quoteitems WHERE quoteid = $1 AND productid = $2',
       [quoteId, productId]
     );
-    
-    if (result.length === 0) {
+
+    if (checkResult.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
-    
-    const newStatus = result[0].pickingstatus;
-    const productName = result[0].productname;
-    
+
+    const currentStatus = checkResult[0].pickingstatus;
+    const productName = checkResult[0].productname;
+
+    if (currentStatus === 'completed') {
+      return {
+        status: 'error',
+        message: `This product "${productName}" has already been picked and cannot change status.`,
+        newStatus: currentStatus
+      };
+    }
+
+    const updateResult = await query(
+      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'unavailable\' THEN \'pending\' ELSE \'unavailable\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus',
+      [quoteId, productId]
+    );
+
+    const newStatus = updateResult[0].pickingstatus;
+
     return {
       status: 'success',
-      message: `Product "${productName}" ${newStatus === 'unavailable' ? 'product is uunavailable' : 'set to picking'}`,
+      message: `Product "${productName}" ${newStatus === 'unavailable' ? 'is now unavailable' : 'is now set to picking'}`,
       newStatus: newStatus
     };
   } catch (error) {

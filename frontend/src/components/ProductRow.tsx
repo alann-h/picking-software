@@ -133,12 +133,14 @@ const ProductRow: React.FC<ProductRowProps> = ({
               <Chip label="Adjust Quantity" onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} />
               <Chip 
                 label={product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
-                onClick={() => onSaveForLater(product.productId)} 
+                onClick={() => onSaveForLater(product.productId)}
+                disabled={product.pickingStatus === 'completed'} 
               />
               <Chip 
                 label={product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable'}
                 onClick={() => onSetUnavailable(product.productId)}
-                color={product.pickingStatus === 'unavailable' ? 'error' : 'primary'}
+                color={product.pickingStatus === 'unavailable' ? 'primary' : 'error'}
+                disabled={product.pickingStatus === 'completed'}
               />
           </Box>
         )}

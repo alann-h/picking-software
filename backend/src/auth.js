@@ -1,8 +1,6 @@
 import OAuthClient from 'intuit-oauth';
 import dotenv from 'dotenv';
-import { v4 as uuidv4 } from 'uuid';
-import { InputError, AccessError, NotFoundError, AuthenticationError } from './error';
-import { query } from './helpers';
+import { AccessError, AuthenticationError } from './error';
 
 dotenv.config({ path: 'config.env' });
 
@@ -38,91 +36,43 @@ export async function handleCallback(url) {
   try {
     const authResponse = await oauthClient.createToken(url);
     const token = authResponse.getToken();
-    const userId = uuidv4();
-    await saveUser(userId, token);
-    return userId;
+    return token;
   } catch (e) {
     console.error(e);
     throw new AccessError('Could not create token.');
   }
 }
 
-async function saveUser(userId, token) {
-  const text = 'INSERT INTO usertokens(userid, tokendata) VALUES($1, $2) ON CONFLICT (userid) DO UPDATE SET tokendata = $2';
-  const values = [userId, JSON.stringify(token)];
+export async function refreshToken(token) {
+  const oauthClient = initializeOAuthClient();
+  oauthClient.setToken(token);
+
+  if (oauthClient.isAccessTokenValid()) {
+    return token;
+  }
+
+  if (!oauthClient.token.isRefreshTokenValid()) {
+    throw new AuthenticationError('The Refresh token is invalid, please reauthenticate.');
+  }
+
   try {
-    await query(text, values);
+    const response = await oauthClient.refreshUsingToken(token.refresh_token);
+    return response.getToken();
   } catch (e) {
-    throw new AccessError('Could not save user token: ' + e.message);
+    throw new AccessError('Failed to refresh token: ' + e.message);
   }
 }
 
-export async function getOAuthClient(userId) {
-  if (!userId) {
+export async function getOAuthClient(token) {
+  if (!token) {
     return null;
   }
   try {
-    const userToken = await getUserToken(userId);
-    if (userToken) {
-      const oauthClient = initializeOAuthClient();
-      oauthClient.setToken(userToken);
-      return oauthClient;
-    }
+    const refreshedToken = await refreshToken(token);
+    const oauthClient = initializeOAuthClient();
+    oauthClient.setToken(refreshedToken);
+    return oauthClient;
   } catch (e) {
     throw new AccessError('Error getting OAuth client: ' + e.message);
-  }
-  return null;
-}
-
-export async function getUserToken(userId) {
-  if (!userId) {
-    throw new InputError('User Id is not valid');
-  }
-
-  const text = 'SELECT tokendata FROM usertokens WHERE userid = $1';
-  const values = [userId];
-
-  try {
-    const result = await query(text, values);
-    if (result.length === 0) {
-      throw new NotFoundError('User not found');
-    }
-    const userToken = result[0].tokendata;
-
-    if (!userToken.access_token || !userToken.refresh_token) {
-      throw new AccessError('Token not found for user');
-    }
-
-    const oauthClient = initializeOAuthClient();
-    oauthClient.setToken(userToken);
-
-    if (oauthClient.isAccessTokenValid()) {
-      return userToken;
-    }
-
-    if (!oauthClient.token.isRefreshTokenValid()) {
-      await deleteUserToken(userId);
-      throw new AuthenticationError('The Refresh token is invalid, please reauthenticate.');
-    }
-
-    const response = await oauthClient.refreshUsingToken(userToken.refresh_token);
-    const newToken = response.getToken();
-    await saveUser(userId, newToken);
-    return newToken;
-  } catch (e) {
-    if (e instanceof NotFoundError || e instanceof AuthenticationError) {
-      throw e;
-    }
-    throw new NotFoundError('Failed to refresh token: ' + e.message);
-  }
-}
-
-async function deleteUserToken(userId) {
-  const text = 'DELETE FROM usertokens WHERE userid = $1';
-  const values = [userId];
-  try {
-    await query(text, values);
-  } catch (e) {
-    throw new AccessError('Could not delete user token: ' + e.message);
   }
 }

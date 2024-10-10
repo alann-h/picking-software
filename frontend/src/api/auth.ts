@@ -11,22 +11,12 @@ export const login = async () => {
     return data;
   }
 };
-/**
- * Gets tokens
- */
-export const retrieveToken= async (userId: string) => {
-  const token = await apiCallGet(`retrieveToken/${userId}`);
-  if (token.error) {
-    throw new Error(token.error);
-  } else {
-    return token;
-  }
-};
+
 /**
  * Verifies user
  */
-export const verifyUser = async (userId: string) => {
-  const response = await apiCallGet(`verifyUser/${userId}`);
+export const verifyUser = async () => {
+  const response = await apiCallGet('verifyUser');
   if (response.error) {
     throw new Error(response.error);
   } else {
@@ -34,3 +24,14 @@ export const verifyUser = async (userId: string) => {
   }
 };
 
+/**
+ * Get CSRF token
+ */
+export const getCsrfToken = async () => {
+  const response = await apiCallGet('csrf-token');
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response.csrfToken;
+  }
+};

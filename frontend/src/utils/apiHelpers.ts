@@ -1,20 +1,25 @@
 import config from '../config.json';
-import { isLoggedIn, getAccessToken } from './storage';
+import { getCsrfToken } from '../api/auth';
 
 /**
  * GET request to API
  */
 export const apiCallGet = async (path: string) => {
-  const headers: Record<string, string> = { accept: 'application/json' };
-  if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
+  const headers: Record<string, string> = { 
+    'accept': 'application/json',
+    'Content-Type': 'application/json',
+  };
 
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'GET',
-    headers
+    headers,
+    credentials: 'include', // This is important for including cookies in the request
   });
+
   if (!response.ok) {
-    console.log(response);
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+
   return await response.json();
 };
 
@@ -22,14 +27,17 @@ export const apiCallGet = async (path: string) => {
  * POST request to API
  */
 export const apiCallPost = async (path: string, body: object | FormData) => {
+  const csrfToken = await getCsrfToken();
+
   const headers: Record<string, string> = {
-    accept: 'application/json'
+    'accept': 'application/json',
+    'X-CSRF-Token': csrfToken,
   };
-  if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
 
   const options: RequestInit = {
     method: 'POST',
     headers,
+    credentials: 'include', // This is important for including cookies in the request
     body: body instanceof FormData ? body : JSON.stringify(body)
   };
 
@@ -40,29 +48,35 @@ export const apiCallPost = async (path: string, body: object | FormData) => {
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, options);
 
   if (!response.ok) {
-    console.log(response);
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
 
   return await response.json();
 };
+
 /**
  * PUT request to API
  */
 export const apiCallPut = async (path: string, body: object) => {
+  const csrfToken = await getCsrfToken();
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    accept: 'application/json'
+    'accept': 'application/json',
+    'X-CSRF-Token': csrfToken,
   };
-  if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
 
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'PUT',
     headers,
+    credentials: 'include', // This is important for including cookies in the request
     body: JSON.stringify(body)
   });
+
   if (!response.ok) {
-    console.log(response);
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+
   return await response.json();
 };
 
@@ -70,15 +84,22 @@ export const apiCallPut = async (path: string, body: object) => {
  * DELETE request to API
  */
 export const apiCallDelete = async (path: string) => {
-  const headers: Record<string, string> = { accept: 'application/json' };
-  if (isLoggedIn()) headers.Authorization = `Bearer ${getAccessToken()}`;
+  const csrfToken = await getCsrfToken();
+
+  const headers: Record<string, string> = { 
+    'accept': 'application/json',
+    'X-CSRF-Token': csrfToken,
+  };
 
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'DELETE',
-    headers
+    headers,
+    credentials: 'include', // This is important for including cookies in the request
   });
+
   if (!response.ok) {
-    console.log(response);
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+
   return await response.json();
 };
