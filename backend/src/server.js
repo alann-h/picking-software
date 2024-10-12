@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
-import { v4 as uuidv4 } from 'uuid';
 import { getAuthUri, handleCallback } from './auth.js';
 import { getFilteredEstimates, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity
@@ -16,6 +15,8 @@ import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from '../swagger.json';
 import multer from 'multer';
+import pgSession from 'connect-pg-simple';
+import pool from './db.js';
 
 const app = express();
 
@@ -28,7 +29,13 @@ app.use(cookieParser());
 const upload = multer({ dest: process.cwd() });
 dotenv.config({ path: 'config.env' });
 
+const PgSession = pgSession(session);
+
 app.use(session({
+  store: new PgSession({
+    pool: pool,
+    tableName: 'sessions'
+  }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -41,13 +48,23 @@ app.use(session({
 
 const csrfProtection = csrf({ cookie: true });
 
+const deleteSessions = () => {
+  const store = new PgSession({
+    pool: pool,
+    tableName: 'sessions'
+  });
+  store.pruneSessions();
+};
+
+setInterval(deleteSessions, 24 * 60 * 60 * 1000);
+
 // Wrapper for async route handlers
 const asyncHandler = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
 const isAuthenticated = (req, res, next) => {
-  if (req.session.sessionId && req.session.token) {
+  if (req.session.token) {
     next();
   } else {
     res.status(401).json({ error: 'Unauthorized' });
@@ -64,9 +81,7 @@ app.get('/authUri', asyncHandler(async (_, res) => {
 }));
 
 app.get('/callback', asyncHandler(async (req, res) => {
-  const sessionId = uuidv4();
   const token = await handleCallback(req.url);
-  req.session.sessionId = sessionId;
   req.session.token = token;
   res.redirect(`http://localhost:3000/oauth/callback`);
 }));
@@ -76,7 +91,7 @@ app.get('/csrf-token', csrfProtection, (req, res) => {
 });
 
 app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
-  if (req.session.sessionId && req.session.token) {
+  if (req.session.token) {
     res.json({ isValid: true });
   } else {
     res.status(401).json({ isValid: false });
@@ -201,7 +216,7 @@ app.get('/', (req, res) => res.redirect('/docs'));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
 });
