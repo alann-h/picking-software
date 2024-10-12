@@ -1,5 +1,4 @@
 import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
-import { getUserId } from '../utils/storage';
 import { Customer } from '../utils/types';
 
 
@@ -16,8 +15,7 @@ export const uploadProducts = async (file: File) => {
 };
 
 export const getCustomers = async () => {
-  const userId = getUserId();
-  const customers = await apiCallGet(`getCustomers/${userId}`);
+  const customers = await apiCallGet(`getCustomers`);
   if (customers.error) {
     throw new Error(customers.error);
   } else {

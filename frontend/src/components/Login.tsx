@@ -2,7 +2,6 @@ import React, { useEffect, ReactNode } from 'react';
 import { Button, Box, Typography, Container, Grid, useTheme } from '@mui/material';
 import { motion, useInView } from 'framer-motion';
 import { login, verifyUser } from '../api/auth';
-import { getUserId, setToken, deleteToken } from '../utils/storage';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,19 +31,14 @@ const Login: React.FC = () => {
   const theme = useTheme();
 
   useEffect(() => {
-    const userId = getUserId();
-    if (userId) {
-      verifyUser(userId)
-        .then((response) => {
-          if (response.isValid) {
-            setToken(response.accessToken);
-            navigate('/dashboard');
-          }
-        })
-        .catch(() => {
-          deleteToken();
-        });
-    }
+    verifyUser()
+      .then((response) => {
+        if (response.isValid) {
+          navigate('/dashboard');
+        }
+      })
+      .catch(() => {
+      });
   }, [handleOpenSnackbar, navigate]);
 
   const handleLoginClick = () => {

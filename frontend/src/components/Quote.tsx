@@ -27,6 +27,7 @@ import ProductFilter from './ProductFilter';
 import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote';
 import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -107,9 +108,30 @@ const Quote: React.FC = () => {
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
           Quote Details
         </Typography>
-        <Button variant="contained" color="primary" onClick={openAddProductModal}>
-          <AddIcon />
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, mt: isMobile ? 2 : 0 }}>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={openAddProductModal}
+            >
+              <AddIcon />
+              {!isMobile && "Add Product"}
+            </Button>
+            <Button 
+              variant="contained"
+              disabled
+              sx={{
+                backgroundColor: theme.palette.warning.main,
+                color: theme.palette.warning.contrastText,
+                '&:hover': {
+                  backgroundColor: theme.palette.warning.dark,
+                }
+              }}
+            >
+              <ReceiptIcon />
+              {!isMobile && "Convert to Invoice"}
+            </Button>
+        </Box>
       </Box>
       <Box
         sx={{
