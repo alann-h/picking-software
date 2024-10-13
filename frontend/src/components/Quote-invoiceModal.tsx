@@ -55,8 +55,8 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Product Name</TableCell>
                     <TableCell>SKU</TableCell>
+                    <TableCell>Product Name</TableCell>
                     <TableCell>Quantity</TableCell>
                     <TableCell>Status</TableCell>
                   </TableRow>
@@ -64,8 +64,8 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
                 <TableBody>
                   {productsToReview.map((product: ProductDetail) => (
                     <TableRow key={product.productId}>
-                      <TableCell>{product.productName}</TableCell>
                       <TableCell>{product.sku}</TableCell>
+                      <TableCell>{product.productName}</TableCell>
                       <TableCell>{product.pickingQty}/{product.originalQty}</TableCell>
                       <TableCell>
                         <Typography style={{ color: getStatusColor(product.pickingStatus) }}>
