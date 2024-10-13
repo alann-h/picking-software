@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Container, Autocomplete, TextField, List, ListItemText, Card, CardContent, 
-  Paper, ListItemButton, Typography, Box, Grid, useTheme, Chip
+  Paper, ListItemButton, Typography, Box, Grid, useTheme, Chip,
+  Button
 } from '@mui/material';
 import {QrCodeScanner, Inventory } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -89,11 +90,20 @@ const Dashboard: React.FC = () => {
       }}
     >
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <AnimatedComponent yOffset={20}>
           <Typography variant="h4" gutterBottom component="h1" color="primary">
             Dashboard
           </Typography>
         </AnimatedComponent>
+        <Button 
+          variant="contained" 
+          color="secondary" 
+          onClick={() => navigate('/orders-to-check')}
+        >
+          Orders to Check
+        </Button>
+      </Box>
 
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>

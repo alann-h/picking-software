@@ -18,7 +18,7 @@ import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote'
 import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
 import ReceiptIcon from '@mui/icons-material/Receipt';
-import QuoteInvoiceModal from './Quote-invoiceModal';
+import QuoteInvoiceModal from './QuoteInvoiceModal';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);

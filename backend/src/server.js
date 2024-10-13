@@ -7,7 +7,8 @@ import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
 import { getAuthUri, handleCallback } from './auth.js';
 import { getFilteredEstimates, estimateToDB, checkQuoteExists, fetchQuoteData, 
-  getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity
+  getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
+  getQuotesWithStatus, setOrderStatus
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
@@ -117,6 +118,7 @@ app.get('/getCustomerId/:customerName', csrfProtection, isAuthenticated, asyncHa
   res.json({ customerId });
 }));
 
+
 /***************************************************************
                        Quote Functions
 ***************************************************************/
@@ -144,6 +146,20 @@ app.get('/estimate/:quoteId', csrfProtection, isAuthenticated, asyncHandler(asyn
 //   await estimateToDB(req.body.quote);
 //   res.status(200).json({ message: 'Quote saved successfully in database' });
 // }));
+
+app.get('/quotes-to-check', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const quotes = await getQuotesWithStatus(req.params.status);
+  res.status(200).json(quotes);
+}));
+
+app.put('/quote-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const { quoteId, newStatus } = req.body;
+  if (!quoteId || !newStatus) {
+    throw new InputError('Quote ID and new status are required');
+  }
+  const updatedQuote = await setQuoteStatus(quoteId, newStatus);
+  res.status(200).json(updatedQuote);
+}));
 
 /***************************************************************
                        Product Functions
