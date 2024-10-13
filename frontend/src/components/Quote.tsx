@@ -1,21 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import {
-  Paper,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Box,
-  useTheme,
-  Tooltip,
-  CircularProgress,
-  useMediaQuery,
-  Button,
-} from '@mui/material';
+import { 
+  Paper, Typography, Table, TableBody, TableCell, 
+  TableContainer, TableHead, TableRow, Box, useTheme, 
+  Tooltip, CircularProgress, useMediaQuery, Button,
+} 
+from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import BarcodeListener from './BarcodeListener';
 import QtyModal from './BarcodeModal';
@@ -28,6 +18,7 @@ import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote'
 import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import QuoteInvoiceModal from './Quote-invoiceModal';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -41,7 +32,7 @@ const Quote: React.FC = () => {
   const { modalState, closeModal, openModal } = useModalState();
   const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
   const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
-  const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal } = useProductActions(quoteId, updateQuoteData, openModal);
+  const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal, openQuoteInvoiceModal } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
@@ -104,6 +95,13 @@ const Quote: React.FC = () => {
           onSubmit={addProduct}
         />
       )}
+      {modalState.type === 'quoteInvoice' && (
+        <QuoteInvoiceModal
+            isOpen={modalState.isOpen}
+            onClose={closeModal}
+            quoteData={quoteData}
+        />
+      )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, flexDirection: isMobile ? 'column' : 'row' }}>
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
           Quote Details
@@ -119,7 +117,7 @@ const Quote: React.FC = () => {
             </Button>
             <Button 
               variant="contained"
-              disabled
+              onClick={openQuoteInvoiceModal}
               sx={{
                 backgroundColor: theme.palette.warning.main,
                 color: theme.palette.warning.contrastText,

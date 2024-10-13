@@ -169,7 +169,15 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
-  }, [handleOpenSnackbar, quoteId, updateQuoteData])
+  }, [handleOpenSnackbar, quoteId, updateQuoteData]);
 
-  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal };
+  const openQuoteInvoiceModal = useCallback(() => {
+    try {
+      openModal('quoteInvoice', null);
+    } catch(error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  }, [openModal, handleOpenSnackbar]);
+
+  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal, openQuoteInvoiceModal };
 };

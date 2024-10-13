@@ -18,6 +18,7 @@ import {
   Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 import { ProductDetailsDB } from '../utils/types';
+import { getStatusColor } from '../utils/other';
 
 interface ProductDetailsProps {
   open: boolean;
@@ -39,20 +40,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     setLocalProductDetails(productDetails);
   }, [productDetails]);
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return theme.palette.success.main;
-      case 'pending':
-        return theme.palette.grey[500];
-      case 'backorder':
-        return theme.palette.warning.main;
-      case 'unavailable':
-        return theme.palette.error.main;
-      default:
-        return theme.palette.grey[500];
-    }
-  };
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ bgcolor: theme.palette.primary.main, color: 'white' }}>
