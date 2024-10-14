@@ -32,7 +32,8 @@ const Quote: React.FC = () => {
   const { modalState, closeModal, openModal } = useModalState();
   const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
   const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
-  const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal, openQuoteInvoiceModal } = useProductActions(quoteId, updateQuoteData, openModal);
+  const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, 
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
@@ -100,6 +101,7 @@ const Quote: React.FC = () => {
             isOpen={modalState.isOpen}
             onClose={closeModal}
             quoteData={quoteData}
+            onProceed={setQuoteChecking}
         />
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, flexDirection: isMobile ? 'column' : 'row' }}>

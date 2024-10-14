@@ -5,6 +5,7 @@ import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandle
 import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, handleAddProduct } from '../utils/productHandlers';
 import { createFetchQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
+import { updateQuoteStatus } from '../api/quote';
 
 
 export const useQuoteData = (quoteId: number) => {
@@ -179,5 +180,16 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   }, [openModal, handleOpenSnackbar]);
 
-  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal, openQuoteInvoiceModal };
+  const setQuoteChecking = useCallback(async (newStatus: string) => {
+    try {
+      await updateQuoteStatus(quoteId, newStatus);
+      handleOpenSnackbar(`${quoteId} Quote Id set to checking status!`, 'success');
+      return;
+    } catch(error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  }, [handleOpenSnackbar, quoteId]);
+
+  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, 
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking };
 };

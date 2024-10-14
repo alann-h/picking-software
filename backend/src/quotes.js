@@ -312,8 +312,8 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
 export async function setOrderStatus(quoteId, newStatus) {
   try {
     const result = await query(
-      'UPDATE quotes SET orderstatus = $1 WHERE quoteid = $2 returing orderstatus',
-      [quoteId, newStatus]
+      'UPDATE quotes SET orderstatus = $1 WHERE quoteid = $2 returning orderstatus',
+      [newStatus, quoteId]
     );
     return {orderStatus: result[0].orderstatus}
   } catch (error) {

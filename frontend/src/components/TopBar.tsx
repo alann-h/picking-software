@@ -1,6 +1,7 @@
 import React from 'react';
-import { AppBar, IconButton, Toolbar, Typography, useTheme } from '@mui/material';
+import { AppBar, Button, IconButton, Toolbar, Typography, useTheme } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useNavigate } from 'react-router-dom';
 
 interface TopBarProps {
@@ -21,6 +22,10 @@ const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
     navigate('/dashboard/settings');
   };
 
+  const handleOrdersToCheckClick = () => {
+    navigate('/orders-to-check');
+  };
+
   return (
     <AppBar position="static" color="transparent" elevation={0} sx={{ background: 'linear-gradient(to right, #ece9e6, #ffffff)', borderBottom: "1px solid #dce0d7"}}>
       <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -37,9 +42,18 @@ const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
           SmartPicker
         </Typography>
         {!isLoginPage && (
-          <IconButton color="inherit" onClick={handleSettingsClick}>
-            <SettingsIcon />
-          </IconButton>
+          <div>
+            <Button
+              startIcon={<AssignmentIcon />}
+              onClick={handleOrdersToCheckClick}
+              sx={{ marginRight: 2 }}
+            >
+              Orders to Check
+            </Button>
+            <IconButton color="inherit" onClick={handleSettingsClick}>
+              <SettingsIcon />
+            </IconButton>
+          </div>
         )}
       </Toolbar>
     </AppBar>

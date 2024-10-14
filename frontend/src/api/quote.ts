@@ -68,13 +68,13 @@ export const adjustProductQty = async (quoteId: number, productId: number, newQt
 export const getQuotesWithStatus = async (status: string) => {
   try {
     const response = await apiCallGet(`quotes?status=${status}`);
-    return response.data;
+    return response;
   } catch (error) {
     throw new Error('Failed to fetch quotes');
   }
 };
 
-export const updateQuoteStatus = async (quoteId: string, newStatus: string) => {
+export const updateQuoteStatus = async (quoteId: number, newStatus: string) => {
   try {
     const response = await apiCallPut('quote-status', { quoteId, newStatus });
     return response;

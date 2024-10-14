@@ -147,8 +147,9 @@ app.get('/estimate/:quoteId', csrfProtection, isAuthenticated, asyncHandler(asyn
 //   res.status(200).json({ message: 'Quote saved successfully in database' });
 // }));
 
-app.get('/quotes-to-check', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
-  const quotes = await getQuotesWithStatus(req.params.status);
+app.get('/quotes', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const status = req.query.status;
+  const quotes = await getQuotesWithStatus(status);
   res.status(200).json(quotes);
 }));
 
@@ -157,7 +158,7 @@ app.put('/quote-status', csrfProtection, isAuthenticated, asyncHandler(async (re
   if (!quoteId || !newStatus) {
     throw new InputError('Quote ID and new status are required');
   }
-  const updatedQuote = await setQuoteStatus(quoteId, newStatus);
+  const updatedQuote = await setOrderStatus(quoteId, newStatus);
   res.status(200).json(updatedQuote);
 }));
 

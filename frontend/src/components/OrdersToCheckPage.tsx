@@ -11,7 +11,7 @@ interface Quote {
   id: string;
   customerName: string;
   totalAmount: number;
-  updatedAt: string;
+  lastModified: string;
 }
 
 const OrdersToCheckPage: React.FC = () => {
@@ -68,7 +68,7 @@ const OrdersToCheckPage: React.FC = () => {
                     Total Amount: ${quote.totalAmount}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Last Updated: {new Date(quote.updatedAt).toLocaleString()}
+                    Last Updated: {quote.lastModified}
                   </Typography>
                 </CardContent>
               </CardActionArea>

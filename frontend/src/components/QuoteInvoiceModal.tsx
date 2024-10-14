@@ -1,5 +1,5 @@
 // show a modal when clickinmg the convert to invoice button to show all unavailable, pending and backorder items to confirm. 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -22,14 +22,14 @@ interface QuoteInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   quoteData: QuoteData;
-//   onProceed: () => void;
+  onProceed: (newStatus: string) => Promise<void>;
 }
 
 const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
   isOpen,
   onClose,
   quoteData,
-//   onProceed,
+  onProceed,
 }) => {
 
   const productsToReview = useMemo(() => {
@@ -41,6 +41,15 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
   const hasPendingProducts = useMemo(() => {
     return productsToReview.some((product) => product.pickingStatus === 'pending');
   }, [productsToReview]);
+
+  const handleProceed = useCallback(async () => {
+    try {
+      await onProceed('checking');
+      onClose();
+    } catch (error) {
+      console.error('Failed to convert to invoice:', error);
+    }
+  }, [onProceed]);
 
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="md" fullWidth>
@@ -89,7 +98,7 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
           Cancel
         </Button>
         <Button
-        //   onClick={onProceed}
+          onClick={handleProceed}
           color="primary"
           variant="contained"
           disabled={hasPendingProducts}
