@@ -180,6 +180,7 @@ export async function fetchQuoteData(quoteId) {
       customerName: result[0].customername,
       totalAmount: result[0].totalamount,
       timeStarted: result[0].timestarted,
+      orderStatus: result[0].orderstatus,
       productInfo: {}
     };
 
@@ -343,6 +344,20 @@ export async function getQuotesWithStatus(status) {
   }
 }
 
+async function makeCustomApiCall(oauthClient, url, method, body) {
+  const token = oauthClient.getToken().access_token;
+  const response = await fetch(url, {
+    method: method,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body)
+  });
+  return response.json();
+}
+
 export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, token) {
   try {
     const oauthClient = await getOAuthClient(token);
@@ -356,9 +371,9 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     const updatePayload = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
-      Line: []
+      sparse: true,
+      line: []
     };
-
     // Convert local quote items to QuickBooks line items
     for (const localItem of Object.values(quoteLocalDb.productInfo)) {
       updatePayload.Line.push({
@@ -372,20 +387,16 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     // Update the quote in QuickBooks
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
-    const url = `${baseURL}v3/company/${companyID}/estimate?minorversion=69`;
-
-    const response = await oauthClient.makeApiCall({
-      url,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(updatePayload)
-    });
-
-    const updatedQuote = JSON.parse(response.text());
-    await setOrderStatus(quoteId, 'finalised');
-    return { message: 'Quote updated successfully in QuickBooks', updatedQuote };
+    
+    const response = await makeCustomApiCall(
+      oauthClient, 
+      `${baseURL}v3/company/${companyID}/estimate?minorversion=73`,
+      'POST',
+      updatePayload
+    );
+    
+    // await setOrderStatus(quoteId, 'finalised');
+    return { message: 'Quote updated successfully in QuickBooks', response };
 
   } catch (error) {
     console.error('Error updating quote in QuickBooks:', error);
