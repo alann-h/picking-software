@@ -343,9 +343,9 @@ export async function getQuotesWithStatus(status) {
   }
 }
 
-export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData) {
+export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, token) {
   try {
-    const oauthClient = await getOAuthClient(quoteLocalDb.token);
+    const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialized');
     }
