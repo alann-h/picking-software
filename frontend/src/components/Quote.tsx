@@ -129,7 +129,7 @@ const Quote: React.FC = () => {
               }}
             >
               <ReceiptIcon />
-              {!isMobile && (quoteData.orderStatus === 'checking' ? "Finalize Invoice" : "Convert to Invoice")}
+              {!isMobile && (quoteData.orderStatus === 'checking' ? "Finalise Invoice" : "Convert to Invoice")}
             </Button>
         </Box>
       </Box>

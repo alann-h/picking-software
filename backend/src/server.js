@@ -166,9 +166,9 @@ app.put('/updateQuoteInQuickBooks/:quoteId', csrfProtection, isAuthenticated, as
   const quoteId = req.params.quoteId;
   const quoteLocalDb = await fetchQuoteData(quoteId);
   const rawQuoteData = await getQbEstimate(quoteId, req.session.token, true);
-  await updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData);
+  const updatedQuote = await updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData);
 
-  res.status(200);
+  res.status(200).json( [updatedQuote.message ]);
 }));
 /***************************************************************
                        Product Functions

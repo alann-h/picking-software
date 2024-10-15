@@ -384,6 +384,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     });
 
     const updatedQuote = JSON.parse(response.text());
+    await setOrderStatus(quoteId, 'finalised');
     return { message: 'Quote updated successfully in QuickBooks', updatedQuote };
 
   } catch (error) {
