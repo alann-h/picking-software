@@ -82,3 +82,12 @@ export const updateQuoteStatus = async (quoteId: number, newStatus: string) => {
     throw new Error('Failed to update quote status');
   }
 };
+
+export const updateQuoteInQuickBooks = async (quoteId: number) => {
+  try {
+    const response = await apiCallPut(`updateQuoteInQuickBooks/${quoteId}`, {});
+    return response;
+  } catch (error) {
+    throw new Error('Failed to update quote status');
+  }
+};

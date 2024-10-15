@@ -5,7 +5,7 @@ import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandle
 import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, handleAddProduct } from '../utils/productHandlers';
 import { createFetchQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
-import { updateQuoteStatus } from '../api/quote';
+import { updateQuoteInQuickBooks, updateQuoteStatus } from '../api/quote';
 
 
 export const useQuoteData = (quoteId: number) => {
@@ -190,6 +190,17 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   }, [handleOpenSnackbar, quoteId]);
 
+  const handleFinalizeInvoice = async () => {
+    try {
+      await updateQuoteInQuickBooks(quoteId);
+      
+      window.open(`https://quickbooks.intuit.com/app/estimate?quoteId=${quoteId}`, '_blank');
+      handleOpenSnackbar('Quote updated and opened in QuickBooks', 'success');
+    } catch (error) {
+      handleOpenSnackbar('Failed to finalise invoice', 'error');
+    }
+  };
+
   return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, 
-    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking };
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinalizeInvoice };
 };

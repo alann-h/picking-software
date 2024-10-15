@@ -25,7 +25,7 @@ export async function getCustomerQuotes(customerId, token) {
   }
 }
 
-export async function getFilteredEstimates(quoteId, token) {
+export async function getQbEstimate(quoteId, token, updateQuote) {
   try {
     const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
@@ -40,7 +40,8 @@ export async function getFilteredEstimates(quoteId, token) {
     });
 
     const responseData = JSON.parse(estimateResponse.text());
-    return await filterEstimates(responseData, oauthClient);
+    if (!updateQuote) return await filterEstimates(responseData, oauthClient);
+    else return responseData;
   } catch (e) {
     throw new InputError('Quote Id does not exist: ' + e.message);
   }
@@ -315,7 +316,7 @@ export async function setOrderStatus(quoteId, newStatus) {
       'UPDATE quotes SET orderstatus = $1 WHERE quoteid = $2 returning orderstatus',
       [newStatus, quoteId]
     );
-    return {orderStatus: result[0].orderstatus}
+    return {orderStatus: result[0].orderstatus};
   } catch (error) {
     throw new AccessError(error.message);
   }
@@ -338,7 +339,55 @@ export async function getQuotesWithStatus(status) {
       lastModified: quote.lastmodified
     }));
   } catch (error) {
-    console.error('Error fetching quotes with status:', error);
     throw new AccessError('Failed to fetch quotes');
+  }
+}
+
+export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData) {
+  try {
+    const oauthClient = await getOAuthClient(quoteLocalDb.token);
+    if (!oauthClient) {
+      throw new AccessError('OAuth client could not be initialized');
+    }
+
+    const qbQuote = rawQuoteData.QueryResponse.Estimate[0];
+    
+    // Prepare the update payload
+    const updatePayload = {
+      Id: quoteId,
+      SyncToken: qbQuote.SyncToken,
+      Line: []
+    };
+
+    // Convert local quote items to QuickBooks line items
+    for (const localItem of Object.values(quoteLocalDb.productInfo)) {
+      updatePayload.Line.push({
+        Id: localItem.productId, // Assuming this matches the Line Id in QuickBooks
+        SalesItemLineDetail: {
+          Qty: localItem.pickingQty
+        }
+      });
+    }
+
+    // Update the quote in QuickBooks
+    const companyID = getCompanyId(oauthClient);
+    const baseURL = getBaseURL(oauthClient);
+    const url = `${baseURL}v3/company/${companyID}/estimate?minorversion=69`;
+
+    const response = await oauthClient.makeApiCall({
+      url,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updatePayload)
+    });
+
+    const updatedQuote = JSON.parse(response.text());
+    return { message: 'Quote updated successfully in QuickBooks', updatedQuote };
+
+  } catch (error) {
+    console.error('Error updating quote in QuickBooks:', error);
+    throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
   }
 }

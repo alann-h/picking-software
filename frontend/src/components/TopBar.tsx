@@ -23,7 +23,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
   };
 
   const handleOrdersToCheckClick = () => {
-    navigate('/orders-to-check');
+    navigate('/dashboard/orders-to-check');
   };
 
   return (

@@ -33,7 +33,7 @@ const Quote: React.FC = () => {
   const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
   const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
   const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, 
-    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking } = useProductActions(quoteId, updateQuoteData, openModal);
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinalizeInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
@@ -119,7 +119,7 @@ const Quote: React.FC = () => {
             </Button>
             <Button 
               variant="contained"
-              onClick={openQuoteInvoiceModal}
+              onClick={quoteData.orderStatus === 'checking' ? handleFinalizeInvoice : openQuoteInvoiceModal}
               sx={{
                 backgroundColor: theme.palette.warning.main,
                 color: theme.palette.warning.contrastText,
@@ -129,7 +129,7 @@ const Quote: React.FC = () => {
               }}
             >
               <ReceiptIcon />
-              {!isMobile && "Convert to Invoice"}
+              {!isMobile && (quoteData.orderStatus === 'checking' ? "Finalize Invoice" : "Convert to Invoice")}
             </Button>
         </Box>
       </Box>
