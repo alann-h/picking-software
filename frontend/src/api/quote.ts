@@ -64,3 +64,30 @@ export const adjustProductQty = async (quoteId: number, productId: number, newQt
     return data;
   }
 }
+
+export const getQuotesWithStatus = async (status: string) => {
+  try {
+    const response = await apiCallGet(`quotes?status=${status}`);
+    return response;
+  } catch (error) {
+    throw new Error('Failed to fetch quotes');
+  }
+};
+
+export const updateQuoteStatus = async (quoteId: number, newStatus: string) => {
+  try {
+    const response = await apiCallPut('quote-status', { quoteId, newStatus });
+    return response;
+  } catch (error) {
+    throw new Error('Failed to update quote status');
+  }
+};
+
+export const updateQuoteInQuickBooks = async (quoteId: number) => {
+  try {
+    const response = await apiCallPut(`updateQuoteInQuickBooks/${quoteId}`, {});
+    return response;
+  } catch (error) {
+    throw new Error('Failed to update quote status');
+  }
+};

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Container, Autocomplete, TextField, List, ListItemText, Card, CardContent, 
-  Paper, ListItemButton, Typography, Box, Grid, useTheme, Chip
+  Paper, ListItemButton, Typography, Box, Grid, useTheme, Chip,
 } from '@mui/material';
 import {QrCodeScanner, Inventory } from '@mui/icons-material';
 import { motion } from 'framer-motion';

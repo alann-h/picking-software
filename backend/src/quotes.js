@@ -25,7 +25,7 @@ export async function getCustomerQuotes(customerId, token) {
   }
 }
 
-export async function getFilteredEstimates(quoteId, token) {
+export async function getQbEstimate(quoteId, token, updateQuote) {
   try {
     const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
@@ -40,7 +40,8 @@ export async function getFilteredEstimates(quoteId, token) {
     });
 
     const responseData = JSON.parse(estimateResponse.text());
-    return await filterEstimates(responseData, oauthClient);
+    if (!updateQuote) return await filterEstimates(responseData, oauthClient);
+    else return responseData;
   } catch (e) {
     throw new InputError('Quote Id does not exist: ' + e.message);
   }
@@ -64,6 +65,7 @@ async function filterEstimates(responseData, oauthClient) {
         productName: Description,
         productId: item.id,
         sku: item.sku,
+        price: item.price,
         pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         pickingStatus: 'pending',
@@ -86,6 +88,7 @@ async function filterEstimates(responseData, oauthClient) {
       totalAmount: estimate.TotalAmt,
       orderStatus: 'pending',
       timeStarted,
+      lastModified: timeStarted,
     };
   });
   return Promise.all(filteredEstimatesPromises);
@@ -100,16 +103,24 @@ export async function estimateToDB(quote) {
         [quote.quoteId]
       );
       if (existingQuote.rows.length > 0) {
+        const lastModified = new Intl.DateTimeFormat('en-GB', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }).format(new Date());
         // Quote exists, update it
         await client.query(
-          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, timestarted = $6 WHERE quoteid = $1',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted]
+          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, timestarted = $6, lastmodified = $7 WHERE quoteid = $1',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, lastModified]
         );
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted) VALUES ($1, $2, $3, $4, $5, $6)',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted]
+          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, quote.lastModified]
         );
       }
 
@@ -119,7 +130,7 @@ export async function estimateToDB(quote) {
       // Insert new quote items
       for (const [barcode, item] of Object.entries(quote.productInfo)) {
         await client.query(
-          'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
           [
             quote.quoteId,
             item.productId,
@@ -128,7 +139,8 @@ export async function estimateToDB(quote) {
             parseInt(item.pickingQty, 10),
             parseInt(item.originalQty, 10),
             item.pickingStatus,
-            item.sku
+            item.sku,
+            item.price
           ]
         );
       }     
@@ -170,6 +182,8 @@ export async function fetchQuoteData(quoteId) {
       customerName: result[0].customername,
       totalAmount: result[0].totalamount,
       timeStarted: result[0].timestarted,
+      orderStatus: result[0].orderstatus,
+      lastModified: result[0].lastModified,
       productInfo: {}
     };
 
@@ -182,7 +196,8 @@ export async function fetchQuoteData(quoteId) {
           originalQty: row.originalqty,
           pickingQty: row.pickingqty,
           pickingStatus: row.pickingstatus,
-          sku: row.sku
+          sku: row.sku,
+          price: row.price
         };
       }
     });
@@ -258,8 +273,8 @@ export async function addProductToQuote(productName, quoteId, qty, token) {
           // If the product doesn't exist, insert a new row
           const productFromQB = await getProductFromQB(productName, oauthClient);
           addNewProduct = await client.query(
-            'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) returning *',
-            [quoteId, productFromQB.id, qty, qty,'pending', product[0].barcode, productName, product[0].sku]
+            'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *',
+            [quoteId, productFromQB.id, qty, qty,'pending', product[0].barcode, productName, product[0].sku, product[0].price]
           );
       }
       
@@ -297,5 +312,112 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
     return { pickingQty: result[0].pickingqty, originalQty: result[0].originalqty, totalAmount: newTotalAmt[0].totalamount };
   } catch (error) {
     throw new AccessError(error.message);
+  }
+}
+
+export async function setOrderStatus(quoteId, newStatus) {
+  try {
+    const result = await query(
+      'UPDATE quotes SET orderstatus = $1 WHERE quoteid = $2 returning orderstatus',
+      [newStatus, quoteId]
+    );
+    return {orderStatus: result[0].orderstatus};
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
+}
+
+export async function getQuotesWithStatus(status) {
+  try {
+    const result = await query(
+      'SELECT quoteid, customerid, customername, totalamount, orderstatus, timestarted, lastmodified FROM quotes WHERE orderstatus = $1 ORDER BY lastmodified DESC',
+      [status]
+    );
+
+    return result.map(quote => ({
+      id: quote.quoteid,
+      customerId: quote.customerid,
+      customerName: quote.customername,
+      totalAmount: parseFloat(quote.totalamount),
+      orderStatus: quote.orderstatus,
+      timeStarted: quote.timestarted,
+      lastModified: quote.lastmodified
+    }));
+  } catch (error) {
+    throw new AccessError('Failed to fetch quotes');
+  }
+}
+
+async function makeCustomApiCall(oauthClient, url, method, body) {
+  const token = oauthClient.getToken().access_token;
+  const response = await fetch(url, {
+    method: method,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body)
+  });
+  return response.json();
+}
+
+export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, token) {
+  try {
+    const oauthClient = await getOAuthClient(token);
+    if (!oauthClient) {
+      throw new AccessError('OAuth client could not be initialized');
+    }
+
+    const qbQuote = rawQuoteData.QueryResponse.Estimate[0];
+    
+    // Prepare the update payload
+    const updatePayload = {
+      Id: quoteId,
+      SyncToken: qbQuote.SyncToken,
+      sparse: true,
+      Line: []
+    };
+
+    for (const localItem of Object.values(quoteLocalDb.productInfo)) {
+      // Skip items marked as 'unavailable'
+      if (localItem.pickingStatus === 'unavailable') continue;
+      const amount = localItem.price * localItem.originalQty;
+      
+      const lineItem = {
+        Description: localItem.productName,
+        Amount: amount,
+        DetailType: "SalesItemLineDetail",
+        SalesItemLineDetail: {
+          ItemRef: {
+            value: localItem.productId.toString(),
+            name: localItem.productName
+          },
+          Qty: localItem.originalQty,
+          UnitPrice: localItem.price,
+          TaxCodeRef: {
+            value: "5"
+          }
+        }
+      };
+
+      updatePayload.Line.push(lineItem);
+    }
+
+    // Update the quote in QuickBooks
+    const companyID = getCompanyId(oauthClient);
+    const baseURL = getBaseURL(oauthClient);
+    await makeCustomApiCall(
+      oauthClient,
+      `${baseURL}v3/company/${companyID}/estimate?minorversion=73`,
+      'POST',
+      updatePayload
+    );
+
+    await setOrderStatus(quoteId, 'finalised');
+    return { message: 'Quote updated successfully in QuickBooks'};
+  } catch (error) {
+    console.error('Error updating quote in QuickBooks:', error);
+    throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
   }
 }

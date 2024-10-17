@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { ProductDetail } from '../utils/types';
+import { getStatusColor } from '../utils/other';
 
 interface ProductRowProps {
   product: ProductDetail;
@@ -40,21 +41,6 @@ const ProductRow: React.FC<ProductRowProps> = ({
 
   const handleClose = () => {
     setAnchorEl(null);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return theme.palette.success.main;
-      case 'pending':
-        return theme.palette.grey[500];
-      case 'backorder':
-        return theme.palette.warning.main;
-      case 'unavailable':
-        return theme.palette.error.main;
-      default:
-        return theme.palette.grey[500];
-    }
   };
 
   const handleAction = (action: string) => {
@@ -130,7 +116,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
               <Chip label="Details" onClick={() => onProductDetails(product.productId, product)} />
-              <Chip label="Adjust Quantity" onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} />
+              <Chip label="Adjust Quantity" 
+                onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} 
+                disabled={product.pickingStatus === 'completed'}
+                />
               <Chip 
                 label={product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
                 onClick={() => onSaveForLater(product.productId)}

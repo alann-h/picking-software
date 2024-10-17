@@ -5,6 +5,8 @@ import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandle
 import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, handleAddProduct } from '../utils/productHandlers';
 import { createFetchQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
+import { updateQuoteInQuickBooks, updateQuoteStatus } from '../api/quote';
+import { useNavigate } from 'react-router-dom';
 
 
 export const useQuoteData = (quoteId: number) => {
@@ -103,6 +105,7 @@ export const useBarcodeHandling = (quoteId: number, quoteData: QuoteData | null,
 
 export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateFunction, openModal: OpenModalFunction) => {
   const { handleOpenSnackbar } = useSnackbarContext();
+  const navigate = useNavigate();
 
   const productDetails = useCallback(async (productId: number, details: ProductDetail) => {
     try { 
@@ -169,7 +172,38 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
-  }, [handleOpenSnackbar, quoteId, updateQuoteData])
+  }, [handleOpenSnackbar, quoteId, updateQuoteData]);
 
-  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, openAddProductModal };
+  const openQuoteInvoiceModal = useCallback(() => {
+    try {
+      openModal('quoteInvoice', null);
+    } catch(error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  }, [openModal, handleOpenSnackbar]);
+
+  const setQuoteChecking = useCallback(async (newStatus: string) => {
+    try {
+      await updateQuoteStatus(quoteId, newStatus);
+      handleOpenSnackbar(`${quoteId} Quote Id set to checking status!`, 'success');
+      return;
+    } catch(error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  }, [handleOpenSnackbar, quoteId]);
+
+  const handleFinalizeInvoice = async () => {
+    try {
+      await updateQuoteInQuickBooks(quoteId);
+      navigate('/dashboard');
+      window.open(`https://sandbox.qbo.intuit.com/app/estimate?txnId=${quoteId}`, '_blank');
+
+      handleOpenSnackbar('Quote updated and opened in QuickBooks', 'success');
+    } catch (error) {
+      handleOpenSnackbar('Failed to finalise invoice', 'error');
+    }
+  };
+
+  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, 
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinalizeInvoice };
 };

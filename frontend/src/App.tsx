@@ -12,6 +12,7 @@ import TopBar from './components/TopBar';
 import Quote from './components/Quote';
 import theme from './theme';
 import Footer from './components/Footer';
+import OrdersToCheckPage from './components/OrdersToCheckPage';
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -35,6 +36,7 @@ const App: React.FC = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/settings" element={<Settings />} />
                 <Route path="/quote" element={<Quote />} />
+                <Route path="/dashboard/orders-to-check" element={<OrdersToCheckPage />} />
               </Routes>
             </Box>
           </Box>

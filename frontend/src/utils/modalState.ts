@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export type ModalType = 'barcode' | 'addProduct' | 'productDetails' | 'adjustQuantity';
+export type ModalType = 'barcode' | 'addProduct' | 'productDetails' | 'adjustQuantity' | 'quoteInvoice';
 
 export type OpenModalFunction = (type: ModalType, data: any) => void;
 export interface ModalState {

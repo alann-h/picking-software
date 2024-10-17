@@ -6,8 +6,9 @@ import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
 import { getAuthUri, handleCallback } from './auth.js';
-import { getFilteredEstimates, estimateToDB, checkQuoteExists, fetchQuoteData, 
-  getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity
+import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
+  getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
+  getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
@@ -117,6 +118,7 @@ app.get('/getCustomerId/:customerName', csrfProtection, isAuthenticated, asyncHa
   res.json({ customerId });
 }));
 
+
 /***************************************************************
                        Quote Functions
 ***************************************************************/
@@ -135,7 +137,7 @@ app.get('/estimate/:quoteId', csrfProtection, isAuthenticated, asyncHandler(asyn
     const quote = await fetchQuoteData(quoteId);
     return res.json({ source: 'database', data: quote });
   }
-  const estimates = await getFilteredEstimates(quoteId, req.session.token);
+  const estimates = await getQbEstimate(quoteId, req.session.token, false);
   await estimateToDB(estimates[0]);
   res.json({ source: 'api', data: estimates[0] });
 }));
@@ -145,6 +147,29 @@ app.get('/estimate/:quoteId', csrfProtection, isAuthenticated, asyncHandler(asyn
 //   res.status(200).json({ message: 'Quote saved successfully in database' });
 // }));
 
+app.get('/quotes', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const status = req.query.status;
+  const quotes = await getQuotesWithStatus(status);
+  res.status(200).json(quotes);
+}));
+
+app.put('/quote-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const { quoteId, newStatus } = req.body;
+  if (!quoteId || !newStatus) {
+    throw new Error('Quote ID and new status are required');
+  }
+  const updatedStatus = await setOrderStatus(quoteId, newStatus);
+  res.status(200).json(updatedStatus);
+}));
+
+app.put('/updateQuoteInQuickBooks/:quoteId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const quoteId = req.params.quoteId;
+  const quoteLocalDb = await fetchQuoteData(quoteId);
+  const rawQuoteData = await getQbEstimate(quoteId, req.session.token, true);
+  const updatedQuote = await updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, req.session.token);
+
+  res.status(200).json( [ updatedQuote.message ]);
+}));
 /***************************************************************
                        Product Functions
 ***************************************************************/
