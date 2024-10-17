@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { ProductDetail, QuoteData } from '../utils/types';
 import { getStatusColor } from '../utils/other';
+import { useNavigate } from 'react-router-dom';
 
 interface QuoteInvoiceModalProps {
   isOpen: boolean;
@@ -31,7 +32,8 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
   quoteData,
   onProceed,
 }) => {
-
+  const navigate = useNavigate();
+  
   const productsToReview = useMemo(() => {
     return Object.values(quoteData.productInfo).filter(
       (product) => ['pending', 'backorder', 'unavailable'].includes(product.pickingStatus)
@@ -46,6 +48,7 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
     try {
       await onProceed('checking');
       onClose();
+      navigate('/dashboard');
     } catch (error) {
       console.error('Failed to convert to invoice:', error);
     }

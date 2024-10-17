@@ -407,7 +407,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     // Update the quote in QuickBooks
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
-    const response = await makeCustomApiCall(
+    await makeCustomApiCall(
       oauthClient,
       `${baseURL}v3/company/${companyID}/estimate?minorversion=73`,
       'POST',
@@ -415,7 +415,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     );
 
     await setOrderStatus(quoteId, 'finalised');
-    return { message: 'Quote updated successfully in QuickBooks', response };
+    return { message: 'Quote updated successfully in QuickBooks'};
   } catch (error) {
     console.error('Error updating quote in QuickBooks:', error);
     throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);

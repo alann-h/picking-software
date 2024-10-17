@@ -6,6 +6,7 @@ import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnav
 import { createFetchQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
 import { updateQuoteInQuickBooks, updateQuoteStatus } from '../api/quote';
+import { useNavigate } from 'react-router-dom';
 
 
 export const useQuoteData = (quoteId: number) => {
@@ -104,6 +105,7 @@ export const useBarcodeHandling = (quoteId: number, quoteData: QuoteData | null,
 
 export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateFunction, openModal: OpenModalFunction) => {
   const { handleOpenSnackbar } = useSnackbarContext();
+  const navigate = useNavigate();
 
   const productDetails = useCallback(async (productId: number, details: ProductDetail) => {
     try { 
@@ -193,8 +195,9 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
   const handleFinalizeInvoice = async () => {
     try {
       await updateQuoteInQuickBooks(quoteId);
-      
-      window.open(`https://quickbooks.intuit.com/app/estimate?quoteId=${quoteId}`, '_blank');
+      navigate('/dashboard');
+      window.open(`https://sandbox.qbo.intuit.com/app/estimate?txnId=${quoteId}`, '_blank');
+
       handleOpenSnackbar('Quote updated and opened in QuickBooks', 'success');
     } catch (error) {
       handleOpenSnackbar('Failed to finalise invoice', 'error');
