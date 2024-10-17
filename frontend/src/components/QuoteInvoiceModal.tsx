@@ -52,7 +52,7 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
     } catch (error) {
       console.error('Failed to convert to invoice:', error);
     }
-  }, [onProceed, onClose]);
+  }, [onProceed, onClose, navigate]);
 
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="md" fullWidth>
