@@ -13,6 +13,7 @@ SmartPicker is an advanced order preparation and inventory management system des
 - **Quote Management**: 
   - Display active quotes for customers.
   - Search quotes by customer.
+  - When quote is completed it is updated in quickbooks database with any new products or quantities. 
 - **User-Friendly Interface**: Clean and intuitive UI for efficient order processing.
 
 ## Technologies Used
@@ -23,10 +24,9 @@ SmartPicker is an advanced order preparation and inventory management system des
 - Authentication: OAuth for QuickBooks integration
 
 ## Planned Features
-
+- My own login system where users and admins can be managed by a company.
 - Inventory Management System
 - Integration with multiple accounting software platforms
-- Admin functionality to convert quotes to invoices
 - Enhanced quote history and search capabilities
 
 ## Getting Started
