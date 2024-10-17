@@ -113,6 +113,7 @@ const Quote: React.FC = () => {
               variant="contained" 
               color="primary" 
               onClick={openAddProductModal}
+              disabled={quoteData.orderStatus === 'finalised'}
             >
               <AddIcon />
               {!isMobile && "Add Product"}
@@ -120,6 +121,7 @@ const Quote: React.FC = () => {
             <Button 
               variant="contained"
               onClick={quoteData.orderStatus === 'checking' ? handleFinalizeInvoice : openQuoteInvoiceModal}
+              disabled={quoteData.orderStatus === 'finalised'}
               sx={{
                 backgroundColor: theme.palette.warning.main,
                 color: theme.palette.warning.contrastText,
@@ -158,6 +160,17 @@ const Quote: React.FC = () => {
         <Tooltip title="Total amount for all items in this quote">
           <Typography variant="h5" sx={{ color: theme.palette.secondary.main, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
             Total Amount: ${quoteData.totalAmount}
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Current status of this quote">
+          <Typography variant="h5" sx={{ 
+            color: theme.palette.info.main, 
+            fontWeight: 'bold', 
+            fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, 
+            mb: isMobile ? 1 : 0,
+            textTransform: 'capitalize'
+          }}>
+            Status: {quoteData.orderStatus}
           </Typography>
         </Tooltip>
         <Tooltip title="Time when this picking session started">

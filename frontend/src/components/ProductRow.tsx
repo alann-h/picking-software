@@ -116,7 +116,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
               <Chip label="Details" onClick={() => onProductDetails(product.productId, product)} />
-              <Chip label="Adjust Quantity" onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} />
+              <Chip label="Adjust Quantity" 
+                onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} 
+                disabled={product.pickingStatus === 'completed'}
+                />
               <Chip 
                 label={product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
                 onClick={() => onSaveForLater(product.productId)}
