@@ -5,15 +5,15 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useNavigate } from 'react-router-dom';
 
 interface TopBarProps {
-  isLoginPage: boolean;
+  isInitalPage: boolean;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
+const TopBar: React.FC<TopBarProps> = ({ isInitalPage }) => {
   const navigate = useNavigate();
   const theme = useTheme();
 
   const handleLogoClick = () => {
-    if (!isLoginPage) {
+    if (!isInitalPage) {
       navigate('/dashboard');
     }
   };
@@ -32,7 +32,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
         <Typography
           variant="h6"
           sx={{
-            cursor: !isLoginPage ? 'pointer' : 'default',
+            cursor: !isInitalPage ? 'pointer' : 'default',
             fontWeight: 'bold',
             color: theme.palette.primary.main,
             display: 'inline-block',
@@ -41,7 +41,7 @@ const TopBar: React.FC<TopBarProps> = ({ isLoginPage }) => {
         >
           SmartPicker
         </Typography>
-        {!isLoginPage && (
+        {!isInitalPage && (
           <div>
             <Button
               startIcon={<AssignmentIcon />}

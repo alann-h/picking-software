@@ -1,228 +1,332 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Picking-software CRUD Server",
+    "title": "Picking-software API - Auth and Estimates",
     "version": "1.0.0",
-    "description": "Server that powers the picking-software frontend"
+    "description": "API specifications for authentication and estimate-related endpoints"
   },
+  "servers": [
+    {
+      "url": "http://localhost:{port}",
+      "variables": {
+        "port": {
+          "default": "5000"
+        }
+      }
+    }
+  ],
   "tags": [
     {
       "name": "User Auth",
-      "description": "Managing user authentication and authorisation"
+      "description": "Authentication endpoints"
     },
     {
-      "name": "Quote functions",
-      "description": "Managing quotes"
+      "name": "Estimates",
+      "description": "Estimate-related endpoints"
     }
   ],
-  "schemes": [
-    "http"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    },
-    "schemas": {
-      "AuthToken": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "description": "Authorization Bearer Token"
-          }
-        }
-      }
-    },
-    "fields": {
-      "Email": {
-        "type": "string",
-        "example": "tes@gmail.com",
-        "description": "Email address of the user attempting to login"
-      },
-      "Password": {
-        "type": "string",
-        "description": "Password of the user attempting to login",
-        "example": "adummypassword"
-      },
-      "Admin": {
-        "type": "string",
-        "description": "Name (single or full name) of the user registering",
-        "example": "John Smith"
-      }
-    },
-    "parameters": {
-      "AuthRegisterBody": {
-        "name": "Register info",
-        "in": "body",
-        "schema": {
-          "type": "object",
-          "properties": {
-            "email": {
-              "$ref": "#/components/fields/Email"
-            },
-            "password": {
-              "$ref": "#/components/fields/Password"
-            },
-            "name": {
-              "$ref": "#/components/fields/Admin"
+  "paths": {
+    "/authUri": {
+      "get": {
+        "summary": "Get authentication URI",
+        "tags": ["User Auth"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           }
         }
-      },
-      "AuthLoginBody": {
-        "name": "Login info",
-        "in": "body",
-        "schema": {
-          "type": "object",
-          "properties": {
-            "email": {
-              "$ref": "#/components/fields/Email"
+      }
+    },
+    "/callback": {
+      "get": {
+        "summary": "OAuth callback",
+        "tags": ["User Auth"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "schema": {
+              "type": "string"
             },
-            "password": {
-              "$ref": "#/components/fields/Password"
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to frontend"
+          }
+        }
+      }
+    },
+    "/csrf-token": {
+      "get": {
+        "summary": "Get CSRF token",
+        "tags": ["User Auth"],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "csrfToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
             }
           }
         }
-      },
-      "Authorization": {
-        "name": "Authorization",
-        "in": "header",
-        "schema": {
-          "type": "string",
-          "example": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImhheWRlbkB1bnN3LmVkdS5hdSIsImlhdCI6MTYwMzk0MzIzMH0.b37PfwlcH_cue6yhgvDt2IiNvhRACf79hTNtacYB94Q"
-        },
-        "required": true,
-        "description": "Bearer [token]"
       }
     },
-    "responses": {
-      "200": {
-        "Token": {
-          "description": "OK",
-          "schema": {
-            "type": "object",
-            "properties": {
-              "token": {
-                "type": "string",
-                "description": "JWT Token to provide authorisation",
-                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImhheWRlbkB1bnN3LmVkdS5hdSIsImlhdCI6MTYwMzk0MzIzMH0.b37PfwlcH_cue6yhgvDt2IiNvhRACf79hTNtacYB94Q"
+    "/verifyUser": {
+      "get": {
+        "summary": "Verify user",
+        "tags": ["User Auth"],
+        "responses": {
+          "200": {
+            "description": "User is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "isValid": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User is not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "isValid": {
+                      "type": "boolean"
+                    }
+                  }
+                }
               }
             }
           }
         },
-        "Empty": {
-          "description": "OK",
-          "schema": {
-            "type": "object",
-            "properties": {}
+        "security": [
+          {
+            "csrfToken": []
           }
-        }
-      },
-      "400": {
-        "description": "Bad Input",
-        "schema": {
-          "type": "object",
-          "properties": {
-            "error": {
-              "type": "string",
-              "description": "Error message returned from server",
-              "example": "Invalid input"
+        ]
+      }
+    },
+    "/getEstimates/{customerId}": {
+      "get": {
+        "summary": "Get estimates for a customer",
+        "tags": ["Estimates"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
-        }
-      },
-      "403": {
-        "description": "Forbidden",
-        "schema": {
-          "type": "object",
-          "properties": {
-            "error": {
-              "type": "string",
-              "description": "Error message returned from server",
-              "example": "Invalid Token"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "csrfToken": []
+          }
+        ]
+      }
+    },
+    "/estimate/{quoteId}": {
+      "get": {
+        "summary": "Get estimate by ID",
+        "tags": ["Estimates"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quoteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrfToken": []
+          }
+        ]
+      }
+    },
+    "/quotes": {
+      "get": {
+        "summary": "Get quotes by status",
+        "tags": ["Estimates"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrfToken": []
+          }
+        ]
+      }
+    },
+    "/quote-status": {
+      "put": {
+        "summary": "Update quote status",
+        "tags": ["Estimates"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quoteId": {
+                    "type": "string"
+                  },
+                  "newStatus": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrfToken": []
+          }
+        ]
+      }
+    },
+    "/updateQuoteInQuickBooks/{quoteId}": {
+      "put": {
+        "summary": "Update quote in QuickBooks",
+        "tags": ["Estimates"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quoteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "csrfToken": []
+          }
+        ]
       }
     }
   },
-  "paths": {
-    "/user/auth/register": {
-      "post": {
-        "summary": "Send registration request for a new user to join AirBrB",
-        "tags": [
-          "User Auth"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/AuthRegisterBody"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/200/Token"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          }
-        }
-      }
-    },
-    "/user/auth/login": {
-      "post": {
-        "summary": "Given correct user credentials, return an authorised access token to make subsequent user calls",
-        "tags": [
-          "User Auth"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/AuthLoginBody"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/200/Token"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          }
-        }
-      }
-    },
-    "/user/auth/logout": {
-      "post": {
-        "summary": "Invalidate a particular authorised token",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "tags": [
-          "User Auth"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/Authorization"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/200/Empty"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          }
-        }
+  "components": {
+    "securitySchemes": {
+      "csrfToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token"
       }
     }
   }
