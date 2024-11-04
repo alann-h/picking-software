@@ -28,7 +28,7 @@ app.use(morgan(':method :url :status'));
 app.use(cookieParser());
 
 const upload = multer({ dest: process.cwd() });
-dotenv.config({ path: 'config.env' });
+dotenv.config({ path: '.env' });
 
 const PgSession = pgSession(session);
 

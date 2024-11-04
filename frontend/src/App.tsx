@@ -17,7 +17,7 @@ import OrdersToCheckPage from './components/OrdersToCheckPage';
 
 const App: React.FC = () => {
   const location = useLocation();
-  const isInitalPage = location.pathname === '/';
+  const disableTopBar = (location.pathname === '/' || location.pathname === '/login');
 
   return (
     <ThemeProvider theme={theme}>
@@ -29,7 +29,7 @@ const App: React.FC = () => {
           </Helmet>
           <CssBaseline />
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
-            <TopBar isInitalPage={isInitalPage} />
+            <TopBar isInitalPage={disableTopBar} />
             <Box sx={{ flexGrow: 1, width: '100%' }}>
               <Routes>
                 <Route path="/" element={<InitalPage />} />

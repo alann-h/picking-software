@@ -1,0 +1,36 @@
+services:
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost:5033
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5033:5033"
+    env_file:
+      - ./backend/.env
+    environment:
+      - FRONTEND_URL=http://localhost:3000
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+networks:
+  app-network:
+    driver: bridge
