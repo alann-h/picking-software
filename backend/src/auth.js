@@ -1,6 +1,7 @@
 import OAuthClient from 'intuit-oauth';
 import dotenv from 'dotenv';
 import { AccessError, AuthenticationError } from './error';
+import { query } from './helpers.js';
 
 dotenv.config({ path: 'config.env' });
 
@@ -8,6 +9,10 @@ const clientId = process.env.CLIENT_ID;
 const clientSecret = process.env.CLIENT_SECRET;
 const redirectUri = process.env.REDIRECT_URI;
 const environment = process.env.NODE_ENV;
+
+if (!clientId || !clientSecret || !redirectUri || !environment) {
+  throw new Error('Missing required environment variables');
+}
 
 function initializeOAuthClient() {
   return new OAuthClient({
@@ -75,5 +80,29 @@ export async function getOAuthClient(token) {
     return oauthClient;
   } catch (e) {
     throw new AccessError('Error getting OAuth client: ' + e.message);
+  }
+}
+
+export async function login(email, password) {
+  try {
+    const result = await query('SELECT token FROM users WHERE email = $1 AND password = $2', [email, password]);
+    if (result.length === 0) {
+      throw new AuthenticationError('Invalid email or password');
+    }
+    return result[0].token;
+  } catch (error) {
+    throw new AuthenticationError(error.message);
+  }
+}
+
+export async function register(email, password, is_admin) {
+  try {
+    const result = await query('INSERT into users (email, password, is_admin) RETURNING ($1, $2, $3) RETURNING *', [email, password, is_admin]);
+    if (result.length === 0) {
+      throw new AuthenticationError('Invalid email or password');
+    }
+    return result[0];
+  } catch (error) {
+    throw new AuthenticationError(error.message);
   }
 }

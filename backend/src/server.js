@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
-import { getAuthUri, handleCallback } from './auth.js';
+import { getAuthUri, handleCallback, login } from './auth.js';
 import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
@@ -97,6 +97,13 @@ app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
   } else {
     res.status(401).json({ isValid: false });
   }
+}));
+
+app.get('/login', csrfProtection, asyncHandler(async (req, res) => {
+  const { username, password } = req.body;
+  const token = await login(username, password);
+  req.session.token = token;
+  res.status(200).json({ message: 'Logged in successfully' });
 }));
 
 /***************************************************************
