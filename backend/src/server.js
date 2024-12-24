@@ -5,13 +5,14 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
-import { getAuthUri, handleCallback, login } from './auth.js';
+import { getAuthUri, handleCallback, login, saveUserQbButton } from './auth.js';
 import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
+import { saveCompanyInfo } from './company.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from '../swagger.json';
@@ -83,7 +84,13 @@ app.get('/authUri', asyncHandler(async (_, res) => {
 
 app.get('/callback', asyncHandler(async (req, res) => {
   const token = await handleCallback(req.url);
+  // I will now save the company information and save the user if not registered
+  // Also when a user logins here they are guarenteed to be an admin due to using OAuth login
+  const companyinfo = await saveCompanyInfo(token);
+  const userInfo = await saveUserQbButton(token, companyinfo.id);
+  console.log(userInfo);
   req.session.token = token;
+
   res.redirect(`http://localhost:3000/oauth/callback`);
 }));
 
