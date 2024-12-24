@@ -101,9 +101,16 @@ app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
 
 app.get('/login', csrfProtection, asyncHandler(async (req, res) => {
   const { username, password } = req.body;
-  const token = await login(username, password);
-  req.session.token = token;
+  const user = await login(username, password);
+  req.session.token = user.token;
+  req.session.isAdmin = user.is_admin;
   res.status(200).json({ message: 'Logged in successfully' });
+}));
+
+app.get('/user-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  res.json({
+    isAdmin: req.session.isAdmin || false
+  });
 }));
 
 /***************************************************************

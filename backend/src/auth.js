@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { AccessError, AuthenticationError } from './error';
 import { query } from './helpers.js';
 
-dotenv.config({ path: 'config.env' });
+dotenv.config({ path: '.env' });
 
 const clientId = process.env.CLIENT_ID;
 const clientSecret = process.env.CLIENT_SECRET;
@@ -89,7 +89,7 @@ export async function login(email, password) {
     if (result.length === 0) {
       throw new AuthenticationError('Invalid email or password');
     }
-    return result[0].token;
+    return result[0];
   } catch (error) {
     throw new AuthenticationError(error.message);
   }
