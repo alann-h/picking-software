@@ -5,13 +5,14 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
-import { getAuthUri, handleCallback } from './auth.js';
+import { getAuthUri, handleCallback, login, saveUserQbButton } from './auth.js';
 import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
+import { saveCompanyInfo } from './company.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from '../swagger.json';
@@ -21,14 +22,17 @@ import pool from './db.js';
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({ 
+  origin: ['https://smartpicker.au', 'https://api.smartpicker.au',], 
+  credentials: true 
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(morgan(':method :url :status'));
 app.use(cookieParser());
 
 const upload = multer({ dest: process.cwd() });
-dotenv.config({ path: 'config.env' });
+dotenv.config({ path: '.env' });
 
 const PgSession = pgSession(session);
 
@@ -83,8 +87,13 @@ app.get('/authUri', asyncHandler(async (_, res) => {
 
 app.get('/callback', asyncHandler(async (req, res) => {
   const token = await handleCallback(req.url);
+  // I will now save the company information and save the user if not registered
+  // Also when a user logins here they are guarenteed to be an admin due to using OAuth login
+  const companyinfo = await saveCompanyInfo(token);
+  const userInfo = await saveUserQbButton(token, companyinfo.id);
   req.session.token = token;
-  res.redirect(`http://localhost:3000/oauth/callback`);
+
+  res.redirect(`https://smartpicker.au/oauth/callback`);
 }));
 
 app.get('/csrf-token', csrfProtection, (req, res) => {
@@ -97,6 +106,20 @@ app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
   } else {
     res.status(401).json({ isValid: false });
   }
+}));
+
+app.get('/login', csrfProtection, asyncHandler(async (req, res) => {
+  const { username, password } = req.body;
+  const user = await login(username, password);
+  req.session.token = user.token;
+  req.session.isAdmin = user.is_admin;
+  res.status(200).json({ message: 'Logged in successfully' });
+}));
+
+app.get('/user-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  res.json({
+    isAdmin: req.session.isAdmin || false
+  });
 }));
 
 /***************************************************************
@@ -247,9 +270,9 @@ app.use((err, req, res) => {
 });
 
 const port = process.env.BACKEND_PORT;
-const server = app.listen(port, () => {
-  console.log(`Backend is now listening on port ${port}!`);
-  console.log(`For API docs, navigate to http://localhost:${port}`);
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`Backend server running on port ${port}`);
+  console.log(`For API docs, navigate to https://api.smartpicker.au/docs`);
 });
 
 export default server;

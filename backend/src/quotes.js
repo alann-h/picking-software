@@ -1,5 +1,5 @@
 import { AccessError, InputError } from './error';
-import { query, transaction } from './helpers.js';
+import { query, transaction, makeCustomApiCall } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
 import { getProductFromDB, getProductFromQB } from './products';
 
@@ -348,20 +348,6 @@ export async function getQuotesWithStatus(status) {
   }
 }
 
-async function makeCustomApiCall(oauthClient, url, method, body) {
-  const token = oauthClient.getToken().access_token;
-  const response = await fetch(url, {
-    method: method,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body)
-  });
-  return response.json();
-}
-
 export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, token) {
   try {
     const oauthClient = await getOAuthClient(token);
@@ -396,7 +382,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
           Qty: localItem.originalQty,
           UnitPrice: localItem.price,
           TaxCodeRef: {
-            value: "5"
+            value: "5" // look into this later it just means if it uses gst or not for some reason I needed it
           }
         }
       };

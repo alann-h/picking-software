@@ -24,3 +24,17 @@ export async function transaction(callback) {
     client.release();
   }
 }
+
+export async function makeCustomApiCall(oauthClient, url, method, body) {
+  const token = oauthClient.getToken().access_token;
+  const response = await fetch(url, {
+    method: method,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body)
+  });
+  return response.json();
+}

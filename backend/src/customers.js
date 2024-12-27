@@ -14,9 +14,9 @@ export async function getCustomerId(customerName) {
   }
 }
 
-export async function fetchCustomers(userId) {
+export async function fetchCustomers(token) {
   try {
-    const oauthClient = await getOAuthClient(userId);
+    const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialized');
     }
