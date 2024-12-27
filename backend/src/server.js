@@ -22,7 +22,10 @@ import pool from './db.js';
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({ 
+  origin: ['https://smartpicker.au', 'https://api.smartpicker.au',], 
+  credentials: true 
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(morgan(':method :url :status'));
@@ -88,10 +91,9 @@ app.get('/callback', asyncHandler(async (req, res) => {
   // Also when a user logins here they are guarenteed to be an admin due to using OAuth login
   const companyinfo = await saveCompanyInfo(token);
   const userInfo = await saveUserQbButton(token, companyinfo.id);
-  console.log(userInfo);
   req.session.token = token;
 
-  res.redirect(`http://localhost:3000/oauth/callback`);
+  res.redirect(`https://smartpicker.au/oauth/callback`);
 }));
 
 app.get('/csrf-token', csrfProtection, (req, res) => {
@@ -268,9 +270,9 @@ app.use((err, req, res) => {
 });
 
 const port = process.env.BACKEND_PORT;
-const server = app.listen(port, () => {
-  console.log(`Backend is now listening on port ${port}!`);
-  console.log(`For API docs, navigate to http://localhost:${port}`);
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`Backend server running on port ${port}`);
+  console.log(`For API docs, navigate to https://api.smartpicker.au/docs`);
 });
 
 export default server;

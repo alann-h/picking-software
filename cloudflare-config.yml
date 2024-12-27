@@ -1,0 +1,10 @@
+tunnel: 4b6c33d4-5702-4efd-bc88-802bfb1b50c5
+credentials-file: /etc/cloudflared/4b6c33d4-5702-4efd-bc88-802bfb1b50c5.json
+
+ingress:
+  - hostname: smartpicker.au
+    service: http://frontend:3000
+  - hostname: api.smartpicker.au
+    service: http://backend:5033
+  # Catch-all rule
+  - service: http_status:404
