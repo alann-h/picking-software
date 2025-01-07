@@ -8,6 +8,7 @@ import { useAllProducts } from './useAllProducts';
 import ProductList from './ProductListSettings';
 import SearchBar from './SearchBarSettings';
 import FileUpload from './FileUpload';
+import UserManagement from './UsersManagment';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -90,6 +91,7 @@ const Settings: React.FC = () => {
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
           <Tab label="Current Products" />
           <Tab label="Upload Data" />
+          < Tab label="User Managment" />
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -120,6 +122,22 @@ const Settings: React.FC = () => {
             </Grid>
           </Grid>
         </TabPanel>
+
+        <TabPanel value={tabValue} index={2}>
+          <Box sx={{ maxWidth: '100%' }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Typography variant="h6" gutterBottom color="primary">
+                User Management
+              </Typography>
+              <UserManagement />
+            </motion.div>
+          </Box>
+        </TabPanel>
+
       </Paper>
     </Box>
   );

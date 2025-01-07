@@ -13,7 +13,7 @@ export const apiCallGet = async (path: string) => {
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'GET',
     headers,
-    credentials: 'include', // This is important for including cookies in the request
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -37,7 +37,7 @@ export const apiCallPost = async (path: string, body: object | FormData) => {
   const options: RequestInit = {
     method: 'POST',
     headers,
-    credentials: 'include', // This is important for including cookies in the request
+    credentials: 'include',
     body: body instanceof FormData ? body : JSON.stringify(body)
   };
 
@@ -69,7 +69,7 @@ export const apiCallPut = async (path: string, body: object) => {
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'PUT',
     headers,
-    credentials: 'include', // This is important for including cookies in the request
+    credentials: 'include',
     body: JSON.stringify(body)
   });
 
@@ -94,7 +94,7 @@ export const apiCallDelete = async (path: string) => {
   const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
     method: 'DELETE',
     headers,
-    credentials: 'include', // This is important for including cookies in the request
+    credentials: 'include',
   });
 
   if (!response.ok) {

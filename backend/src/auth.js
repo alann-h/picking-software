@@ -2,6 +2,7 @@ import OAuthClient from 'intuit-oauth';
 import dotenv from 'dotenv';
 import { AccessError, AuthenticationError } from './error';
 import { query } from './helpers.js';
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config({ path: '.env' });
 
@@ -103,22 +104,23 @@ export async function login(email, password) {
   }
 }
 
-export async function register(email, password, is_admin, givenName, familyName, companyId, userId) {
+export async function register(email, password, is_admin, givenName, familyName, companyId) {
+  const userId = uuidv4();
   try {
-  const result = await query(`
-    INSERT INTO users (id, email, password, is_admin, given_name, family_name, company_id) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    ON CONFLICT (id) DO UPDATE 
-    SET 
-        email = EXCLUDED.email,
-        password = EXCLUDED.password,
-        is_admin = EXCLUDED.is_admin,
-        given_name = EXCLUDED.given_name,
-        family_name = EXCLUDED.family_name,
-        company_id = EXCLUDED.company_id
-    RETURNING *`, 
-    [userId, email, password, is_admin, givenName, familyName, companyId]
-);    if (result.length === 0) {
+    const result = await query(`
+      INSERT INTO users (id, email, password, is_admin, given_name, family_name, company_id) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (email) DO UPDATE 
+      SET 
+          password = EXCLUDED.password,
+          is_admin = EXCLUDED.is_admin,
+          given_name = EXCLUDED.given_name,
+          family_name = EXCLUDED.family_name,
+          company_id = EXCLUDED.company_id
+      RETURNING *`,
+      [userId, email, password, is_admin, givenName, familyName, companyId]
+    );    
+    if (result.length === 0) {
       throw new AuthenticationError('Invalid email or password');
     }
     return result[0];
@@ -126,6 +128,20 @@ export async function register(email, password, is_admin, givenName, familyName,
     throw new AuthenticationError(error.message);
   }
 }
+
+export async function deleteUser(userId) {
+  try{
+    const result = await query(
+      `DELETE FROM users 
+       WHERE id = $1 
+       RETURNING *`,
+      [userId]
+    );
+    return result[0];
+  } catch (error) {
+    throw new AuthenticationError(error.message);
+  }
+};
 
 async function getUserInfo(token) {
   try {
@@ -144,6 +160,15 @@ export async function saveUserQbButton(token, companyId) {
     const password = 'GoldenShore2024';
     const response = await register(userInfo.email, password, true, userInfo.givenName, userInfo.familyName, companyId, userInfo.sub);
     return response;
+  } catch (e) {
+    throw new AccessError('Could not get user information: ' + e.message);
+  }
+}
+
+export async function getAllUsers() {
+  try {
+    const result = await query('select * from users');
+    return result;
   } catch (e) {
     throw new AccessError('Could not get user information: ' + e.message);
   }

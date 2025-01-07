@@ -24,7 +24,7 @@ const App: React.FC = () => {
       <SnackbarProvider>
         <HelmetProvider>
           <Helmet>
-            <title>Picking Software</title>
+            <title>Smart Picker</title>
             <link rel="icon" type="image/png" href="/SP.png" />          
           </Helmet>
           <CssBaseline />

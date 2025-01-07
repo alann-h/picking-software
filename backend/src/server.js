@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
-import { getAuthUri, handleCallback, login, saveUserQbButton } from './auth.js';
+import { getAuthUri, handleCallback, login, saveUserQbButton, getAllUsers, register, deleteUser } from './auth.js';
 import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
@@ -87,9 +87,9 @@ app.get('/callback', asyncHandler(async (req, res) => {
   // I will now save the company information and save the user if not registered
   // Also when a user logins here they are guarenteed to be an admin due to using OAuth login
   const companyinfo = await saveCompanyInfo(token);
-  const userInfo = await saveUserQbButton(token, companyinfo.id);
-  console.log(userInfo);
+  await saveUserQbButton(token, companyinfo.id);
   req.session.token = token;
+  req.session.companyId = companyinfo.id;
 
   res.redirect(`http://localhost:3000/oauth/callback`);
 }));
@@ -114,10 +114,27 @@ app.get('/login', csrfProtection, asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'Logged in successfully' });
 }));
 
+app.post('/register', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const { email, firstName, lastName, password, isAdmin } = req.body;
+  const registeredUser = await register(email, password, isAdmin, firstName, lastName, req.session.companyId);
+  res.status(200).json({ message: `Registered user id ${registeredUser.id}` });
+}));
+
+app.delete('/deleteUser/:userId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const deletedUser = await deleteUser(userId);
+  res.json(deletedUser);
+}));
+
 app.get('/user-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
   res.json({
     isAdmin: req.session.isAdmin || false
   });
+}));
+
+app.get('/getAllUsers', csrfProtection, isAuthenticated, asyncHandler(async (_, res) => {
+  const users = await getAllUsers();
+  res.status(200).json(users);
 }));
 
 /***************************************************************
