@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
-import { getAuthUri, handleCallback, login, saveUserQbButton, getAllUsers, register, deleteUser } from './auth.js';
+import { getAuthUri, handleCallback, login, saveUserQbButton, getAllUsers, register, deleteUser, updateUser } from './auth.js';
 import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
@@ -19,6 +19,7 @@ import swaggerDocument from '../swagger.json';
 import multer from 'multer';
 import pgSession from 'connect-pg-simple';
 import pool from './db.js';
+import { AccessError } from './error.js';
 
 const app = express();
 
@@ -88,7 +89,7 @@ app.get('/callback', asyncHandler(async (req, res) => {
   // Also when a user logins here they are guarenteed to be an admin due to using OAuth login
   const companyinfo = await saveCompanyInfo(token);
   const user = await saveUserQbButton(token, companyinfo.id);
-  
+
   req.session.token = token;
   req.session.companyId = companyinfo.id;
   req.session.isAdmin = true;
@@ -121,27 +122,55 @@ app.post('/login', csrfProtection, asyncHandler(async (req, res) => {
   res.json({ message: 'Logged in successfully' });
 }));
 
+// admin will registers users in
 app.post('/register', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
-  const { email, firstName, lastName, password, isAdmin } = req.body;
-  const registeredUser = await register(email, password, isAdmin, firstName, lastName, req.session.companyId);
-  res.status(200).json({ message: `Registered user id ${registeredUser.id}` });
+  const { email, givenName, familyName, password, isAdmin } = req.body;
+  const registeredUser = await register(email, password, isAdmin, givenName, familyName, req.session.companyId);
+  res.json({ message: `Registered user id ${registeredUser.id}` });
 }));
 
 app.delete('/deleteUser/:userId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
   const { userId } = req.params;
-  const deletedUser = await deleteUser(userId);
-  res.json(deletedUser);
+  
+  // Check if user is deleting their own account
+  if (req.session.userId === userId) {
+    const deletedUser = await deleteUser(userId, req.session.id);
+    // Clear the session cookie
+    req.session.destroy((err) => {
+      if (err) {
+        throw new Error('Failed to destroy session');
+      }
+      res.clearCookie('connect.sid');
+      res.json(deletedUser);
+    });
+  } else {
+    // Deleting another user's account
+    const deletedUser = await deleteUser(userId, null);
+    res.json(deletedUser);
+  }
 }));
 
 app.get('/user-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
   res.json({
-    isAdmin: req.session.isAdmin || false
+    isAdmin: req.session.isAdmin || false,
+    userId: req.session.userId
   });
 }));
 
 app.get('/getAllUsers', csrfProtection, isAuthenticated, asyncHandler(async (_, res) => {
   const users = await getAllUsers();
-  res.status(200).json(users);
+  res.json(users);
+}));
+
+app.put('/updateUser/:userId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  // Check if user is admin or updating their own profile
+  if (!req.session.isAdmin && req.params.userId !== req.session.userId) {
+    throw new AccessError('Unauthorized to update this user');
+  } 
+
+  const { userId } = req.params;
+  const updatedUser = await updateUser(userId, req.body);
+  res.json(updatedUser);
 }));
 
 /***************************************************************

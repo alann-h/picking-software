@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { CssBaseline, Box, ThemeProvider } from '@mui/material';
 import InitalPage from './components/InitalPage';
@@ -14,6 +14,7 @@ import Quote from './components/Quote';
 import theme from './theme';
 import Footer from './components/Footer';
 import OrdersToCheckPage from './components/OrdersToCheckPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -32,13 +33,35 @@ const App: React.FC = () => {
             <TopBar isInitalPage={disableTopBar} />
             <Box sx={{ flexGrow: 1, width: '100%' }}>
               <Routes>
+                {/* Public Routes */}
                 <Route path="/" element={<InitalPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/settings" element={<Settings />} />
-                <Route path="/quote" element={<Quote />} />
-                <Route path="/dashboard/orders-to-check" element={<OrdersToCheckPage />} />
+                
+                {/* Protected Routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dashboard/settings" element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } />
+                <Route path="/quote" element={
+                  <ProtectedRoute>
+                    <Quote />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dashboard/orders-to-check" element={
+                  <ProtectedRoute>
+                    <OrdersToCheckPage />
+                  </ProtectedRoute>
+                } />
+
+                {/* Catch-all route - redirects any unknown path to home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Box>
           </Box>

@@ -22,17 +22,9 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useSnackbarContext } from './SnackbarContext';
-import { getAllUsers, registerUser, deleteUser } from '../api/user';
-
-interface UserData {
-  id: string;
-  email: string;
-  password: string;
-  given_name: string;
-  family_name: string;
-  is_admin: boolean;
-  company_id: number;
-}
+import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from '../api/user';
+import { UserData } from '../utils/types';
+import { useNavigate } from 'react-router-dom';
 
 const DEFAULT_USER: UserData = {
   id: '',
@@ -50,6 +42,13 @@ const UsersManagement = () => {
   const [newUser, setNewUser] = useState<UserData>(DEFAULT_USER);
   const [isLoading, setIsLoading] = useState(true);
   const { handleOpenSnackbar } = useSnackbarContext();
+  const [editingField, setEditingField] = useState<{
+    userId: string;
+    field: keyof UserData;
+  } | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -100,9 +99,16 @@ const UsersManagement = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
+      const userStatus = await getUserStatus();
+      // await deleteUser(userId);
+
+      if (userStatus.userId === userId) {
+        navigate('/login'); 
+      }
       await deleteUser(userId);
       const updatedUsers = await getAllUsers();
       setUsers(updatedUsers);
+      
       handleOpenSnackbar('User deleted successfully', 'success');
     } catch (error) {
       handleOpenSnackbar('Failed to delete user', 'error');
@@ -111,6 +117,102 @@ const UsersManagement = () => {
 
   const handleInputChange = (field: keyof UserData, value: string | boolean) => {
     setNewUser(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFieldClick = (userId: string, field: keyof UserData, value: string) => {
+    setEditingField({ userId, field });
+    setEditValue(value);
+  };
+
+  const handleFieldSave = async (userId: string) => {
+    if (!editingField) return;
+  
+    try {
+      const userToUpdate = users.find(u => u.id === userId);
+      if (!userToUpdate) return;
+  
+      // Don't update if value hasn't changed
+      if (editValue === userToUpdate[editingField.field]) {
+        setEditingField(null);
+        setEditValue('');
+        return;
+      }
+  
+      // For password field, don't update if empty
+      if (editingField.field === 'password' && !editValue) {
+        setEditingField(null);
+        setEditValue('');
+        return;
+      }
+  
+      const updatedUser = {
+        ...userToUpdate,
+        [editingField.field]: editValue
+      };
+  
+      await updateUser(userId, updatedUser.email, updatedUser.password, updatedUser.given_name, updatedUser.family_name, updatedUser.is_admin);
+  
+      const updatedUsers = await getAllUsers();
+      setUsers(updatedUsers);
+      handleOpenSnackbar('User updated successfully', 'success');
+    } catch (error) {
+      handleOpenSnackbar('Failed to update user', 'error');
+    } finally {
+      setEditingField(null);
+      setEditValue('');
+    }
+  };
+  const handleAdminToggle = async (user: UserData, newAdminStatus: boolean) => {
+    try {
+      const userStatus = await getUserStatus();
+      if (userStatus.userId === user.id && newAdminStatus !== userStatus.is_admin) {
+        handleOpenSnackbar('Cannot change your own admin privileges!', 'error');
+        return
+      }
+      await updateUser(
+        user.id, user.email, user.password, user.given_name, user.family_name, newAdminStatus
+      );
+      const updatedUsers = await getAllUsers();
+      setUsers(updatedUsers);
+      handleOpenSnackbar('User updated successfully', 'success');
+    } catch (error) {
+      handleOpenSnackbar('Failed to update user', 'error');
+    }
+  };
+
+  const renderEditableCell = (user: UserData, field: keyof UserData, displayValue: string) => {
+    const isEditing = editingField?.userId === user.id && editingField?.field === field;
+
+    if (isEditing) {
+      return (
+        <TableCell>
+          <TextField
+            autoFocus
+            size="small"
+            type={field === 'password' ? 'password' : 'text'}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={() => handleFieldSave(user.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleFieldSave(user.id);
+              }
+            }}
+          />
+        </TableCell>
+      );
+    }
+
+    return (
+      <TableCell
+        onClick={() => handleFieldClick(user.id, field, field === 'password' ? '' : displayValue)}
+        sx={{ 
+          cursor: 'pointer'
+        }}
+      >
+        {field === 'password' ? '•'.repeat(8) : displayValue}
+      </TableCell>
+    );
   };
 
   if (isLoading) {
@@ -157,15 +259,15 @@ const UsersManagement = () => {
             <TableBody>
               {users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>{user.given_name}</TableCell>
-                  <TableCell>{user.family_name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{'•'.repeat(8)}</TableCell>
+                  {renderEditableCell(user, 'given_name', user.given_name)}
+                  {renderEditableCell(user, 'family_name', user.family_name)}
+                  {renderEditableCell(user, 'email', user.email)}
+                  {renderEditableCell(user, 'password', user.password)}
                   <TableCell align="center">
                     <Switch
                       checked={user.is_admin}
                       size="small"
-                      disabled
+                      onChange={(e) => handleAdminToggle(user, e.target.checked)}
                     />
                   </TableCell>
                   <TableCell align="right">

@@ -1,7 +1,7 @@
 import OAuthClient from 'intuit-oauth';
 import dotenv from 'dotenv';
 import { AccessError, AuthenticationError } from './error';
-import { query } from './helpers.js';
+import { query, transaction } from './helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config({ path: '.env' });
@@ -156,15 +156,30 @@ export async function register(email, password, is_admin, givenName, familyName,
   }
 }
 
-export async function deleteUser(userId) {
-  try{
-    const result = await query(
-      `DELETE FROM users 
-       WHERE id = $1 
-       RETURNING *`,
-      [userId]
-    );
-    return result[0];
+export async function deleteUser(userId, sessionId) {
+  try {
+    await transaction(async (client) => {
+      if (sessionId) {
+        await client.query(
+          'DELETE FROM sessions WHERE sid = $1',
+          [sessionId]
+        );
+      }
+      
+      // Delete the user
+      const result = await client.query(
+        `DELETE FROM users 
+         WHERE id = $1 
+         RETURNING *`,
+        [userId]
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error('User not found');
+      }
+      
+      return result.rows[0];
+    });
   } catch (error) {
     throw new AuthenticationError(error.message);
   }
@@ -198,5 +213,36 @@ export async function getAllUsers() {
     return result;
   } catch (e) {
     throw new AccessError('Could not get user information: ' + e.message);
+  }
+}
+
+export async function updateUser(userId, userData) {
+  try {
+    const result = await query(
+      `UPDATE users 
+       SET email = $1,
+           password = $2,
+           given_name = $3,
+           family_name = $4,
+           is_admin = $5
+       WHERE id = $6
+       RETURNING *`,
+      [
+        userData.email,
+        userData.password,
+        userData.givenName,
+        userData.familyName,
+        userData.isAdmin,
+        userId
+      ]
+    );
+
+    if (result.length === 0) {
+      throw new AccessError('User not found');
+    }
+
+    return result[0];
+  } catch (error) {
+    throw new AccessError(error.message);
   }
 }

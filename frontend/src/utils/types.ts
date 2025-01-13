@@ -56,3 +56,13 @@ export interface Product {
     productName: string;
     barcode: number;
 }
+
+export interface UserData {
+    id: string;
+    email: string;
+    password: string;
+    given_name: string;
+    family_name: string;
+    is_admin: boolean;
+    company_id: number;
+}
