@@ -106,12 +106,13 @@ app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
   }
 }));
 
-app.get('/login', csrfProtection, asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
-  const user = await login(username, password);
+app.post('/login', csrfProtection, asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  const user = await login(email, password);
   req.session.token = user.token;
   req.session.isAdmin = user.is_admin;
-  res.status(200).json({ message: 'Logged in successfully' });
+  req.session.userId = user.id;
+  res.json({ message: 'Logged in successfully' });
 }));
 
 app.post('/register', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {

@@ -94,11 +94,38 @@ export async function getOAuthClient(token) {
 
 export async function login(email, password) {
   try {
-    const result = await query('SELECT token FROM users WHERE email = $1 AND password = $2', [email, password]);
+    const result = await query(`
+      SELECT 
+        u.*,
+        c.qb_token as token
+      FROM users u
+      JOIN companies c ON u.company_id = c.id
+      WHERE u.email = $1 AND u.password = $2
+    `, [email, password]);
+
     if (result.length === 0) {
       throw new AuthenticationError('Invalid email or password');
     }
-    return result[0];
+
+    // Get the user with the original token
+    const user = result[0];
+
+    try {
+      const refreshedToken = await refreshToken(user.token);
+
+      // Update the company's token in the database if it was refreshed
+      if (refreshedToken !== user.token) {
+        await query(
+          'UPDATE companies SET qb_token = $1::jsonb WHERE id = $2',
+          [refreshedToken, user.company_id]
+        );
+        user.token = refreshedToken;
+      }
+    } catch (error) {
+      throw new AuthenticationError('Failed to refresh token: ' + error.message);
+    }
+
+    return user;
   } catch (error) {
     throw new AuthenticationError(error.message);
   }
