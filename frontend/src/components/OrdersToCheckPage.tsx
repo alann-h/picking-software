@@ -41,7 +41,7 @@ const OrdersToCheckPage: React.FC = () => {
     };
 
     fetchQuotes();
-  }, [handleOpenSnackbar]);
+  }, [handleOpenSnackbar, navigate]);
 
   const handleQuoteClick = (quoteId: string) => {
     navigate(`/quote?Id=${quoteId}`);
