@@ -87,9 +87,12 @@ app.get('/callback', asyncHandler(async (req, res) => {
   // I will now save the company information and save the user if not registered
   // Also when a user logins here they are guarenteed to be an admin due to using OAuth login
   const companyinfo = await saveCompanyInfo(token);
-  await saveUserQbButton(token, companyinfo.id);
+  const user = await saveUserQbButton(token, companyinfo.id);
+  
   req.session.token = token;
   req.session.companyId = companyinfo.id;
+  req.session.isAdmin = true;
+  req.session.userId = user.id;
 
   res.redirect(`http://localhost:3000/oauth/callback`);
 }));
@@ -109,9 +112,12 @@ app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
 app.post('/login', csrfProtection, asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await login(email, password);
+
   req.session.token = user.token;
   req.session.isAdmin = user.is_admin;
   req.session.userId = user.id;
+  req.session.companyId = user.company_id;
+
   res.json({ message: 'Logged in successfully' });
 }));
 
