@@ -100,7 +100,6 @@ const UsersManagement = () => {
   const handleDeleteUser = async (userId: string) => {
     try {
       const userStatus = await getUserStatus();
-      // await deleteUser(userId);
 
       if (userStatus.userId === userId) {
         navigate('/login'); 
@@ -165,7 +164,7 @@ const UsersManagement = () => {
   const handleAdminToggle = async (user: UserData, newAdminStatus: boolean) => {
     try {
       const userStatus = await getUserStatus();
-      if (userStatus.userId === user.id && newAdminStatus !== userStatus.is_admin) {
+      if (userStatus.userId === user.id && newAdminStatus !== userStatus.isAdmin) {
         handleOpenSnackbar('Cannot change your own admin privileges!', 'error');
         return
       }
