@@ -5,8 +5,8 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from './SnackbarContext';
-import { getQuotesWithStatus } from '../api/quote'; // You'll need to create this API function
-
+import { getQuotesWithStatus } from '../api/quote';
+import { getUserStatus } from '../api/user';
 interface Quote {
   id: string;
   customerName: string;
@@ -20,9 +20,17 @@ const OrdersToCheckPage: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
 
+
+
   useEffect(() => {
     const fetchQuotes = async () => {
       try {
+        const userStatus = await getUserStatus();
+        if (!userStatus.isAdmin) {
+          navigate('/dashboard');
+          return
+        };
+
         const fetchedQuotes = await getQuotesWithStatus('checking');
         setQuotes(fetchedQuotes);
       } catch (error) {
