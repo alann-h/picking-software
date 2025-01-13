@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { QuoteData, ProductDetail, QuoteUpdateFunction } from '../utils/types';
 import { OpenModalFunction } from '../utils/modalState';
 import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandlers';
-import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, handleAddProduct } from '../utils/productHandlers';
+import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, setFinishedButton ,handleAddProduct } from '../utils/productHandlers';
 import { createFetchQuoteData } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
 import { updateQuoteInQuickBooks, updateQuoteStatus } from '../api/quote';
@@ -155,6 +155,18 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
       }
     
     },[quoteId, updateQuoteData, handleOpenSnackbar]);
+
+    const setFinished = useCallback(async (productId: number) => {
+      try {
+        const data = await setFinishedButton(quoteId, productId, updateQuoteData)
+        handleOpenSnackbar(data.message, 'success');
+        return data;
+      } catch(error) {
+        handleOpenSnackbar(`${error}`, 'error');
+      }
+    
+    },[quoteId, updateQuoteData, handleOpenSnackbar]);
+  
   
   const openAddProductModal = () => {
     try {
@@ -204,6 +216,6 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   };
 
-  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, addProduct, 
+  return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, setFinished, addProduct, 
     openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinalizeInvoice };
 };

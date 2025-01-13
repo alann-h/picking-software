@@ -10,7 +10,7 @@ import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
-import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable } from './products.js';
+import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import { saveCompanyInfo } from './company.js';
 import dotenv from 'dotenv';
@@ -279,6 +279,12 @@ app.put('/saveProductForLater', csrfProtection, isAuthenticated, asyncHandler(as
 app.put('/setProductUnavailable', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productId } = req.body;
   const result = await setUnavailable(quoteId, productId);
+  res.status(200).json(result);
+}));
+
+app.put('/setProductFinished', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const { quoteId, productId } = req.body;
+  const result = await setProductFinished(quoteId, productId);
   res.status(200).json(result);
 }));
 

@@ -330,7 +330,7 @@ export async function setOrderStatus(quoteId, newStatus) {
 export async function getQuotesWithStatus(status) {
   try {
     const result = await query(
-      'SELECT quoteid, customerid, customername, totalamount, orderstatus, timestarted, lastmodified FROM quotes WHERE orderstatus = $1 ORDER BY lastmodified DESC',
+      'SELECT * FROM quotes WHERE orderstatus = $1 ORDER BY lastmodified DESC',
       [status]
     );
 
