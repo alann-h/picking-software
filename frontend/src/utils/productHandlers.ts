@@ -1,5 +1,5 @@
 import { ProductDetail, QuoteUpdateFunction } from '../utils/types';
-import { getProductInfo, saveProductForLater, setProductUnavailable } from '../api/others';
+import { getProductInfo, saveProductForLater, setProductFinished, setProductUnavailable } from '../api/others';
 import { addProductToQuote, adjustProductQty } from '../api/quote';
 
 export const handleProductDetails = async (productId: number, details: ProductDetail) => {
@@ -82,6 +82,27 @@ export const setUnavailableButton = async (quoteId: number, productId: number, u
     throw Error(`${error}`);
   }
 };
+
+export const setFinishedButton = async (quoteId: number, productId: number, updateQuoteData: QuoteUpdateFunction) => {
+  try {
+    const data = await setProductFinished(quoteId, productId);
+    
+    updateQuoteData(prevQuoteData => {
+      const updatedProductInfo = { ...prevQuoteData.productInfo };
+      const product = Object.values(updatedProductInfo).find(
+        product => product.productId === productId
+      );
+      if (product) {
+        product.pickingStatus = data.newStatus;
+      }
+      return data;
+    });
+    return data;
+  } catch (error) {
+    throw Error(`${error}`);
+  }
+};
+
 
 export const handleAddProduct = async (productName: string, quoteId: number, qty: number, updateQuoteData: QuoteUpdateFunction) => {
   try {

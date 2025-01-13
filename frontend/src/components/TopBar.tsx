@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppBar, Button, IconButton, Toolbar, Typography, useTheme } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useNavigate } from 'react-router-dom';
+import { getUserStatus } from '../api/user';
 
 interface TopBarProps {
   isInitalPage: boolean;
@@ -11,6 +12,16 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({ isInitalPage }) => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const fetchUserStatus = async () => {
+      const userStatus = await getUserStatus();
+      setIsAdmin(userStatus.isAdmin);
+    };
+
+    fetchUserStatus();
+  }, []);
 
   const handleLogoClick = () => {
     if (!isInitalPage) {
@@ -43,14 +54,16 @@ const TopBar: React.FC<TopBarProps> = ({ isInitalPage }) => {
         </Typography>
         {!isInitalPage && (
           <div>
-            <Button
-              startIcon={<AssignmentIcon />}
-              onClick={handleOrdersToCheckClick}
-              sx={{ marginRight: 2 }}
-            >
-              Orders to Check
-            </Button>
-            <IconButton color="inherit" onClick={handleSettingsClick}>
+            {isAdmin && (
+              <Button
+                startIcon={<AssignmentIcon />}
+                onClick={handleOrdersToCheckClick}
+                sx={{ marginRight: 2 }}
+              >
+                Orders to Check
+              </Button>
+            )}
+            <IconButton color="inherit" onClick={handleSettingsClick} disabled={!isAdmin}>
               <SettingsIcon />
             </IconButton>
           </div>

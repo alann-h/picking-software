@@ -186,3 +186,19 @@ export async function setUnavailable(quoteId, productId) {
     throw new AccessError(error.message);
   }
 }
+
+export async function setProductFinished(quoteId, productId) {
+  try {
+    const result = await query(
+      'UPDATE quoteitems SET pickingqty = 0, pickingstatus = \'completed\' WHERE quoteid = $1 AND productid = $2 RETURNING *',
+      [quoteId, productId]
+    );
+
+    if (result.length === 0) {
+      throw new AccessError('Product does not exist in this quote!');
+    }
+    return result[0].pickingqty;
+  } catch (error) {
+    throw new AccessError(error.message);
+  }
+}

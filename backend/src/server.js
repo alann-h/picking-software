@@ -5,12 +5,12 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
-import { getAuthUri, handleCallback, login, saveUserQbButton } from './auth.js';
+import { getAuthUri, handleCallback, login, saveUserQbButton, getAllUsers, register, deleteUser, updateUser } from './auth.js';
 import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
-import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable } from './products.js';
+import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import { saveCompanyInfo } from './company.js';
 import dotenv from 'dotenv';
@@ -19,6 +19,7 @@ import swaggerDocument from '../swagger.json';
 import multer from 'multer';
 import pgSession from 'connect-pg-simple';
 import pool from './db.js';
+import { AccessError } from './error.js';
 
 const app = express();
 
@@ -90,8 +91,12 @@ app.get('/callback', asyncHandler(async (req, res) => {
   // I will now save the company information and save the user if not registered
   // Also when a user logins here they are guarenteed to be an admin due to using OAuth login
   const companyinfo = await saveCompanyInfo(token);
-  const userInfo = await saveUserQbButton(token, companyinfo.id);
+  const user = await saveUserQbButton(token, companyinfo.id);
+
   req.session.token = token;
+  req.session.companyId = companyinfo.id;
+  req.session.isAdmin = true;
+  req.session.userId = user.id;
 
   res.redirect(`https://smartpicker.au/oauth/callback`);
 }));
@@ -108,18 +113,67 @@ app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
   }
 }));
 
-app.get('/login', csrfProtection, asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
-  const user = await login(username, password);
+app.post('/login', csrfProtection, asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  const user = await login(email, password);
+
   req.session.token = user.token;
   req.session.isAdmin = user.is_admin;
-  res.status(200).json({ message: 'Logged in successfully' });
+  req.session.userId = user.id;
+  req.session.companyId = user.company_id;
+
+  res.json({ message: 'Logged in successfully' });
+}));
+
+// admin will registers users in
+app.post('/register', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const { email, givenName, familyName, password, isAdmin } = req.body;
+  const registeredUser = await register(email, password, isAdmin, givenName, familyName, req.session.companyId);
+  res.json({ message: `Registered user id ${registeredUser.id}` });
+}));
+
+app.delete('/deleteUser/:userId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  
+  // Check if user is deleting their own account
+  if (req.session.userId === userId) {
+    const deletedUser = await deleteUser(userId, req.session.id);
+    // Clear the session cookie
+    req.session.destroy((err) => {
+      if (err) {
+        throw new Error('Failed to destroy session');
+      }
+      res.clearCookie('connect.sid');
+      res.json(deletedUser);
+    });
+  } else {
+    // Deleting another user's account
+    const deletedUser = await deleteUser(userId, null);
+    res.json(deletedUser);
+  }
 }));
 
 app.get('/user-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
   res.json({
-    isAdmin: req.session.isAdmin || false
+    isAdmin: req.session.isAdmin || false,
+    userId: req.session.userId
   });
+}));
+
+app.get('/getAllUsers', csrfProtection, isAuthenticated, asyncHandler(async (_, res) => {
+  const users = await getAllUsers();
+  res.json(users);
+}));
+
+app.put('/updateUser/:userId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  // Check if user is admin or updating their own profile
+  if (!req.session.isAdmin && req.params.userId !== req.session.userId) {
+    throw new AccessError('Unauthorized to update this user');
+  } 
+
+  const { userId } = req.params;
+  const updatedUser = await updateUser(userId, req.body);
+  res.json(updatedUser);
 }));
 
 /***************************************************************
@@ -228,6 +282,12 @@ app.put('/saveProductForLater', csrfProtection, isAuthenticated, asyncHandler(as
 app.put('/setProductUnavailable', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productId } = req.body;
   const result = await setUnavailable(quoteId, productId);
+  res.status(200).json(result);
+}));
+
+app.put('/setProductFinished', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+  const { quoteId, productId } = req.body;
+  const result = await setProductFinished(quoteId, productId);
   res.status(200).json(result);
 }));
 

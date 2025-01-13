@@ -76,3 +76,13 @@ export const setProductUnavailable = async (quoteId: number, productId: number) 
     return response;  
   }
 }
+
+export const setProductFinished = async (quoteId: number, productId: number) => {
+  const response = await apiCallPut('setProductFinished', { quoteId, productId });
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}
+

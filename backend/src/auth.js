@@ -1,7 +1,8 @@
 import OAuthClient from 'intuit-oauth';
 import dotenv from 'dotenv';
 import { AccessError, AuthenticationError } from './error';
-import { query } from './helpers.js';
+import { query, transaction } from './helpers.js';
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config({ path: '.env' });
 
@@ -93,7 +94,59 @@ export async function getOAuthClient(token) {
 
 export async function login(email, password) {
   try {
-    const result = await query('SELECT token FROM users WHERE email = $1 AND password = $2', [email, password]);
+    const result = await query(`
+      SELECT 
+        u.*,
+        c.qb_token as token
+      FROM users u
+      JOIN companies c ON u.company_id = c.id
+      WHERE u.email = $1 AND u.password = $2
+    `, [email, password]);
+
+    if (result.length === 0) {
+      throw new AuthenticationError('Invalid email or password');
+    }
+
+    // Get the user with the original token
+    const user = result[0];
+
+    try {
+      const refreshedToken = await refreshToken(user.token);
+
+      // Update the company's token in the database if it was refreshed
+      if (refreshedToken !== user.token) {
+        await query(
+          'UPDATE companies SET qb_token = $1::jsonb WHERE id = $2',
+          [refreshedToken, user.company_id]
+        );
+        user.token = refreshedToken;
+      }
+    } catch (error) {
+      throw new AuthenticationError('Failed to refresh token: ' + error.message);
+    }
+
+    return user;
+  } catch (error) {
+    throw new AuthenticationError(error.message);
+  }
+}
+
+export async function register(email, password, is_admin, givenName, familyName, companyId) {
+  const userId = uuidv4();
+  try {
+    const result = await query(`
+      INSERT INTO users (id, email, password, is_admin, given_name, family_name, company_id) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (email) DO UPDATE 
+      SET 
+          password = EXCLUDED.password,
+          is_admin = EXCLUDED.is_admin,
+          given_name = EXCLUDED.given_name,
+          family_name = EXCLUDED.family_name,
+          company_id = EXCLUDED.company_id
+      RETURNING *`,
+      [userId, email, password, is_admin, givenName, familyName, companyId]
+    );    
     if (result.length === 0) {
       throw new AuthenticationError('Invalid email or password');
     }
@@ -103,29 +156,34 @@ export async function login(email, password) {
   }
 }
 
-export async function register(email, password, is_admin, givenName, familyName, companyId, userId) {
+export async function deleteUser(userId, sessionId) {
   try {
-  const result = await query(`
-    INSERT INTO users (id, email, password, is_admin, given_name, family_name, company_id) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    ON CONFLICT (id) DO UPDATE 
-    SET 
-        email = EXCLUDED.email,
-        password = EXCLUDED.password,
-        is_admin = EXCLUDED.is_admin,
-        given_name = EXCLUDED.given_name,
-        family_name = EXCLUDED.family_name,
-        company_id = EXCLUDED.company_id
-    RETURNING *`, 
-    [userId, email, password, is_admin, givenName, familyName, companyId]
-);    if (result.length === 0) {
-      throw new AuthenticationError('Invalid email or password');
-    }
-    return result[0];
+    await transaction(async (client) => {
+      if (sessionId) {
+        await client.query(
+          'DELETE FROM sessions WHERE sid = $1',
+          [sessionId]
+        );
+      }
+      
+      // Delete the user
+      const result = await client.query(
+        `DELETE FROM users 
+         WHERE id = $1 
+         RETURNING *`,
+        [userId]
+      );
+      
+      if (result.rows.length === 0) {
+        throw new Error('User not found');
+      }
+      
+      return result.rows[0];
+    });
   } catch (error) {
     throw new AuthenticationError(error.message);
   }
-}
+};
 
 async function getUserInfo(token) {
   try {
@@ -146,5 +204,45 @@ export async function saveUserQbButton(token, companyId) {
     return response;
   } catch (e) {
     throw new AccessError('Could not get user information: ' + e.message);
+  }
+}
+
+export async function getAllUsers() {
+  try {
+    const result = await query('select * from users');
+    return result;
+  } catch (e) {
+    throw new AccessError('Could not get user information: ' + e.message);
+  }
+}
+
+export async function updateUser(userId, userData) {
+  try {
+    const result = await query(
+      `UPDATE users 
+       SET email = $1,
+           password = $2,
+           given_name = $3,
+           family_name = $4,
+           is_admin = $5
+       WHERE id = $6
+       RETURNING *`,
+      [
+        userData.email,
+        userData.password,
+        userData.givenName,
+        userData.familyName,
+        userData.isAdmin,
+        userId
+      ]
+    );
+
+    if (result.length === 0) {
+      throw new AccessError('User not found');
+    }
+
+    return result[0];
+  } catch (error) {
+    throw new AccessError(error.message);
   }
 }
