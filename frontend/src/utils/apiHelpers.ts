@@ -1,5 +1,6 @@
-import config from '../config.json';
 import { getCsrfToken } from '../api/auth';
+
+const API_BASE_URL = 'https://api.smartpicker.au';
 
 /**
  * GET request to API
@@ -10,7 +11,7 @@ export const apiCallGet = async (path: string) => {
     'Content-Type': 'application/json',
   };
 
-  const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
+  const response = await fetch(`${API_BASE_URL}/${path}`, {
     method: 'GET',
     headers,
     credentials: 'include',
@@ -45,7 +46,7 @@ export const apiCallPost = async (path: string, body: object | FormData) => {
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, options);
+  const response = await fetch(`${API_BASE_URL}/${path}`, options);
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -66,7 +67,7 @@ export const apiCallPut = async (path: string, body: object) => {
     'X-CSRF-Token': csrfToken,
   };
 
-  const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
+  const response = await fetch(`${API_BASE_URL}/${path}`, {
     method: 'PUT',
     headers,
     credentials: 'include',
@@ -91,7 +92,7 @@ export const apiCallDelete = async (path: string) => {
     'X-CSRF-Token': csrfToken,
   };
 
-  const response = await fetch(`http://localhost:${config.BACKEND_PORT}/${path}`, {
+  const response = await fetch(`${API_BASE_URL}/${path}`, {
     method: 'DELETE',
     headers,
     credentials: 'include',

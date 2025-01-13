@@ -3,3 +3,5 @@ backend/database.json
 .DS_Store
 backend/.env
 backend/src/db.js
+
+*.yml

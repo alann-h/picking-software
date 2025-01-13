@@ -1,18 +1,39 @@
-# SmartPicker - picking software
-A much cleaner and better verison of my quote-extractor (using quickbooks API) will add functionality soon! :)
+# SmartPicker
+
+SmartPicker is an advanced order preparation and inventory management system designed to streamline the picking process and integrate seamlessly with QuickBooks Online.
+
+## Features
+
+- **QuickBooks Integration**: Retrieve and display quote data directly from QuickBooks Online.
+- **Barcode Scanning**: Scan products and update quantities in real-time.
+- **Product Management**: 
+  - Upload product databases via Excel sheets.
+  - Add new products to quotes on-the-fly.
+  - Set products for later picking or mark as unavailable.
+- **Quote Management**: 
+  - Display active quotes for customers.
+  - Search quotes by customer.
+  - When quote is completed it is updated in quickbooks database with any new products or quantities. 
+- **User-Friendly Interface**: Clean and intuitive UI for efficient order processing.
+
+## Technologies Used
+
+- Frontend: React with TypeScript
+- Backend: Node.js with Express
+- Database: PostgreSQL
+- Authentication: OAuth for QuickBooks integration
+
+## Planned Features
+- My own login system where users and admins can be managed by a company.
+- Inventory Management System
+- Integration with multiple accounting software platforms
+- Enhanced quote history and search capabilities
+
+## Getting Started
+
+(Will add when out of sandbox phase)
 
 
-So far I have implemented a way to retreive and display quote data. Also have the ability to upload a product database. Once a quote Id is entered and the information about the quote is displayed I can scan a barcode which checks if it exisits within the quote and a modal appears where you can input the amount of products placed. Also added features that include the following:
-- Add products / set them to be picked later
-- Upload excel sheet of product names and barcodes
+## License
 
-THINGS THAT WILL BE ADDED:
-- add products to the quote (DONE!)
-- save products to be added later (e.g for butter as we do not add to pallet until we send the order) (DONE!)
-- admin option which can turn quote into an invoice
-- show the past quotes within 2 days as being always displayed as well as that option to search for specific quotes (added better system now shows active quotes for customer DONE!)
-- Search by Customer not by id (DONE!)
-- Convert to a real database
-- Nice UI
-- MORE TESTS!
-  
+(Will specify when project is released)
