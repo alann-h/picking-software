@@ -1,5 +1,4 @@
-import { apiCallGet, apiCallPost } from '../utils/apiHelpers';
-
+import { apiCallGet, apiCallPost, baseApiCall } from '../utils/apiHelpers';
 /**
  * Login user with Quickbooks login (only admin should do this)
  */
@@ -40,7 +39,7 @@ export const verifyUser = async () => {
  * Get CSRF token
  */
 export const getCsrfToken = async () => {
-  const response = await apiCallGet('csrf-token');
+  const response = await baseApiCall('csrf-token');
   if (response.error) {
     throw new Error(response.error);
   } else {

@@ -24,9 +24,15 @@ import { AccessError } from './error.js';
 const app = express();
 
 app.use(cors({ 
-  origin: ['https://smartpicker.au', 'https://api.smartpicker.au',], 
-  credentials: true 
+  origin: ['https://smartpicker.au', 'https://api.smartpicker.au'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'X-CSRF-Token'],
+  exposedHeaders: ['Access-Control-Allow-Origin', 'Access-Control-Allow-Credentials'],
 }));
+
+app.options('*', cors());
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(morgan(':method :url :status'));
@@ -48,7 +54,9 @@ app.use(session({
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'none',
+    domain: 'smartpicker.au'
   }
 }));
 
@@ -101,7 +109,7 @@ app.get('/callback', asyncHandler(async (req, res) => {
   res.redirect(`https://smartpicker.au/oauth/callback`);
 }));
 
-app.get('/csrf-token', csrfProtection, (req, res) => {
+app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
@@ -109,7 +117,7 @@ app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
   if (req.session.token) {
     res.json({ isValid: true });
   } else {
-    res.status(401).json({ isValid: false });
+    res.json({ isValid: false });
   }
 }));
 
@@ -327,6 +335,13 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use((err, req, res) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
+});
+
+app.use((req, res, next) => {
+  console.log('Request Origin:', req.headers.origin);
+  console.log('Request Method:', req.method);
+  console.log('Request Headers:', req.headers);
+  next();
 });
 
 const port = process.env.BACKEND_PORT;

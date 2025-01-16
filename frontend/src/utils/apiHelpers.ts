@@ -6,15 +6,19 @@ const API_BASE_URL = 'https://api.smartpicker.au';
  * GET request to API
  */
 export const apiCallGet = async (path: string) => {
+  const csrfToken = await getCsrfToken();
+
   const headers: Record<string, string> = { 
     'accept': 'application/json',
     'Content-Type': 'application/json',
+    'X-CSRF-Token': csrfToken
   };
 
   const response = await fetch(`${API_BASE_URL}/${path}`, {
     method: 'GET',
     headers,
-    credentials: 'include',
+    credentials: 'include', // Make sure this is set
+    mode: 'cors'  // Add this explicitly
   });
 
   if (!response.ok) {
@@ -102,5 +106,21 @@ export const apiCallDelete = async (path: string) => {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
+  return await response.json();
+};
+
+export const baseApiCall = async (path: string) => {
+  const response = await fetch(`${API_BASE_URL}/${path}`, {
+    method: 'GET',
+    headers: {
+      'accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include'
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
   return await response.json();
 };

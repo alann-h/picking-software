@@ -1,8 +1,6 @@
-import React, { useEffect, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { Button, Box, Typography, Container, Grid, useTheme } from '@mui/material';
 import { motion, useInView } from 'framer-motion';
-import { verifyUser } from '../api/auth';
-import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 
 interface AnimatedSectionProps {
@@ -26,20 +24,8 @@ const AnimatedSection: React.FC<AnimatedSectionProps> = ({ children }) => {
 };
 
 const InitalPage: React.FC = () => {
-  const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
   const theme = useTheme();
-
-  useEffect(() => {
-    verifyUser()
-      .then((response) => {
-        if (response.isValid) {
-          navigate('/dashboard');
-        }
-      })
-      .catch(() => {
-      });
-  }, [handleOpenSnackbar, navigate]);
 
   const handleTrySmartPickerClick = () => {
     navigate("/login");
