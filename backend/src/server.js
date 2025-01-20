@@ -1,3 +1,4 @@
+// Third-party package imports
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -5,19 +6,24 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import csrf from 'csurf';
-import { getAuthUri, handleCallback, login, saveUserQbButton, getAllUsers, register, deleteUser, updateUser } from './auth.js';
-import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
-  getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
-  getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
-} from './quotes.js';
-import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished } from './products.js';
-import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
-import { saveCompanyInfo } from './company.js';
 import dotenv from 'dotenv';
-import swaggerUi from 'swagger-ui-express';
-import swaggerDocument from '../swagger.json';
 import multer from 'multer';
 import pgSession from 'connect-pg-simple';
+import swaggerUi from 'swagger-ui-express';
+
+// JSON imports with assertion
+import swaggerDocument from '../swagger.json' assert { type: 'json' };
+
+// Local file imports (with .js extensions)
+import { getAuthUri, handleCallback, login, saveUserQbButton, 
+         getAllUsers, register, deleteUser, updateUser } from './auth.js';
+import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
+         getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity,
+         getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks } from './quotes.js';
+import { processFile, getProductName, getProductFromDB, getAllProducts, 
+         saveForLater, setUnavailable, setProductFinished } from './products.js';
+import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
+import { saveCompanyInfo } from './company.js';
 import pool from './db.js';
 import { AccessError } from './error.js';
 
@@ -56,11 +62,11 @@ app.use(session({
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'none',
-    domain: 'smartpicker.au'
+    domain: '.smartpicker.au'
   }
 }));
 
-const csrfProtection = csrf({ cookie: true });
+const csrfProtection = csrf({cookie: true});
 
 const deleteSessions = () => {
   const store = new PgSession({
@@ -337,12 +343,6 @@ app.use((err, req, res) => {
   res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
 });
 
-app.use((req, res, next) => {
-  console.log('Request Origin:', req.headers.origin);
-  console.log('Request Method:', req.method);
-  console.log('Request Headers:', req.headers);
-  next();
-});
 
 const port = process.env.BACKEND_PORT;
 const server = app.listen(port, '0.0.0.0', () => {

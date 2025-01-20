@@ -7,13 +7,15 @@ export const useUserStatus = (skipFetch: boolean) => {
   const { handleOpenSnackbar } = useSnackbarContext();
 
   useEffect(() => {
-    console.log(skipFetch)
-    if (skipFetch) return;
-
     const fetchUserStatus = async () => {
       try {
-        const userStatus = await getUserStatus();
-        setIsAdmin(userStatus.isAdmin);
+        if (skipFetch) {
+          console.log("skipfetch is called", skipFetch);
+          setIsAdmin(false)
+        } else {
+          const userStatus = await getUserStatus();
+          setIsAdmin(userStatus.isAdmin);
+        }
       } catch (err) {
         handleOpenSnackbar((err as Error).message, 'error');
       }

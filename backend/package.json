@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Picking software",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "nodemon -r esm src/server.js",
+    "start": "nodemon src/server.js",
     "lint": "eslint src/*.js",
     "test": "jest"
   },

@@ -17,8 +17,8 @@ export const apiCallGet = async (path: string) => {
   const response = await fetch(`${API_BASE_URL}/${path}`, {
     method: 'GET',
     headers,
-    credentials: 'include', // Make sure this is set
-    mode: 'cors'  // Add this explicitly
+    credentials: 'include',
+    mode: 'cors'
   });
 
   if (!response.ok) {
@@ -116,7 +116,8 @@ export const baseApiCall = async (path: string) => {
       'accept': 'application/json',
       'Content-Type': 'application/json'
     },
-    credentials: 'include'
+    credentials: 'include',
+    mode: 'cors'
   });
   
   if (!response.ok) {

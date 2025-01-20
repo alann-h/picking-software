@@ -10,10 +10,9 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
-  console.log('TopBar render, disableTopBar:', disableTopBar);
   const navigate = useNavigate();
   const theme = useTheme();
-  const { isAdmin } = useUserStatus(true);
+  const { isAdmin } = useUserStatus(disableTopBar);
 
   if (disableTopBar) {
     return (
@@ -29,7 +28,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
               color: theme.palette.primary.main,
             }}
           >
-            SmartPickerr
+            SmartPicker
           </Typography>
         </Toolbar>
       </AppBar>

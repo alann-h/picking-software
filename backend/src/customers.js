@@ -1,6 +1,6 @@
-import { AccessError, InputError } from './error';
+import { AccessError, InputError } from './error.js';
 import { query, transaction } from './helpers.js';
-import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
+import { getOAuthClient, getBaseURL, getCompanyId } from './auth.js';
 
 export async function getCustomerId(customerName) {
   try {
