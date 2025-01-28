@@ -23,7 +23,7 @@ import { AccessError } from './error.js';
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({ origin: ['https://smartpicker.au','https://api.smartpicker.au'], credentials: true }));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -44,7 +44,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
@@ -96,10 +96,10 @@ app.get('/callback', asyncHandler(async (req, res) => {
   req.session.isAdmin = true;
   req.session.userId = user.id;
 
-  res.redirect(`http://localhost:3000/oauth/callback`);
+  res.redirect(`https://smartpicker.au/oauth/callback`);
 }));
 
-app.get('/csrf-token', csrfProtection, (req, res) => {
+app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
@@ -330,7 +330,7 @@ app.use((err, req, res) => {
 const port = process.env.BACKEND_PORT;
 const server = app.listen(port, () => {
   console.log(`Backend server running on port ${port}`);
-  console.log(`For API docs, navigate to https://localhost:5033/docs`);
+  console.log(`For API docs, navigate to https://api.smartpicker.au/docs`);
 });
 
 export default server;

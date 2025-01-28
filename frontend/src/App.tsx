@@ -18,7 +18,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 const App: React.FC = () => {
   const location = useLocation();
-  const disableTopBar = (location.pathname === '/' || location.pathname === '/login');
+  const disableTopBar = (location.pathname === '/' || location.pathname === '/login' || location.pathname === '/oauth/callback');
 
   return (
     <ThemeProvider theme={theme}>
@@ -37,7 +37,6 @@ const App: React.FC = () => {
                 <Route path="/" element={<InitalPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
-                
                 {/* Protected Routes */}
                 <Route path="/dashboard" element={
                   <ProtectedRoute>

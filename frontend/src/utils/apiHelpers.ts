@@ -1,6 +1,6 @@
 import { getCsrfToken } from '../api/auth';
 
-const API_BASE_URL = 'http://localhost:5033';
+const API_BASE_URL = 'https://api.smartpicker.au';
 
 /**
  * GET request to API
