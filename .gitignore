@@ -1,7 +1,7 @@
 node_modules/
-backend/database.json
+
 .DS_Store
-backend/.env
+*.env
 backend/src/db.js
 
 *.yml

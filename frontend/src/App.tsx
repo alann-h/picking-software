@@ -30,7 +30,7 @@ const App: React.FC = () => {
           </Helmet>
           <CssBaseline />
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
-            <TopBar isInitalPage={disableTopBar} />
+            <TopBar disableTopBar={disableTopBar} />
             <Box sx={{ flexGrow: 1, width: '100%' }}>
               <Routes>
                 {/* Public Routes */}

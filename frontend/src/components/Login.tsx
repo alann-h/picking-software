@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, TextField, Box, Typography, Container } from '@mui/material';
-import { loginWithQb, loginWithCredentials } from '../api/auth';
+import { loginWithQb, loginWithCredentials, verifyUser } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,6 +9,17 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+      verifyUser()
+        .then((response) => {
+          if (response.isValid) {
+            navigate('/dashboard');
+          }
+        })
+        .catch(() => {
+        });
+    }, [handleOpenSnackbar, navigate]);
 
   const handleQuickBooksLogin = () => {
     loginWithQb()
