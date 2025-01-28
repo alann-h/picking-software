@@ -1,73 +1,75 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { AppBar, Button, IconButton, Toolbar, Typography, useTheme } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useNavigate } from 'react-router-dom';
-import { getUserStatus } from '../api/user';
+import { useUserStatus } from '../utils/useUserStatus'; 
 
 interface TopBarProps {
-  isInitalPage: boolean;
+  disableTopBar: boolean;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ isInitalPage }) => {
+const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useUserStatus(disableTopBar);
 
-  useEffect(() => {
-    const fetchUserStatus = async () => {
-      const userStatus = await getUserStatus();
-      setIsAdmin(userStatus.isAdmin);
-    };
-
-    fetchUserStatus();
-  }, []);
-
-  const handleLogoClick = () => {
-    if (!isInitalPage) {
-      navigate('/dashboard');
-    }
-  };
-
-  const handleSettingsClick = () => {
-    navigate('/dashboard/settings');
-  };
-
-  const handleOrdersToCheckClick = () => {
-    navigate('/dashboard/orders-to-check');
-  };
+  if (disableTopBar) {
+    return (
+      <AppBar position="static" color="transparent" elevation={0} sx={{ 
+        background: 'linear-gradient(to right, #ece9e6, #ffffff)', 
+        borderBottom: "1px solid #dce0d7"
+      }}>
+        <Toolbar>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 'bold',
+              color: theme.palette.primary.main,
+            }}
+          >
+            SmartPicker
+          </Typography>
+        </Toolbar>
+      </AppBar>
+    );
+  }
 
   return (
-    <AppBar position="static" color="transparent" elevation={0} sx={{ background: 'linear-gradient(to right, #ece9e6, #ffffff)', borderBottom: "1px solid #dce0d7"}}>
+    <AppBar position="static" color="transparent" elevation={0} sx={{ 
+      background: 'linear-gradient(to right, #ece9e6, #ffffff)', 
+      borderBottom: "1px solid #dce0d7"
+    }}>
       <Toolbar sx={{ justifyContent: 'space-between' }}>
         <Typography
           variant="h6"
           sx={{
-            cursor: !isInitalPage ? 'pointer' : 'default',
+            cursor: 'pointer',
             fontWeight: 'bold',
             color: theme.palette.primary.main,
-            display: 'inline-block',
           }}
-          onClick={handleLogoClick}
+          onClick={() => navigate('/dashboard')}
         >
           SmartPicker
         </Typography>
-        {!isInitalPage && (
-          <div>
-            {isAdmin && (
-              <Button
-                startIcon={<AssignmentIcon />}
-                onClick={handleOrdersToCheckClick}
-                sx={{ marginRight: 2 }}
-              >
-                Orders to Check
-              </Button>
-            )}
-            <IconButton color="inherit" onClick={handleSettingsClick} disabled={!isAdmin}>
-              <SettingsIcon />
-            </IconButton>
-          </div>
-        )}
+        <div>
+          {isAdmin && (
+            <Button
+              startIcon={<AssignmentIcon />}
+              onClick={() => navigate('/dashboard/orders-to-check')}
+              sx={{ marginRight: 2 }}
+            >
+              Orders to Check
+            </Button>
+          )}
+          <IconButton 
+            color="inherit" 
+            onClick={() => navigate('/dashboard/settings')} 
+            disabled={!isAdmin}
+          >
+            <SettingsIcon />
+          </IconButton>
+        </div>
       </Toolbar>
     </AppBar>
   );

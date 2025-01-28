@@ -23,10 +23,8 @@ import { AccessError } from './error.js';
 
 const app = express();
 
-app.use(cors({ 
-  origin: ['https://smartpicker.au', 'https://api.smartpicker.au',], 
-  credentials: true 
-}));
+app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(morgan(':method :url :status'));
@@ -98,7 +96,7 @@ app.get('/callback', asyncHandler(async (req, res) => {
   req.session.isAdmin = true;
   req.session.userId = user.id;
 
-  res.redirect(`https://smartpicker.au/oauth/callback`);
+  res.redirect(`http://localhost:3000/oauth/callback`);
 }));
 
 app.get('/csrf-token', csrfProtection, (req, res) => {
@@ -107,9 +105,9 @@ app.get('/csrf-token', csrfProtection, (req, res) => {
 
 app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
   if (req.session.token) {
-    res.json({ isValid: true });
+    res.status(200).json({ isValid: true });
   } else {
-    res.status(401).json({ isValid: false });
+    res.status(200).json({ isValid: false });
   }
 }));
 
@@ -122,7 +120,7 @@ app.post('/login', csrfProtection, asyncHandler(async (req, res) => {
   req.session.userId = user.id;
   req.session.companyId = user.company_id;
 
-  res.json({ message: 'Logged in successfully' });
+  res.json(user);
 }));
 
 // admin will registers users in
@@ -330,9 +328,9 @@ app.use((err, req, res) => {
 });
 
 const port = process.env.BACKEND_PORT;
-const server = app.listen(port, '0.0.0.0', () => {
+const server = app.listen(port, () => {
   console.log(`Backend server running on port ${port}`);
-  console.log(`For API docs, navigate to https://api.smartpicker.au/docs`);
+  console.log(`For API docs, navigate to https://localhost:5033/docs`);
 });
 
 export default server;
