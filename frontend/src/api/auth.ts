@@ -35,15 +35,3 @@ export const verifyUser = async () => {
     return response;
   }
 };
-
-/**
- * Get CSRF token
- */
-export const getCsrfToken = async () => {
-  const response = await apiCallGet('csrf-token');
-  if (response.error) {
-    throw new Error(response.error);
-  } else {
-    return response.csrfToken;
-  }
-};

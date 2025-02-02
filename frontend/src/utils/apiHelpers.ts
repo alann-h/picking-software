@@ -1,15 +1,42 @@
-import { getCsrfToken } from '../api/auth';
-
 const API_BASE_URL = 'https://api.smartpicker.au';
+
+/**
+ * Get CSRF token
+ */
+const getCsrfToken = async () => {
+  const response = await fetch(`${API_BASE_URL}/csrf-token`, {
+    credentials: 'include'
+  });
+  const data = await response.json();
+  return data.csrfToken;
+};
+
+// Common headers and options used across all requests
+const getCommonHeaders = async (): Promise<Record<string, string>> => {
+  const csrfToken = await getCsrfToken();
+  return {
+    'accept': 'application/json',
+    'x-csrf-token': csrfToken
+  };
+};
+
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    // You might want to handle specific status codes differently
+    if (response.status === 403) {
+      throw new Error('CSRF token validation failed');
+    }
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+};
 
 /**
  * GET request to API
  */
 export const apiCallGet = async (path: string) => {
-  const headers: Record<string, string> = { 
-    'accept': 'application/json',
-    'Content-Type': 'application/json',
-  };
+  const headers = await getCommonHeaders();
+  headers['Content-Type'] = 'application/json';
 
   const response = await fetch(`${API_BASE_URL}/${path}`, {
     method: 'GET',
@@ -17,24 +44,14 @@ export const apiCallGet = async (path: string) => {
     credentials: 'include',
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return await response.json();
+  return handleResponse(response);
 };
 
 /**
  * POST request to API
  */
 export const apiCallPost = async (path: string, body: object | FormData) => {
-  const csrfToken = await getCsrfToken();
-
-  const headers: Record<string, string> = {
-    'accept': 'application/json',
-    'X-CSRF-Token': csrfToken,
-  };
-
+  const headers = await getCommonHeaders();
   const options: RequestInit = {
     method: 'POST',
     headers,
@@ -42,30 +59,21 @@ export const apiCallPost = async (path: string, body: object | FormData) => {
     body: body instanceof FormData ? body : JSON.stringify(body)
   };
 
+  // Only set Content-Type for JSON bodies
   if (!(body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
 
   const response = await fetch(`${API_BASE_URL}/${path}`, options);
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return await response.json();
+  return handleResponse(response);
 };
 
 /**
  * PUT request to API
  */
 export const apiCallPut = async (path: string, body: object) => {
-  const csrfToken = await getCsrfToken();
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'accept': 'application/json',
-    'X-CSRF-Token': csrfToken,
-  };
+  const headers = await getCommonHeaders();
+  headers['Content-Type'] = 'application/json';
 
   const response = await fetch(`${API_BASE_URL}/${path}`, {
     method: 'PUT',
@@ -74,23 +82,14 @@ export const apiCallPut = async (path: string, body: object) => {
     body: JSON.stringify(body)
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return await response.json();
+  return handleResponse(response);
 };
 
 /**
  * DELETE request to API
  */
 export const apiCallDelete = async (path: string) => {
-  const csrfToken = await getCsrfToken();
-
-  const headers: Record<string, string> = { 
-    'accept': 'application/json',
-    'X-CSRF-Token': csrfToken,
-  };
+  const headers = await getCommonHeaders();
 
   const response = await fetch(`${API_BASE_URL}/${path}`, {
     method: 'DELETE',
@@ -98,9 +97,5 @@ export const apiCallDelete = async (path: string) => {
     credentials: 'include',
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return await response.json();
+  return handleResponse(response);
 };

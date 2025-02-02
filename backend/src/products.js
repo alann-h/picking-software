@@ -1,8 +1,8 @@
 import excelToJson from 'convert-excel-to-json';
 import fs from 'fs-extra';
-import { AccessError, InputError } from './error';
+import { AccessError, InputError } from './error.js';
 import { query, transaction } from './helpers.js';
-import { getBaseURL, getCompanyId } from './auth';
+import { getBaseURL, getCompanyId } from './auth.js';
 import format from 'pg-format';
 
 export async function processFile(filePath) {
