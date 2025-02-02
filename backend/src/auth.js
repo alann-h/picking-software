@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { AccessError, AuthenticationError } from './error';
 import { query, transaction } from './helpers.js';
 import { v4 as uuidv4 } from 'uuid';
+import bcyrpt from 'bcrypt';
 
 dotenv.config({ path: '.env' });
 
@@ -100,15 +101,20 @@ export async function login(email, password) {
         c.qb_token as token
       FROM users u
       JOIN companies c ON u.company_id = c.id
-      WHERE u.email = $1 AND u.password = $2
-    `, [email, password]);
+      WHERE u.email = $1
+    `, [email]);
 
     if (result.length === 0) {
-      throw new AuthenticationError('Invalid email or password');
+      throw new AuthenticationError('Invalid email');
     }
 
     // Get the user with the original token
     const user = result[0];
+
+    const isPasswordValid = await bcyrpt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new AuthenticationError('Invalid password');
+    }
 
     try {
       const refreshedToken = await refreshToken(user.token);
@@ -133,7 +139,10 @@ export async function login(email, password) {
 
 export async function register(email, password, is_admin, givenName, familyName, companyId) {
   const userId = uuidv4();
+  const saltRounds = 10;
+
   try {
+    const hashedPassword = await bcyrpt.hash(password, saltRounds);
     const result = await query(`
       INSERT INTO users (id, email, password, is_admin, given_name, family_name, company_id) 
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -145,7 +154,7 @@ export async function register(email, password, is_admin, givenName, familyName,
           family_name = EXCLUDED.family_name,
           company_id = EXCLUDED.company_id
       RETURNING *`,
-      [userId, email, password, is_admin, givenName, familyName, companyId]
+      [userId, email, hashedPassword, is_admin, givenName, familyName, companyId]
     );    
     if (result.length === 0) {
       throw new AuthenticationError('Invalid email or password');

@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/alann-h/picking-software#readme",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "connect-pg-simple": "^10.0.0",
     "convert-excel-to-json": "^1.7.0",
