@@ -22,6 +22,8 @@ SmartPicker is an advanced order preparation and inventory management system des
 - Backend: Node.js with Express
 - Database: PostgreSQL
 - Authentication: OAuth for QuickBooks integration
+- Hosting is done locally with Dockerfiles
+- Cloudflare DNS and tunnel system for public access
 
 ## Planned Features
 - My own login system where users and admins can be managed by a company.
