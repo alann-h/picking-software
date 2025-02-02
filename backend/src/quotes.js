@@ -1,7 +1,7 @@
-import { AccessError, InputError } from './error';
+import { AccessError, InputError } from './error.js';
 import { query, transaction, makeCustomApiCall } from './helpers.js';
-import { getOAuthClient, getBaseURL, getCompanyId } from './auth';
-import { getProductFromDB, getProductFromQB } from './products';
+import { getOAuthClient, getBaseURL, getCompanyId } from './auth.js';
+import { getProductFromDB, getProductFromQB } from './products.js';
 
 export async function getCustomerQuotes(customerId, token) {
   try {

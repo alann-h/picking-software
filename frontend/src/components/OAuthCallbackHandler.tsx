@@ -9,7 +9,7 @@ const OAuthCallbackHandler = () => {
   useEffect(() => {
     verifyUser()
       .then(response => {
-        if (response.isValid) {
+        if (response.isValid) { 
           navigate('/dashboard');
         } else {
           navigate('/');
