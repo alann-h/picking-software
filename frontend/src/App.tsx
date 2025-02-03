@@ -15,10 +15,12 @@ import theme from './theme';
 import Footer from './components/Footer';
 import OrdersToCheckPage from './components/OrdersToCheckPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import EULA from './components/Eula';
 
 const App: React.FC = () => {
   const location = useLocation();
-  const disableTopBarLocations = ['/', '/login', '/oauth/callback'];
+  const disableTopBarLocations = ['/', '/login', '/oauth/callback', '/privacy-policy', '/eula'];
   const disableTopBar = disableTopBarLocations.includes(location.pathname);
 
   return (
@@ -38,6 +40,8 @@ const App: React.FC = () => {
                 <Route path="/" element={<InitalPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/eula" element={<EULA />} />
                 
                 {/* Protected Routes */}
                 <Route path="/dashboard" element={

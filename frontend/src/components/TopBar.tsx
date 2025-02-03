@@ -24,9 +24,11 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
           <Typography
             variant="h6"
             sx={{
+              cursor: 'pointer',
               fontWeight: 'bold',
               color: theme.palette.primary.main,
             }}
+            onClick={() => navigate('/')}
           >
             SmartPicker
           </Typography>

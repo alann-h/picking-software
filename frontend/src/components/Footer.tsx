@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Container, Typography, Link, useTheme } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   const theme = useTheme();
@@ -37,6 +38,28 @@ const Footer: React.FC = () => {
               GitHub
             </Link>
           </Box>
+        </Box>
+
+        {/* Add space between the footer items */}
+        <Box mt={2}>
+          <Link
+            component={RouterLink}
+            to="/privacy-policy"
+            color="inherit"
+            sx={{ '&:hover': { color: theme.palette.primary.main } }}
+          >
+            Privacy Policy
+          </Link>
+        </Box>
+        <Box mt={2}>
+          <Link
+            component={RouterLink}
+            to="/eula"
+            color="inherit"
+            sx={{ '&:hover': { color: theme.palette.primary.main } }}
+          >
+            EULA
+          </Link>
         </Box>
       </Container>
     </Box>
