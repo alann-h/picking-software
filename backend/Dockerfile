@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:latest
 
 WORKDIR /app
 
@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 5033
 
-CMD ["npm", "dev"]
+CMD ["npm", "start"]

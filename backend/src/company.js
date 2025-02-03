@@ -1,4 +1,4 @@
-import { AccessError } from './error';
+import { AccessError } from './error.js';
 import { query } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth.js';
 

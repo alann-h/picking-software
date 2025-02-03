@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { AccessError, AuthenticationError } from './error.js';
 import { query, transaction } from './helpers.js';
 import { v4 as uuidv4 } from 'uuid';
-import bcyrpt from 'bcrypt';
+import bcrypt from 'bcrypt';
 
 dotenv.config({ path: '.env' });
 
@@ -111,7 +111,7 @@ export async function login(email, password) {
     // Get the user with the original token
     const user = result[0];
 
-    const isPasswordValid = await bcyrpt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new AuthenticationError('Invalid password');
     }
@@ -142,7 +142,7 @@ export async function register(email, password, is_admin, givenName, familyName,
   const saltRounds = 10;
 
   try {
-    const hashedPassword = await bcyrpt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
     const result = await query(`
       INSERT INTO users (id, email, password, is_admin, given_name, family_name, company_id) 
       VALUES ($1, $2, $3, $4, $5, $6, $7)
