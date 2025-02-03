@@ -1,6 +1,6 @@
 import OAuthClient from 'intuit-oauth';
 import dotenv from 'dotenv';
-import { AccessError, AuthenticationError } from './error';
+import { AccessError, AuthenticationError } from './error.js';
 import { query, transaction } from './helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 import bcyrpt from 'bcrypt';

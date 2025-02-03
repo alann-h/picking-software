@@ -15,7 +15,9 @@ import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import { saveCompanyInfo } from './company.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
-import swaggerDocument from '../swagger.json';
+import { readFile } from 'fs/promises';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import multer from 'multer';
 import pgSession from 'connect-pg-simple';
 import pool from './db.js';
@@ -338,6 +340,13 @@ app.get('/barcodeToName/:barcode', isAuthenticated, asyncHandler(async (req, res
                        Running Server
 ***************************************************************/
 app.get('/', (req, res) => res.redirect('/docs'));
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const swaggerDocument = JSON.parse(
+  await readFile(join(__dirname, '../swagger.json'), 'utf8')
+);
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 

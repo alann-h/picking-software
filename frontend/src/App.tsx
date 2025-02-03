@@ -18,7 +18,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 const App: React.FC = () => {
   const location = useLocation();
-  const disableTopBar = (location.pathname === '/' || location.pathname === '/login');
+  const disableTopBarLocations = ['/', '/login', '/oauth/callback'];
+  const disableTopBar = disableTopBarLocations.includes(location.pathname);
 
   return (
     <ThemeProvider theme={theme}>
