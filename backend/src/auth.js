@@ -105,14 +105,14 @@ export async function login(email, password) {
     `, [email]);
 
     if (result.length === 0) {
-      throw new AuthenticationError('Invalid email or password');
+      throw new AuthenticationError('Invalid email');
     }
 
     const user = result[0];
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new AuthenticationError('Invalid email or password');
+      throw new AuthenticationError('Invalid password');
     }
 
     try {
@@ -139,6 +139,7 @@ export async function login(email, password) {
 export async function register(email, password, is_admin, givenName, familyName, companyId) {
   const userId = uuidv4();
   const saltRounds = 10;
+
   try {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     const result = await query(`

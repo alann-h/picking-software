@@ -31,9 +31,6 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-/**
- * GET request to API
- */
 export const apiCallGet = async (path: string) => {
   const headers = await getCommonHeaders();
   headers['Content-Type'] = 'application/json';

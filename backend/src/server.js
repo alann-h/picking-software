@@ -50,9 +50,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     httpOnly: true,
-    sameSite: 'none',
     maxAge: 24 * 60 * 60 * 1000, // 24 hours,
     domain: '.smartpicker.au'
   }
@@ -76,8 +76,8 @@ const {
   cookieName: "x-csrf-token",
   cookieOptions: {
     httpOnly: true,
-    sameSite: 'none',
-    secure: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
     signed: true,
     domain: '.smartpicker.au'
   },
@@ -135,6 +135,8 @@ app.get('/csrf-token', (req, res) => {
   res.json({csrfToken});
 });
 
+app.use(doubleCsrfProtection);
+
 app.get('/verifyUser', asyncHandler(async (req, res) => {
   if (req.session.token) {
     res.status(200).json({ isValid: true });
@@ -142,8 +144,6 @@ app.get('/verifyUser', asyncHandler(async (req, res) => {
     res.status(200).json({ isValid: false });
   }
 }));
-
-app.use(doubleCsrfProtection);
 
 app.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -251,7 +251,7 @@ app.get('/estimate/:quoteId', isAuthenticated, asyncHandler(async (req, res) => 
   res.json({ source: 'api', data: estimates[0] });
 }));
 
-// app.post('/saveQuote', , isAuthenticated, asyncHandler(async (req, res) => {
+// app.post('/saveQuote', isAuthenticated, asyncHandler(async (req, res) => {
 //   await estimateToDB(req.body.quote);
 //   res.status(200).json({ message: 'Quote saved successfully in database' });
 // }));
