@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5033';
+const API_BASE_URL = 'https://api.smartpicker.au';
 
 /**
  * Get CSRF token
@@ -31,9 +31,6 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-/**
- * GET request to API
- */
 export const apiCallGet = async (path: string) => {
   const headers = await getCommonHeaders();
   headers['Content-Type'] = 'application/json';

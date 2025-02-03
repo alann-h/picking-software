@@ -108,7 +108,6 @@ export async function login(email, password) {
       throw new AuthenticationError('Invalid email');
     }
 
-    // Get the user with the original token
     const user = result[0];
 
     const isPasswordValid = await bcrypt.compare(password, user.password);

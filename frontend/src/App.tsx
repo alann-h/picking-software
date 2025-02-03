@@ -42,7 +42,7 @@ const App: React.FC = () => {
                 <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/eula" element={<EULA />} />
-                
+
                 {/* Protected Routes */}
                 <Route path="/dashboard" element={
                   <ProtectedRoute>

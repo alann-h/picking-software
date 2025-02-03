@@ -27,12 +27,15 @@ const app = express();
 
 dotenv.config({ path: '.env' });
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.set('trust proxy', 1);
+
+app.use(cookieParser(process.env.SESSION_SECRET));
+
+app.use(cors({ origin: ['https://smartpicker.au','https://api.smartpicker.au'], credentials: true }));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(morgan(':method :url :status'));
-app.use(cookieParser(process.env.SESSION_SECRET));
 
 const upload = multer({ dest: process.cwd() });
 
@@ -50,7 +53,8 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours,
+    domain: '.smartpicker.au'
   }
 }));
 
@@ -75,6 +79,7 @@ const {
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: process.env.NODE_ENV === 'production',
     signed: true,
+    domain: '.smartpicker.au'
   },
   size: 64,
   ignoredMethods: ["GET", "HEAD", "OPTIONS"],
@@ -115,7 +120,14 @@ app.get('/callback', asyncHandler(async (req, res) => {
   req.session.isAdmin = true;
   req.session.userId = user.id;
 
-  res.redirect(`http://localhost:3000/oauth/callback`);
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save error:', err);
+      return res.status(500).send('Internal server error');
+    }
+    res.redirect('https://smartpicker.au/oauth/callback');
+  });
+
 }));
 
 app.get('/csrf-token', (req, res) => {
@@ -359,7 +371,7 @@ app.use((err, req, res) => {
 const port = process.env.BACKEND_PORT;
 const server = app.listen(port, () => {
   console.log(`Backend server running on port ${port}`);
-  console.log(`For API docs, navigate to https://localhost:5033/docs`);
+  console.log(`For API docs, navigate to https://api.smartpicker.au/docs`);
 });
 
 export default server;

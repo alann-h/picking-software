@@ -7,10 +7,10 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5033",
+      "url": "https://api.smartpicker.au",
       "variables": {
         "port": {
-          "default": "5033"
+          "default": "443"
         }
       }
     }

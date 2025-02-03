@@ -5,7 +5,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon src/server.js",
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
     "lint": "eslint src/*.js",
     "test": "jest"
   },
@@ -28,7 +29,6 @@
     "cors": "^2.8.5",
     "csrf-csrf": "^3.1.0",
     "dotenv": "^16.4.5",
-    "esm": "^3.2.25",
     "express": "^4.19.2",
     "express-session": "^1.18.1",
     "fs-extra": "^11.2.0",
