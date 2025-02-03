@@ -4,7 +4,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
-import csrf from 'csurf';
+import { doubleCsrf } from "csrf-csrf";
 import { getAuthUri, handleCallback, login, saveUserQbButton, getAllUsers, register, deleteUser, updateUser } from './auth.js';
 import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
@@ -23,15 +23,16 @@ import { AccessError } from './error.js';
 
 const app = express();
 
+dotenv.config({ path: '.env' });
+
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(morgan(':method :url :status'));
-app.use(cookieParser());
+app.use(cookieParser(process.env.SESSION_SECRET));
 
 const upload = multer({ dest: process.cwd() });
-dotenv.config({ path: '.env' });
 
 const PgSession = pgSession(session);
 
@@ -45,12 +46,11 @@ app.use(session({
   saveUninitialized: false,
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
-
-const csrfProtection = csrf({ cookie: true });
 
 const deleteSessions = () => {
   const store = new PgSession({
@@ -61,6 +61,23 @@ const deleteSessions = () => {
 };
 
 setInterval(deleteSessions, 24 * 60 * 60 * 1000);
+
+const {
+  generateToken,
+  doubleCsrfProtection,
+} = doubleCsrf({
+  getSecret: () => process.env.SESSION_SECRET,
+  cookieName: "x-csrf-token",
+  cookieOptions: {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    signed: true,
+  },
+  size: 64,
+  ignoredMethods: ["GET", "HEAD", "OPTIONS"],
+  getTokenFromRequest: (req) => req.headers["x-csrf-token"]
+});
 
 // Wrapper for async route handlers
 const asyncHandler = fn => (req, res, next) => {
@@ -99,11 +116,14 @@ app.get('/callback', asyncHandler(async (req, res) => {
   res.redirect(`http://localhost:3000/oauth/callback`);
 }));
 
-app.get('/csrf-token', csrfProtection, (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
+app.get('/csrf-token', (req, res) => {
+  const csrfToken = generateToken(req, res);
+  res.json({csrfToken});
 });
 
-app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
+app.use(doubleCsrfProtection);
+
+app.get('/verifyUser', asyncHandler(async (req, res) => {
   if (req.session.token) {
     res.status(200).json({ isValid: true });
   } else {
@@ -111,7 +131,7 @@ app.get('/verifyUser', csrfProtection, asyncHandler(async (req, res) => {
   }
 }));
 
-app.post('/login', csrfProtection, asyncHandler(async (req, res) => {
+app.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await login(email, password);
 
@@ -124,13 +144,13 @@ app.post('/login', csrfProtection, asyncHandler(async (req, res) => {
 }));
 
 // admin will registers users in
-app.post('/register', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.post('/register', isAuthenticated, asyncHandler(async (req, res) => {
   const { email, givenName, familyName, password, isAdmin } = req.body;
   const registeredUser = await register(email, password, isAdmin, givenName, familyName, req.session.companyId);
   res.json({ message: `Registered user id ${registeredUser.id}` });
 }));
 
-app.delete('/deleteUser/:userId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.delete('/deleteUser/:userId', isAuthenticated, asyncHandler(async (req, res) => {
   const { userId } = req.params;
   
   // Check if user is deleting their own account
@@ -151,19 +171,19 @@ app.delete('/deleteUser/:userId', csrfProtection, isAuthenticated, asyncHandler(
   }
 }));
 
-app.get('/user-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   res.json({
     isAdmin: req.session.isAdmin || false,
     userId: req.session.userId
   });
 }));
 
-app.get('/getAllUsers', csrfProtection, isAuthenticated, asyncHandler(async (_, res) => {
+app.get('/getAllUsers', isAuthenticated, asyncHandler(async (_, res) => {
   const users = await getAllUsers();
   res.json(users);
 }));
 
-app.put('/updateUser/:userId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/updateUser/:userId', isAuthenticated, asyncHandler(async (req, res) => {
   // Check if user is admin or updating their own profile
   if (!req.session.isAdmin && req.params.userId !== req.session.userId) {
     throw new AccessError('Unauthorized to update this user');
@@ -178,17 +198,17 @@ app.put('/updateUser/:userId', csrfProtection, isAuthenticated, asyncHandler(asy
                        Customer Functions
 ***************************************************************/
 
-app.get('/getCustomers', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/getCustomers', isAuthenticated, asyncHandler(async (req, res) => {
   const data = await fetchCustomers(req.session.token);
   res.json(data);
 }));
 
-app.post('/saveCustomers', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.post('/saveCustomers', isAuthenticated, asyncHandler(async (req, res) => {
   await saveCustomers(req.body);
   res.status(200).json({ message: 'Customers saved successfully in database' });
 }));
 
-app.get('/getCustomerId/:customerName', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/getCustomerId/:customerName', isAuthenticated, asyncHandler(async (req, res) => {
   const customerId = await getCustomerId(req.params.customerName);
   res.json({ customerId });
 }));
@@ -198,13 +218,13 @@ app.get('/getCustomerId/:customerName', csrfProtection, isAuthenticated, asyncHa
                        Quote Functions
 ***************************************************************/
 
-app.get('/getEstimates/:customerId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/getEstimates/:customerId', isAuthenticated, asyncHandler(async (req, res) => {
   const { customerId } = req.params;
   const quotes = await getCustomerQuotes(customerId, req.session.token);
   res.json(quotes);
 }));
 
-app.get('/estimate/:quoteId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/estimate/:quoteId', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId } = req.params;
   const isValid = await checkQuoteExists(quoteId);
 
@@ -217,18 +237,18 @@ app.get('/estimate/:quoteId', csrfProtection, isAuthenticated, asyncHandler(asyn
   res.json({ source: 'api', data: estimates[0] });
 }));
 
-// app.post('/saveQuote', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+// app.post('/saveQuote', isAuthenticated, asyncHandler(async (req, res) => {
 //   await estimateToDB(req.body.quote);
 //   res.status(200).json({ message: 'Quote saved successfully in database' });
 // }));
 
-app.get('/quotes', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/quotes', isAuthenticated, asyncHandler(async (req, res) => {
   const status = req.query.status;
   const quotes = await getQuotesWithStatus(status);
   res.status(200).json(quotes);
 }));
 
-app.put('/quote-status', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/quote-status', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, newStatus } = req.body;
   if (!quoteId || !newStatus) {
     throw new Error('Quote ID and new status are required');
@@ -237,7 +257,7 @@ app.put('/quote-status', csrfProtection, isAuthenticated, asyncHandler(async (re
   res.status(200).json(updatedStatus);
 }));
 
-app.put('/updateQuoteInQuickBooks/:quoteId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/updateQuoteInQuickBooks/:quoteId', isAuthenticated, asyncHandler(async (req, res) => {
   const quoteId = req.params.quoteId;
   const quoteLocalDb = await fetchQuoteData(quoteId);
   const rawQuoteData = await getQbEstimate(quoteId, req.session.token, true);
@@ -249,41 +269,41 @@ app.put('/updateQuoteInQuickBooks/:quoteId', csrfProtection, isAuthenticated, as
                        Product Functions
 ***************************************************************/
 
-app.get('/getProduct/:productId', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/getProduct/:productId', isAuthenticated, asyncHandler(async (req, res) => {
   const productData = await getProductFromDB(req.params.productId);
   res.status(200).json(productData);
 }));
 
-app.put('/addProduct', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/addProduct', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productName, qty } = req.body;
   const response = await addProductToQuote(productName, quoteId, qty, req.session.token);
   res.status(200).json(response);
 }));
 
-app.put('/adjustProductQty', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/adjustProductQty', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productId, newQty } = req.body;
   const data = await adjustProductQuantity(quoteId, productId, newQty);
   res.status(200).json(data);
 }));
 
-app.get('/getAllProducts', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/getAllProducts', isAuthenticated, asyncHandler(async (req, res) => {
   const products = await getAllProducts();
   res.status(200).json(products);
 }));
 
-app.put('/saveProductForLater', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/saveProductForLater', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productId } = req.body;
   const result = await saveForLater(quoteId, productId);
   res.status(200).json(result);
 }));
 
-app.put('/setProductUnavailable', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/setProductUnavailable', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productId } = req.body;
   const result = await setUnavailable(quoteId, productId);
   res.status(200).json(result);
 }));
 
-app.put('/setProductFinished', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/setProductFinished', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productId } = req.body;
   const result = await setProductFinished(quoteId, productId);
   res.status(200).json(result);
@@ -293,7 +313,7 @@ app.put('/setProductFinished', csrfProtection, isAuthenticated, asyncHandler(asy
                        Other Functions
 ***************************************************************/
 
-app.post('/upload', csrfProtection, isAuthenticated, upload.single('input'), asyncHandler(async (req, res) => {
+app.post('/upload', isAuthenticated, upload.single('input'), asyncHandler(async (req, res) => {
   if (!req.file || req.file.filename === null || req.file.filename === 'undefined') {
     return res.status(403).json('No File');
   }
@@ -303,13 +323,13 @@ app.post('/upload', csrfProtection, isAuthenticated, upload.single('input'), asy
   res.status(200).json(data);
 }));
 
-app.put('/productScan', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.put('/productScan', isAuthenticated, asyncHandler(async (req, res) => {
   const { barcode, quoteId, newQty } = req.body;
   const message = await processBarcode(barcode, quoteId, newQty);
   res.status(200).json(message);
 }));
 
-app.get('/barcodeToName/:barcode', csrfProtection, isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/barcodeToName/:barcode', isAuthenticated, asyncHandler(async (req, res) => {
   const productName = await getProductName(req.params.barcode);
   res.status(200).json({ productName });
 }));
