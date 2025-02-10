@@ -8,10 +8,10 @@ import { encryptToken, decryptToken } from './helpers.js';
 
 dotenv.config({ path: '.env' });
 
-const clientId = process.env.CLIENT_ID;
-const clientSecret = process.env.CLIENT_SECRET;
-const redirectUri = process.env.REDIRECT_URI;
-const environment = 'sandbox';
+const environment = process.env.NODE_ENV;
+const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
+const clientSecret = environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
+const redirectUri = environment === 'production' ? process.env.REDIRECT_URI_PROD : process.env.REDIRECT_URI_DEV;
 
 if (!clientId || !clientSecret || !redirectUri || !environment) {
   throw new Error('Missing required environment variables');
