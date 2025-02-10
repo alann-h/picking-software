@@ -25,7 +25,7 @@ export async function getCustomerQuotes(customerId, token) {
   }
 }
 
-export async function getQbEstimate(quoteId, token, updateQuote) {
+export async function getQbEstimate(quoteId, token, updateQuote, companyId) {
   try {
     const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
@@ -40,14 +40,14 @@ export async function getQbEstimate(quoteId, token, updateQuote) {
     });
 
     const responseData = JSON.parse(estimateResponse.text());
-    if (!updateQuote) return await filterEstimates(responseData, oauthClient);
+    if (!updateQuote) return await filterEstimates(responseData, oauthClient, companyId);
     else return responseData;
   } catch (e) {
     throw new InputError('Quote Id does not exist: ' + e.message);
   }
 }
 
-async function filterEstimates(responseData, oauthClient) {
+async function filterEstimates(responseData, oauthClient, companyId) {
   const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
     const productInfo = {};
 
@@ -69,6 +69,7 @@ async function filterEstimates(responseData, oauthClient) {
         pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         pickingStatus: 'pending',
+        companyId
       };
     }
     const customerRef = estimate.CustomerRef;
@@ -89,6 +90,7 @@ async function filterEstimates(responseData, oauthClient) {
       orderStatus: 'pending',
       timeStarted,
       lastModified: timeStarted,
+      companyId
     };
   });
   return Promise.all(filteredEstimatesPromises);
@@ -119,8 +121,8 @@ export async function estimateToDB(quote) {
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, quote.lastModified]
+          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, quote.lastModified, quote.companyId]
         );
       }
 
@@ -130,7 +132,7 @@ export async function estimateToDB(quote) {
       // Insert new quote items
       for (const [barcode, item] of Object.entries(quote.productInfo)) {
         await client.query(
-          'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
           [
             quote.quoteId,
             item.productId,
@@ -140,7 +142,8 @@ export async function estimateToDB(quote) {
             parseInt(item.originalQty, 10),
             item.pickingStatus,
             item.sku,
-            item.price
+            item.price,
+            quote.companyId
           ]
         );
       }     
@@ -184,7 +187,8 @@ export async function fetchQuoteData(quoteId) {
       timeStarted: result[0].timestarted,
       orderStatus: result[0].orderstatus,
       lastModified: result[0].lastModified,
-      productInfo: {}
+      productInfo: {},
+      companyId: result[0].companyid
     };
 
     result.forEach(row => {
@@ -197,7 +201,8 @@ export async function fetchQuoteData(quoteId) {
           pickingQty: row.pickingqty,
           pickingStatus: row.pickingstatus,
           sku: row.sku,
-          price: row.price
+          price: row.price,
+          companyId: row.companyid
         };
       }
     });
@@ -239,7 +244,7 @@ export async function processBarcode(barcode, quoteId, newQty) {
   }
 }
 
-export async function addProductToQuote(productName, quoteId, qty, token) {
+export async function addProductToQuote(productName, quoteId, qty, token, companyId) {
   try {
     const product = await query('SELECT * FROM products WHERE productname = $1', [productName]);
     if (product.length === 0) {
@@ -273,8 +278,8 @@ export async function addProductToQuote(productName, quoteId, qty, token) {
           // If the product doesn't exist, insert a new row
           const productFromQB = await getProductFromQB(productName, oauthClient);
           addNewProduct = await client.query(
-            'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *',
-            [quoteId, productFromQB.id, qty, qty,'pending', product[0].barcode, productName, product[0].sku, product[0].price]
+            'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *',
+            [quoteId, productFromQB.id, qty, qty,'pending', product[0].barcode, productName, product[0].sku, product[0].price, companyId]
           );
       }
       
@@ -341,7 +346,8 @@ export async function getQuotesWithStatus(status) {
       totalAmount: parseFloat(quote.totalamount),
       orderStatus: quote.orderstatus,
       timeStarted: quote.timestarted,
-      lastModified: quote.lastmodified
+      lastModified: quote.lastmodified,
+      companyId: quote.companyid
     }));
   } catch (error) {
     throw new AccessError('Failed to fetch quotes');

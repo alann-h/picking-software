@@ -36,13 +36,13 @@ export async function fetchCustomers(token) {
   }
 }
 
-export async function saveCustomers(customers) {
+export async function saveCustomers(customers, companyId) {
   try {
     await transaction(async (client) => {
       for (const customer of customers) {
         await client.query(
-          'INSERT INTO customers (customerid, customername) VALUES ($1, $2) ON CONFLICT (customerid) DO UPDATE SET customername = $2',
-          [customer.id, customer.name]
+          'INSERT INTO customers (customerid, customername, companyid) VALUES ($1, $2, $3) ON CONFLICT (customerid) DO UPDATE SET customername = $2',
+          [customer.id, customer.name, companyId]
         );
       }
     });

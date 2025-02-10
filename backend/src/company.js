@@ -1,5 +1,5 @@
 import { AccessError } from './error.js';
-import { query } from './helpers.js';
+import { query, transaction } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth.js';
 
 export async function getCompanyInfo(token) {
@@ -44,4 +44,22 @@ export async function saveCompanyInfo(token) {
     } catch (error) {
         throw new Error(`Failed to save company info: ${error.message}`);
     }
+}
+
+export async function removeQuickBooksData(companyId) {
+    return transaction(async (client) => {
+        await Promise.all([
+            client.query('DELETE from users where company_id = $1', [companyId]),
+            client.query('DELETE FROM customers WHERE companyid = $1', [companyId]),
+            client.query('DELETE FROM products WHERE companyid = $1', [companyId]),
+            client.query('DELETE FROM quoteitems WHERE companyid = $1', [companyId]),
+            client.query('DELETE FROM quotes WHERE companyid = $1', [companyId]),
+        ]);
+
+        await client.query('DELETE FROM companies WHERE id = $1', [companyId]); // Delete company last
+
+        return { success: true, message: 'Company and related data deleted successfully' };
+    }).catch((e) => {
+        throw new AccessError('Company ID does not exist: ' + e.message);
+    });
 }

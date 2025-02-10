@@ -5,14 +5,14 @@ import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import { doubleCsrf } from "csrf-csrf";
-import { getAuthUri, handleCallback, login, saveUserQbButton, getAllUsers, register, deleteUser, updateUser } from './auth.js';
+import { getAuthUri, handleCallback, login, saveUserQbButton, getAllUsers, register, deleteUser, updateUser, revokeQuickBooksToken } from './auth.js';
 import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData, 
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
-import { saveCompanyInfo } from './company.js';
+import { saveCompanyInfo, removeQuickBooksData } from './company.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { readFile } from 'fs/promises';
@@ -218,7 +218,7 @@ app.get('/getCustomers', isAuthenticated, asyncHandler(async (req, res) => {
 }));
 
 app.post('/saveCustomers', isAuthenticated, asyncHandler(async (req, res) => {
-  await saveCustomers(req.body);
+  await saveCustomers(req.body, req.session.companyId);
   res.status(200).json({ message: 'Customers saved successfully in database' });
 }));
 
@@ -246,7 +246,7 @@ app.get('/estimate/:quoteId', isAuthenticated, asyncHandler(async (req, res) => 
     const quote = await fetchQuoteData(quoteId);
     return res.json({ source: 'database', data: quote });
   }
-  const estimates = await getQbEstimate(quoteId, req.session.token, false);
+  const estimates = await getQbEstimate(quoteId, req.session.token, false, req.session.companyId);
   await estimateToDB(estimates[0]);
   res.json({ source: 'api', data: estimates[0] });
 }));
@@ -290,7 +290,7 @@ app.get('/getProduct/:productId', isAuthenticated, asyncHandler(async (req, res)
 
 app.put('/addProduct', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productName, qty } = req.body;
-  const response = await addProductToQuote(productName, quoteId, qty, req.session.token);
+  const response = await addProductToQuote(productName, quoteId, qty, req.session.token, req.session.companyId);
   res.status(200).json(response);
 }));
 
@@ -333,7 +333,7 @@ app.post('/upload', isAuthenticated, upload.single('input'), asyncHandler(async 
   }
 
   const filePath = process.cwd() + '/' + req.file.filename;
-  const data = await processFile(filePath);
+  const data = await processFile(filePath, req.session.companyId);
   res.status(200).json(data);
 }));
 
@@ -347,6 +347,26 @@ app.get('/barcodeToName/:barcode', isAuthenticated, asyncHandler(async (req, res
   const productName = await getProductName(req.params.barcode);
   res.status(200).json({ productName });
 }));
+
+app.delete('/disconnect', isAuthenticated, asyncHandler(async (req, res) => {
+  const companyId = req.session.companyId;
+
+  // Revoke the QuickBooks token (to disconnect the QuickBooks account)
+  await revokeQuickBooksToken(req.session.token);
+
+  // remove any QuickBooks-related data (company info, quotes, quote items, products, customers)
+  await removeQuickBooksData(companyId);
+
+  // Clear the session and send confirmation response
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to disconnect' });
+    }
+    res.clearCookie('connect.sid');
+    res.json({ message: 'Successfully disconnected from QuickBooks' });
+  });
+}));
+
 
 /***************************************************************
                        Running Server

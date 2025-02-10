@@ -5,7 +5,7 @@ import { query, transaction } from './helpers.js';
 import { getBaseURL, getCompanyId } from './auth.js';
 import format from 'pg-format';
 
-export async function processFile(filePath) {
+export async function processFile(filePath, companyId) {
   try {
     const excelData = excelToJson({
       sourceFile: filePath,
@@ -23,8 +23,8 @@ export async function processFile(filePath) {
           ]);
           // This query checks if the barcode exists in the DB if it does change the name if not add the name and barcode
           const query = format(
-            'INSERT INTO products (productname, barcode) VALUES %L ON CONFLICT (barcode) DO UPDATE SET productname = EXCLUDED.productname',
-            values
+            'INSERT INTO products (productname, barcode, companyid) VALUES %L, $2 ON CONFLICT (barcode) DO UPDATE SET productname = EXCLUDED.productname',
+            [values, companyId]
           );
 
           await client.query(query);

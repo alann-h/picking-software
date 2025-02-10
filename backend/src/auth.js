@@ -254,3 +254,18 @@ export async function updateUser(userId, userData) {
     throw new AccessError(error.message);
   }
 }
+
+export async function revokeQuickBooksToken(token) {
+  try {
+    const oauthClient = initializeOAuthClient();
+    oauthClient.setToken(token);
+
+    // Revoke the QuickBooks token
+    await oauthClient.revoke();
+    console.log('QuickBooks token successfully revoked');
+
+  } catch (e) {
+    console.error('Error revoking QuickBooks token:', e);
+    throw new AccessError('Could not revoke QuickBooks token: ' + e.message);
+  }
+}
