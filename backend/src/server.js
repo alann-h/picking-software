@@ -13,6 +13,7 @@ import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import { saveCompanyInfo, removeQuickBooksData } from './company.js';
+import { encryptToken, decryptToken } from './helpers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { readFile } from 'fs/promises';
@@ -99,6 +100,19 @@ const isAuthenticated = (req, res, next) => {
   }
 };
 
+const decryptSessionToken = (req, res, next) => {
+  if (req.session.token) {
+    try {
+      req.decryptedToken = decryptToken(req.session.token);
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid session token' });
+    }
+  }
+  next();
+};
+
+app.use(decryptSessionToken);
+
 /***************************************************************
                        User Auth Functions
 ***************************************************************/
@@ -115,7 +129,7 @@ app.get('/callback', asyncHandler(async (req, res) => {
   const companyinfo = await saveCompanyInfo(token);
   const user = await saveUserQbButton(token, companyinfo.id);
 
-  req.session.token = token;
+  req.session.token = encryptToken(token);
   req.session.companyId = companyinfo.id;
   req.session.isAdmin = true;
   req.session.userId = user.id;
@@ -149,7 +163,7 @@ app.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await login(email, password);
 
-  req.session.token = user.token;
+  req.session.token = encryptToken(user.token);
   req.session.isAdmin = user.is_admin;
   req.session.userId = user.id;
   req.session.companyId = user.company_id;

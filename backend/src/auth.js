@@ -4,6 +4,7 @@ import { AccessError, AuthenticationError } from './error.js';
 import { query, transaction } from './helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
+import { encryptToken, decryptToken } from './helpers.js';
 
 dotenv.config({ path: '.env' });
 
@@ -115,16 +116,21 @@ export async function login(email, password) {
       throw new AuthenticationError('Invalid password');
     }
 
-    try {
-      const refreshedToken = await refreshToken(user.token);
+    // Decrypt the token before using it if it's stored encrypted
+    const decryptedToken = decryptToken(user.token);
 
-      // Update the company's token in the database if it was refreshed
-      if (refreshedToken !== user.token) {
+    try {
+      const refreshedToken = await refreshToken(decryptedToken);
+
+      // Encrypt the refreshed token for storage if it has changed
+      if (JSON.stringify(refreshedToken) !== JSON.stringify(decryptedToken)) {
+        const encryptedToken = encryptToken(refreshedToken);
+        // Update the company's token in the database with the newly encrypted token
         await query(
           'UPDATE companies SET qb_token = $1::jsonb WHERE id = $2',
-          [refreshedToken, user.company_id]
+          [encryptedToken, user.company_id]
         );
-        user.token = refreshedToken;
+        user.token = refreshedToken; // Optionally update the user object
       }
     } catch (error) {
       throw new AuthenticationError('Failed to refresh token: ' + error.message);
