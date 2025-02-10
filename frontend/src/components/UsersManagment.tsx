@@ -25,6 +25,7 @@ import { useSnackbarContext } from './SnackbarContext';
 import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from '../api/user';
 import { UserData } from '../utils/types';
 import { useNavigate } from 'react-router-dom';
+import { disconnectQB } from '../api/others';
 
 const DEFAULT_USER: UserData = {
   id: '',
@@ -178,6 +179,17 @@ const UsersManagement = () => {
       handleOpenSnackbar('Failed to update user', 'error');
     }
   };
+
+  const handleQbDisconnect = async() => {
+    try {
+      const deleteData = await disconnectQB();
+      console.log(deleteData);
+      navigate('/');
+      handleOpenSnackbar('All quickbooks data removed successfully', 'success');
+    } catch (e) {
+      handleOpenSnackbar('Cannot remove all Quickbooks Data', 'error')
+    }
+  }
 
   const renderEditableCell = (user: UserData, field: keyof UserData, displayValue: string) => {
     const isEditing = editingField?.userId === user.id && editingField?.field === field;
@@ -348,6 +360,14 @@ const UsersManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <Button
+        variant="contained"
+        color="error"
+        onClick={handleQbDisconnect}
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+      >
+        Disconnect QB
+      </Button>
     </Container>
   );
 };

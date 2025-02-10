@@ -1,4 +1,4 @@
-import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
+import { apiCallDelete, apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
 import { Customer } from '../utils/types';
 
 
@@ -86,3 +86,11 @@ export const setProductFinished = async (quoteId: number, productId: number) => 
   }
 }
 
+export const disconnectQB = async() => {
+  const response = await apiCallDelete('disconnect');
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}
