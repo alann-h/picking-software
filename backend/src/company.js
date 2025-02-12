@@ -51,8 +51,8 @@ export async function removeQuickBooksData(companyId) {
         await Promise.all([
             client.query('DELETE from users where company_id = $1', [companyId]),
             client.query('DELETE FROM customers WHERE companyid = $1', [companyId]),
-            client.query('DELETE FROM products WHERE companyid = $1', [companyId]),
             client.query('DELETE FROM quoteitems WHERE companyid = $1', [companyId]),
+            client.query('DELETE FROM products WHERE companyid = $1', [companyId]),
             client.query('DELETE FROM quotes WHERE companyid = $1', [companyId]),
         ]);
 

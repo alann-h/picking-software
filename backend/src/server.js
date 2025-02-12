@@ -366,7 +366,7 @@ app.delete('/disconnect', isAuthenticated, asyncHandler(async (req, res) => {
   const companyId = req.session.companyId;
 
   // Revoke the QuickBooks token (to disconnect the QuickBooks account)
-  await revokeQuickBooksToken(req.decryptedToken);
+  //await revokeQuickBooksToken(req.decryptedToken);
 
   // remove any QuickBooks-related data (company info, quotes, quote items, products, customers)
   await removeQuickBooksData(companyId);

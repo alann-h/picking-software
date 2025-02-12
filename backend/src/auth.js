@@ -266,10 +266,8 @@ export async function revokeQuickBooksToken(token) {
     const oauthClient = initializeOAuthClient();
     oauthClient.setToken(token);
 
-    // Revoke the QuickBooks token
-    await oauthClient.revoke();
-    console.log('QuickBooks token successfully revoked');
-
+    const authResponse = await oauthClient.revoke();
+    console.log('Tokens revoked: ' + JSON.stringify(authResponse.json));
   } catch (e) {
     console.error('Error revoking QuickBooks token:', e);
     throw new AccessError('Could not revoke QuickBooks token: ' + e.message);
