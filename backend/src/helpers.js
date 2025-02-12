@@ -44,8 +44,10 @@ export async function makeCustomApiCall(oauthClient, url, method, body) {
   return response.json();
 }
 
-
-const AES_SECRET_KEY = process.env.AES_SECRET_KEY;
+const AES_SECRET_KEY = crypto
+  .createHash('sha256')
+  .update(String(process.env.AES_SECRET_KEY))
+  .digest();
 
 export function encryptToken(token) {
   const cipher = crypto.createCipheriv('aes-256-cbc', AES_SECRET_KEY, Buffer.alloc(16, 0));

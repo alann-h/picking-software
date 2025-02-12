@@ -207,10 +207,18 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
   const handleFinalizeInvoice = async () => {
     try {
       await updateQuoteInQuickBooks(quoteId);
-      navigate('/dashboard');
-      window.open(`https://sandbox.qbo.intuit.com/app/estimate?txnId=${quoteId}`, '_blank');
+      // Open QuickBooks in the first tab (ensures login)
+      const qbWindow = window.open('https://sandbox.qbo.intuit.com/', '_blank');
 
+      setTimeout(() => {
+        // After 3 seconds, navigate to the specific estimate
+        if (qbWindow) {
+          qbWindow.location.href = `https://sandbox.qbo.intuit.com/app/estimate?txnId=${quoteId}`;
+        }
+      }, 3000);
+      
       handleOpenSnackbar('Quote updated and opened in QuickBooks', 'success');
+      navigate('/dashboard');
     } catch (error) {
       handleOpenSnackbar('Failed to finalise invoice', 'error');
     }

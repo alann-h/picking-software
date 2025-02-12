@@ -227,7 +227,7 @@ app.put('/updateUser/:userId', isAuthenticated, asyncHandler(async (req, res) =>
 ***************************************************************/
 
 app.get('/getCustomers', isAuthenticated, asyncHandler(async (req, res) => {
-  const data = await fetchCustomers(req.session.token);
+  const data = await fetchCustomers(req.decryptedToken);
   res.json(data);
 }));
 
@@ -248,7 +248,7 @@ app.get('/getCustomerId/:customerName', isAuthenticated, asyncHandler(async (req
 
 app.get('/getEstimates/:customerId', isAuthenticated, asyncHandler(async (req, res) => {
   const { customerId } = req.params;
-  const quotes = await getCustomerQuotes(customerId, req.session.token);
+  const quotes = await getCustomerQuotes(customerId, req.decryptedToken);
   res.json(quotes);
 }));
 
@@ -260,7 +260,7 @@ app.get('/estimate/:quoteId', isAuthenticated, asyncHandler(async (req, res) => 
     const quote = await fetchQuoteData(quoteId);
     return res.json({ source: 'database', data: quote });
   }
-  const estimates = await getQbEstimate(quoteId, req.session.token, false, req.session.companyId);
+  const estimates = await getQbEstimate(quoteId, req.decryptedToken, false, req.session.companyId);
   await estimateToDB(estimates[0]);
   res.json({ source: 'api', data: estimates[0] });
 }));
@@ -288,8 +288,8 @@ app.put('/quote-status', isAuthenticated, asyncHandler(async (req, res) => {
 app.put('/updateQuoteInQuickBooks/:quoteId', isAuthenticated, asyncHandler(async (req, res) => {
   const quoteId = req.params.quoteId;
   const quoteLocalDb = await fetchQuoteData(quoteId);
-  const rawQuoteData = await getQbEstimate(quoteId, req.session.token, true);
-  const updatedQuote = await updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, req.session.token);
+  const rawQuoteData = await getQbEstimate(quoteId, req.decryptedToken, true);
+  const updatedQuote = await updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, req.decryptedToken);
 
   res.status(200).json( [ updatedQuote.message ]);
 }));
@@ -304,7 +304,7 @@ app.get('/getProduct/:productId', isAuthenticated, asyncHandler(async (req, res)
 
 app.put('/addProduct', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productName, qty } = req.body;
-  const response = await addProductToQuote(productName, quoteId, qty, req.session.token, req.session.companyId);
+  const response = await addProductToQuote(productName, quoteId, qty, req.decryptedToken, req.session.companyId);
   res.status(200).json(response);
 }));
 
@@ -366,7 +366,7 @@ app.delete('/disconnect', isAuthenticated, asyncHandler(async (req, res) => {
   const companyId = req.session.companyId;
 
   // Revoke the QuickBooks token (to disconnect the QuickBooks account)
-  await revokeQuickBooksToken(req.session.token);
+  await revokeQuickBooksToken(req.decryptedToken);
 
   // remove any QuickBooks-related data (company info, quotes, quote items, products, customers)
   await removeQuickBooksData(companyId);

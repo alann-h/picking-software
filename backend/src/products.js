@@ -19,12 +19,13 @@ export async function processFile(filePath, companyId) {
           const products = excelData[key];
           const values = products.map(product => [
             product.Name,
-            product.Barcode.toString()
+            product.Barcode.toString(),
+            companyId
           ]);
           // This query checks if the barcode exists in the DB if it does change the name if not add the name and barcode
           const query = format(
-            'INSERT INTO products (productname, barcode, companyid) VALUES %L, $2 ON CONFLICT (barcode) DO UPDATE SET productname = EXCLUDED.productname',
-            [values, companyId]
+            'INSERT INTO products (productname, barcode, companyid) VALUES %L ON CONFLICT (barcode) DO UPDATE SET productname = EXCLUDED.productname',
+            values
           );
 
           await client.query(query);
