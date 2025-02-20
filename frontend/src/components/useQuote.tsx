@@ -208,12 +208,12 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     try {
       await updateQuoteInQuickBooks(quoteId);
       // Open QuickBooks in the first tab (ensures login)
-      const qbWindow = window.open('https://sandbox.qbo.intuit.com/', '_blank');
+      const qbWindow = window.open('https://qbo.intuit.com/', '_blank');
 
       setTimeout(() => {
         // After 3 seconds, navigate to the specific estimate
         if (qbWindow) {
-          qbWindow.location.href = `https://sandbox.qbo.intuit.com/app/estimate?txnId=${quoteId}`;
+          qbWindow.location.href = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`;
         }
       }, 3000);
       
