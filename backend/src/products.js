@@ -113,9 +113,9 @@ export async function getProductFromDB(productId) {
   }
 }
 
-export async function getAllProducts() {
+export async function getAllProducts(companyId) {
   try {
-    const result = await query('SELECT productname, barcode FROM products');
+    const result = await query('SELECT productname, barcode FROM products WHERE companyid = $1', [companyId]);
     return result.map(product => ({
       productName: product.productname,
       barcode: product.barcode

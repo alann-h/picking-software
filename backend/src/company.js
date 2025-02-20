@@ -17,7 +17,7 @@ export async function getCompanyInfo(token) {
         const companyInfoFull = responseJSON.QueryResponse.CompanyInfo[0];
         const companyInfo =  {
             companyName: companyInfoFull.CompanyName,
-            id: companyInfoFull.Id
+            id: companyId
         };
         return companyInfo;
     } catch(e) {
@@ -31,9 +31,9 @@ export async function saveCompanyInfo(token) {
     try {
         const companyInfo = await getCompanyInfo(token);
         const result = await query(`
-            INSERT INTO companies (company_name, id, qb_token) 
+            INSERT INTO companies (company_name, companyid, qb_token) 
             VALUES ($1, $2, $3::jsonb)
-            ON CONFLICT (id) DO UPDATE 
+            ON CONFLICT (companyid) DO UPDATE 
             SET 
                 company_name = EXCLUDED.company_name,
                 qb_token = EXCLUDED.qb_token
@@ -49,7 +49,7 @@ export async function saveCompanyInfo(token) {
 export async function removeQuickBooksData(companyId) {
     return transaction(async (client) => {
         await Promise.all([
-            client.query('DELETE from users where company_id = $1', [companyId]),
+            client.query('DELETE from users where companyid = $1', [companyId]),
             client.query('DELETE FROM customers WHERE companyid = $1', [companyId]),
             client.query('DELETE FROM quoteitems WHERE companyid = $1', [companyId]),
             client.query('DELETE FROM products WHERE companyid = $1', [companyId]),

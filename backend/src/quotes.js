@@ -25,29 +25,8 @@ export async function getCustomerQuotes(customerId, token) {
   }
 }
 
-export async function getQbEstimate(quoteId, token, updateQuote, companyId) {
-  try {
-    const oauthClient = await getOAuthClient(token);
-    if (!oauthClient) {
-      throw new AccessError('OAuth client could not be initialized');
-    }
-
-    const companyID = getCompanyId(oauthClient);
-    const baseURL = getBaseURL(oauthClient);
-    const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
-    const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
-    });
-
-    const responseData = JSON.parse(estimateResponse.text());
-    if (!updateQuote) return await filterEstimates(responseData, oauthClient, companyId);
-    else return responseData;
-  } catch (e) {
-    throw new InputError('Quote Id does not exist: ' + e.message);
-  }
-}
-
 async function filterEstimates(responseData, oauthClient, companyId) {
+  console.log(responseData);
   const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
     const productInfo = {};
 
@@ -94,6 +73,29 @@ async function filterEstimates(responseData, oauthClient, companyId) {
     };
   });
   return Promise.all(filteredEstimatesPromises);
+}
+
+export async function getQbEstimate(quoteId, token, companyId) {
+  try {
+    const oauthClient = await getOAuthClient(token);
+    if (!oauthClient) {
+      throw new AccessError('OAuth client could not be initialized');
+    }
+
+    const companyID = getCompanyId(oauthClient);
+    const baseURL = getBaseURL(oauthClient);
+    const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
+    const estimateResponse = await oauthClient.makeApiCall({
+      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
+    });
+
+    const responseData = JSON.parse(estimateResponse.text());
+    const filteredQuote = await filterEstimates(responseData, oauthClient, companyId);
+    console.log(filteredQuote);
+    return filteredQuote;
+  } catch (e) {
+    throw new InputError('Quote Id does not exist: ' + e.message);
+  }
 }
 
 export async function estimateToDB(quote) {

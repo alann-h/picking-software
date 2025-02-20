@@ -8,7 +8,7 @@ import { encryptToken, decryptToken } from './helpers.js';
 
 dotenv.config({ path: '.env' });
 
-const environment = 'sandbox';
+const environment = process.env.NODE_ENV;
 const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
 const clientSecret = environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
 const redirectUri = process.env.REDIRECT_URI_PROD;
@@ -101,7 +101,7 @@ export async function login(email, password) {
         u.*,
         c.qb_token as token
       FROM users u
-      JOIN companies c ON u.company_id = c.id
+      JOIN companies c ON u.companyid = c.companyid
       WHERE u.email = $1
     `, [email]);
 
@@ -128,7 +128,7 @@ export async function login(email, password) {
         // Update the company's token in the database with the newly encrypted token
         await query(
           'UPDATE companies SET qb_token = $1::jsonb WHERE id = $2',
-          [encryptedToken, user.company_id]
+          [encryptedToken, user.companyid]
         );
         user.token = refreshedToken; // Optionally update the user object
       }
@@ -149,7 +149,7 @@ export async function register(email, password, is_admin, givenName, familyName,
   try {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     const result = await query(`
-      INSERT INTO users (id, email, password, is_admin, given_name, family_name, company_id) 
+      INSERT INTO users (id, email, password, is_admin, given_name, family_name, companyid) 
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (email) DO UPDATE 
       SET 
@@ -157,7 +157,7 @@ export async function register(email, password, is_admin, givenName, familyName,
           is_admin = EXCLUDED.is_admin,
           given_name = EXCLUDED.given_name,
           family_name = EXCLUDED.family_name,
-          company_id = EXCLUDED.company_id
+          companyid = EXCLUDED.companyid
       RETURNING *`,
       [userId, email, hashedPassword, is_admin, givenName, familyName, companyId]
     );    
@@ -221,9 +221,10 @@ export async function saveUserQbButton(token, companyId) {
   }
 }
 
-export async function getAllUsers() {
+export async function getAllUsers(companyId) {
   try {
-    const result = await query('select * from users');
+    const result = await query('select * from users WHERE companyid = $1', [companyId]);
+    console.log(result);
     return result;
   } catch (e) {
     throw new AccessError('Could not get user information: ' + e.message);

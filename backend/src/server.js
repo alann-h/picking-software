@@ -206,8 +206,8 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   });
 }));
 
-app.get('/getAllUsers', isAuthenticated, asyncHandler(async (_, res) => {
-  const users = await getAllUsers();
+app.get('/getAllUsers', isAuthenticated, asyncHandler(async (req, res) => {
+  const users = await getAllUsers(req.session.companyId);
   res.json(users);
 }));
 
@@ -260,7 +260,7 @@ app.get('/estimate/:quoteId', isAuthenticated, asyncHandler(async (req, res) => 
     const quote = await fetchQuoteData(quoteId);
     return res.json({ source: 'database', data: quote });
   }
-  const estimates = await getQbEstimate(quoteId, req.decryptedToken, false, req.session.companyId);
+  const estimates = await getQbEstimate(quoteId, req.decryptedToken, req.session.companyId);
   await estimateToDB(estimates[0]);
   res.json({ source: 'api', data: estimates[0] });
 }));
@@ -315,7 +315,7 @@ app.put('/adjustProductQty', isAuthenticated, asyncHandler(async (req, res) => {
 }));
 
 app.get('/getAllProducts', isAuthenticated, asyncHandler(async (req, res) => {
-  const products = await getAllProducts();
+  const products = await getAllProducts(req.session.companyId);
   res.status(200).json(products);
 }));
 

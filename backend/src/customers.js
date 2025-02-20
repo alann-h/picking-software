@@ -22,19 +22,37 @@ export async function fetchCustomers(token) {
     }
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
-    const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=select * from Customer&minorversion=69`
-    });
-    const responseData = JSON.parse(response.text());
-    const customers = responseData.QueryResponse.Customer.map(customer => ({
-      id: customer.Id,
-      name: customer.DisplayName
-    }));
-    return customers;
+    
+    let allCustomers = [];
+    let startPosition = 1;
+    let pageSize = 100; // API limit
+    let moreRecords = true;
+
+    while (moreRecords) {
+      const response = await oauthClient.makeApiCall({
+        url: `${baseURL}v3/company/${companyID}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=69`
+      });
+
+      const responseData = JSON.parse(response.text());
+      const customers = responseData.QueryResponse.Customer || [];
+
+      allCustomers.push(...customers.map(customer => ({
+        id: customer.Id,
+        name: customer.DisplayName
+      })));
+
+      if (customers.length < pageSize) {
+        moreRecords = false;
+      } else {
+        startPosition += pageSize;
+      }
+    }
+    return allCustomers;
   } catch (e) {
     throw new AccessError('UserId is invalid: ' + e.message);
   }
 }
+
 
 export async function saveCustomers(customers, companyId) {
   try {
