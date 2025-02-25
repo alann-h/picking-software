@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextField, Box, Typography, Container } from '@mui/material';
+import { Button, TextField, Box, Typography, Container, CircularProgress } from '@mui/material';
 import { loginWithQb, loginWithCredentials, verifyUser } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
@@ -9,21 +9,27 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-      verifyUser()
-        .then((response) => {
-          if (response.isValid) {
-            navigate('/dashboard');
-          }
-        })
-        .catch(() => {
-        });
-    }, [handleOpenSnackbar, navigate]);
+    verifyUser()
+      .then((response) => {
+        if (response.isValid) {
+          navigate('/dashboard');
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, [handleOpenSnackbar, navigate]);
 
   const handleQuickBooksLogin = () => {
     loginWithQb()
-      .then((authUri: string) => (window.location.href = authUri))
+      .then((authUri: string) => {
+        window.location.href = authUri;
+      })
       .catch((err: Error) => {
         handleOpenSnackbar(err.message, 'error');
       });
@@ -38,6 +44,23 @@ const Login: React.FC = () => {
       handleOpenSnackbar((err as Error).message, 'error');
     }
   };
+
+  if (loading) {
+    return (
+      <Container component="main" maxWidth="xs">
+        <Box
+          sx={{
+            height: '100vh',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
 
   return (
     <Container component="main" maxWidth="xs">

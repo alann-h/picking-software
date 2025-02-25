@@ -10,6 +10,7 @@ import { getCustomers, saveCustomers, getCustomerId } from '../api/others';
 import { useSnackbarContext } from './SnackbarContext';
 import { getCustomerQuotes } from '../api/quote';
 import { useNavigate } from 'react-router-dom';
+import LoadingWrapper from './LoadingWrapper';
 
 // Reusable AnimatedComponent
 const AnimatedComponent: React.FC<{
@@ -31,18 +32,23 @@ const Dashboard: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setInputValue] = useState<string>('');
   const [quotes, setQuotes] = useState<any[]>([]);
+  const [isQuotesLoading, setIsQuotesLoading] = useState<boolean>(false);
+  const [isCustomerLoading, setIsCustomerLoading] = useState<boolean>(false);
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
   const theme = useTheme();
 
   useEffect(() => {
+    setIsCustomerLoading(true);
     getCustomers()
       .then((data) => {
         setCustomers(data);
         saveCustomers(data);
+        setIsCustomerLoading(false);
       })
       .catch((err: Error) => {
         handleOpenSnackbar(err.message, 'error');
+        setIsCustomerLoading(false);
       });
   }, [setCustomers, handleOpenSnackbar]);
 
@@ -64,13 +70,15 @@ const Dashboard: React.FC = () => {
       handleOpenSnackbar('Could not get Customer Id', 'error');
       return;
     }
-
+    setIsQuotesLoading(true);
     getCustomerQuotes(selectedCustomerId)
       .then((data) => {
         setQuotes(data);
+        setIsQuotesLoading(false);
       })
       .catch((err: Error) => {
         handleOpenSnackbar(err.message, 'error');
+        setIsQuotesLoading(false);
       });
   };
 
@@ -96,12 +104,14 @@ const Dashboard: React.FC = () => {
         </AnimatedComponent>
 
         <Grid container spacing={3}>
+
           <Grid item xs={12} md={4}>
             <AnimatedComponent xOffset={-20} delay={0.2}>
               <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="h6" gutterBottom>
                   Select Customer
                 </Typography>
+                <LoadingWrapper isLoading={isCustomerLoading}>
                 <Autocomplete
                   id="customer-box"
                   options={customers.map((option) => option.name)}
@@ -110,15 +120,18 @@ const Dashboard: React.FC = () => {
                   onChange={handleChange}
                   renderInput={(params) => <TextField {...params} label="Customer" />}
                 />
+                </LoadingWrapper>
               </Paper>
             </AnimatedComponent>
           </Grid>
+
           <Grid item xs={12} md={8}>
             <AnimatedComponent xOffset={20} delay={0.4}>
               <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="h6" gutterBottom>
                   Customer Quotes
                 </Typography>
+                <LoadingWrapper isLoading={isQuotesLoading}>
                 <List>
                   {quotes.map((quote, index) => (
                     <AnimatedComponent key={quote.Id} yOffset={20} delay={index * 0.1}>
@@ -151,6 +164,7 @@ const Dashboard: React.FC = () => {
                     </AnimatedComponent>
                   ))}
                 </List>
+                </LoadingWrapper>
               </Paper>
             </AnimatedComponent>
           </Grid>
