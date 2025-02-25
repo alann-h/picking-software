@@ -183,7 +183,6 @@ const UsersManagement = () => {
   const handleQbDisconnect = async() => {
     try {
       const deleteData = await disconnectQB();
-      console.log(deleteData);
       navigate('/');
       handleOpenSnackbar('All quickbooks data removed successfully', 'success');
     } catch (e) {

@@ -26,7 +26,6 @@ export async function getCustomerQuotes(customerId, token) {
 }
 
 async function filterEstimates(responseData, oauthClient, companyId) {
-  console.log(responseData);
   const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
     const productInfo = {};
 
@@ -91,7 +90,6 @@ export async function getQbEstimate(quoteId, token, companyId) {
 
     const responseData = JSON.parse(estimateResponse.text());
     const filteredQuote = await filterEstimates(responseData, oauthClient, companyId);
-    console.log(filteredQuote);
     return filteredQuote;
   } catch (e) {
     throw new InputError('Quote Id does not exist: ' + e.message);

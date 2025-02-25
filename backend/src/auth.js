@@ -224,7 +224,6 @@ export async function saveUserQbButton(token, companyId) {
 export async function getAllUsers(companyId) {
   try {
     const result = await query('select * from users WHERE companyid = $1', [companyId]);
-    console.log(result);
     return result;
   } catch (e) {
     throw new AccessError('Could not get user information: ' + e.message);
@@ -267,8 +266,7 @@ export async function revokeQuickBooksToken(token) {
     const oauthClient = initializeOAuthClient();
     oauthClient.setToken(token);
 
-    const authResponse = await oauthClient.revoke();
-    console.log('Tokens revoked: ' + JSON.stringify(authResponse.json));
+    await oauthClient.revoke();
   } catch (e) {
     console.error('Error revoking QuickBooks token:', e);
     throw new AccessError('Could not revoke QuickBooks token: ' + e.message);

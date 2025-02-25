@@ -127,10 +127,10 @@ app.get('/callback', asyncHandler(async (req, res) => {
   // I will now save the company information and save the user if not registered
   // Also when a user logins here they are guarenteed to be an admin due to using OAuth login
   const companyinfo = await saveCompanyInfo(token);
-  const user = await saveUserQbButton(token, companyinfo.id);
+  const user = await saveUserQbButton(token, companyinfo.companyid);
 
   req.session.token = encryptToken(token);
-  req.session.companyId = companyinfo.id;
+  req.session.companyId = companyinfo.companyid;
   req.session.isAdmin = true;
   req.session.userId = user.id;
 
@@ -166,7 +166,7 @@ app.post('/login', asyncHandler(async (req, res) => {
   req.session.token = encryptToken(user.token);
   req.session.isAdmin = user.is_admin;
   req.session.userId = user.id;
-  req.session.companyId = user.company_id;
+  req.session.companyId = user.companyid;
 
   res.json(user);
 }));
@@ -366,7 +366,7 @@ app.delete('/disconnect', isAuthenticated, asyncHandler(async (req, res) => {
   const companyId = req.session.companyId;
 
   // Revoke the QuickBooks token (to disconnect the QuickBooks account)
-  //await revokeQuickBooksToken(req.decryptedToken);
+  await revokeQuickBooksToken(req.decryptedToken);
 
   // remove any QuickBooks-related data (company info, quotes, quote items, products, customers)
   await removeQuickBooksData(companyId);

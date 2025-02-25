@@ -56,7 +56,7 @@ export async function removeQuickBooksData(companyId) {
             client.query('DELETE FROM quotes WHERE companyid = $1', [companyId]),
         ]);
 
-        await client.query('DELETE FROM companies WHERE id = $1', [companyId]); // Delete company last
+        await client.query('DELETE FROM companies WHERE companyid = $1', [companyId]); // Delete company last
 
         return { success: true, message: 'Company and related data deleted successfully' };
     }).catch((e) => {
