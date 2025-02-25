@@ -34,13 +34,12 @@ async function filterEstimates(responseData, oauthClient, companyId) {
       if (line.DetailType === 'SubTotalLineDetail') {
         continue;
       }
-
-      const Description = line.Description;
-      const item = await getProductFromQB(Description, oauthClient);
+      const itemId = line.SalesItemLineDetail.ItemRef.value;
+      const item = await getProductFromQB(itemId, oauthClient);
       const barcodeItem = await getProductFromDB(item.id);
 
       productInfo[barcodeItem.barcode] = {
-        productName: Description,
+        productName: item.name,
         productId: item.id,
         sku: item.sku,
         price: item.price,
@@ -142,7 +141,7 @@ export async function estimateToDB(quote) {
             parseInt(item.originalQty, 10),
             item.pickingStatus,
             item.sku,
-            item.price,
+            parseFloat(item.price),
             quote.companyId
           ]
         );

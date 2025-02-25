@@ -12,19 +12,26 @@ export async function processFile(filePath, companyId) {
       header: { rows: 1 },
       columnToKey: { '*': '{{columnHeader}}' }
     });
-
     await transaction(async (client) => {
       for (const key in excelData) {
         if (Object.prototype.hasOwnProperty.call(excelData, key)) {
           const products = excelData[key];
-          const values = products.map(product => [
-            product.Name,
-            product.Barcode.toString(),
-            companyId
-          ]);
-          // This query checks if the barcode exists in the DB if it does change the name if not add the name and barcode
+
+          const values = products.map(product => {
+            const fullName = product["Product/Service Name"];
+            const barcode = product.Barcode.toString();
+
+            // Extract category and product name
+            const [category, productName] = fullName.split(/:(.+)/).map(s => s.trim());
+
+            return [category, productName, barcode, companyId];
+          });
+
           const query = format(
-            'INSERT INTO products (productname, barcode, companyid) VALUES %L ON CONFLICT (barcode) DO UPDATE SET productname = EXCLUDED.productname',
+            `INSERT INTO products (category, productname, barcode, companyid) 
+             VALUES %L 
+             ON CONFLICT (barcode) DO UPDATE 
+             SET productname = EXCLUDED.productname, category = EXCLUDED.category`,
             values
           );
 
@@ -40,9 +47,10 @@ export async function processFile(filePath, companyId) {
   }
 }
 
-export async function getProductFromQB(productName, oauthClient) {
+
+export async function getProductFromQB(productId, oauthClient) {
   try {
-    const query = `SELECT * from Item WHERE Name = '${productName}'`;
+    const query = `SELECT * from Item WHERE Id = '${productId}'`;
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     const url = `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`;
