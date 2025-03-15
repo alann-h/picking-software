@@ -9,43 +9,43 @@ import ProductList from './ProductListSettings';
 import SearchBar from './SearchBarSettings';
 import FileUpload from './FileUpload';
 import UserManagement from './UsersManagment';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 
 const Settings: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [tabValue, setTabValue] = useState(0);
   const theme = useTheme();
   const { allProducts, isLoading, refetch } = useAllProducts();
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Determine active tab based on the current path
+  const getActiveTab = () => {
+    const path = location.pathname;
+    if (path.includes('/settings/upload')) return 1;
+    if (path.includes('/settings/users')) return 2;
+    return 0; // Default to products tab
+  };
+  
+  const tabValue = getActiveTab();
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+    // Navigate to the appropriate route based on tab index
+    switch (newValue) {
+      case 0:
+        navigate('/settings/products');
+        break;
+      case 1:
+        navigate('/settings/upload');
+        break;
+      case 2:
+        navigate('/settings/users');
+        break;
+      default:
+        navigate('/settings/products');
+    }
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +75,53 @@ const Settings: React.FC = () => {
       });
   };
 
+  // Components for each tab
+  const ProductsTab = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>Current Products in System</Typography>
+      <Box mb={3}>
+        <SearchBar searchTerm={searchTerm} onSearchChange={handleSearchChange} />
+      </Box>
+      <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} />
+    </Box>
+  );
+
+  const UploadTab = () => (
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <FileUpload 
+          onFileSelect={setSelectedFile} 
+          onUpload={handleUpload} 
+          selectedFile={selectedFile} 
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <ExcelInfoComponent />
+        </motion.div>
+      </Grid>
+    </Grid>
+  );
+
+  const UsersTab = () => (
+    <Box sx={{ maxWidth: '100%' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Typography variant="h6" gutterBottom color="primary">
+          User Management
+        </Typography>
+        <UserManagement />
+      </motion.div>
+    </Box>
+  );
+
   return (
     <Box sx={{ padding: 3, maxWidth: 1200, margin: 'auto' }}>
       <motion.div
@@ -91,53 +138,17 @@ const Settings: React.FC = () => {
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
           <Tab label="Current Products" />
           <Tab label="Upload Data" />
-          < Tab label="User Managment" />
+          <Tab label="User Management" />
         </Tabs>
 
-        <TabPanel value={tabValue} index={0}>
-          <Typography variant="h6" gutterBottom>Current Products in System</Typography>
-          <Box mb={3}>
-            <SearchBar searchTerm={searchTerm} onSearchChange={handleSearchChange} />
-          </Box>
-          <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <FileUpload 
-                onFileSelect={setSelectedFile} 
-                onUpload={handleUpload} 
-                selectedFile={selectedFile} 
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-              >
-                <ExcelInfoComponent />
-              </motion.div>
-            </Grid>
-          </Grid>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={2}>
-          <Box sx={{ maxWidth: '100%' }}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Typography variant="h6" gutterBottom color="primary">
-                User Management
-              </Typography>
-              <UserManagement />
-            </motion.div>
-          </Box>
-        </TabPanel>
-
+        <Box sx={{ p: 3 }}>
+          <Routes>
+            <Route path="products" element={<ProductsTab />} />
+            <Route path="upload" element={<UploadTab />} />
+            <Route path="users" element={<UsersTab />} />
+            <Route path="/" element={<Navigate to="products" replace />} />
+          </Routes>
+        </Box>
       </Paper>
     </Box>
   );

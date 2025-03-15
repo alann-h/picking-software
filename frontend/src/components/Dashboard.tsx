@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, Autocomplete, TextField, List, ListItemText, Card, CardContent, 
   Paper, ListItemButton, Typography, Box, Grid, useTheme, Chip,
@@ -9,7 +9,7 @@ import { Customer } from '../utils/types';
 import { getCustomers, saveCustomers, getCustomerId } from '../api/others';
 import { useSnackbarContext } from './SnackbarContext';
 import { getCustomerQuotes } from '../api/quote';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
 
 // Reusable AnimatedComponent
@@ -28,7 +28,9 @@ const AnimatedComponent: React.FC<{
   </motion.div>
 );
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {}
+
+const Dashboard: React.FC<DashboardProps> = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setInputValue] = useState<string>('');
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -36,36 +38,11 @@ const Dashboard: React.FC = () => {
   const [isCustomerLoading, setIsCustomerLoading] = useState<boolean>(false);
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
 
-  useEffect(() => {
-    setIsCustomerLoading(true);
-    getCustomers()
-      .then((data) => {
-        setCustomers(data);
-        saveCustomers(data);
-        setIsCustomerLoading(false);
-      })
-      .catch((err: Error) => {
-        handleOpenSnackbar(err.message, 'error');
-        setIsCustomerLoading(false);
-      });
-  }, [setCustomers, handleOpenSnackbar]);
 
-  const handleChange = (_: React.SyntheticEvent, newValue: string | null) => {
-    if (newValue) {
-      setInputValue(newValue);
-      getCustomerId(newValue)
-        .then((data) => {
-          listAvailableQuotes(data.customerId);
-        })
-        .catch((err: Error) => {
-          handleOpenSnackbar(err.message, 'error');
-        });
-    }
-  };
-
-  const listAvailableQuotes = (selectedCustomerId: string) => {
+  const listAvailableQuotes = useCallback((selectedCustomerId: string) => {
     if (selectedCustomerId === null) {
       handleOpenSnackbar('Could not get Customer Id', 'error');
       return;
@@ -80,6 +57,57 @@ const Dashboard: React.FC = () => {
         handleOpenSnackbar(err.message, 'error');
         setIsQuotesLoading(false);
       });
+  }, [handleOpenSnackbar, setIsQuotesLoading, setQuotes]);
+
+  useEffect(() => {
+    setIsCustomerLoading(true);
+    getCustomers()
+      .then((data) => {
+        setCustomers(data);
+        saveCustomers(data);
+        setIsCustomerLoading(false);
+        
+        // Check if customer parameter exists in URL
+        const searchParams = new URLSearchParams(location.search);
+        const customerName = searchParams.get('customer');
+        
+        if (customerName && data.some((c: Customer) => c.name === customerName)) {
+          setInputValue(customerName);
+          getCustomerId(customerName)
+            .then((data) => {
+              listAvailableQuotes(data.customerId);
+            })
+            .catch((err: Error) => {
+              handleOpenSnackbar(err.message, 'error');
+            });
+        }
+      })
+      .catch((err: Error) => {
+        handleOpenSnackbar(err.message, 'error');
+        setIsCustomerLoading(false);
+      });
+  }, [location.search, handleOpenSnackbar, setInputValue, listAvailableQuotes]);
+
+  const handleChange = (_: React.SyntheticEvent, newValue: string | null) => {
+    if (newValue) {
+      setInputValue(newValue);
+      
+      // Update URL with selected customer
+      const searchParams = new URLSearchParams(location.search);
+      searchParams.set('customer', newValue);
+      navigate({
+        pathname: location.pathname,
+        search: searchParams.toString()
+      });
+      
+      getCustomerId(newValue)
+        .then((data) => {
+          listAvailableQuotes(data.customerId);
+        })
+        .catch((err: Error) => {
+          handleOpenSnackbar(err.message, 'error');
+        });
+    }
   };
 
   const handleQuoteClick = (quoteId: string) => {
@@ -115,6 +143,7 @@ const Dashboard: React.FC = () => {
                 <Autocomplete
                   id="customer-box"
                   options={customers.map((option) => option.name)}
+                  value={selectedCustomer || null}
                   inputValue={selectedCustomer}
                   onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
                   onChange={handleChange}
@@ -170,6 +199,7 @@ const Dashboard: React.FC = () => {
           </Grid>
         </Grid>
         
+        {/* Rest of the component remains the same */}
         <AnimatedComponent yOffset={20} delay={0.8}>
           <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
             <Typography variant="h5" gutterBottom color="primary">

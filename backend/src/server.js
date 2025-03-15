@@ -32,7 +32,16 @@ app.set('trust proxy', 1);
 
 app.use(cookieParser(process.env.SESSION_SECRET));
 
-app.use(cors({ origin: ['https://smartpicker.au','https://api.smartpicker.au'], credentials: true }));
+const environment = process.env.NODE_ENV
+
+const corsOptions = {
+  origin: environment === 'production' 
+  ? ['https://smartpicker.au', 'https://api.smartpicker.au'] 
+  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5033'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -51,11 +60,11 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: environment === 'production',
+    sameSite: environment === 'production' ? 'none' : 'lax',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours,
-    domain: '.smartpicker.au'
+    domain: environment === 'production' ? '.smartpicker.au' : undefined
   }
 }));
 
@@ -77,10 +86,10 @@ const {
   cookieName: "x-csrf-token",
   cookieOptions: {
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: environment=== 'production' ? 'none' : 'lax',
+    secure: environment=== 'production',
     signed: true,
-    domain: '.smartpicker.au'
+    domain: environment === 'production' ? '.smartpicker.au' : undefined
   },
   size: 64,
   ignoredMethods: ["GET", "HEAD", "OPTIONS"],
@@ -139,7 +148,8 @@ app.get('/callback', asyncHandler(async (req, res) => {
       console.error('Session save error:', err);
       return res.status(500).send('Internal server error');
     }
-    res.redirect('https://smartpicker.au/oauth/callback');
+    const redirectUri = environment === 'production' ? 'https://smartpicker.au/oauth/callback' : 'http://localhost:3000/oauth/callback';
+    res.redirect(redirectUri);
   });
 
 }));
