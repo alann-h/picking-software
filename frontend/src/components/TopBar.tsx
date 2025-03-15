@@ -58,7 +58,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
           {isAdmin && (
             <Button
               startIcon={<AssignmentIcon />}
-              onClick={() => navigate('/dashboard/orders-to-check')}
+              onClick={() => navigate('/orders-to-check')}
               sx={{ marginRight: 2 }}
             >
               Orders to Check
@@ -66,7 +66,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
           )}
           <IconButton 
             color="inherit" 
-            onClick={() => navigate('/dashboard/settings')} 
+            onClick={() => navigate('/settings')} 
             disabled={!isAdmin}
           >
             <SettingsIcon />

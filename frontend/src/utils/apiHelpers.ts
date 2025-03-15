@@ -1,5 +1,7 @@
-const API_BASE_URL = 'https://api.smartpicker.au';
-
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://api.smartpicker.au'
+  : 'http://localhost:5033';
+  
 /**
  * Get CSRF token
  */

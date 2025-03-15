@@ -49,7 +49,7 @@ const App: React.FC = () => {
                     <Dashboard />
                   </ProtectedRoute>
                 } />
-                <Route path="/dashboard/settings" element={
+                <Route path="/settings/*" element={
                   <ProtectedRoute>
                     <Settings />
                   </ProtectedRoute>
@@ -59,7 +59,7 @@ const App: React.FC = () => {
                     <Quote />
                   </ProtectedRoute>
                 } />
-                <Route path="/dashboard/orders-to-check" element={
+                <Route path="/orders-to-check" element={
                   <ProtectedRoute>
                     <OrdersToCheckPage />
                   </ProtectedRoute>
