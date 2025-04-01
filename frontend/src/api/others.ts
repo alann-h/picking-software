@@ -94,3 +94,21 @@ export const disconnectQB = async() => {
     return response;  
   }
 }
+
+export const updateProductDb = async (productId: number) => {
+  const response = await apiCallPut(`updateProduct/${productId}`, {});
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}
+
+export const deleteProductDb = async (productId: number) => {
+  const response = await apiCallDelete(`updateProduct/${productId}`);
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}

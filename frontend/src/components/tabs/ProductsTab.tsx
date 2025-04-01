@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { Product } from '../../utils/types';
 import SearchBar from '../SearchBarSettings';
 import ProductList from '../ProductListSettings';
+import { updateProductDb, deleteProductDb } from '../../api/others'; 
 
 interface ProductsTabProps {
   searchTerm: string;
@@ -26,7 +27,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     <Box mb={3}>
       <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
     </Box>
-    <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} />
+    <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} updateProductDb={updateProductDb} deleteProductDb={deleteProductDb}/>
   </Box>
 );
 

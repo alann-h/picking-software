@@ -20,7 +20,6 @@ export async function processFile(filePath, companyId) {
           const values = products.map(product => {
             const fullName = product["Product/Service Name"];
             let barcode = product.GTIN?.toString().trim();
-            console.log(barcode);
             let isPlaceholder = false;
 
             if (!barcode || barcode.length === 0) {
@@ -123,7 +122,7 @@ export async function getProductName(barcode) {
 
 export async function getProductFromDB(productId) {
   try {
-    const result = await query('SELECT * FROM products WHERE productid = $1', [productId]);
+    const result = await query('SELECT * FROM products WHERE qbo_item_id = $1', [productId]);
     if (result.length === 0) {
       throw new AccessError('This product does not exist within the database');
     }
@@ -145,6 +144,37 @@ export async function getAllProducts(companyId) {
   }
 }
 
+export async function updateProductDb(productId, updateFields) {
+  const fields = Object.keys(updateFields);
+  const values = Object.values(updateFields);
+
+  if (fields.length === 0) {
+    throw new Error('No fields provided for update');
+  }
+
+  const setClause = fields
+  .map((field, index) => `"${field}" = $${index + 1}`)
+  .join(', ');
+
+  const query = `
+  UPDATE products
+  SET ${setClause}
+  WHERE productid = $${fields.length + 1}
+  RETURNING *;
+  `;
+
+  const result = await query(query, [...values, productId]);
+  return result.rows[0];
+}
+
+export async function deleteProductDb(productId) {
+  const result = await query(
+    'DELETE FROM products WHERE productid = $1 RETURNING *;',
+    [productId]
+  );
+  return result.rows[0];
+}
+// below are functions for products but from quotes
 export async function saveForLater(quoteId, productId) {
   try {
     const result = await query(

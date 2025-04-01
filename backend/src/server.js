@@ -10,7 +10,7 @@ import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
-import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished } from './products.js';
+import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished, updateProductDb, deleteProductDb } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import { saveCompanyInfo, removeQuickBooksData } from './company.js';
 import { encryptToken, decryptToken } from './helpers.js';
@@ -344,6 +344,21 @@ app.put('/setProductUnavailable', isAuthenticated, asyncHandler(async (req, res)
 app.put('/setProductFinished', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productId } = req.body;
   const result = await setProductFinished(quoteId, productId);
+  res.status(200).json(result);
+}));
+
+app.put('/updateProduct/:productId', isAuthenticated, asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+  const updateFields = req.body;
+
+  const result = await updateProductDb(productId, updateFields);
+  res.status(200).json(result);
+}));
+
+app.delete('/deleteProduct/:productId', isAuthenticated, asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  const result = await deleteProductDb(productId);
   res.status(200).json(result);
 }));
 

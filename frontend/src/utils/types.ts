@@ -51,12 +51,17 @@ export interface ProductDetailsDB {
     pickingStatus: string;
     productId: number;
 }
-
 export interface Product {
+    productid: number;
     productName: string;
-    barcode: number;
-}
-
+    barcode: string;
+    sku: string | null;
+    quantityOnHand: number | null;
+    price: number | null;
+    companyid: number;
+    category: string | null;
+    qboItemId: number | null;
+  }
 export interface UserData {
     id: string;
     email: string;
