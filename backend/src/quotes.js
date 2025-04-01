@@ -14,7 +14,7 @@ export async function getCustomerQuotes(customerId, token) {
 
     const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
     const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
+      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=75`
     });
 
     const responseJSON = JSON.parse(response.text());
@@ -84,7 +84,7 @@ export async function getQbEstimate(quoteId, token, companyId) {
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
     const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
+      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=75`
     });
 
     const responseData = JSON.parse(estimateResponse.text());
@@ -400,7 +400,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     const baseURL = getBaseURL(oauthClient);
     await makeCustomApiCall(
       oauthClient,
-      `${baseURL}v3/company/${companyID}/estimate?minorversion=73`,
+      `${baseURL}v3/company/${companyID}/estimate?minorversion=75`,
       'POST',
       updatePayload
     );

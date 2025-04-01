@@ -62,7 +62,7 @@ export async function getProductFromQB(productId, oauthClient) {
     const query = `SELECT * from Item WHERE Id = '${productId}'`;
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
-    const url = `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`;
+    const url = `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=75`;
 
     const response = await oauthClient.makeApiCall({ url });
     const responseData = JSON.parse(response.text());
