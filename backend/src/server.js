@@ -32,12 +32,12 @@ app.set('trust proxy', 1);
 
 app.use(cookieParser(process.env.SESSION_SECRET));
 
-const environment = process.env.NODE_ENV
+const environment = process.env.NODE_ENV;
 
 const corsOptions = {
   origin: environment === 'production' 
   ? ['https://smartpicker.au', 'https://api.smartpicker.au'] 
-  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5033'],
+  : ['http://localhost:3000',  'http://localhost:5033'],
   credentials: true,
 };
 
