@@ -275,7 +275,7 @@ export async function addProductToQuote(productName, quoteId, qty, token, compan
             throw new AccessError('OAuth client could not be initialized');
           }
           // If the product doesn't exist, insert a new row
-          const productFromQB = await getProductFromQB(productName, oauthClient);
+          const productFromQB = await getProductFromQB(product[0].qbo_item_id, oauthClient);
           addNewProduct = await client.query(
             'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *',
             [quoteId, productFromQB.id, qty, qty,'pending', product[0].barcode, productName, product[0].sku, product[0].price, companyId]

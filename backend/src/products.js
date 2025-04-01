@@ -19,19 +19,29 @@ export async function processFile(filePath, companyId) {
 
           const values = products.map(product => {
             const fullName = product["Product/Service Name"];
-            const barcode = product.Barcode.toString();
+            let barcode = product.GTIN?.toString().trim();
+            console.log(barcode);
+            let isPlaceholder = false;
+
+            if (!barcode || barcode.length === 0) {
+              const random = Math.floor(10000000000000 + Math.random() * 90000000000000);
+              barcode = `9${random.toString().slice(1)}`; // Ensure 14-digit placeholder starting with 9
+              isPlaceholder = true;
+            } else if (barcode.length === 13) {
+              barcode = '0' + barcode;
+            }
 
             // Extract category and product name
             const [category, productName] = fullName.split(/:(.+)/).map(s => s.trim());
 
-            return [category, productName, barcode, companyId];
+            return [category, productName, barcode, companyId, isPlaceholder];
           });
 
           const query = format(
-            `INSERT INTO products (category, productname, barcode, companyid) 
+            `INSERT INTO products (category, productname, barcode, companyid, is_placeholder) 
              VALUES %L 
              ON CONFLICT (barcode) DO UPDATE 
-             SET productname = EXCLUDED.productname, category = EXCLUDED.category`,
+             SET productname = EXCLUDED.productname, category = EXCLUDED.category, is_placeholder = EXCLUDED.is_placeholder`,
             values
           );
 
@@ -80,14 +90,16 @@ export async function getProductFromQB(productId, oauthClient) {
 async function saveProduct(item) {
   try {
     const result = await query(
-      'UPDATE products SET productid = $1, sku = $2, quantity_on_hand = $3, price = $4 WHERE productname = $5 RETURNING *',
+      'UPDATE products SET qbo_item_id = $1, sku = $2, quantity_on_hand = $3, price = $4 WHERE productname = $5 RETURNING *',
       [item.id, item.sku, item.qtyOnHand, item.price, item.name]
     );
+
     if (result.length === 0) {
       const insertResult = await query(
-        'INSERT INTO products (productid, productname, sku, quantity_on_hand, price) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        'INSERT INTO products (qbo_item_id, productname, sku, quantity_on_hand, price) VALUES ($1, $2, $3, $4, $5) RETURNING *',
         [item.id, item.name, item.sku, item.qtyOnHand, item.price]
       );
+
       if (insertResult.length === 0) {
         throw new AccessError(`Failed to insert product ${item.name} into the database.`);
       }
