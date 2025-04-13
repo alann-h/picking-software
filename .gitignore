@@ -5,3 +5,5 @@ node_modules/
 backend/src/db.js
 
 *.yml
+# This is the start file which runs the connection to the aws tunnel and starts docker-compose.yml
+/start.sh 
