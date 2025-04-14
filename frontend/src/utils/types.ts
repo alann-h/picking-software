@@ -50,6 +50,7 @@ export interface ProductDetailsDB {
     qtyOnHand: number;
     pickingStatus: string;
     productId: number;
+    barcode: string
 }
 export interface Product {
     productid: number;

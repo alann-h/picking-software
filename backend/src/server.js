@@ -105,7 +105,7 @@ const isAuthenticated = (req, res, next) => {
   if (req.session.token) {
     next();
   } else {
-    res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: 'You are not logged in. Please log in to continue.' });
   }
 };
 

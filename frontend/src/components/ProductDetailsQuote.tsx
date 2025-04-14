@@ -16,9 +16,11 @@ import {
   Inventory as InventoryIcon,
   LocalShipping as ShippingIcon,
   Assignment as AssignmentIcon,
+  QrCode as QrCodeIcon
 } from '@mui/icons-material';
 import { ProductDetailsDB } from '../utils/types';
 import { getStatusColor } from '../utils/other';
+
 
 interface ProductDetailsProps {
   open: boolean;
@@ -73,6 +75,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
             <Box display="flex" alignItems="center">
               <ShippingIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
               <Typography variant="body1">Original Quantity: {localProductDetails.originalQty}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12}>
+            <Box display="flex" alignItems="center">
+              <QrCodeIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
+              <Typography variant="body1">
+                Barcode: {localProductDetails.barcode ? localProductDetails.barcode : 'No barcode assigned'}
+              </Typography>
             </Box>
           </Grid>
         </Grid>
