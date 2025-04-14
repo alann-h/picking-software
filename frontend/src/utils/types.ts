@@ -9,7 +9,7 @@ export interface ProductDetail {
 }
   
 export interface ProductInfo {
-    [barcode: string]: ProductDetail;
+    [productId: number]: ProductDetail;
 }
   
 export interface QuoteData {

@@ -35,18 +35,19 @@ async function filterEstimates(responseData, oauthClient, companyId) {
         continue;
       }
       const itemId = line.SalesItemLineDetail.ItemRef.value;
-      const item = await getProductFromQB(itemId, oauthClient);
-      const barcodeItem = await getProductFromDB(item.id);
+      const itemQBO = await getProductFromQB(itemId, oauthClient);
+      const itemLocal = await getProductFromDB(itemQBO.id);
 
-      productInfo[barcodeItem.barcode] = {
-        productName: item.name,
-        productId: item.id,
-        sku: item.sku,
-        price: item.price,
+      productInfo[itemLocal.productid] = {
+        productName: itemQBO.name,
+        productId: itemLocal.productid,
+        sku: itemQBO.sku,
+        price: itemQBO.price,
         pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         pickingStatus: 'pending',
-        companyId
+        companyId,
+        barcode: itemLocal.barcode
       };
     }
     const customerRef = estimate.CustomerRef;
@@ -129,13 +130,13 @@ export async function estimateToDB(quote) {
       await client.query('DELETE FROM quoteitems WHERE quoteid = $1', [quote.quoteId]);
 
       // Insert new quote items
-      for (const [barcode, item] of Object.entries(quote.productInfo)) {
+      for (const [productId, item] of Object.entries(quote.productInfo)) {
         await client.query(
           'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
           [
             quote.quoteId,
-            item.productId,
-            barcode,
+            productId,
+            item.barcode,
             item.productName,
             parseInt(item.pickingQty, 10),
             parseInt(item.originalQty, 10),
@@ -191,8 +192,8 @@ export async function fetchQuoteData(quoteId) {
     };
 
     result.forEach(row => {
-      if (row.quoteid && row.barcode) {
-        quote.productInfo[row.barcode] = {
+      if (row.quoteid && row.productid) {
+        quote.productInfo[row.productid] = {
           quoteId: row.quoteid,
           productId: row.productid,
           productName: row.productname,

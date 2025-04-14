@@ -19,28 +19,22 @@ export async function processFile(filePath, companyId) {
 
           const values = products.map(product => {
             const fullName = product["Product/Service Name"];
-            let barcode = product.GTIN?.toString().trim();
-            let isPlaceholder = false;
-
-            if (!barcode || barcode.length === 0) {
-              const random = Math.floor(10000000000000 + Math.random() * 90000000000000);
-              barcode = `9${random.toString().slice(1)}`; // Ensure 14-digit placeholder starting with 9
-              isPlaceholder = true;
-            } else if (barcode.length === 13) {
-              barcode = '0' + barcode;
-            }
-
+            let barcodeRaw = product.GTIN?.toString().trim();
+            
+            if (!barcodeRaw) return null;
+            
+            const barcode = barcodeRaw.length === 13 ? '0' + barcodeRaw : barcode;
             // Extract category and product name
             const [category, productName] = fullName.split(/:(.+)/).map(s => s.trim());
 
-            return [category, productName, barcode, companyId, isPlaceholder];
+            return [category, productName, barcode, companyId];
           });
 
           const query = format(
-            `INSERT INTO products (category, productname, barcode, companyid, is_placeholder) 
+            `INSERT INTO products (category, productname, barcode, companyid) 
              VALUES %L 
              ON CONFLICT (barcode) DO UPDATE 
-             SET productname = EXCLUDED.productname, category = EXCLUDED.category, is_placeholder = EXCLUDED.is_placeholder`,
+             SET productname = EXCLUDED.productname, category = EXCLUDED.category`,
             values
           );
 
@@ -122,7 +116,7 @@ export async function getProductName(barcode) {
 
 export async function getProductFromDB(productId) {
   try {
-    const result = await query('SELECT * FROM products WHERE qbo_item_id = $1', [productId]);
+    const result = await query('SELECT * FROM products WHERE productid = $1', [productId]);
     if (result.length === 0) {
       throw new AccessError('This product does not exist within the database');
     }
