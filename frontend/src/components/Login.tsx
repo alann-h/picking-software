@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextField, Box, Typography, Container, CircularProgress } from '@mui/material';
+import { Button, TextField, Box, Typography, Container } from '@mui/material';
 import { loginWithQb, loginWithCredentials, verifyUser } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
+import LoadingWrapper from './LoadingWrapper';
 
 const Login: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
@@ -45,92 +46,77 @@ const Login: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
+  return (
+    <LoadingWrapper isLoading={loading} height="100vh">
       <Container component="main" maxWidth="xs">
         <Box
           sx={{
-            height: '100vh',
+            marginTop: 8,
             display: 'flex',
-            justifyContent: 'center',
+            flexDirection: 'column',
             alignItems: 'center',
           }}
         >
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
-  }
-
-  return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Typography component="h1" variant="h5" color="primary" fontWeight="bold">
-          Sign in to SmartPicker
-        </Typography>
-        <Box component="form" onSubmit={handleCredentialLogin} noValidate sx={{ mt: 1 }}>
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            id="email"
-            label="Email Address"
-            name="email"
-            autoComplete="email"
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            name="password"
-            label="Password"
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <Typography component="h1" variant="h5" color="primary" fontWeight="bold">
+            Sign in to SmartPicker
+          </Typography>
+          <Box component="form" onSubmit={handleCredentialLogin} noValidate sx={{ mt: 1 }}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="Email Address"
+              name="email"
+              autoComplete="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Password"
+              type="password"
+              id="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, mb: 2 }}
+            >
+              Sign In
+            </Button>
+          </Box>
+          <Typography variant="body1" sx={{ mt: 2, mb: 2 }}>
+            Or
+          </Typography>
           <Button
-            type="submit"
             fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
+            variant="outlined"
+            onClick={handleQuickBooksLogin}
+            sx={{
+              mt: 1,
+              mb: 2,
+              borderColor: '#2CA01C',
+              color: '#2CA01C',
+              '&:hover': {
+                borderColor: '#238A14',
+                backgroundColor: 'rgba(44, 160, 28, 0.04)',
+              },
+            }}
           >
-            Sign In
+            Sign in with QuickBooks
           </Button>
         </Box>
-        <Typography variant="body1" sx={{ mt: 2, mb: 2 }}>
-          Or
-        </Typography>
-        <Button
-          fullWidth
-          variant="outlined"
-          onClick={handleQuickBooksLogin}
-          sx={{
-            mt: 1,
-            mb: 2,
-            borderColor: '#2CA01C',
-            color: '#2CA01C',
-            '&:hover': {
-              borderColor: '#238A14',
-              backgroundColor: 'rgba(44, 160, 28, 0.04)',
-            },
-          }}
-        >
-          Sign in with QuickBooks
-        </Button>
-      </Box>
-    </Container>
+      </Container>
+    </LoadingWrapper>
   );
 };
 

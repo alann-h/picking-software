@@ -10,7 +10,7 @@ import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
-import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished } from './products.js';
+import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished, updateProductDb, deleteProductDb } from './products.js';
 import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
 import { saveCompanyInfo, removeQuickBooksData } from './company.js';
 import { encryptToken, decryptToken } from './helpers.js';
@@ -32,12 +32,12 @@ app.set('trust proxy', 1);
 
 app.use(cookieParser(process.env.SESSION_SECRET));
 
-const environment = process.env.NODE_ENV
+const environment = process.env.NODE_ENV;
 
 const corsOptions = {
   origin: environment === 'production' 
   ? ['https://smartpicker.au', 'https://api.smartpicker.au'] 
-  : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5033'],
+  : ['http://localhost:3000',  'http://localhost:5033'],
   credentials: true,
 };
 
@@ -105,7 +105,7 @@ const isAuthenticated = (req, res, next) => {
   if (req.session.token) {
     next();
   } else {
-    res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: 'You are not logged in. Please log in to continue.' });
   }
 };
 
@@ -344,6 +344,21 @@ app.put('/setProductUnavailable', isAuthenticated, asyncHandler(async (req, res)
 app.put('/setProductFinished', isAuthenticated, asyncHandler(async (req, res) => {
   const { quoteId, productId } = req.body;
   const result = await setProductFinished(quoteId, productId);
+  res.status(200).json(result);
+}));
+
+app.put('/updateProduct/:productId', isAuthenticated, asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+  const updateFields = req.body;
+
+  const result = await updateProductDb(productId, updateFields);
+  res.status(200).json(result);
+}));
+
+app.delete('/deleteProduct/:productId', isAuthenticated, asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  const result = await deleteProductDb(productId);
   res.status(200).json(result);
 }));
 

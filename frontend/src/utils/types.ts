@@ -9,7 +9,7 @@ export interface ProductDetail {
 }
   
 export interface ProductInfo {
-    [barcode: string]: ProductDetail;
+    [productId: number]: ProductDetail;
 }
   
 export interface QuoteData {
@@ -50,13 +50,19 @@ export interface ProductDetailsDB {
     qtyOnHand: number;
     pickingStatus: string;
     productId: number;
+    barcode: string
 }
-
 export interface Product {
+    productid: number;
     productName: string;
-    barcode: number;
-}
-
+    barcode: string;
+    sku: string | null;
+    quantityOnHand: number | null;
+    price: number | null;
+    companyid: number;
+    category: string | null;
+    qboItemId: number | null;
+  }
 export interface UserData {
     id: string;
     email: string;

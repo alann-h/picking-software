@@ -30,7 +30,7 @@ export async function fetchCustomers(token) {
 
     while (moreRecords) {
       const response = await oauthClient.makeApiCall({
-        url: `${baseURL}v3/company/${companyID}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=69`
+        url: `${baseURL}v3/company/${companyID}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
       });
 
       const responseData = JSON.parse(response.text());

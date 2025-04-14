@@ -14,7 +14,7 @@ export async function getCustomerQuotes(customerId, token) {
 
     const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
     const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
+      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=75`
     });
 
     const responseJSON = JSON.parse(response.text());
@@ -35,18 +35,19 @@ async function filterEstimates(responseData, oauthClient, companyId) {
         continue;
       }
       const itemId = line.SalesItemLineDetail.ItemRef.value;
-      const item = await getProductFromQB(itemId, oauthClient);
-      const barcodeItem = await getProductFromDB(item.id);
+      const itemQBO = await getProductFromQB(itemId, oauthClient);
+      const itemLocal = await getProductFromDB(itemQBO.id);
 
-      productInfo[barcodeItem.barcode] = {
-        productName: item.name,
-        productId: item.id,
-        sku: item.sku,
-        price: item.price,
+      productInfo[itemLocal.productid] = {
+        productName: itemQBO.name,
+        productId: itemLocal.productid,
+        sku: itemQBO.sku,
+        price: itemQBO.price,
         pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         pickingStatus: 'pending',
-        companyId
+        companyId,
+        barcode: itemLocal.barcode
       };
     }
     const customerRef = estimate.CustomerRef;
@@ -84,7 +85,7 @@ export async function getQbEstimate(quoteId, token, companyId) {
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
     const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=69`
+      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=75`
     });
 
     const responseData = JSON.parse(estimateResponse.text());
@@ -129,13 +130,13 @@ export async function estimateToDB(quote) {
       await client.query('DELETE FROM quoteitems WHERE quoteid = $1', [quote.quoteId]);
 
       // Insert new quote items
-      for (const [barcode, item] of Object.entries(quote.productInfo)) {
+      for (const [productId, item] of Object.entries(quote.productInfo)) {
         await client.query(
           'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
           [
             quote.quoteId,
-            item.productId,
-            barcode,
+            productId,
+            item.barcode,
             item.productName,
             parseInt(item.pickingQty, 10),
             parseInt(item.originalQty, 10),
@@ -191,8 +192,8 @@ export async function fetchQuoteData(quoteId) {
     };
 
     result.forEach(row => {
-      if (row.quoteid && row.barcode) {
-        quote.productInfo[row.barcode] = {
+      if (row.quoteid && row.productid) {
+        quote.productInfo[row.productid] = {
           quoteId: row.quoteid,
           productId: row.productid,
           productName: row.productname,
@@ -275,7 +276,7 @@ export async function addProductToQuote(productName, quoteId, qty, token, compan
             throw new AccessError('OAuth client could not be initialized');
           }
           // If the product doesn't exist, insert a new row
-          const productFromQB = await getProductFromQB(productName, oauthClient);
+          const productFromQB = await getProductFromQB(product[0].qbo_item_id, oauthClient);
           addNewProduct = await client.query(
             'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *',
             [quoteId, productFromQB.id, qty, qty,'pending', product[0].barcode, productName, product[0].sku, product[0].price, companyId]
@@ -400,7 +401,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     const baseURL = getBaseURL(oauthClient);
     await makeCustomApiCall(
       oauthClient,
-      `${baseURL}v3/company/${companyID}/estimate?minorversion=73`,
+      `${baseURL}v3/company/${companyID}/estimate?minorversion=75`,
       'POST',
       updatePayload
     );

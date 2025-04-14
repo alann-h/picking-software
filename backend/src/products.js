@@ -19,8 +19,11 @@ export async function processFile(filePath, companyId) {
 
           const values = products.map(product => {
             const fullName = product["Product/Service Name"];
-            const barcode = product.Barcode.toString();
-
+            let barcodeRaw = product.GTIN?.toString().trim();
+            
+            if (!barcodeRaw) return null;
+            
+            const barcode = barcodeRaw.length === 13 ? '0' + barcodeRaw : barcode;
             // Extract category and product name
             const [category, productName] = fullName.split(/:(.+)/).map(s => s.trim());
 
@@ -53,7 +56,7 @@ export async function getProductFromQB(productId, oauthClient) {
     const query = `SELECT * from Item WHERE Id = '${productId}'`;
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
-    const url = `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=69`;
+    const url = `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=75`;
 
     const response = await oauthClient.makeApiCall({ url });
     const responseData = JSON.parse(response.text());
@@ -80,14 +83,16 @@ export async function getProductFromQB(productId, oauthClient) {
 async function saveProduct(item) {
   try {
     const result = await query(
-      'UPDATE products SET productid = $1, sku = $2, quantity_on_hand = $3, price = $4 WHERE productname = $5 RETURNING *',
+      'UPDATE products SET qbo_item_id = $1, sku = $2, quantity_on_hand = $3, price = $4 WHERE productname = $5 RETURNING *',
       [item.id, item.sku, item.qtyOnHand, item.price, item.name]
     );
+
     if (result.length === 0) {
       const insertResult = await query(
-        'INSERT INTO products (productid, productname, sku, quantity_on_hand, price) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        'INSERT INTO products (qbo_item_id, productname, sku, quantity_on_hand, price) VALUES ($1, $2, $3, $4, $5) RETURNING *',
         [item.id, item.name, item.sku, item.qtyOnHand, item.price]
       );
+
       if (insertResult.length === 0) {
         throw new AccessError(`Failed to insert product ${item.name} into the database.`);
       }
@@ -133,6 +138,37 @@ export async function getAllProducts(companyId) {
   }
 }
 
+export async function updateProductDb(productId, updateFields) {
+  const fields = Object.keys(updateFields);
+  const values = Object.values(updateFields);
+
+  if (fields.length === 0) {
+    throw new Error('No fields provided for update');
+  }
+
+  const setClause = fields
+  .map((field, index) => `"${field}" = $${index + 1}`)
+  .join(', ');
+
+  const query = `
+  UPDATE products
+  SET ${setClause}
+  WHERE productid = $${fields.length + 1}
+  RETURNING *;
+  `;
+
+  const result = await query(query, [...values, productId]);
+  return result.rows[0];
+}
+
+export async function deleteProductDb(productId) {
+  const result = await query(
+    'DELETE FROM products WHERE productid = $1 RETURNING *;',
+    [productId]
+  );
+  return result.rows[0];
+}
+// below are functions for products but from quotes
 export async function saveForLater(quoteId, productId) {
   try {
     const result = await query(

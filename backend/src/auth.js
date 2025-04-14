@@ -213,7 +213,7 @@ async function getUserInfo(token) {
 export async function saveUserQbButton(token, companyId) {
   try {
     const userInfo = await getUserInfo(token);
-    const password = 'GoldenShore2024';
+    const password = 'GoldenShore2024'; // default password for users logging in with qb button (will change)
     const response = await register(userInfo.email, password, true, userInfo.givenName, userInfo.familyName, companyId, userInfo.sub);
     return response;
   } catch (e) {
