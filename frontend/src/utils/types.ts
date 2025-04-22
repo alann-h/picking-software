@@ -28,12 +28,13 @@ export interface QuoteProps {
 }
 export interface BarcodeListenerProps {
     onBarcodeScanned: (barcode: string) => void;
+    disabled?: boolean; 
 }
 export type QuoteUpdateFunction = (updater: (prevQuoteData: QuoteData) => Partial<QuoteData>) => void;
 
 export interface Customer {
-    name: string;
-    id: string;
+    customerName: string;
+    customerId: number;
 }
 export interface SnackbarContextType {
     openSnackbar: boolean;

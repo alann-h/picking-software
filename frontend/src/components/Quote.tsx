@@ -8,7 +8,7 @@ import {
 from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import BarcodeListener from './BarcodeListener';
-import QtyModal from './BarcodeModal';
+import BarcodeModal from './BarcodeModal';
 import ProductDetails from './ProductDetailsQuote';
 import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
@@ -19,6 +19,7 @@ import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
+import { Helmet } from 'react-helmet-async';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -26,7 +27,7 @@ const useQuery = () => {
 
 const Quote: React.FC = () => {
   const query = useQuery();
-  const quoteId = Number(query.get('Id') || '');
+  const quoteId = Number(query.get('id') || '');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { modalState, closeModal, openModal } = useModalState();
@@ -59,11 +60,16 @@ const Quote: React.FC = () => {
 
   const displayProducts = filteredProducts.length > 0 ? filteredProducts : productArray;
 
+  const barcodeDisabled = modalState.type === 'barcode' && modalState.isOpen;
+
   return (
     <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
-      <BarcodeListener onBarcodeScanned={handleBarcodeScan} />
+      <Helmet>
+        <title>{`Smart Picker | Quote: ${quoteId}`}</title>
+      </Helmet>
+       <BarcodeListener onBarcodeScanned={handleBarcodeScan} disabled={barcodeDisabled} />
       {modalState.type === 'barcode' && (
-        <QtyModal
+        <BarcodeModal
           isOpen={modalState.isOpen}
           onClose={closeModal}
           onConfirm={handleBarcodeModal}

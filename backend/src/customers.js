@@ -1,18 +1,6 @@
-import { AccessError, InputError } from './error.js';
-import { query, transaction } from './helpers.js';
+import { AccessError } from './error.js';
+import { transaction } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth.js';
-
-export async function getCustomerId(customerName) {
-  try {
-    const result = await query('SELECT customerId FROM customers WHERE customerName = $1', [customerName]);
-    if (result.length === 0) {
-      throw new InputError('This customer does not exist within the database');
-    }
-    return result[0].customerid;
-  } catch (error) {
-    throw new InputError(error.message);
-  }
-}
 
 export async function fetchCustomers(token) {
   try {
@@ -37,8 +25,8 @@ export async function fetchCustomers(token) {
       const customers = responseData.QueryResponse.Customer || [];
 
       allCustomers.push(...customers.map(customer => ({
-        id: customer.Id,
-        name: customer.DisplayName
+        customerId: customer.Id,
+        customerName: customer.DisplayName
       })));
 
       if (customers.length < pageSize) {
@@ -58,9 +46,13 @@ export async function saveCustomers(customers, companyId) {
   try {
     await transaction(async (client) => {
       for (const customer of customers) {
+        if (customer.customerId == null) {
+          console.error('❌ Null or undefined customerId found:', customer);
+          continue;
+        }
         await client.query(
           'INSERT INTO customers (customerid, customername, companyid) VALUES ($1, $2, $3) ON CONFLICT (customerid) DO UPDATE SET customername = $2',
-          [customer.id, customer.name, companyId]
+          [customer.customerId, customer.customerName, companyId]
         );
       }
     });

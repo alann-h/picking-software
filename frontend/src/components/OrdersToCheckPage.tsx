@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from './SnackbarContext';
 import { getQuotesWithStatus } from '../api/quote';
 import { getUserStatus } from '../api/user';
+import { Helmet } from 'react-helmet-async';
 interface Quote {
   id: string;
   customerName: string;
@@ -57,35 +58,44 @@ const OrdersToCheckPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Helmet>
+        <title>Smart Picker | Orders To Check</title>
+      </Helmet>
       <Typography variant="h4" gutterBottom>
         Orders to Check
       </Typography>
-      <Grid container spacing={3}>
-        {quotes.map((quote) => (
-          <Grid item xs={12} sm={6} md={4} key={quote.id}>
-            <Card>
-              <CardActionArea onClick={() => handleQuoteClick(quote.id)}>
-                <CardContent>
-                  <Typography variant="h6" component="div">
-                    Quote #{quote.id}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Customer: {quote.customerName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Amount: ${quote.totalAmount}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Last Updated: {quote.lastModified}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      {quotes.length === 0 ? (
+        <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+          There are no orders to check.
+        </Typography>
+      ) : (
+        <Grid container spacing={3}>
+          {quotes.map((quote) => (
+            <Grid item xs={12} sm={6} md={4} key={quote.id}>
+              <Card>
+                <CardActionArea onClick={() => handleQuoteClick(quote.id)}>
+                  <CardContent>
+                    <Typography variant="h6" component="div">
+                      Quote #{quote.id}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Customer: {quote.customerName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Amount: ${quote.totalAmount}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Last Updated: {quote.lastModified}
+                    </Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
     </Container>
-  );
+  );  
 };
 
 export default OrdersToCheckPage;

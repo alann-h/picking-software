@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 
-interface QtyModalProps {
+interface BarcodeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (qty: number) => void;
@@ -17,7 +17,7 @@ interface QtyModalProps {
   productName: string;
 }
 
-const QtyModal: React.FC<QtyModalProps> = ({
+const BarcodeModal: React.FC<BarcodeModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
@@ -78,4 +78,4 @@ const QtyModal: React.FC<QtyModalProps> = ({
   );
 };
 
-export default QtyModal;
+export default BarcodeModal;

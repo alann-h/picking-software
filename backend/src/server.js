@@ -11,7 +11,7 @@ import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
 import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished, updateProductDb, deleteProductDb } from './products.js';
-import { fetchCustomers, saveCustomers, getCustomerId } from './customers.js';
+import { fetchCustomers, saveCustomers } from './customers.js';
 import { saveCompanyInfo, removeQuickBooksData } from './company.js';
 import { encryptToken, decryptToken } from './helpers.js';
 import dotenv from 'dotenv';
@@ -245,12 +245,6 @@ app.post('/saveCustomers', isAuthenticated, asyncHandler(async (req, res) => {
   await saveCustomers(req.body, req.session.companyId);
   res.status(200).json({ message: 'Customers saved successfully in database' });
 }));
-
-app.get('/getCustomerId/:customerName', isAuthenticated, asyncHandler(async (req, res) => {
-  const customerId = await getCustomerId(req.params.customerName);
-  res.json({ customerId });
-}));
-
 
 /***************************************************************
                        Quote Functions

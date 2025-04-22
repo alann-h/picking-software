@@ -4,6 +4,7 @@ import { loginWithQb, loginWithCredentials, verifyUser } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
+import { Helmet } from 'react-helmet-async';
 
 const Login: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
@@ -57,6 +58,9 @@ const Login: React.FC = () => {
             alignItems: 'center',
           }}
         >
+          <Helmet>
+            <title>Smart Picker | Login</title>
+          </Helmet>
           <Typography component="h1" variant="h5" color="primary" fontWeight="bold">
             Sign in to SmartPicker
           </Typography>

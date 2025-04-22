@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
           }}
         >
           <Typography variant="body2">
-            © {currentYear} SmartPicker. All rights reserved.
+            © {currentYear} Smart Picker. All rights reserved.
           </Typography>
           <Box>
             <Link

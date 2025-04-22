@@ -64,7 +64,7 @@ const InitalPage: React.FC = () => {
                 marginBottom: 4,
               }}
             >
-              Goodbye spreadsheets,<br />hello SmartPicker
+              Goodbye spreadsheets,<br />hello Smart Picker
             </Typography>
           </AnimatedSection>
           <AnimatedSection>
