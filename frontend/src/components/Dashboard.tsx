@@ -62,32 +62,27 @@ const Dashboard: React.FC<DashboardProps> = () => {
   useEffect(() => {
     setIsCustomerLoading(true);
     getCustomers()
-      .then((data) => {
+      .then(data => {
         setCustomers(data);
         saveCustomers(data);
-        setIsCustomerLoading(false);
-        
-        // Check if customer parameter exists in URL
-        const searchParams = new URLSearchParams(location.search);
-        const customerName = searchParams.get('customer');
-        
-        if (customerName && data.some((c: Customer) => c.name === customerName)) {
-          setInputValue(customerName);
-          getCustomerId(customerName)
-            .then((data) => {
-              listAvailableQuotes(data.customerId);
-            })
-            .catch((err: Error) => {
-              handleOpenSnackbar(err.message, 'error');
-            });
-        }
       })
-      .catch((err: Error) => {
-        handleOpenSnackbar(err.message, 'error');
-        setIsCustomerLoading(false);
-      });
-  }, [location.search, handleOpenSnackbar, setInputValue, listAvailableQuotes]);
+      .catch(err => handleOpenSnackbar(err.message, 'error'))
+      .finally(() => setIsCustomerLoading(false));
+  }, [handleOpenSnackbar]); 
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const customerName = params.get('customer');
+    if (!customerName) return;
+  
+    // only if we have that customer in our list
+    const match = customers.find(c => c.name === customerName);
+    if (!match) return;
+  
+    setInputValue(customerName);
+    listAvailableQuotes(match.customerId);
+  }, [location.search, customers, listAvailableQuotes]);
+  
   const handleChange = (_: React.SyntheticEvent, newValue: string | null) => {
     if (newValue) {
       setInputValue(newValue);

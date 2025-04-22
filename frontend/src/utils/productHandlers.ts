@@ -26,18 +26,19 @@ export const handleAdjustQuantity = async (quoteId: number, productId: number, n
     const data = await adjustProductQty(quoteId, productId, newQty);
     
     updateQuoteData(prevQuoteData => {
-        const updatedProductInfo = { ...prevQuoteData.productInfo };
-        const product = Object.values(updatedProductInfo).find(
+      const updatedProductInfo = { ...prevQuoteData.productInfo };
+      const product = Object.values(updatedProductInfo).find(
         (product): product is ProductDetail => product.productId === productId
-        );
-        if (product) {
+      );
+      if (product) {
         product.pickingQty = data.pickingQty;
         product.originalQty = data.originalQty;
-        }
-        return {
+      }
+      
+      return {
         productInfo: updatedProductInfo,
         totalAmount: data.totalAmount
-        };
+      };
     });
   } catch (error) {
     throw Error(`Error adjusting product quantity: ${error}`);

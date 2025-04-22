@@ -82,9 +82,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
             style={{ display: 'none' }}
           />
           <CloudUploadIcon sx={{ fontSize: 48, color: theme.palette.primary.main, mb: 2 }} />
-          <Typography variant="body1">
-            {selectedFile ? selectedFile.name : 'Drag and drop your file here, or click to select'}
-          </Typography>
+          {selectedFile && (
+            <Typography variant="body2" sx={{ mt: 2, color: theme.palette.text.secondary }}>
+              Selected file: <strong>{selectedFile.name}</strong> ({selectedFile.type || 'Unknown format'})
+            </Typography>
+          )}
         </Box>
 
         <Button

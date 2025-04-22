@@ -67,7 +67,6 @@ export const useBarcodeHandling = (quoteId: number, quoteData: QuoteData | null,
   const [scannedProductName, setScannedProductName] = useState('');
   const { handleOpenSnackbar } = useSnackbarContext();
 
-
   const handleBarcodeScan = useCallback(async (barcode: string) => {
     try {
       await handleBarcodeScanned(

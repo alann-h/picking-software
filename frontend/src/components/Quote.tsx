@@ -8,7 +8,7 @@ import {
 from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import BarcodeListener from './BarcodeListener';
-import QtyModal from './BarcodeModal';
+import BarcodeModal from './BarcodeModal';
 import ProductDetails from './ProductDetailsQuote';
 import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
@@ -59,11 +59,13 @@ const Quote: React.FC = () => {
 
   const displayProducts = filteredProducts.length > 0 ? filteredProducts : productArray;
 
+  const barcodeDisabled = modalState.type === 'barcode' && modalState.isOpen;
+
   return (
     <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
-      <BarcodeListener onBarcodeScanned={handleBarcodeScan} />
+       <BarcodeListener onBarcodeScanned={handleBarcodeScan} disabled={barcodeDisabled} />
       {modalState.type === 'barcode' && (
-        <QtyModal
+        <BarcodeModal
           isOpen={modalState.isOpen}
           onClose={closeModal}
           onConfirm={handleBarcodeModal}
