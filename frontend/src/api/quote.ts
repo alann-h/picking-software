@@ -10,7 +10,7 @@ export const extractQuote = async (quoteId: number) => {
     }
 };
 
-export const getCustomerQuotes = async (customerId: string) => {
+export const getCustomerQuotes = async (customerId: number) => {
   const url = `getEstimates/${customerId}`;
   const data = await apiCallGet(url);
   if (data.error) {

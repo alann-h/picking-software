@@ -6,7 +6,7 @@ import {
 import {QrCodeScanner, Inventory } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { Customer } from '../utils/types';
-import { getCustomers, saveCustomers, getCustomerId } from '../api/others';
+import { getCustomers, saveCustomers } from '../api/others';
 import { useSnackbarContext } from './SnackbarContext';
 import { getCustomerQuotes } from '../api/quote';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -42,8 +42,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
   const location = useLocation();
   const theme = useTheme();
 
-
-  const listAvailableQuotes = useCallback((selectedCustomerId: string) => {
+  const listAvailableQuotes = useCallback((selectedCustomerId: number) => {
     if (selectedCustomerId === null) {
       handleOpenSnackbar('Could not get Customer Id', 'error');
       return;
@@ -58,7 +57,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
         handleOpenSnackbar(err.message, 'error');
         setIsQuotesLoading(false);
       });
-  }, [handleOpenSnackbar, setIsQuotesLoading, setQuotes]);
+  }, [setIsQuotesLoading, setQuotes]);
 
   useEffect(() => {
     setIsCustomerLoading(true);
@@ -69,48 +68,48 @@ const Dashboard: React.FC<DashboardProps> = () => {
       })
       .catch(err => handleOpenSnackbar(err.message, 'error'))
       .finally(() => setIsCustomerLoading(false));
-  }, [handleOpenSnackbar]); 
+  }, []); 
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const customerName = params.get('customer');
-    if (!customerName) return;
+    const customerNameURL = params.get('customer');
+    if (!customerNameURL) return;
   
     // only if we have that customer in our list
-    const match = customers.find(c => c.name === customerName);
+    const match = customers.find(c => c.customerName === customerNameURL);
     if (!match) return;
   
-    setInputValue(customerName);
+    setInputValue(customerNameURL);
     listAvailableQuotes(match.customerId);
   }, [location.search, customers, listAvailableQuotes]);
   
   const handleChange = (_: React.SyntheticEvent, newValue: string | null) => {
     if (newValue) {
-      setInputValue(newValue);
-      
-      // Update URL with selected customer
-      const searchParams = new URLSearchParams(location.search);
-      searchParams.set('customer', newValue);
-      navigate({
-        pathname: location.pathname,
-        search: searchParams.toString()
-      });
-      
-      getCustomerId(newValue)
-        .then((data) => {
-          listAvailableQuotes(data.customerId);
-        })
-        .catch((err: Error) => {
-          handleOpenSnackbar(err.message, 'error');
+      const customer = customers.find(c => c.customerName === newValue);
+      if (customer) {
+        setInputValue(newValue);
+  
+        // 🔁 Update URL with customerId instead of name
+        const searchParams = new URLSearchParams(location.search);
+        searchParams.set('customer', String(customer.customerId));
+        navigate({
+          pathname: location.pathname,
+          search: searchParams.toString(),
         });
+  
+        listAvailableQuotes(customer.customerId);
+      } else {
+        handleOpenSnackbar('Customer not found', 'error');
+      }
     }
   };
+  
 
   const handleQuoteClick = (quoteId: string) => {
     if (!quoteId) {
       return handleOpenSnackbar('Quote Id is undefined', 'error');
     }
-    navigate(`/quote?Id=${quoteId}`);
+    navigate(`/quote?id=${quoteId}`);
   };
 
   return (
@@ -141,7 +140,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 <LoadingWrapper isLoading={isCustomerLoading}>
                 <Autocomplete
                   id="customer-box"
-                  options={customers.map((option) => option.name)}
+                  options={customers.map((option) => option.customerName)}
                   value={selectedCustomer || null}
                   inputValue={selectedCustomer}
                   onInputChange={(_, newInputValue) => setInputValue(newInputValue)}

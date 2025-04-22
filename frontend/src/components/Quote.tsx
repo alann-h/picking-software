@@ -27,7 +27,7 @@ const useQuery = () => {
 
 const Quote: React.FC = () => {
   const query = useQuery();
-  const quoteId = Number(query.get('Id') || '');
+  const quoteId = Number(query.get('id') || '');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { modalState, closeModal, openModal } = useModalState();
