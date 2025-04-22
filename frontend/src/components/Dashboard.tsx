@@ -11,6 +11,7 @@ import { useSnackbarContext } from './SnackbarContext';
 import { getCustomerQuotes } from '../api/quote';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
+import { Helmet } from 'react-helmet-async';
 
 // Reusable AnimatedComponent
 const AnimatedComponent: React.FC<{
@@ -118,7 +119,10 @@ const Dashboard: React.FC<DashboardProps> = () => {
         minHeight: '100vh',
         backgroundColor: theme.palette.background.default,
       }}
-    >
+>
+      <Helmet>
+        <title>Smart Picker | Dashboard</title>
+      </Helmet>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <AnimatedComponent yOffset={20}>
           <Typography variant="h4" gutterBottom component="h1" color="primary">

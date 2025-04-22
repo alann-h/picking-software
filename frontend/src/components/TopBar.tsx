@@ -52,7 +52,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
           }}
           onClick={() => navigate('/dashboard')}
         >
-          SmartPicker
+          Smart Picker
         </Typography>
         <div>
           {isAdmin && (

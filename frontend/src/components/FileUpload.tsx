@@ -2,6 +2,7 @@ import React, { useRef, DragEvent, ChangeEvent } from 'react';
 import { Box, Typography, Button, Paper, useTheme } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -51,6 +52,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
       transition={{ duration: 0.5, delay: 0.2 }}
     >
       <Paper elevation={3} sx={{ padding: 3, backgroundColor: theme.palette.background.paper }}>
+        <Helmet>
+          <title>Smart Picker | Upload Data</title>
+        </Helmet>
         <Typography variant="h6" gutterBottom sx={{fontWeight: 'bold'}}>
           Upload Product Data
         </Typography>

@@ -8,6 +8,7 @@ import { useAllProducts } from './useAllProducts';
 import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
 import UsersTab from './tabs/UsersTab';
+import { Helmet } from 'react-helmet-async';
 
 const Settings: React.FC = () => {
   const theme = useTheme();
@@ -53,6 +54,9 @@ const Settings: React.FC = () => {
 
   return (
     <Box sx={{ padding: 3, maxWidth: 1200, margin: 'auto' }}>
+      <Helmet>
+        <title>Smart Picker | Settings</title>
+      </Helmet>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -62,7 +66,7 @@ const Settings: React.FC = () => {
           Settings
         </Typography>
       </motion.div>
-
+      
       <Paper elevation={3} sx={{ backgroundColor: theme.palette.background.paper }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
           <Tab label="Current Products" />

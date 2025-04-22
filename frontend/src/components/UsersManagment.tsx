@@ -26,6 +26,7 @@ import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from
 import { UserData } from '../utils/types';
 import { useNavigate } from 'react-router-dom';
 import { disconnectQB } from '../api/others';
+import { Helmet } from 'react-helmet-async';
 
 const DEFAULT_USER: UserData = {
   id: '',
@@ -235,6 +236,9 @@ const UsersManagement = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Helmet>
+        <title>Smart Picker | User Managment</title>
+      </Helmet>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Button
           variant="contained"

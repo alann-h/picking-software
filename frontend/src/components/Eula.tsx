@@ -1,4 +1,5 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 
 const EULA = () => {
     const styles = {
@@ -19,6 +20,9 @@ const EULA = () => {
       };
   return (
     <div style={styles.container}>
+        <Helmet>
+          <title>Smart Picker | Eula</title>
+        </Helmet>
         <div style={styles.content}>
             <h1>End-User License Agreement (&quot;Agreement&quot;)</h1>
             <p>Last updated: February 03, 2025</p>

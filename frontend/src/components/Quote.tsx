@@ -19,6 +19,7 @@ import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
+import { Helmet } from 'react-helmet-async';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -63,6 +64,9 @@ const Quote: React.FC = () => {
 
   return (
     <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
+      <Helmet>
+        <title>{`Smart Picker | Quote: ${quoteId}`}</title>
+      </Helmet>
        <BarcodeListener onBarcodeScanned={handleBarcodeScan} disabled={barcodeDisabled} />
       {modalState.type === 'barcode' && (
         <BarcodeModal
