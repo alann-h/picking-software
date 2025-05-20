@@ -95,6 +95,7 @@ export const setFinishedButton = async (quoteId: number, productId: number, upda
       );
       if (product) {
         product.pickingStatus = data.newStatus;
+        product.pickingQty = data.pickingQty;
       }
       return data;
     });

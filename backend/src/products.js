@@ -242,7 +242,11 @@ export async function setProductFinished(quoteId, productId) {
     if (result.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
-    return result[0].pickingqty;
+    return { 
+      pickingQty: result[0].pickingqty,
+      newStatus: result[0].pickingstatus
+    }
+    ;
   } catch (error) {
     throw new AccessError(error.message);
   }
