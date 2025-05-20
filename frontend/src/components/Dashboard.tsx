@@ -57,9 +57,11 @@ const Dashboard: React.FC<DashboardProps> = () => {
         handleOpenSnackbar(err.message, 'error');
         setIsQuotesLoading(false);
       });
-  }, [setIsQuotesLoading, setQuotes]);
+  }, [setIsQuotesLoading, setQuotes, handleOpenSnackbar]);
 
-  useEffect(() => {
+  const fetchAndSetCustomers = useCallback(() => {
+    if (customers.length > 0) return;
+
     setIsCustomerLoading(true);
     getCustomers()
       .then(data => {
@@ -68,7 +70,11 @@ const Dashboard: React.FC<DashboardProps> = () => {
       })
       .catch(err => handleOpenSnackbar(err.message, 'error'))
       .finally(() => setIsCustomerLoading(false));
-  }, []); 
+  }, [customers, handleOpenSnackbar]);
+
+  useEffect(() => {
+    fetchAndSetCustomers();
+  }, [fetchAndSetCustomers]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -137,7 +143,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 <Typography variant="h6" gutterBottom>
                   Select Customer
                 </Typography>
-                <LoadingWrapper isLoading={isCustomerLoading}>
+                <LoadingWrapper isLoading={isCustomerLoading} height="100px">
                 <Autocomplete
                   id="customer-box"
                   options={customers.map((option) => option.customerName)}

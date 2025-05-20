@@ -68,7 +68,7 @@ const Settings: React.FC = () => {
       </motion.div>
       
       <Paper elevation={3} sx={{ backgroundColor: theme.palette.background.paper }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs">
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
           <Tab label="Current Products" />
           <Tab label="Upload Data" />
           <Tab label="User Management" />
