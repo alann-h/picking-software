@@ -1,13 +1,9 @@
 import React, { ReactNode } from 'react';
-import { Button, Box, Typography, Container, Grid, useTheme } from '@mui/material';
+import { Button, Box, Typography, Container, Grid, useTheme, useMediaQuery } from '@mui/material';
 import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
-interface AnimatedSectionProps {
-  children: ReactNode;
-}
-
-const AnimatedSection: React.FC<AnimatedSectionProps> = ({ children }) => {
+const AnimatedSection: React.FC<{ children: ReactNode }> = ({ children }) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
 
@@ -26,56 +22,30 @@ const AnimatedSection: React.FC<AnimatedSectionProps> = ({ children }) => {
 const InitalPage: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-
-  const handleTrySmartPickerClick = () => {
-    navigate("/login");
-  };
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: theme.palette.background.default,
-      }}
-    >
-      {/* Hero Section */}
+    <Box sx={{ backgroundColor: theme.palette.background.default}}>
+      {/* Fullscreen Hero Section */}
       <Box
         sx={{
           minHeight: '100vh',
+          minWidth: '100vw', 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           textAlign: 'center',
-          py: 8,
+          px: 2,
         }}
       >
-        <Container maxWidth="lg">
+        <Container maxWidth={false} sx={{ width: '100%', maxWidth: { xs: '100%', sm: 'lg' }, px: { xs: 2, sm: 3 } }}>
           <AnimatedSection>
-            <Typography 
-              variant="h1" 
-              component="h1" 
-              gutterBottom 
-              fontWeight="bold" 
-              color="primary"
-              sx={{
-                fontSize: { xs: '3rem', sm: '4rem', md: '5rem' },
-                marginBottom: 4,
-              }}
-            >
+            <Typography variant="h1" fontWeight="bold" color="primary" sx={{ fontSize: { xs: '2.5rem', sm: '4rem', md: '5rem' }, mb: 4 }}>
               Goodbye spreadsheets,<br />hello Smart Picker
             </Typography>
           </AnimatedSection>
           <AnimatedSection>
-            <Typography 
-              variant="h5" 
-              color="text.secondary" 
-              gutterBottom
-              sx={{
-                marginBottom: 4,
-              }}
-            >
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
               Manage your stock and orders from any device
             </Typography>
           </AnimatedSection>
@@ -83,14 +53,9 @@ const InitalPage: React.FC = () => {
             <Button
               variant="contained"
               color="primary"
-              size="large"
-              onClick={handleTrySmartPickerClick}
-              sx={{
-                mt: 4,
-                fontSize: '1.2rem',
-                padding: '12px 24px',
-                borderRadius: '30px',
-              }}
+              fullWidth={isMobile}
+              onClick={() => navigate("/login")}
+              sx={{ fontSize: { xs: '1rem', sm: '1.2rem' }, px: { xs: 3, sm: 4 }, py: { xs: 1.5, sm: 2 }, borderRadius: '30px' }}
             >
               Try SmartPicker here
             </Button>
@@ -99,42 +64,25 @@ const InitalPage: React.FC = () => {
       </Box>
 
       {/* Features Section */}
-      <Box sx={{ backgroundColor: theme.palette.background.paper, py: 8 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
+      <Box sx={{ backgroundColor: theme.palette.background.paper, py: { xs: 10, md: 14 }, px: { xs: 2, sm: 4 } }}>
+        <Container maxWidth={false} sx={{ width: '100%', maxWidth: { xs: '100%', sm: 'lg' }, px: { xs: 2, sm: 3 } }}>
+          <Grid container spacing={6} alignItems="center">
             <Grid item xs={12} md={6}>
               <AnimatedSection>
-                <Box
-                  component="img"
-                  src="https://t3.ftcdn.net/jpg/04/18/86/92/360_F_418869208_hK7u41kiZti2GiF9Z9ARujhlhM7pOAiv.jpg"
-                  alt="Barcode Scanner"
-                  sx={{
-                    width: '100%',
-                    maxWidth: '400px',
-                    height: 'auto',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                  }}
+                <Box component="img" src="https://t3.ftcdn.net/jpg/04/18/86/92/360_F_418869208_hK7u41kiZti2GiF9Z9ARujhlhM7pOAiv.jpg" alt="Barcode Scanner"
+                  sx={{ width: '100%', maxWidth: 400, height: 'auto', borderRadius: 2, boxShadow: 3, display: 'block', mx: 'auto' }}
                 />
               </AnimatedSection>
             </Grid>
             <Grid item xs={12} md={6}>
               <AnimatedSection>
-                <Typography variant="h3" component="h2" gutterBottom fontWeight="bold">
+                <Typography variant="h4" fontWeight="bold" gutterBottom>
                   Fulfill from your phone
                 </Typography>
                 <Typography variant="body1" color="text.secondary" paragraph>
                   Scan to receive or fulfill orders from your iPhone or Android device.
                 </Typography>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  size="large"
-                  sx={{
-                    mt: 2,
-                    borderRadius: '30px',
-                  }}
-                >
+                <Button variant="outlined" color="primary" size="large" sx={{ mt: 2, borderRadius: '30px' }}>
                   Learn More
                 </Button>
               </AnimatedSection>
@@ -144,44 +92,25 @@ const InitalPage: React.FC = () => {
       </Box>
 
       {/* QuickBooks Section */}
-      <Box sx={{ backgroundColor: theme.palette.background.default, py: 8 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} alignItems="center">
+      <Box sx={{ backgroundColor: theme.palette.background.default, py: { xs: 10, md: 14 }, px: { xs: 2, sm: 4 } }}>
+        <Container maxWidth={false} sx={{ width: '100%', maxWidth: { xs: '100%', sm: 'lg' }, px: { xs: 2, sm: 3 } }}>
+          <Grid container spacing={6} alignItems="center">
             <Grid item xs={12} md={6}>
               <AnimatedSection>
-                <Box
-                  component="img"
-                  src="https://quickbooks.intuit.com/cas/dam/IMAGE/A732uaqi3/standardlogo.png"
-                  alt="QuickBooks Logo"
-                  sx={{
-                    width: '100%',
-                    maxWidth: '300px',
-                    height: 'auto',
-                    mx: 'auto',
-                    display: 'block',
-                  }}
+                <Box component="img" src="https://quickbooks.intuit.com/cas/dam/IMAGE/A732uaqi3/standardlogo.png" alt="QuickBooks Logo"
+                  sx={{ width: '100%', maxWidth: 300, height: 'auto', display: 'block', mx: 'auto' }}
                 />
               </AnimatedSection>
             </Grid>
             <Grid item xs={12} md={6}>
               <AnimatedSection>
-                <Typography variant="h3" component="h2" gutterBottom fontWeight="bold">
+                <Typography variant="h4" fontWeight="bold" gutterBottom>
                   Connects to QuickBooks Online
                 </Typography>
                 <Typography variant="body1" color="text.secondary" paragraph>
-                  SmartPicker seamlessly integrates with QuickBooks Online accounting software, 
-                  allowing you to sync your inventory and orders effortlessly. 
-                  Streamline your operations with our barcode scanning feature.
+                  SmartPicker seamlessly integrates with QuickBooks Online accounting software to sync inventory and orders.
                 </Typography>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  size="large"
-                  sx={{
-                    mt: 2,
-                    borderRadius: '30px',
-                  }}
-                >
+                <Button variant="outlined" color="primary" size="large" sx={{ mt: 2, borderRadius: '30px' }}>
                   Learn More
                 </Button>
               </AnimatedSection>

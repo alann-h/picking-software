@@ -57,9 +57,11 @@ const Dashboard: React.FC<DashboardProps> = () => {
         handleOpenSnackbar(err.message, 'error');
         setIsQuotesLoading(false);
       });
-  }, [setIsQuotesLoading, setQuotes]);
+  }, [setIsQuotesLoading, setQuotes, handleOpenSnackbar]);
 
-  useEffect(() => {
+  const fetchAndSetCustomers = useCallback(() => {
+    if (customers.length > 0) return;
+
     setIsCustomerLoading(true);
     getCustomers()
       .then(data => {
@@ -68,7 +70,11 @@ const Dashboard: React.FC<DashboardProps> = () => {
       })
       .catch(err => handleOpenSnackbar(err.message, 'error'))
       .finally(() => setIsCustomerLoading(false));
-  }, []); 
+  }, [customers, handleOpenSnackbar]);
+
+  useEffect(() => {
+    fetchAndSetCustomers();
+  }, [fetchAndSetCustomers]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
