@@ -143,7 +143,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 <Typography variant="h6" gutterBottom>
                   Select Customer
                 </Typography>
-                <LoadingWrapper isLoading={isCustomerLoading}>
+                <LoadingWrapper isLoading={isCustomerLoading} height="100px">
                 <Autocomplete
                   id="customer-box"
                   options={customers.map((option) => option.customerName)}

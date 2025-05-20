@@ -7,7 +7,7 @@ interface LoadingWrapperProps {
   height?: string | number;
 }
 
-const LoadingWrapper: React.FC<LoadingWrapperProps> = ({ isLoading, children, height = '100px' }) => {
+const LoadingWrapper: React.FC<LoadingWrapperProps> = ({ isLoading, children, height = '100vh' }) => {
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height }}>
