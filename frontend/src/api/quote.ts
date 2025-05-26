@@ -47,8 +47,8 @@ export const barcodeToName = async (barcode: string) => {
   }
 };
 
-export const addProductToQuote = async (productName: string, quoteId: number, qty: number) => {
-  const data = await apiCallPut('addProduct', { productName, quoteId, qty });
+export const addProductToQuote = async (productId: number, quoteId: number, qty: number) => {
+  const data = await apiCallPut('addProduct', { productId, quoteId, qty });
   if (data.error) {
     throw new Error(data.error);
   } else {

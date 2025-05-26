@@ -80,7 +80,7 @@ const ProductList: React.FC<ProductListProps> = ({
               <TableBody>
                 {products.map((product) => (
                   <TableRow
-                    key={product.barcode}
+                    key={product.productid}
                     hover
                     onClick={() => handleOpen(product)}
                     sx={{ cursor: 'pointer' }}

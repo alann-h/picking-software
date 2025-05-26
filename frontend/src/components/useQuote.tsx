@@ -175,10 +175,10 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   };
 
-  const addProduct = useCallback(async (productName: string, qty: number) => {
+  const addProduct = useCallback(async (productId: number, qty: number) => {
     try {
-      const data = await handleAddProduct(productName, quoteId, qty, updateQuoteData);
-      handleOpenSnackbar(`${productName} Product added successfully!`, 'success');
+      const data = await handleAddProduct(productId, quoteId, qty, updateQuoteData);
+      handleOpenSnackbar(`Product added successfully!`, 'success');
       return data;
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');

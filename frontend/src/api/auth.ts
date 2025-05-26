@@ -8,6 +8,7 @@ export const loginWithQb = async () => {
   if (data.error) {
     throw new Error(data.error);
   } else {
+    console.log(data);
     return data;
   }
 };

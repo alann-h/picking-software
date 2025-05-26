@@ -10,10 +10,10 @@ import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
-import { processFile, getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished, updateProductDb, deleteProductDb } from './products.js';
+import { getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished, updateProductDb, deleteProductDb } from './products.js';
 import { fetchCustomers, saveCustomers } from './customers.js';
 import { saveCompanyInfo, removeQuickBooksData } from './company.js';
-import { encryptToken, decryptToken } from './helpers.js';
+import { encryptToken, decryptToken, validateAndRoundQty, transaction } from './helpers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { readFile } from 'fs/promises';
@@ -23,14 +23,25 @@ import multer from 'multer';
 import pgSession from 'connect-pg-simple';
 import pool from './db.js';
 import { AccessError } from './error.js';
+import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 
 const app = express();
+
+const connection = new IORedis({
+  host: process.env.REDIS_HOST,
+  port: Number(process.env.REDIS_PORT),
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+});
+const productQueue = new Queue('products', { connection });
 
 dotenv.config({ path: '.env' });
 
 app.set('trust proxy', 1);
 
 app.use(cookieParser(process.env.SESSION_SECRET));
+
 
 const environment = process.env.NODE_ENV;
 
@@ -47,7 +58,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(morgan(':method :url :status'));
 
-const upload = multer({ dest: process.cwd() });
+const upload = multer({ dest: './uploads' });
 
 const PgSession = pgSession(session);
 
@@ -269,11 +280,6 @@ app.get('/estimate/:quoteId', isAuthenticated, asyncHandler(async (req, res) => 
   res.json({ source: 'api', data: estimates[0] });
 }));
 
-// app.post('/saveQuote', isAuthenticated, asyncHandler(async (req, res) => {
-//   await estimateToDB(req.body.quote);
-//   res.status(200).json({ message: 'Quote saved successfully in database' });
-// }));
-
 app.get('/quotes', isAuthenticated, asyncHandler(async (req, res) => {
   const status = req.query.status;
   const quotes = await getQuotesWithStatus(status);
@@ -307,16 +313,48 @@ app.get('/getProduct/:productId', isAuthenticated, asyncHandler(async (req, res)
 }));
 
 app.put('/addProduct', isAuthenticated, asyncHandler(async (req, res) => {
-  const { quoteId, productName, qty } = req.body;
-  const response = await addProductToQuote(productName, quoteId, qty, req.decryptedToken, req.session.companyId);
+  let { quoteId, productId, qty } = req.body;
+
+  if (!quoteId || !productId || qty == null) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    qty = validateAndRoundQty(qty);
+    if (qty === 0) throw new Error('Quantity must be greater than zero');
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+
+  const response = await addProductToQuote(
+    productId,
+    quoteId,
+    qty,
+    req.decryptedToken,
+    req.session.companyId
+  );
+  
   res.status(200).json(response);
 }));
 
+
 app.put('/adjustProductQty', isAuthenticated, asyncHandler(async (req, res) => {
-  const { quoteId, productId, newQty } = req.body;
+  let { quoteId, productId, newQty } = req.body;
+
+  if (!quoteId || !productId || newQty == null) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    newQty = validateAndRoundQty(newQty);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+
   const data = await adjustProductQuantity(quoteId, productId, newQty);
   res.status(200).json(data);
 }));
+
 
 app.get('/getAllProducts', isAuthenticated, asyncHandler(async (req, res) => {
   const products = await getAllProducts(req.session.companyId);
@@ -361,17 +399,37 @@ app.delete('/deleteProduct/:productId', isAuthenticated, asyncHandler(async (req
 ***************************************************************/
 
 app.post('/upload', isAuthenticated, upload.single('input'), asyncHandler(async (req, res) => {
-  if (!req.file || req.file.filename === null || req.file.filename === 'undefined') {
-    return res.status(403).json('No File');
-  }
+    if (!req.file?.path) {
+      return res.status(400).json('No file uploaded');
+    }
 
-  const filePath = process.cwd() + '/' + req.file.filename;
-  const data = await processFile(filePath, req.session.companyId);
-  res.status(200).json(data);
-}));
+    // bundle all the data your worker will need
+    const jobData = {
+      filePath: req.file.path,
+      companyId: req.session.companyId,
+      token: req.decryptedToken,
+    };
+
+    // background job
+    const job = await productQueue.add('process-and-save', jobData);
+
+    // immediately return 202 Accepted + the job id
+    res.status(202).json({
+      message: 'File received and queued for processing',
+      jobId: job.id,
+    });
+  })
+);
 
 app.put('/productScan', isAuthenticated, asyncHandler(async (req, res) => {
-  const { barcode, quoteId, newQty } = req.body;
+  let { barcode, quoteId, newQty } = req.body;
+
+  try {
+    newQty = validateAndRoundQty(newQty);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+
   const message = await processBarcode(barcode, quoteId, newQty);
   res.status(200).json(message);
 }));
@@ -416,7 +474,7 @@ const swaggerDocument = JSON.parse(
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Error handling middleware
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });
 });

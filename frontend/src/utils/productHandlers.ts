@@ -106,9 +106,9 @@ export const setFinishedButton = async (quoteId: number, productId: number, upda
 };
 
 
-export const handleAddProduct = async (productName: string, quoteId: number, qty: number, updateQuoteData: QuoteUpdateFunction) => {
+export const handleAddProduct = async (productId: number, quoteId: number, qty: number, updateQuoteData: QuoteUpdateFunction) => {
   try {
-    const response = await addProductToQuote(productName, quoteId, qty);
+    const response = await addProductToQuote(productId, quoteId, qty);
     if (response.status === 'new') {
       const newProduct: ProductDetail = {
         productId: response.productInfo.productid,
@@ -128,16 +128,17 @@ export const handleAddProduct = async (productName: string, quoteId: number, qty
         },
         totalAmount: response.totalAmt
       }));
-    } else if (response.status === 'exists') {
+    } else {
       updateQuoteData(prevQuoteData => {
         const updatedProductInfo = { ...prevQuoteData.productInfo };
         const existingProduct = Object.values(updatedProductInfo).find(
-          product => product.productName === productName
+          product => product.productId === productId
         );
         if (existingProduct) {
           existingProduct.pickingQty = response.pickingQty;
           existingProduct.originalQty = response.originalQty;
         }
+
         return { productInfo: updatedProductInfo, totalAmount: response.totalAmt };
       });
     }

@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
+    "dev:worker": "nodemon src/worker.js",
     "start": "node src/server.js",
+    "start:worker": "node src/worker.js",
     "lint": "eslint src/*.js",
     "test": "jest"
   },
@@ -23,6 +25,7 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
+    "bullmq": "^5.53.0",
     "connect-pg-simple": "^10.0.0",
     "convert-excel-to-json": "^1.7.0",
     "cookie-parser": "^1.4.7",
@@ -33,6 +36,7 @@
     "express-session": "^1.18.1",
     "fs-extra": "^11.2.0",
     "intuit-oauth": "^1.2.0",
+    "ioredis": "^5.6.1",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "nodemon": "^3.0.2",

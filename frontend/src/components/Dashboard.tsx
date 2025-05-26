@@ -78,14 +78,14 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const customerNameURL = params.get('customer');
-    if (!customerNameURL) return;
-  
-    // only if we have that customer in our list
-    const match = customers.find(c => c.customerName === customerNameURL);
+    const customerIdURL = params.get('customer');
+
+    if (!customerIdURL) return;
+
+    const match = customers.find(c => String(c.customerId) === customerIdURL);
     if (!match) return;
-  
-    setInputValue(customerNameURL);
+
+    setInputValue(match.customerName);
     listAvailableQuotes(match.customerId);
   }, [location.search, customers, listAvailableQuotes]);
   

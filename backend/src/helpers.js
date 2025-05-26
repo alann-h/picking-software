@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env' });
 
-
 export async function query(text, params) {
   const client = await pool.connect();
   try {
@@ -61,4 +60,12 @@ export function decryptToken(encryptedToken) {
   let decrypted = decipher.update(encryptedToken, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return JSON.parse(decrypted);
+}
+
+export function validateAndRoundQty(qty) {
+  const parsed = parseFloat(qty);
+  if (isNaN(parsed) || parsed < 0) {
+    throw new Error('Invalid quantity');
+  }
+  return parseFloat(parsed.toFixed(2));
 }

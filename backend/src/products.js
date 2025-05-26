@@ -1,106 +1,117 @@
 import excelToJson from 'convert-excel-to-json';
 import fs from 'fs-extra';
 import { AccessError, InputError } from './error.js';
-import { query, transaction } from './helpers.js';
-import { getBaseURL, getCompanyId } from './auth.js';
-import format from 'pg-format';
+import { query } from './helpers.js';
+import { getBaseURL, getCompanyId, getOAuthClient } from './auth.js';
 
-export async function processFile(filePath, companyId) {
+export async function processFile(filePath) {
   try {
     const excelData = excelToJson({
       sourceFile: filePath,
       header: { rows: 1 },
       columnToKey: { '*': '{{columnHeader}}' }
     });
-    await transaction(async (client) => {
-      for (const key in excelData) {
-        if (Object.prototype.hasOwnProperty.call(excelData, key)) {
-          const products = excelData[key];
 
-          const values = products.map(product => {
-            const fullName = product["Product/Service Name"];
-            let barcodeRaw = product.GTIN?.toString().trim();
-            
-            if (!barcodeRaw) return null;
-            
-            const barcode = barcodeRaw.length === 13 ? '0' + barcodeRaw : barcode;
-            // Extract category and product name
-            const [category, productName] = fullName.split(/:(.+)/).map(s => s.trim());
+    const allProducts = [];
 
-            return [category, productName, barcode, companyId];
-          });
+    for (const sheet in excelData) {
+      if (Object.prototype.hasOwnProperty.call(excelData, sheet)) {
+        const products = excelData[sheet];
 
-          const query = format(
-            `INSERT INTO products (category, productname, barcode, companyid) 
-             VALUES %L 
-             ON CONFLICT (barcode) DO UPDATE 
-             SET productname = EXCLUDED.productname, category = EXCLUDED.category`,
-            values
-          );
+        for (const product of products) {
+          const fullName = product["Product/Service Name"];
+          const sku = product["SKU"]?.toString().trim();
+          const barcodeRaw = product.GTIN?.toString().trim();
+          const barcode = barcodeRaw?.length === 13 ? '0' + barcodeRaw : barcodeRaw;
 
-          await client.query(query);
+          if (!fullName || !sku) continue;
+
+          const [category, productName] = fullName.split(/:(.+)/).map(s => s.trim());
+
+          allProducts.push({ category, productName, barcode, sku });
         }
       }
-    });
+    }
 
     await fs.remove(filePath);
-    return 'Products uploaded successfully';
+    return allProducts;
   } catch (error) {
     throw new Error(`Error processing file: ${error.message}`);
   }
 }
 
+export async function enrichWithQBOData(products, token) {
+  const oauthClient = await getOAuthClient(token);
+  const enriched = [];
 
-export async function getProductFromQB(productId, oauthClient) {
-  try {
-    const query = `SELECT * from Item WHERE Id = '${productId}'`;
-    const companyID = getCompanyId(oauthClient);
-    const baseURL = getBaseURL(oauthClient);
-    const url = `${baseURL}v3/company/${companyID}/query?query=${query}&minorversion=75`;
+  for (const product of products) {
+    try {
+      const query = `SELECT * FROM Item WHERE Sku = '${product.sku}'`;
+      const companyID = getCompanyId(oauthClient);
+      const baseURL = getBaseURL(oauthClient);
+      const url = `${baseURL}v3/company/${companyID}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
-    const response = await oauthClient.makeApiCall({ url });
-    const responseData = JSON.parse(response.text());
-    const itemData = responseData.QueryResponse.Item[0];
+      const response = await oauthClient.makeApiCall({ url });
+      const itemData = JSON.parse(response.text())?.QueryResponse?.Item?.[0];
 
-    if (!itemData.Active) {
-      throw new AccessError('Item is not active on quickbooks!');
-    }
-    
-    const item = {
-      id: itemData.Id,
-      name: itemData.Name,
-      sku: itemData.Sku,
-      qtyOnHand: itemData.QtyOnHand,
-      price: itemData.UnitPrice,
-    };
-    await saveProduct(item);
-    return item;
-  } catch (e) {
-    throw new AccessError(e.message);
-  }
-}
+      if (!itemData || !itemData.Active) continue;
 
-async function saveProduct(item) {
-  try {
-    const result = await query(
-      'UPDATE products SET qbo_item_id = $1, sku = $2, quantity_on_hand = $3, price = $4 WHERE productname = $5 RETURNING *',
-      [item.id, item.sku, item.qtyOnHand, item.price, item.name]
-    );
-
-    if (result.length === 0) {
-      const insertResult = await query(
-        'INSERT INTO products (qbo_item_id, productname, sku, quantity_on_hand, price) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [item.id, item.name, item.sku, item.qtyOnHand, item.price]
-      );
-
-      if (insertResult.length === 0) {
-        throw new AccessError(`Failed to insert product ${item.name} into the database.`);
+      const QtyOnHand = parseFloat(itemData.QtyOnHand);
+        if (!isFinite(QtyOnHand)) {
+        console.warn(`Invalid quantity for SKU ${product.sku}`);
+        continue;
       }
+      enriched.push({
+        ...product,
+        price: itemData.UnitPrice,
+        quantity_on_hand: QtyOnHand
+      });
+    } catch (err) {
+      console.warn(`Failed QBO lookup for SKU ${product.sku}: ${err.message}`);
     }
-  } catch (err) {
-    throw new AccessError(err.message);
+  }
+
+  return enriched;
+}
+
+export async function insertProducts(products, companyId, client) {
+  for (let i = 0; i < products.length; i++) {
+    const p = products[i];
+    const savepointName = `sp_${i}`;
+
+    await client.query(`SAVEPOINT ${savepointName}`);
+
+    try {
+      const { rows } = await client.query(
+        `INSERT INTO products
+           (category, productname, barcode, sku, price, quantity_on_hand, companyid)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+         ON CONFLICT (sku) DO UPDATE
+           SET productname      = EXCLUDED.productname,
+               category         = EXCLUDED.category,
+               barcode          = EXCLUDED.barcode,
+               price            = EXCLUDED.price,
+               quantity_on_hand = EXCLUDED.quantity_on_hand
+         RETURNING sku`,
+        [
+          p.category,
+          p.productName,
+          p.barcode ?? null,
+          p.sku,
+          p.price,
+          p.quantity_on_hand,
+          companyId,
+        ]
+      );
+      console.log(`  ➕ Upserted SKU=${rows[0].sku}`);
+    } catch (err) {
+      await client.query(`ROLLBACK TO SAVEPOINT ${savepointName}`);
+      console.warn(`⚠️ Skipped SKU=${p.sku} — ${err.code || err.message}`);
+    }
+    await client.query(`RELEASE SAVEPOINT ${savepointName}`);
   }
 }
+
 
 export async function getProductName(barcode) {
   try {
@@ -114,9 +125,9 @@ export async function getProductName(barcode) {
   }
 }
 
-export async function getProductFromDB(productId) {
+export async function getProductFromDB(QboProductId) {
   try {
-    const result = await query('SELECT * FROM products WHERE productid = $1', [productId]);
+    const result = await query('SELECT * FROM products WHERE qbo_item_id = $1', [QboProductId]);
     if (result.length === 0) {
       throw new AccessError('This product does not exist within the database');
     }

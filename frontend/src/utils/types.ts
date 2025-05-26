@@ -62,7 +62,7 @@ export interface Product {
     price: number | null;
     companyid: number;
     category: string | null;
-    qboItemId: number | null;
+    qboItemId: string;
   }
 export interface UserData {
     id: string;
