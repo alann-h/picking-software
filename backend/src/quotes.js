@@ -29,7 +29,6 @@ async function filterEstimates(responseData, companyId) {
   const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
     const productInfo = {};
 
-
     for (const line of estimate.Line) {
       if (line.DetailType === 'SubTotalLineDetail') {
         continue;
@@ -105,7 +104,7 @@ export async function estimateToDB(quote) {
         [quote.quoteId]
       );
       if (existingQuote.rows.length > 0) {
-        const lastModified = new Intl.DateTimeFormat('en-GB', {
+        const lastModified = new Intl.DateTimeFormat('en-AU', {
           year: 'numeric',
           month: 'numeric',
           day: 'numeric',
@@ -142,7 +141,7 @@ export async function estimateToDB(quote) {
             validateAndRoundQty(item.originalQty),
             item.pickingStatus,
             item.sku,
-            parseFloat(item.price.toFixed(2)),
+            validateAndRoundQty(item.price),
             quote.companyId
           ]
         );
@@ -261,14 +260,14 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
       // Check if the product already exists in the quote
       const existingItem = await client.query(
         'SELECT * FROM quoteitems WHERE quoteid = $1 AND productid = $2',
-        [quoteId, productid]
+        [quoteId, productId]
       );
       
       if (existingItem.rows.length > 0) {
         // If the product exists, update the quantities
         addExisitingProduct = await client.query(
           'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1 WHERE quoteid = $2 AND productid = $3 returning pickingqty, originalqty',
-          [qty, quoteId, product[0].qbo_item_id]
+          [qty, quoteId, productId]
         );
       } else {
           const oauthClient = await getOAuthClient(token);
@@ -276,10 +275,9 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
             throw new AccessError('OAuth client could not be initialized');
           }
           // If the product doesn't exist, insert a new row
-          const productFromQB = await getProductFromQB(product[0].qbo_item_id, oauthClient);
           addNewProduct = await client.query(
             'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *',
-            [quoteId, productFromQB.id, qty, qty, 'pending', product[0].barcode, productName, productFromQB.sku, productFromQB.price, companyId]
+            [quoteId, productId, qty, qty, 'pending', product[0].barcode, product[0].productname, product[0].sku, product[0].price, companyId]
           );
       }
       

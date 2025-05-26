@@ -64,7 +64,8 @@ export async function enrichWithQBOData(products, token) {
       enriched.push({
         ...product,
         price: itemData.UnitPrice,
-        quantity_on_hand: QtyOnHand
+        quantity_on_hand: QtyOnHand,
+        qbo_item_id: itemData.Id
       });
     } catch (err) {
       console.warn(`Failed QBO lookup for SKU ${product.sku}: ${err.message}`);
@@ -84,13 +85,14 @@ export async function insertProducts(products, companyId, client) {
     try {
       const { rows } = await client.query(
         `INSERT INTO products
-           (category, productname, barcode, sku, price, quantity_on_hand, companyid)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)
+           (category, productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
          ON CONFLICT (sku) DO UPDATE
            SET productname      = EXCLUDED.productname,
                category         = EXCLUDED.category,
                barcode          = EXCLUDED.barcode,
                price            = EXCLUDED.price,
+               qbo_item_id      = EXCLUDED.qbo_item_id,
                quantity_on_hand = EXCLUDED.quantity_on_hand
          RETURNING sku`,
         [
@@ -100,6 +102,7 @@ export async function insertProducts(products, companyId, client) {
           p.sku,
           p.price,
           p.quantity_on_hand,
+          p.qbo_item_id,
           companyId,
         ]
       );
@@ -139,10 +142,11 @@ export async function getProductFromDB(QboProductId) {
 
 export async function getAllProducts(companyId) {
   try {
-    const result = await query('SELECT productname, barcode FROM products WHERE companyid = $1', [companyId]);
+    const result = await query('SELECT productname, barcode, productid FROM products WHERE companyid = $1', [companyId]);
     return result.map(product => ({
       productName: product.productname,
-      barcode: product.barcode
+      barcode: product.barcode,
+      productId: product.productid
     }));
   } catch (error) {
     throw new AccessError(error.message);

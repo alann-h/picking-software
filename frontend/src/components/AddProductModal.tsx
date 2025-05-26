@@ -40,7 +40,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (product) {
-      await onSubmit(product.productid, qty);
+      await onSubmit(product.productId, qty);
       setProduct(null);
       setQty(1);
       onClose();

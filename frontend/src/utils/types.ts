@@ -54,13 +54,13 @@ export interface ProductDetailsDB {
     barcode: string
 }
 export interface Product {
-    productid: number;
+    productId: number;
     productName: string;
     barcode: string;
-    sku: string | null;
+    sku: string;
     quantityOnHand: number | null;
     price: number | null;
-    companyid: number;
+    companyId: number;
     category: string | null;
     qboItemId: string;
   }

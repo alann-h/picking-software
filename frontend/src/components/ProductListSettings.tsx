@@ -38,7 +38,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   const handleSave = async () => {
     if (selectedProduct) {
-      await updateProductDb(selectedProduct.productid, {
+      await updateProductDb(selectedProduct.productId, {
         productName: selectedProduct.productName,
         price: selectedProduct.price,
         barcode: selectedProduct.barcode,
@@ -52,7 +52,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   const handleDelete = async () => {
     if (selectedProduct) {
-      await deleteProductDb(selectedProduct.productid);
+      await deleteProductDb(selectedProduct.productId);
       onRefresh();
       handleClose();
     }
@@ -80,7 +80,7 @@ const ProductList: React.FC<ProductListProps> = ({
               <TableBody>
                 {products.map((product) => (
                   <TableRow
-                    key={product.productid}
+                    key={product.productId}
                     hover
                     onClick={() => handleOpen(product)}
                     sx={{ cursor: 'pointer' }}
