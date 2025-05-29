@@ -40,16 +40,12 @@ export const useQuoteData = (quoteId: number) => {
   }, [fetchQuoteData]);
 
   const updateQuoteData = useCallback((
-    updater: (prevQuoteData: QuoteData) => Partial<QuoteData>
+    updater: (prev: QuoteData) => Partial<QuoteData>
   ) => {
-    setQuoteData(prevQuoteData => {
-      if (!prevQuoteData) return null;
-      const updates = updater(prevQuoteData);
-      return {
-        ...prevQuoteData,
-        ...updates,
-        productInfo: updates.productInfo || prevQuoteData.productInfo
-      };
+    setQuoteData(prev => {
+      if (!prev) return null;
+      const updates = updater(prev);
+      return { ...prev, ...updates };
     });
   }, []);
 
@@ -115,9 +111,9 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   }, [handleOpenSnackbar, openModal]);
 
-  const openAdjustQuantityModal = useCallback(async (productId: number, newQty: number, productName: string) => {
+  const openAdjustQuantityModal = useCallback(async (productId: number, pickingQty: number, productName: string) => {
     try {
-      openModal('adjustQuantity', { productId, newQty, productName });
+      openModal('adjustQuantity', { productId, pickingQty, productName });
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
@@ -130,6 +126,7 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
       return data;
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
+      throw error;
     }
     
   },[quoteId, updateQuoteData, handleOpenSnackbar]);
@@ -182,6 +179,7 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
       return data;
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
+      throw error
     }
   }, [handleOpenSnackbar, quoteId, updateQuoteData]);
 

@@ -27,9 +27,10 @@ export const handleAdjustQuantity = async (quoteId: number, productId: number, n
     
     updateQuoteData(prevQuoteData => {
       const updatedProductInfo = { ...prevQuoteData.productInfo };
+
       const product = Object.values(updatedProductInfo).find(
-        (product): product is ProductDetail => product.productId === productId
-      );
+        p => p.productId === productId);
+      
       if (product) {
         product.pickingQty = data.pickingQty;
         product.originalQty = data.originalQty;
@@ -109,39 +110,48 @@ export const setFinishedButton = async (quoteId: number, productId: number, upda
 export const handleAddProduct = async (productId: number, quoteId: number, qty: number, updateQuoteData: QuoteUpdateFunction) => {
   try {
     const response = await addProductToQuote(productId, quoteId, qty);
-    if (response.status === 'new') {
-      const newProduct: ProductDetail = {
-        productId: response.productInfo.productid,
-        productName: response.productInfo.productname,
-        sku: response.productInfo.sku,
-        pickingQty: response.productInfo.pickingqty,
-        originalQty: response.productInfo.originalqty,
-        pickingStatus: response.productInfo.pickingstatus,
-        barcode: response.productInfo.barcode,
-      };
 
-      updateQuoteData(prevQuoteData => ({
-        ...prevQuoteData,
+    const detail: ProductDetail = {
+      productId: response.productInfo.productid,
+      productName: response.productInfo.productname,
+      sku: response.productInfo.sku,
+      pickingQty: response.productInfo.pickingqty,
+      originalQty: response.productInfo.originalqty,
+      pickingStatus: response.productInfo.pickingstatus,
+      barcode: response.productInfo.barcode,
+    };
+
+    if (response.status === 'new') {
+      updateQuoteData(prev => ({
         productInfo: {
-          ...prevQuoteData.productInfo,
-          [newProduct.barcode]: newProduct
+          // spread existing map, then add the new key -> value
+          ...prev.productInfo,
+          [detail.barcode]: detail
         },
         totalAmount: response.totalAmt
       }));
+
     } else {
-      updateQuoteData(prevQuoteData => {
-        const updatedProductInfo = { ...prevQuoteData.productInfo };
-        const existingProduct = Object.values(updatedProductInfo).find(
-          product => product.productId === productId
-        );
-        if (existingProduct) {
-          existingProduct.pickingQty = response.pickingQty;
-          existingProduct.originalQty = response.originalQty;
+      updateQuoteData(prev => {
+        const updatedProductInfo = { ...prev.productInfo };
+
+        // find and mutate the one entry
+        const existing = Object.values(updatedProductInfo)
+          .find(p => p.productId === productId);
+
+        if (existing) {
+          existing.pickingQty  = detail.pickingQty;
+          existing.originalQty = detail.originalQty;
         }
 
-        return { productInfo: updatedProductInfo, totalAmount: response.totalAmt };
+        return {
+          productInfo: updatedProductInfo,
+          totalAmount: response.totalAmt
+        };
       });
     }
+
+    return detail;
   } catch (error) {
     throw Error(`Error adding product: ${error}`);
   }

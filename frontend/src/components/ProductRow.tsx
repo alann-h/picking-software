@@ -18,7 +18,7 @@ import { getUserStatus } from '../api/user';
 interface ProductRowProps {
   product: ProductDetail;
   onProductDetails: (productId: number, product: ProductDetail) => void;
-  onAdjustQuantityModal: (productId: number, newQty: number, productName: string) => void;
+  onAdjustQuantityModal: (productId: number, pickingQty: number, productName: string) => void;
   onSaveForLater: (productId: number) => Promise<{ newStatus: string }>;
   onSetUnavailable: (productId: number) => Promise<{ newStatus: string }>;
   onSetFinished: (productId: number) => Promise<{ newPickingQty: number }>;

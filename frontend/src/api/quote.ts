@@ -57,7 +57,7 @@ export const addProductToQuote = async (productId: number, quoteId: number, qty:
 }
 
 export const adjustProductQty = async (quoteId: number, productId: number, newQty: number) => {
-  const data = await apiCallPut(`adjustProductQty`, {quoteId, productId, newQty});
+  const data = await apiCallPut(`adjustProductQty`, { quoteId, productId, newQty });
   if (data.error) {
     throw new Error(data.error);
   } else {

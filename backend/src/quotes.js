@@ -37,7 +37,7 @@ async function filterEstimates(responseData, companyId) {
       const itemLocal = await getProductFromDB(itemId);
 
       productInfo[itemLocal.productid] = {
-        productName: itemLocal.name,
+        productName: itemLocal.productname,
         productId: itemLocal.productid,
         sku: itemLocal.sku,
         price: itemLocal.price,
@@ -266,7 +266,7 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
       if (existingItem.rows.length > 0) {
         // If the product exists, update the quantities
         addExisitingProduct = await client.query(
-          'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1 WHERE quoteid = $2 AND productid = $3 returning pickingqty, originalqty',
+          'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1 WHERE quoteid = $2 AND productid = $3 returning *',
           [qty, quoteId, productId]
         );
       } else {
@@ -287,13 +287,7 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
     if (addNewProduct) {
       return {status: 'new', productInfo: addNewProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount};
     } else {
-      return {
-        status: 'exists', 
-        pickingQty: addExisitingProduct.rows[0].pickingqty, 
-        originalQty: addExisitingProduct.rows[0].originalqty, 
-        totalAmt: totalAmount.rows[0].totalamount,
-        productName: addExisitingProduct.rows[0].productname
-      };
+      return {status: 'exists', productInfo: addExisitingProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount};
     }
   } catch (e) {
     throw new AccessError(e.message);

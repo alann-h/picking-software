@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+// AddProductModal.tsx
+
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import {
   Modal,
   Box,
@@ -16,46 +18,90 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import { Product } from '../utils/types';
+import { Product, ProductDetail } from '../utils/types';
 import { useAllProducts } from './useAllProducts';
 
 interface AddProductModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (productId: number, qty: number) => Promise<void>;
+  onSubmit: (productId: number, qty: number) => Promise<ProductDetail | undefined>;
 }
 
+const STEP = 1;
+
+/**
+ * Parse a quantity string into a number.
+ * Supports decimals ("1.25") or simple fractions ("5/12").
+ */
+function parseQty(raw: string): number {
+  const trimmed = raw.trim();
+  if (trimmed.includes('/')) {
+    const [numStr, denStr] = trimmed.split('/');
+    if (numStr && denStr) {
+      const num = parseFloat(numStr);
+      const den = parseFloat(denStr);
+      if (!isNaN(num) && !isNaN(den) && den !== 0) {
+        return num / den;
+      }
+    }
+  }
+  const f = parseFloat(trimmed);
+  return isNaN(f) ? 0 : f;
+};
+
 const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubmit }) => {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [qty, setQty] = useState(1);
-  const { allProducts, isLoading, refetch } = useAllProducts();
   const theme = useTheme();
+
+  const { allProducts, isLoading, refetch } = useAllProducts();
+
+  // The numeric value we'll actually submit
+  const [qty, setQty] = useState<number>(1);
+
+  // What the user types (so we can show "5/12" etc)
+  const [qtyInput, setQtyInput] = useState<string>('1');
+
+  const [product, setProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     if (open) {
       refetch();
+      setQty(1);
+      setQtyInput('1');
+      setProduct(null);
     }
   }, [open, refetch]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleIncrement = () => {
+    const next = parseFloat((qty + STEP).toFixed(4));
+    setQty(next);
+    setQtyInput(next.toString());
+  };
+
+  const handleDecrement = () => {
+    const next = parseFloat((qty - STEP).toFixed(4));
+    if (next > 0) {
+      setQty(next);
+      setQtyInput(next.toString());
+    }
+  };
+
+  const onQtyChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setQtyInput(raw);
+    const parsed = parseQty(raw);
+    setQty(parsed > 0 ? parsed : 0);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (product) {
+    if (product && qty > 0) {
       await onSubmit(product.productId, qty);
-      setProduct(null);
-      setQty(1);
       onClose();
     }
   };
 
-  const handleIncrement = () => setQty(prev => prev + 1);
-  const handleDecrement = () => setQty(prev => Math.max(1, prev - 1));
-
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      closeAfterTransition
-    >
+    <Modal open={open} onClose={onClose} closeAfterTransition>
       <Fade in={open}>
         <Paper
           elevation={24}
@@ -78,13 +124,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
               <CloseIcon />
             </IconButton>
           </Box>
+
           <form onSubmit={handleSubmit}>
+            {/* Product selector */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <Autocomplete
-                id="product-box"
+              <Autocomplete<Product, false, false, false>
                 options={allProducts}
                 getOptionLabel={(option) => option.productName}
-                isOptionEqualToValue={(option, value) => option.productName === value.productName}
+                isOptionEqualToValue={(option, value) => option.productId === value.productId}
                 value={product}
                 onChange={(_, newValue) => setProduct(newValue)}
                 renderInput={(params) => (
@@ -96,7 +143,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                       ...params.InputProps,
                       endAdornment: (
                         <>
-                          {isLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {isLoading && <CircularProgress size={20} />}
                           {params.InputProps.endAdornment}
                         </>
                       ),
@@ -107,13 +154,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
               />
             </Box>
 
+            {/* Quantity input */}
             <TextField
               label="Quantity"
-              type="number"
-              value={qty}
-              onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+              type="text"
+              value={qtyInput}
+              onChange={onQtyChange}
               fullWidth
               variant="outlined"
+              inputProps={{
+                inputMode: 'decimal',
+                pattern: '[0-9.\\/]*',
+              }}
+              sx={{ mb: 3 }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -130,24 +183,22 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                   </InputAdornment>
                 ),
               }}
-              sx={{ mb: 3 }}
             />
+
             <Button
               type="submit"
               variant="contained"
-              disabled={!product}
+              disabled={!product || qty <= 0}
               fullWidth
               size="large"
               sx={{
                 borderRadius: 2,
                 py: 1.5,
                 backgroundColor: theme.palette.primary.main,
-                '&:hover': {
-                  backgroundColor: theme.palette.primary.dark,
-                },
+                '&:hover': { backgroundColor: theme.palette.primary.dark },
               }}
             >
-              <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <AddIcon sx={{ mr: 1 }} />
                 Add Product
               </Box>

@@ -315,7 +315,6 @@ app.get('/getProduct/:productId', isAuthenticated, asyncHandler(async (req, res)
 app.put('/addProduct', isAuthenticated, asyncHandler(async (req, res) => {
   let { quoteId, productId, qty } = req.body;
 
-
   if (!quoteId || !productId || qty == null) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
