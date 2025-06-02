@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { Product } from '../../utils/types';
 import SearchBar from '../SearchBarSettings';
 import ProductList from '../ProductListSettings';
-import { updateProductDb, deleteProductDb } from '../../api/others'; 
+import { updateProductDb, deleteProductDb, addProductDb } from '../../api/others'; 
 import { Helmet } from 'react-helmet-async';
 
 interface ProductsTabProps {
@@ -31,7 +31,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     <Box mb={3}>
       <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
     </Box>
-    <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} updateProductDb={updateProductDb} deleteProductDb={deleteProductDb}/>
+    <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} updateProductDb={updateProductDb} deleteProductDb={deleteProductDb} addProductDb={addProductDb}/>
   </Box>
 );
 

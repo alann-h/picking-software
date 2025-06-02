@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
 import {
-  Typography, Box, Button, CircularProgress, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, Paper, Dialog,
-  DialogTitle, DialogContent, DialogActions, TextField,
+  Typography,
+  Box,
+  Button,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material';
 import { Product } from '../utils/types';
+import { useSnackbarContext } from './SnackbarContext';
 
 interface ProductListProps {
   products: Product[];
@@ -12,32 +26,50 @@ interface ProductListProps {
   onRefresh: () => void;
   updateProductDb: (productId: number, fields: Partial<Product>) => Promise<void>;
   deleteProductDb: (productId: number) => Promise<void>;
+  addProductDb: (productName: string, sku: string, barcode: string) => Promise<string>;
 }
 
 const ProductList: React.FC<ProductListProps> = ({
-  products, isLoading, onRefresh, updateProductDb, deleteProductDb
+  products,
+  isLoading,
+  onRefresh,
+  updateProductDb,
+  deleteProductDb,
+  addProductDb,
 }) => {
+  const { handleOpenSnackbar } = useSnackbarContext();
+
+  // “Edit Product” dialog
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [open, setOpen] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
 
-  const handleOpen = (product: Product) => {
+  // “Add Product” dialog
+  const [openAdd, setOpenAdd] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [newSku, setNewSku] = useState('');
+  const [newBarcode, setNewBarcode] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+
+  // ---------- Existing “Edit” handlers ----------
+  const handleOpenEdit = (product: Product) => {
     setSelectedProduct(product);
-    setOpen(true);
+    setOpenEdit(true);
   };
 
-  const handleClose = () => {
+  const handleCloseEdit = () => {
     setSelectedProduct(null);
-    setOpen(false);
+    setOpenEdit(false);
   };
 
-  const handleChange = <K extends keyof Product>(field: K, value: Product[K]) => {
+  const handleChangeEdit = <K extends keyof Product>(field: K, value: Product[K]) => {
     if (selectedProduct) {
       setSelectedProduct({ ...selectedProduct, [field]: value });
     }
   };
 
-  const handleSave = async () => {
-    if (selectedProduct) {
+  const handleSaveEdit = async () => {
+    if (!selectedProduct) return;
+    try {
       await updateProductDb(selectedProduct.productId, {
         productName: selectedProduct.productName,
         price: selectedProduct.price,
@@ -45,16 +77,55 @@ const ProductList: React.FC<ProductListProps> = ({
         quantityOnHand: selectedProduct.quantityOnHand,
         sku: selectedProduct.sku,
       });
+      handleOpenSnackbar('Product updated successfully', 'success');
       onRefresh();
-      handleClose();
+      handleCloseEdit();
+    } catch (err) {
+      handleOpenSnackbar((err as Error).message || 'Failed to update product', 'error');
     }
   };
 
-  const handleDelete = async () => {
-    if (selectedProduct) {
+  const handleDeleteEdit = async () => {
+    if (!selectedProduct) return;
+    try {
       await deleteProductDb(selectedProduct.productId);
+      handleOpenSnackbar('Product deleted successfully', 'success');
       onRefresh();
-      handleClose();
+      handleCloseEdit();
+    } catch (err) {
+      handleOpenSnackbar((err as Error).message || 'Failed to delete product', 'error');
+    }
+  };
+
+  // ---------- NEW: “Add Product” handlers ----------
+  const handleOpenAdd = () => {
+    setNewProductName('');
+    setNewSku('');
+    setNewBarcode('');
+    setOpenAdd(true);
+  };
+
+  const handleCloseAdd = () => {
+    setOpenAdd(false);
+  };
+
+  const handleAdd = async () => {
+    // Basic validation: ensure no field is blank
+    if (!newProductName.trim() || !newSku.trim() || !newBarcode.trim()) {
+      handleOpenSnackbar('All fields are required to add a new product.', 'error');
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      await addProductDb(newProductName.trim(), newSku.trim(), newBarcode.trim());
+      handleOpenSnackbar('Product added successfully', 'success');
+      onRefresh();
+      handleCloseAdd();
+    } catch (err) {
+      handleOpenSnackbar((err as Error).message || 'Failed to add product', 'error');
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -69,6 +140,7 @@ const ProductList: React.FC<ProductListProps> = ({
           <Typography variant="subtitle1" gutterBottom>
             Showing {products.length} products
           </Typography>
+
           <TableContainer component={Paper}>
             <Table sx={{ minWidth: 650 }} aria-label="product table">
               <TableHead>
@@ -82,7 +154,7 @@ const ProductList: React.FC<ProductListProps> = ({
                   <TableRow
                     key={product.productId}
                     hover
-                    onClick={() => handleOpen(product)}
+                    onClick={() => handleOpenEdit(product)}
                     sx={{ cursor: 'pointer' }}
                   >
                     <TableCell>{product.productName}</TableCell>
@@ -93,13 +165,18 @@ const ProductList: React.FC<ProductListProps> = ({
             </Table>
           </TableContainer>
 
-          <Box mt={3} display="flex" justifyContent="center">
+          {/* Refresh + Add buttons */}
+          <Box mt={3} display="flex" justifyContent="center" gap={2}>
             <Button variant="contained" color="primary" onClick={onRefresh}>
               Refresh Products
             </Button>
+            <Button variant="outlined" color="primary" onClick={handleOpenAdd}>
+              Add Product
+            </Button>
           </Box>
 
-          <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+          {/* -------- Edit Product Dialog -------- */}
+          <Dialog open={openEdit} onClose={handleCloseEdit} maxWidth="sm" fullWidth>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogContent>
               <TextField
@@ -107,43 +184,95 @@ const ProductList: React.FC<ProductListProps> = ({
                 fullWidth
                 margin="dense"
                 value={selectedProduct?.productName || ''}
-                onChange={(e) => handleChange('productName', e.target.value)}
+                onChange={(e) => handleChangeEdit('productName', e.target.value)}
               />
               <TextField
                 label="Price"
                 fullWidth
                 margin="dense"
                 type="number"
-                value={selectedProduct?.price || ''}
-                onChange={(e) => handleChange('price', parseFloat(e.target.value))}
+                value={selectedProduct?.price ?? ''}
+                onChange={(e) => handleChangeEdit('price', parseFloat(e.target.value))}
               />
               <TextField
                 label="Barcode"
                 fullWidth
                 margin="dense"
                 value={selectedProduct?.barcode || ''}
-                onChange={(e) => handleChange('barcode', e.target.value)}
+                onChange={(e) => handleChangeEdit('barcode', e.target.value)}
               />
               <TextField
                 label="Quantity On Hand"
                 fullWidth
                 margin="dense"
                 type="number"
-                value={selectedProduct?.quantityOnHand || ''}
-                onChange={(e) => handleChange('quantityOnHand', parseInt(e.target.value))}
+                value={selectedProduct?.quantityOnHand ?? ''}
+                onChange={(e) => handleChangeEdit('quantityOnHand', parseInt(e.target.value))}
               />
               <TextField
                 label="SKU"
                 fullWidth
                 margin="dense"
                 value={selectedProduct?.sku || ''}
-                onChange={(e) => handleChange('sku', e.target.value)}
+                onChange={(e) => handleChangeEdit('sku', e.target.value)}
               />
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleDelete} color="error">Delete</Button>
-              <Button onClick={handleClose}>Cancel</Button>
-              <Button onClick={handleSave} variant="contained" color="primary">Save</Button>
+              <Button onClick={handleDeleteEdit} color="error">
+                Delete
+              </Button>
+              <Button onClick={handleCloseEdit}>Cancel</Button>
+              <Button onClick={handleSaveEdit} variant="contained" color="primary">
+                Save
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* -------- Add Product Dialog -------- */}
+          <Dialog open={openAdd} onClose={handleCloseAdd} maxWidth="sm" fullWidth>
+            <DialogTitle>Add New Product</DialogTitle>
+            <DialogContent>
+              {/* Warning Note */}
+              <Box mb={2}>
+                <Typography color="warning.main" variant="body2">
+                  ⚠️ <strong>Warning:</strong> This product must already exist in QuickBooks with the exact same
+                  name and SKU, otherwise enrichment will fail.
+                </Typography>
+              </Box>
+
+              <TextField
+                label="Product Name"
+                fullWidth
+                margin="dense"
+                value={newProductName}
+                onChange={(e) => setNewProductName(e.target.value)}
+              />
+              <TextField
+                label="SKU"
+                fullWidth
+                margin="dense"
+                value={newSku}
+                onChange={(e) => setNewSku(e.target.value)}
+              />
+              <TextField
+                label="Barcode"
+                fullWidth
+                margin="dense"
+                value={newBarcode}
+                onChange={(e) => setNewBarcode(e.target.value)}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseAdd}>Cancel</Button>
+              <Button
+                onClick={handleAdd}
+                variant="contained"
+                color="primary"
+                disabled={isAdding}
+                startIcon={isAdding ? <CircularProgress size={16} /> : undefined}
+              >
+                {isAdding ? 'Adding…' : 'Add'}
+              </Button>
             </DialogActions>
           </Dialog>
         </>

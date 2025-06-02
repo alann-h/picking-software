@@ -10,10 +10,10 @@ import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
   getCustomerQuotes, processBarcode, addProductToQuote, adjustProductQuantity, 
   getQuotesWithStatus, setOrderStatus, updateQuoteInQuickBooks
 } from './quotes.js';
-import { getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished, updateProductDb, deleteProductDb } from './products.js';
+import { getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished, updateProductDb, deleteProductDb, addProductDb } from './products.js';
 import { fetchCustomers, saveCustomers } from './customers.js';
 import { saveCompanyInfo, removeQuickBooksData } from './company.js';
-import { encryptToken, decryptToken, validateAndRoundQty, transaction } from './helpers.js';
+import { encryptToken, decryptToken, validateAndRoundQty } from './helpers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { readFile } from 'fs/promises';
@@ -394,6 +394,17 @@ app.delete('/deleteProduct/:productId', isAuthenticated, asyncHandler(async (req
   res.status(200).json(result);
 }));
 
+app.post('/addProduct', isAuthenticated, asyncHandler(async (req, res) => {
+  const { productName, sku, barcode } = req.body;
+
+  const product = [];
+
+  product.push({productName, sku, barcode});
+
+  const result = await addProductDb(product, req.session.companyId, req.decryptedToken);
+  res.status(200).json(result);
+}));
+
 /***************************************************************
                        Other Functions
 ***************************************************************/
@@ -474,6 +485,7 @@ const swaggerDocument = JSON.parse(
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Error handling middleware
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({ error: err.message || 'Internal Server Error' });

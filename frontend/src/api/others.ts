@@ -96,7 +96,16 @@ export const updateProductDb = async (productId: number) => {
 }
 
 export const deleteProductDb = async (productId: number) => {
-  const response = await apiCallDelete(`updateProduct/${productId}`);
+  const response = await apiCallDelete(`deleteProduct/${productId}`);
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}
+
+export const addProductDb = async (productName: string, sku: string, barcode: string ) => {
+  const response = await apiCallPost(`addProduct`, { productName, sku, barcode });
   if (response.error) {
     throw new Error(response.error);
   } else {
