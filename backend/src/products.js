@@ -166,10 +166,10 @@ export async function updateProductDb(productId, updateFields) {
   .join(', ');
 
   const query = `
-  UPDATE products
-  SET ${setClause}
-  WHERE productid = $${fields.length + 1}
-  RETURNING *;
+    UPDATE products
+    SET ${setClause}
+    WHERE productid = $${fields.length + 1}
+    RETURNING *;
   `;
 
   const result = await query(query, [...values, productId]);
@@ -182,6 +182,46 @@ export async function deleteProductDb(productId) {
     [productId]
   );
   return result.rows[0];
+}
+
+export async function addProductDb(product, companyId, token) {
+  try{
+    const enrichedProduct = await enrichWithQBOData(product, token);
+
+    const { productName, barcode, sku } = product;
+
+    const { price, quantity_on_hand, qbo_item_id } = enrichedProduct;
+
+    const values = [
+      productName,       // $1 → productname
+      barcode,           // $2 → barcode
+      sku,               // $3 → sku
+      price,             // $4 → price
+      quantity_on_hand,  // $5 → quantity_on_hand
+      qbo_item_id,       // $6 → qbo_item_id
+      // category,          // $7 → category ignore for now
+      companyId          // $8 → companyid
+    ];
+    const text = `
+      INSERT INTO products
+        (productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      ON CONFLICT (sku) DO UPDATE
+        SET productname      = EXCLUDED.productname,
+            barcode          = EXCLUDED.barcode,
+            price            = EXCLUDED.price,
+            qbo_item_id      = EXCLUDED.qbo_item_id,
+            quantity_on_hand = EXCLUDED.quantity_on_hand
+      RETURNING sku;
+    `;
+
+    const { rows } = await query(text, values);
+
+    return rows[0].sku;
+
+  } catch (err) {
+    throw new InputError(`addProductDb failed: ${err.message}`);
+  }
 }
 // below are functions for products but from quotes
 export async function saveForLater(quoteId, productId) {
