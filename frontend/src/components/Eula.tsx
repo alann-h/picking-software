@@ -29,7 +29,7 @@ const EULA = () => {
             <p>Please read this End-User License Agreement carefully before clicking the &quot;I Agree&quot; button, downloading or using Smart Picker.</p>
             <h2>Interpretation and Definitions</h2>
             <h3>Interpretation</h3>
-            <p>The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
+            <p>The words of which the initial letter is capitalised have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
             <h3>Definitions</h3>
             <p>For the purposes of this End-User License Agreement:</p>
             <ul>
@@ -97,7 +97,7 @@ const EULA = () => {
             <p>You represent and warrant that (i) You are not located in a country that is subject to the United States government embargo, or that has been designated by the United States government as a &quot;terrorist supporting&quot; country, and (ii) You are not listed on any United States government list of prohibited or restricted parties.</p>
             <h2>Changes to this Agreement</h2>
             <p>The Company reserves the right, at its sole discretion, to modify or replace this Agreement at any time. If a revision is material we will provide at least 30 days&apos; notice prior to any new terms taking effect. What constitutes a material change will be determined at the sole discretion of the Company.</p>
-            <p>By continuing to access or use the Application after any revisions become effective, You agree to be bound by the revised terms. If You do not agree to the new terms, You are no longer authorized to use the Application.</p>
+            <p>By continuing to access or use the Application after any revisions become effective, You agree to be bound by the revised terms. If You do not agree to the new terms, You are no longer authorised to use the Application.</p>
             <h2>Governing Law</h2>
             <p>The laws of the Country, excluding its conflicts of law rules, shall govern this Agreement and your use of the Application. Your use of the Application may also be subject to other local, state, national, or international laws.</p>
             <h2>Entire Agreement</h2>

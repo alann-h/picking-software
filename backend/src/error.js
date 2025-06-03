@@ -19,7 +19,7 @@ export class NotFoundError extends HttpError {
 
 export class AuthenticationError extends HttpError {
   constructor (message) {
-    super(message, 401); // Unauthorized
+    super(message, 401); // Unauthorised
   }
 }
 

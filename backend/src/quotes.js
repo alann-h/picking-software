@@ -7,7 +7,7 @@ export async function getCustomerQuotes(customerId, token) {
   try {
     const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
-      throw new AccessError('OAuth client could not be initialized');
+      throw new AccessError('OAuth client could not be initialised');
     }
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
@@ -76,7 +76,7 @@ export async function getQbEstimate(quoteId, token, companyId) {
   try {
     const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
-      throw new AccessError('OAuth client could not be initialized');
+      throw new AccessError('OAuth client could not be initialised');
     }
 
     const companyID = getCompanyId(oauthClient);
@@ -273,7 +273,7 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
       } else {
           const oauthClient = await getOAuthClient(token);
           if (!oauthClient) {
-            throw new AccessError('OAuth client could not be initialized');
+            throw new AccessError('OAuth client could not be initialised');
           }
           // If the product doesn't exist, insert a new row
           addNewProduct = await client.query(
@@ -352,9 +352,9 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
   try {
     const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
-      throw new AccessError('OAuth client could not be initialized');
+      throw new AccessError('OAuth client could not be initialised');
     }
-
+    console.log(rawQuoteData);
     const qbQuote = rawQuoteData.QueryResponse.Estimate[0];
     
     // Prepare the update payload

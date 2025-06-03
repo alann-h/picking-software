@@ -30,7 +30,7 @@ const PrivacyPolicy = () => {
             <p>We use Your Personal data to provide and improve the Service. By using the Service, You agree to the collection and use of information in accordance with this Privacy Policy. This Privacy Policy has been created with the help of the <a href="https://www.termsfeed.com/privacy-policy-generator/" target="_blank" rel="noreferrer">Privacy Policy Generator</a>.</p>
             <h2>Interpretation and Definitions</h2>
             <h3>Interpretation</h3>
-            <p>The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
+            <p>The words of which the initial letter is capitalied have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
             <h3>Definitions</h3>
             <p>For the purposes of this Privacy Policy:</p>
             <ul>

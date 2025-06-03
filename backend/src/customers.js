@@ -6,7 +6,7 @@ export async function fetchCustomers(token) {
   try {
     const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
-      throw new AccessError('OAuth client could not be initialized');
+      throw new AccessError('OAuth client could not be initialised');
     }
     const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);

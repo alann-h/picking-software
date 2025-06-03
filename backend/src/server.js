@@ -235,7 +235,7 @@ app.get('/getAllUsers', isAuthenticated, asyncHandler(async (req, res) => {
 app.put('/updateUser/:userId', isAuthenticated, asyncHandler(async (req, res) => {
   // Check if user is admin or updating their own profile
   if (!req.session.isAdmin && req.params.userId !== req.session.userId) {
-    throw new AccessError('Unauthorized to update this user');
+    throw new AccessError('Unauthorised to update this user');
   } 
 
   const { userId } = req.params;

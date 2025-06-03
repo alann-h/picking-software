@@ -52,7 +52,7 @@ const OrdersToCheckPage: React.FC = () => {
   }, [handleOpenSnackbar, navigate]);
 
   const handleQuoteClick = (quoteId: string) => {
-    navigate(`/quote?Id=${quoteId}`);
+    navigate(`/quote?id=${quoteId}`);
   };
 
   if (isLoading) {
