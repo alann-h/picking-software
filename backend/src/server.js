@@ -13,7 +13,7 @@ import { getQbEstimate, estimateToDB, checkQuoteExists, fetchQuoteData,
 import { getProductName, getProductFromDB, getAllProducts, saveForLater, setUnavailable, setProductFinished, updateProductDb, deleteProductDb, addProductDb } from './products.js';
 import { fetchCustomers, saveCustomers } from './customers.js';
 import { saveCompanyInfo, removeQuickBooksData } from './company.js';
-import { encryptToken, decryptToken, validateAndRoundQty } from './helpers.js';
+import { encryptToken, decryptToken, validateAndRoundQty, productIdToQboId } from './helpers.js';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { readFile } from 'fs/promises';
@@ -308,7 +308,10 @@ app.put('/updateQuoteInQuickBooks/:quoteId', isAuthenticated, asyncHandler(async
 ***************************************************************/
 
 app.get('/getProduct/:productId', isAuthenticated, asyncHandler(async (req, res) => {
-  const productData = await getProductFromDB(req.params.productId);
+  const { productId }= req.params;
+
+  const qboItemId = await productIdToQboId(productId);
+  const productData = await getProductFromDB(qboItemId);
   res.status(200).json(productData);
 }));
 
@@ -394,6 +397,16 @@ app.delete('/deleteProduct/:productId', isAuthenticated, asyncHandler(async (req
   res.status(200).json(result);
 }));
 
+app.get('/products/:productId/qbo-item-id', isAuthenticated, asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+  const pid = parseInt(productId, 10);
+  if (isNaN(pid)) {
+    throw new AccessError('Invalid productId parameter');
+  }
+
+  const qboItemId = await productIdToQboId(pid);
+  res.status(200).json({ qboItemId });
+}));
 app.post('/addProduct', isAuthenticated, asyncHandler(async (req, res) => {
   const { productName, sku, barcode } = req.body;
 

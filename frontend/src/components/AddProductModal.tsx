@@ -1,5 +1,3 @@
-// AddProductModal.tsx
-
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import {
   Modal,
@@ -30,8 +28,8 @@ interface AddProductModalProps {
 const STEP = 1;
 
 /**
- * Parse a quantity string into a number.
- * Supports decimals ("1.25") or simple fractions ("5/12").
+ * Parse a raw string into a number.
+ * Supports fractions ("5/12") or decimals ("1.25").
  */
 function parseQty(raw: string): number {
   const trimmed = raw.trim();
@@ -47,58 +45,103 @@ function parseQty(raw: string): number {
   }
   const f = parseFloat(trimmed);
   return isNaN(f) ? 0 : f;
-};
+}
 
 const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubmit }) => {
   const theme = useTheme();
-
   const { allProducts, isLoading, refetch } = useAllProducts();
 
-  // The numeric value we'll actually submit
-  const [qty, setQty] = useState<number>(1);
+  // Mode toggle: false = decimal entry, true = fraction entry
+  const [isFractionMode, setIsFractionMode] = useState<boolean>(false);
 
-  // What the user types (so we can show "5/12" etc)
-  const [qtyInput, setQtyInput] = useState<string>('1');
+  // Decimal input as a string (e.g. "1.5")
+  const [decimalInput, setDecimalInput] = useState<string>('1');
 
+  // Fraction inputs as strings ("numerator" and "denominator")
+  const [numeratorInput, setNumeratorInput] = useState<string>('1');
+  const [denominatorInput, setDenominatorInput] = useState<string>('1');
+
+  // Parsed numeric value, derived from either decimalInput or fraction inputs
+  const [parsedQty, setParsedQty] = useState<number>(1);
+
+  // Selected product
   const [product, setProduct] = useState<Product | null>(null);
 
+  // Whenever the modal opens, reset fields
   useEffect(() => {
     if (open) {
       refetch();
-      setQty(1);
-      setQtyInput('1');
       setProduct(null);
+      setIsFractionMode(false);
+      setDecimalInput('1');
+      setNumeratorInput('1');
+      setDenominatorInput('1');
+      setParsedQty(1);
     }
   }, [open, refetch]);
 
-  const handleIncrement = () => {
-    const next = parseFloat((qty + STEP).toFixed(4));
-    setQty(next);
-    setQtyInput(next.toString());
+  // Parse decimal input whenever it changes (only in decimal mode)
+  useEffect(() => {
+    if (!isFractionMode) {
+      const num = parseFloat(decimalInput);
+      setParsedQty(isNaN(num) ? 0 : num);
+    }
+  }, [decimalInput, isFractionMode]);
+
+  // Parse fraction inputs whenever they change (only in fraction mode)
+  useEffect(() => {
+    if (isFractionMode) {
+      const num = parseFloat(numeratorInput);
+      const den = parseFloat(denominatorInput);
+      if (!isNaN(num) && !isNaN(den) && den !== 0) {
+        setParsedQty(num / den);
+      } else {
+        setParsedQty(0);
+      }
+    }
+  }, [numeratorInput, denominatorInput, isFractionMode]);
+
+  const handleDecimalChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setDecimalInput(e.target.value);
   };
 
-  const handleDecrement = () => {
-    const next = parseFloat((qty - STEP).toFixed(4));
-    if (next > 0) {
-      setQty(next);
-      setQtyInput(next.toString());
+  const handleNumeratorChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setNumeratorInput(e.target.value);
+  };
+
+  const handleDenominatorChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setDenominatorInput(e.target.value);
+  };
+
+  const handleIncrement = () => {
+    if (!isFractionMode) {
+      const next = parseFloat((parsedQty + STEP).toFixed(4));
+      setParsedQty(next);
+      setDecimalInput(next.toString());
     }
   };
 
-  const onQtyChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    setQtyInput(raw);
-    const parsed = parseQty(raw);
-    setQty(parsed > 0 ? parsed : 0);
+  const handleDecrement = () => {
+    if (!isFractionMode) {
+      const next = parseFloat((parsedQty - STEP).toFixed(4));
+      if (next > 0) {
+        setParsedQty(next);
+        setDecimalInput(next.toString());
+      }
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (product && qty > 0) {
-      await onSubmit(product.productId, qty);
+    if (product && parsedQty > 0) {
+      await onSubmit(product.productId, parsedQty);
       onClose();
     }
   };
+
+  // Validation flags
+  const isTooLow = parsedQty <= 0;
+  const isInvalidFraction = isFractionMode && parseFloat(denominatorInput) === 0;
 
   return (
     <Modal open={open} onClose={onClose} closeAfterTransition>
@@ -154,41 +197,78 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
               />
             </Box>
 
-            {/* Quantity input */}
-            <TextField
-              label="Quantity"
-              type="text"
-              value={qtyInput}
-              onChange={onQtyChange}
-              fullWidth
-              variant="outlined"
-              inputProps={{
-                inputMode: 'decimal',
-                pattern: '[0-9.\\/]*',
-              }}
-              sx={{ mb: 3 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <IconButton onClick={handleDecrement} size="small">
-                      <RemoveIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={handleIncrement} size="small">
-                      <AddIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+            {/* Mode toggle */}
+            <Button
+              size="small"
+              onClick={() => setIsFractionMode((prev) => !prev)}
+              sx={{ mb: 2 }}
+            >
+              {isFractionMode ? 'Switch to Decimal' : 'Switch to Fraction'}
+            </Button>
+
+            {isFractionMode ? (
+              <>
+                <TextField
+                  label="Units"
+                  type="number"
+                  value={numeratorInput}
+                  onChange={handleNumeratorChange}
+                  inputProps={{ min: 0 }}
+                  fullWidth
+                  margin="dense"
+                  error={parseFloat(numeratorInput) < 0}
+                  helperText={parseFloat(numeratorInput) < 0 ? 'Enter a valid numerator' : ''}
+                />
+                <TextField
+                  label="Units in Box"
+                  type="number"
+                  value={denominatorInput}
+                  onChange={handleDenominatorChange}
+                  inputProps={{ min: 1 }}
+                  fullWidth
+                  margin="dense"
+                  error={isInvalidFraction}
+                  helperText={isInvalidFraction ? 'Denominator must be > 0' : ''}
+                />
+              </>
+            ) : (
+              <TextField
+                label="Quantity"
+                type="number"
+                value={decimalInput}
+                onChange={handleDecimalChange}
+                inputProps={{
+                  min: 0,
+                  step: 'any',
+                }}
+                fullWidth
+                margin="dense"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <IconButton onClick={handleDecrement} size="small">
+                        <RemoveIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={handleIncrement} size="small">
+                        <AddIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                helperText={isTooLow ? 'Enter a number greater than zero' : ''}
+                error={isTooLow}
+                sx={{ mb: 3 }}
+              />
+            )}
 
             <Button
               type="submit"
               variant="contained"
-              disabled={!product || qty <= 0}
+              disabled={!product || parsedQty <= 0 || (isFractionMode && isInvalidFraction)}
               fullWidth
               size="large"
               sx={{

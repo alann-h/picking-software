@@ -17,7 +17,6 @@ export const handleBarcodeScanned = async (
     const product: ProductDetail | undefined = Object.values(quoteData?.productInfo || {}).find(
       (p) => p.barcode === barcode
     );
-
     if (!product) {
       throw new Error('Product not found in quote data');
     }

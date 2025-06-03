@@ -13,7 +13,8 @@ export const handleProductDetails = async (productId: number, details: ProductDe
         originalQty: details.originalQty,
         qtyOnHand: data.quantity_on_hand,
         pickingStatus: details.pickingStatus,
-        productId: data.productid
+        productId: data.productid,
+        barcode: data.barcode,
       }
     };
   } catch (error) {

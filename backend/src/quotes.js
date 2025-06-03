@@ -184,7 +184,7 @@ export async function fetchQuoteData(quoteId) {
       customerName: result[0].customername,
       totalAmount: result[0].totalamount,
       timeStarted: result[0].timestarted,
-      orderStatus: result[0].orderstatus,
+      orderStatus: result[0].orderstatus, 
       lastModified: result[0].lastModified,
       productInfo: {},
       companyId: result[0].companyid
@@ -201,7 +201,8 @@ export async function fetchQuoteData(quoteId) {
           pickingStatus: row.pickingstatus,
           sku: row.sku,
           price: row.price,
-          companyId: row.companyid
+          companyId: row.companyid,
+          barcode: row.barcode
         };
       }
     });

@@ -43,6 +43,7 @@ export interface SnackbarContextType {
     handleOpenSnackbar: (message: string, severity: 'error' | 'success') => void;
     handleCloseSnackbar: () => void;
 }
+// need to clean up below type
 
 export interface ProductDetailsDB {
     sku: string;
