@@ -1,5 +1,5 @@
 import { AccessError, InputError } from './error.js';
-import { query, transaction, makeCustomApiCall, validateAndRoundQty } from './helpers.js';
+import { query, transaction, makeCustomApiCall, validateAndRoundQty, productIdToQboId } from './helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './auth.js';
 import { getProductFromDB } from './products.js';
 
@@ -45,7 +45,8 @@ async function filterEstimates(responseData, companyId) {
         originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
         pickingStatus: 'pending',
         companyId,
-        barcode: itemLocal.barcode
+        barcode: itemLocal.barcode,
+        tax_code_ref: itemLocal.tax_code_ref
       };
     }
     const customerRef = estimate.CustomerRef;
@@ -72,22 +73,23 @@ async function filterEstimates(responseData, companyId) {
   return Promise.all(filteredEstimatesPromises);
 }
 
-export async function getQbEstimate(quoteId, token, companyId) {
+export async function getQbEstimate(quoteId, token, rawDataNeeded) {
   try {
     const oauthClient = await getOAuthClient(token);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
 
-    const companyID = getCompanyId(oauthClient);
+    const companyId = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
     const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=75`
+      url: `${baseURL}v3/company/${companyId}/query?query=${queryStr}&minorversion=75`
     });
 
     const responseData = JSON.parse(estimateResponse.text());
-
+    if (rawDataNeeded) return responseData;
+    
     const filteredQuote = await filterEstimates(responseData, companyId);
     return filteredQuote;
   } catch (e) {
@@ -131,7 +133,7 @@ export async function estimateToDB(quote) {
       // Insert new quote items
       for (const [productId, item] of Object.entries(quote.productInfo)) {
         await client.query(
-          'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+          'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku, price, companyid, tax_code_ref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
           [
             quote.quoteId,
             productId,
@@ -142,7 +144,8 @@ export async function estimateToDB(quote) {
             item.pickingStatus,
             item.sku,
             validateAndRoundQty(item.price),
-            quote.companyId
+            quote.companyId,
+            item.tax_code_ref
           ]
         );
       }     
@@ -202,7 +205,8 @@ export async function fetchQuoteData(quoteId) {
           sku: row.sku,
           price: row.price,
           companyId: row.companyid,
-          barcode: row.barcode
+          barcode: row.barcode,
+          taxCodeRef: row.tax_code_ref
         };
       }
     });
@@ -258,6 +262,7 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
     let addExisitingProduct = null;
     let totalAmount = 0;
     await transaction(async (client) => {
+      const pickingStatus = 'pending';
       // Check if the product already exists in the quote
       const existingItem = await client.query(
         'SELECT * FROM quoteitems WHERE quoteid = $1 AND productid = $2',
@@ -267,8 +272,8 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
       if (existingItem.rows.length > 0) {
         // If the product exists, update the quantities
         addExisitingProduct = await client.query(
-          'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1 WHERE quoteid = $2 AND productid = $3 returning *',
-          [qty, quoteId, productId]
+          'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1, pickingstatus = $2 WHERE quoteid = $3 AND productid = $4 returning *',
+          [qty, pickingStatus, quoteId, productId]
         );
       } else {
           const oauthClient = await getOAuthClient(token);
@@ -278,12 +283,13 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
           // If the product doesn't exist, insert a new row
           addNewProduct = await client.query(
             'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *',
-            [quoteId, productId, qty, qty, 'pending', product[0].barcode, product[0].productname, product[0].sku, product[0].price, companyId]
+            [quoteId, productId, qty, qty, pickingStatus, product[0].barcode, product[0].productname, product[0].sku, product[0].price, companyId]
           );
       }
       
       const price = product[0].price * qty;
-      totalAmount = await client.query('UPDATE quotes SET totalamount = totalamount + $1 WHERE quoteid = $2 returning totalamount', [price, quoteId]);
+      const newTotalAmount =  Number(quote[0].totalamount) + price;
+      totalAmount = await client.query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
     });
     if (addNewProduct) {
       return {status: 'new', productInfo: addNewProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount};
@@ -354,7 +360,6 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
-    console.log(rawQuoteData);
     const qbQuote = rawQuoteData.QueryResponse.Estimate[0];
     
     // Prepare the update payload
@@ -368,21 +373,22 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     for (const localItem of Object.values(quoteLocalDb.productInfo)) {
       // Skip items marked as 'unavailable'
       if (localItem.pickingStatus === 'unavailable') continue;
-      const amount = localItem.price * localItem.originalQty;
+      const amount = Number(localItem.price) * Number(localItem.originalQty);
       
+      const qboItemId = await productIdToQboId(localItem.productId);
       const lineItem = {
         Description: localItem.productName,
         Amount: amount,
         DetailType: "SalesItemLineDetail",
         SalesItemLineDetail: {
           ItemRef: {
-            value: localItem.productId.toString(),
+            value: qboItemId,
             name: localItem.productName
           },
-          Qty: localItem.originalQty,
-          UnitPrice: localItem.price,
+          Qty: Number(localItem.originalQty),
+          UnitPrice: Number(localItem.price),
           TaxCodeRef: {
-            value: "5" // look into this later it just means if it uses gst or not for some reason I needed it
+            value: localItem.taxCodeRef
           }
         }
       };
@@ -395,7 +401,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     const baseURL = getBaseURL(oauthClient);
     await makeCustomApiCall(
       oauthClient,
-      `${baseURL}v3/company/${companyID}/estimate?minorversion=75`,
+      `${baseURL}v3/company/${companyID}/estimate?operation=update&minorversion=75`,
       'POST',
       updatePayload
     );

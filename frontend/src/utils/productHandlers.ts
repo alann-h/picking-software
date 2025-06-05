@@ -143,6 +143,7 @@ export const handleAddProduct = async (productId: number, quoteId: number, qty: 
         if (existing) {
           existing.pickingQty  = detail.pickingQty;
           existing.originalQty = detail.originalQty;
+          existing.pickingStatus = detail.pickingStatus; 
         }
 
         return {

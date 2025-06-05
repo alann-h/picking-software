@@ -65,7 +65,8 @@ export async function enrichWithQBOData(products, token) {
         ...product,
         price: itemData.UnitPrice,
         quantity_on_hand: QtyOnHand,
-        qbo_item_id: itemData.Id
+        qbo_item_id: itemData.Id,
+        tax_code_ref: itemData.SalesTaxCodeRef.value
       });
     } catch (err) {
       console.warn(`Failed QBO lookup for SKU ${product.sku}: ${err.message}`);
@@ -85,15 +86,16 @@ export async function insertProducts(products, companyId, client) {
     try {
       const { rows } = await client.query(
         `INSERT INTO products
-           (category, productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+           (category, productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid, tax_code_ref)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
          ON CONFLICT (sku) DO UPDATE
-           SET productname      = EXCLUDED.productname,
-               category         = EXCLUDED.category,
-               barcode          = EXCLUDED.barcode,
-               price            = EXCLUDED.price,
-               qbo_item_id      = EXCLUDED.qbo_item_id,
-               quantity_on_hand = EXCLUDED.quantity_on_hand
+           SET productname     = EXCLUDED.productname,
+              category         = EXCLUDED.category,
+              barcode          = EXCLUDED.barcode,
+              price            = EXCLUDED.price,
+              qbo_item_id      = EXCLUDED.qbo_item_id,
+              quantity_on_hand = EXCLUDED.quantity_on_hand,
+              tax_code_ref     = EXCLUDED.tax_code_ref
          RETURNING sku`,
         [
           p.category,
@@ -104,6 +106,7 @@ export async function insertProducts(products, companyId, client) {
           p.quantity_on_hand,
           p.qbo_item_id,
           companyId,
+          p.tax_code_ref
         ]
       );
       console.log(`  ➕ Upserted SKU=${rows[0].sku}`);
@@ -190,7 +193,7 @@ export async function addProductDb(product, companyId, token) {
 
     const { productName, barcode, sku } = product;
 
-    const { price, quantity_on_hand, qbo_item_id } = enrichedProduct;
+    const { price, quantity_on_hand, qbo_item_id, tax_code_ref } = enrichedProduct;
 
     const values = [
       productName,       // $1 → productname
@@ -200,18 +203,20 @@ export async function addProductDb(product, companyId, token) {
       quantity_on_hand,  // $5 → quantity_on_hand
       qbo_item_id,       // $6 → qbo_item_id
       // category,          // $7 → category ignore for now
-      companyId          // $8 → companyid
+      companyId,          // $8 → companyid
+      tax_code_ref
     ];
     const text = `
       INSERT INTO products
-        (productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
+        (productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid, tax_code_ref)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       ON CONFLICT (sku) DO UPDATE
         SET productname      = EXCLUDED.productname,
             barcode          = EXCLUDED.barcode,
             price            = EXCLUDED.price,
             qbo_item_id      = EXCLUDED.qbo_item_id,
-            quantity_on_hand = EXCLUDED.quantity_on_hand
+            quantity_on_hand = EXCLUDED.quantity_on_hand,
+            tax_code_ref     = EXCLUDED.tax_code_ref
       RETURNING sku;
     `;
 

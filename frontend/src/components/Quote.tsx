@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Paper, Typography, Table, TableBody, TableCell, 
@@ -14,6 +14,7 @@ import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
 import ProductFilter from './ProductFilter';
+import { useSnackbarContext } from './SnackbarContext';
 import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote';
 import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
@@ -37,6 +38,18 @@ const Quote: React.FC = () => {
     openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinalizeInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
+
+  const { handleOpenSnackbar, handleCloseSnackbar } = useSnackbarContext();
+
+  const handleScannedWithSnackbar = useCallback(async (barcode: string) => {
+    handleOpenSnackbar('Fetching product…', 'info');
+    try {
+      await handleBarcodeScan(barcode);
+      handleCloseSnackbar();
+    } catch (err) {
+      handleOpenSnackbar(`Error: ${(err as Error).message || 'Unknown'}`, 'error');
+    }
+  }, [handleBarcodeScan, handleOpenSnackbar, handleCloseSnackbar])
 
   const productArray = useMemo(() => {
     return quoteData ? Object.values(quoteData.productInfo) : [];
@@ -67,7 +80,7 @@ const Quote: React.FC = () => {
       <Helmet>
         <title>{`Smart Picker | Quote: ${quoteId}`}</title>
       </Helmet>
-       <BarcodeListener onBarcodeScanned={handleBarcodeScan} disabled={barcodeDisabled} />
+       <BarcodeListener onBarcodeScanned={handleScannedWithSnackbar} disabled={barcodeDisabled} />
       {modalState.type === 'barcode' && (
         <BarcodeModal
           isOpen={modalState.isOpen}

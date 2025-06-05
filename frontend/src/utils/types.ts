@@ -36,11 +36,12 @@ export interface Customer {
     customerName: string;
     customerId: number;
 }
+export type SnackbarSeverity = 'error' | 'success' | 'info' | 'warning';
 export interface SnackbarContextType {
     openSnackbar: boolean;
     snackbarMessage: string;
-    snackbarSeverity: 'error' | 'success';
-    handleOpenSnackbar: (message: string, severity: 'error' | 'success') => void;
+    snackbarSeverity: SnackbarSeverity;
+    handleOpenSnackbar: (message: string, severity: 'error' | 'success' | 'info' | 'warning') => void;
     handleCloseSnackbar: () => void;
 }
 // need to clean up below type

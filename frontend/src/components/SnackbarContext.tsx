@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
-import { SnackbarContextType } from '../utils/types';
+import { SnackbarContextType, SnackbarSeverity } from '../utils/types';
 
 const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
 
 export const SnackbarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'error' | 'success'>('error');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<SnackbarSeverity>('info');
 
-  const handleOpenSnackbar = useCallback((message: string, severity: 'error' | 'success') => {
+  const handleOpenSnackbar = useCallback((message: string, severity: SnackbarSeverity) => {
     setSnackbarMessage(message);
     setSnackbarSeverity(severity);
     setOpenSnackbar(true);

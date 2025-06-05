@@ -275,7 +275,7 @@ app.get('/estimate/:quoteId', isAuthenticated, asyncHandler(async (req, res) => 
     const quote = await fetchQuoteData(quoteId);
     return res.json({ source: 'database', data: quote });
   }
-  const estimates = await getQbEstimate(quoteId, req.decryptedToken, req.session.companyId);
+  const estimates = await getQbEstimate(quoteId, req.decryptedToken, false);
   await estimateToDB(estimates[0]);
   res.json({ source: 'api', data: estimates[0] });
 }));

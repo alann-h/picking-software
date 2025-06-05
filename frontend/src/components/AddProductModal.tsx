@@ -27,44 +27,19 @@ interface AddProductModalProps {
 
 const STEP = 1;
 
-/**
- * Parse a raw string into a number.
- * Supports fractions ("5/12") or decimals ("1.25").
- */
-function parseQty(raw: string): number {
-  const trimmed = raw.trim();
-  if (trimmed.includes('/')) {
-    const [numStr, denStr] = trimmed.split('/');
-    if (numStr && denStr) {
-      const num = parseFloat(numStr);
-      const den = parseFloat(denStr);
-      if (!isNaN(num) && !isNaN(den) && den !== 0) {
-        return num / den;
-      }
-    }
-  }
-  const f = parseFloat(trimmed);
-  return isNaN(f) ? 0 : f;
-}
-
 const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubmit }) => {
   const theme = useTheme();
   const { allProducts, isLoading, refetch } = useAllProducts();
 
-  // Mode toggle: false = decimal entry, true = fraction entry
   const [isFractionMode, setIsFractionMode] = useState<boolean>(false);
 
-  // Decimal input as a string (e.g. "1.5")
   const [decimalInput, setDecimalInput] = useState<string>('1');
 
-  // Fraction inputs as strings ("numerator" and "denominator")
   const [numeratorInput, setNumeratorInput] = useState<string>('1');
   const [denominatorInput, setDenominatorInput] = useState<string>('1');
 
-  // Parsed numeric value, derived from either decimalInput or fraction inputs
   const [parsedQty, setParsedQty] = useState<number>(1);
 
-  // Selected product
   const [product, setProduct] = useState<Product | null>(null);
 
   // Whenever the modal opens, reset fields
