@@ -282,8 +282,8 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
           }
           // If the product doesn't exist, insert a new row
           addNewProduct = await client.query(
-            'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *',
-            [quoteId, productId, qty, qty, pickingStatus, product[0].barcode, product[0].productname, product[0].sku, product[0].price, companyId]
+            'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price, companyid, tax_code_ref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *',
+            [quoteId, productId, qty, qty, pickingStatus, product[0].barcode, product[0].productname, product[0].sku, product[0].price, companyId, product[0].tax_code_ref]
           );
       }
       
@@ -303,18 +303,37 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
 
 export async function adjustProductQuantity(quoteId, productId, newQty) {
   try {
-    const result = await query(
-      'UPDATE quoteitems SET pickingqty = $1, originalqty = $1 WHERE quoteid = $2 AND productid = $3 RETURNING *',
-      [newQty, quoteId, productId]
+    const quote = await query(
+      'SELECT totalamount FROM quotes WHERE quoteid = $1',
+      [quoteId]
     );
-    if (result.length === 0) {
+
+    if (quote.length === 0) {
+      throw new AccessError('Quote does not exist!');
+    }
+
+    const quoteitems = await query(
+      'SELECT originalqty FROM quoteitems WHERE quoteid = $1 AND productid = $2',
+      [quoteId, productId]
+    );
+
+    if (quoteitems.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
-    const product = await query('SELECT * FROM products WHERE productid = $1', [productId]);
+    
+    const product = await query('SELECT price FROM products WHERE productid = $1', [productId]);
 
-    const price = product[0].price * newQty;
-    const newTotalAmt = await query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [price, quoteId]);
-    return { pickingQty: result[0].pickingqty, originalQty: result[0].originalqty, totalAmount: newTotalAmt[0].totalamount };
+    const qtyDiff = newQty - Number(quoteitems[0].originalqty) 
+    const priceChange = Number(product[0].price) * qtyDiff;
+    const newTotalAmount = Number(quote[0].totalamount) + priceChange;
+
+    const updatedItem = await query(
+      'UPDATE quoteitems SET pickingqty = $1, originalqty = $1 WHERE quoteid = $2 AND productid = $3 RETURNING pickingqty, originalqty',
+      [newQty, quoteId, productId]
+    );
+
+    const updatedTotalAmt = await query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
+    return { pickingQty: updatedItem[0].pickingqty, originalQty: updatedItem[0].originalqty, totalAmount: updatedTotalAmt[0].totalamount };
   } catch (error) {
     throw new AccessError(error.message);
   }
@@ -374,7 +393,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
       // Skip items marked as 'unavailable'
       if (localItem.pickingStatus === 'unavailable') continue;
       const amount = Number(localItem.price) * Number(localItem.originalQty);
-      
+
       const qboItemId = await productIdToQboId(localItem.productId);
       const lineItem = {
         Description: localItem.productName,
