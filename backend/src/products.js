@@ -145,11 +145,17 @@ export async function getProductFromDB(QboProductId) {
 
 export async function getAllProducts(companyId) {
   try {
-    const result = await query('SELECT productname, barcode, productid FROM products WHERE companyid = $1', [companyId]);
+    const result = await query('SELECT * FROM products WHERE companyid = $1', [companyId]);
     return result.map(product => ({
+      productId: product.productid,
       productName: product.productname,
-      barcode: product.barcode,
-      productId: product.productid
+      barcode: product.barcode ?? '',
+      sku: product.sku ?? '',
+      price: parseFloat(product.price),
+      quantityOnHand: parseFloat(product.quantity_on_hand),
+      companyId: Number(product.companyid),
+      category: product.category ?? null,
+      qboItemId: product.qbo_item_id ?? '',
     }));
   } catch (error) {
     throw new AccessError(error.message);
