@@ -50,7 +50,8 @@ async function filterEstimates(responseData, companyId) {
       };
     }
     const customerRef = estimate.CustomerRef;
-    const timeStarted = new Intl.DateTimeFormat('en-GB', {
+    const timeStarted = new Intl.DateTimeFormat('en-AU', {
+      timeZone: 'Australia/Sydney',
       year: 'numeric',
       month: 'numeric',
       day: 'numeric',
@@ -107,6 +108,7 @@ export async function estimateToDB(quote) {
       );
       if (existingQuote.rows.length > 0) {
         const lastModified = new Intl.DateTimeFormat('en-AU', {
+          timeZone: 'Australia/Sydney',
           year: 'numeric',
           month: 'numeric',
           day: 'numeric',
