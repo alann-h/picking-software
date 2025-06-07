@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAllProducts } from '../api/others';
+import { getAllProducts } from '../api/products';
 import { Product } from '../utils/types';
 import { useSnackbarContext } from '../components/SnackbarContext';
 

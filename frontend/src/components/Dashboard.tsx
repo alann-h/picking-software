@@ -6,7 +6,7 @@ import {
 import {QrCodeScanner, Inventory } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { Customer } from '../utils/types';
-import { getCustomers, saveCustomers } from '../api/others';
+import { getCustomers, saveCustomers } from '../api/customers';
 import { useSnackbarContext } from './SnackbarContext';
 import { getCustomerQuotes } from '../api/quote';
 import { useNavigate, useLocation } from 'react-router-dom';

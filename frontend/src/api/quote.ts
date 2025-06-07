@@ -1,7 +1,7 @@
 import { apiCallGet, apiCallPut } from '../utils/apiHelpers';
 
 export const extractQuote = async (quoteId: number) => {
-    const url = `estimate/${quoteId}`;
+    const url = `quotes/${quoteId}`;
     const data = await apiCallGet(url);
     if (data.error) {
       throw new Error(data.error);
@@ -11,7 +11,7 @@ export const extractQuote = async (quoteId: number) => {
 };
 
 export const getCustomerQuotes = async (customerId: number) => {
-  const url = `getEstimates/${customerId}`;
+  const url = `quotes/customer/${customerId}`;
   const data = await apiCallGet(url);
   if (data.error) {
     throw new Error(data.error);
@@ -20,35 +20,8 @@ export const getCustomerQuotes = async (customerId: number) => {
   }
 };
 
-// export const saveQuote = async (quote: QuoteData | null) => {
-//   const data = await apiCallPost(`saveQuote`, { quote });
-//   if (data.error) {
-//     throw new Error(data.error);
-//   } else {
-//     return data;
-//   }
-// };
-
-export const barcodeScan = async (barcode: string, quoteId: number, newQty: number) => {
-  const data = await apiCallPut('productScan', { barcode, quoteId, newQty });
-  if (data.error) {
-    throw new Error(data.error);
-  } else {
-    return data;
-  }
-};
-
-export const barcodeToName = async (barcode: string) => {
-  const data = await apiCallGet(`barcodeToName/${barcode}`);
-  if (data.error) {
-    throw new Error(data.error);
-  } else {
-    return data;
-  }
-};
-
 export const addProductToQuote = async (productId: number, quoteId: number, qty: number) => {
-  const data = await apiCallPut('addProduct', { productId, quoteId, qty });
+  const data = await apiCallPut('quotes/products', { productId, quoteId, qty });
   if (data.error) {
     throw new Error(data.error);
   } else {
@@ -57,7 +30,7 @@ export const addProductToQuote = async (productId: number, quoteId: number, qty:
 }
 
 export const adjustProductQty = async (quoteId: number, productId: number, newQty: number) => {
-  const data = await apiCallPut(`adjustProductQty`, { quoteId, productId, newQty });
+  const data = await apiCallPut(`quotes/products/qty`, { quoteId, productId, newQty });
   if (data.error) {
     throw new Error(data.error);
   } else {
@@ -76,7 +49,7 @@ export const getQuotesWithStatus = async (status: string) => {
 
 export const updateQuoteStatus = async (quoteId: number, newStatus: string) => {
   try {
-    const response = await apiCallPut('quote-status', { quoteId, newStatus });
+    const response = await apiCallPut('quotes/status', { quoteId, newStatus });
     return response;
   } catch (error) {
     throw new Error('Failed to update quote status');
@@ -85,9 +58,18 @@ export const updateQuoteStatus = async (quoteId: number, newStatus: string) => {
 
 export const updateQuoteInQuickBooks = async (quoteId: number) => {
   try {
-    const response = await apiCallPut(`updateQuoteInQuickBooks/${quoteId}`, {});
+    const response = await apiCallPut(`quotes/${quoteId}/quickbooks`, {});
     return response;
   } catch (error) {
     throw new Error('Failed to update quote status');
+  }
+};
+
+export const barcodeScan = async (barcode: string, quoteId: number, newQty: number) => {
+  const data = await apiCallPut('quotes/products/scan', { barcode, quoteId, newQty });
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data;
   }
 };

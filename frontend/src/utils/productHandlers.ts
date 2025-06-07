@@ -1,5 +1,5 @@
 import { ProductDetail, QuoteUpdateFunction } from '../utils/types';
-import { getProductInfo, saveProductForLater, setProductFinished, setProductUnavailable } from '../api/others';
+import { getProductInfo, saveProductForLater, setProductFinished, setProductUnavailable } from '../api/products';
 import { addProductToQuote, adjustProductQty } from '../api/quote';
 
 export const handleProductDetails = async (productId: number, details: ProductDetail) => {

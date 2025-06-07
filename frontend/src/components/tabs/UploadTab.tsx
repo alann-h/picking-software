@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import FileUpload from '../FileUpload';
 import ExcelInfoComponent from '../ExcelInfoComponent';
 import { useSnackbarContext } from '../SnackbarContext';
-import { uploadProducts } from '../../api/others';
+import { uploadProducts } from '../../api/products';
 
 interface UploadTabProps {
   refetch: () => void;
