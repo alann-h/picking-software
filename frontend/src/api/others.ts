@@ -77,15 +77,6 @@ export const setProductFinished = async (quoteId: number, productId: number) => 
   }
 }
 
-export const disconnectQB = async() => {
-  const response = await apiCallDelete('disconnect');
-  if (response.error) {
-    throw new Error(response.error);
-  } else {
-    return response;  
-  }
-}
-
 export const updateProductDb = async (productId: number) => {
   const response = await apiCallPut(`updateProduct/${productId}`, {});
   if (response.error) {
