@@ -1,8 +1,25 @@
 import excelToJson from 'convert-excel-to-json';
 import fs from 'fs-extra';
-import { AccessError, InputError } from './error.js';
-import { query } from './helpers.js';
-import { getBaseURL, getCompanyId, getOAuthClient } from './auth.js';
+import { AccessError, InputError } from '../middlewares/errorHandler.js';
+import { query } from '../helpers.js';
+import { getBaseURL, getCompanyId, getOAuthClient } from './authService.js';
+
+export async function productIdToQboId(productId) {
+  try {
+    const result = await query(
+      `SELECT qbo_item_id FROM products WHERE productid = $1`,
+      [productId]
+    );
+
+    if (result.length === 0) {
+      throw new AccessError(`No product found with productid=${productId}`);
+    }
+
+    return result[0].qbo_item_id;
+  } catch (err) {
+    throw new AccessError(err.message);
+  }
+}
 
 export async function processFile(filePath) {
   try {
