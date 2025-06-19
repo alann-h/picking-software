@@ -73,12 +73,14 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
             {isAdmin && (
               isMobile ? (
                 <Tooltip title="Orders to Check">
-                  <IconButton
-                    color="inherit"
-                    onClick={() => navigate('/orders-to-check')}
-                  >
-                    <AssignmentIcon />
-                  </IconButton>
+                  <span>
+                    <IconButton
+                      color="inherit"
+                      onClick={() => navigate('/orders-to-check')}
+                    >
+                      <AssignmentIcon />
+                    </IconButton>
+                  </span>
                 </Tooltip>
               ) : (
                 <Button
@@ -92,13 +94,15 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
             )}
 
             <Tooltip title="Settings">
-              <IconButton
-                color="inherit"
-                onClick={() => navigate('/settings')}
-                disabled={!isAdmin}
-              >
-                <SettingsIcon />
-              </IconButton>
+              <span>
+                <IconButton
+                  color="inherit"
+                  onClick={() => navigate('/settings')}
+                  disabled={!isAdmin}
+                >
+                  <SettingsIcon />
+                </IconButton>
+              </span>
             </Tooltip>
           </Box>
         )}

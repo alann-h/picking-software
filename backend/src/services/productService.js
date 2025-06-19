@@ -149,15 +149,20 @@ export async function getProductName(barcode) {
 }
 
 export async function getProductFromDB(QboProductId) {
+  let result;
   try {
-    const result = await query('SELECT * FROM products WHERE qbo_item_id = $1', [QboProductId]);
-    if (result.length === 0) {
-      throw new AccessError('This product does not exist within the database');
-    }
-    return result[0];
-  } catch (error) {
+    result = await query(
+      'SELECT * FROM products WHERE qbo_item_id = $1',
+      [QboProductId]
+    );
+  } catch (err) {
     throw new AccessError('Error accessing the database');
   }
+
+  if (result.length === 0) {
+    throw new AccessError('This product does not exist within the database');
+  }
+  return result[0];
 }
 
 export async function getAllProducts(companyId) {
