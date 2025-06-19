@@ -5,11 +5,7 @@ import { apiCallGet, apiCallPost, apiCallDelete } from '../utils/apiHelpers';
  */
 export const loginWithCredentials = async (email: string, password: string) => {
   const data = await apiCallPost('auth/login', { email, password });
-  if (data.error) {
-    throw new Error(data.error);
-  } else {
-    return data;
-  }
+  return data;
 };
 
 /**
@@ -17,18 +13,10 @@ export const loginWithCredentials = async (email: string, password: string) => {
  */
 export const verifyUser = async () => {
   const response = await apiCallGet('verifyUser');
-  if (response.error) {
-    throw new Error(response.error);
-  } else {
-    return response;
-  }
+  return response;
 };
 
 export const disconnectQB = async() => {
   const response = await apiCallDelete('auth/disconnect');
-  if (response.error) {
-    throw new Error(response.error);
-  } else {
-    return response;  
-  }
+  return response;
 }

@@ -23,14 +23,16 @@ const getCommonHeaders = async (): Promise<Record<string, string>> => {
 };
 
 const handleResponse = async (response: Response) => {
+  const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    // You might want to handle specific status codes differently
-    if (response.status === 403) {
-      throw new Error('CSRF token validation failed');
-    }
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const errorMsg =
+      (typeof data.error === "string" && data.error) ||
+      `HTTP error! status: ${response.status}`;
+    throw new Error(errorMsg);
   }
-  return response.json();
+
+  return data;
 };
 
 export const apiCallGet = async (path: string) => {
