@@ -121,18 +121,6 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   });
 }));
 
-app.get('/test-session', (req, res) => {
-  req.session.token = 'testtoken';
-  req.session.save((err) => {
-    if (err) {
-      console.error('Session save failed:', err);
-      return res.status(500).send('Failed to save session');
-    }
-    res.send('Session saved');
-  });
-});
-
-
 const upload = multer({ dest: './uploads' });
 app.post('/upload',
   isAuthenticated,
