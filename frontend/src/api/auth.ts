@@ -1,18 +1,6 @@
 import { apiCallGet, apiCallPost, apiCallDelete } from '../utils/apiHelpers';
 
 /**
- * Login user with Quickbooks login (only admin should do this)
- */
-export const loginWithQb = async () => {
-  const data = await apiCallGet('auth/uri');
-  if (data.error) {
-    throw new Error(data.error);
-  } else {
-    return data;
-  }
-};
-
-/**
  * Login user with credentials (for non admin users)
  */
 export const loginWithCredentials = async (email: string, password: string) => {

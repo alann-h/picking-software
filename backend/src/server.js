@@ -26,9 +26,18 @@ import errorHandler from './middlewares/errorHandler.js';
 
 import pool from './db.js';
 
-dotenv.config();
+dotenv.config({ path: '.env' });
 
 const app = express();
+
+// — CORS
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://smartpicker.au', 'https://api.smartpicker.au']
+    : ['http://localhost:3000', 'http://localhost:5033'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 // — Redis & BullMQ setup
 const redisConn = new IORedis({
@@ -69,15 +78,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(morgan(':method :url :status'));
 
-// — CORS
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://smartpicker.au', 'https://api.smartpicker.au']
-    : ['http://localhost:3000', 'http://localhost:5033'],
-  credentials: true,
-};
-app.use(cors(corsOptions));
-
 // — CSRF protection
 const { generateToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.SESSION_SECRET,
@@ -93,9 +93,11 @@ const { generateToken, doubleCsrfProtection } = doubleCsrf({
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   getTokenFromRequest: req => req.headers['x-csrf-token'],
 });
+
 app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken: generateToken(req, res) });
 });
+
 app.use(doubleCsrfProtection);
 
 // — Decrypt token on every request
@@ -118,6 +120,18 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
     userId: req.session.userId,
   });
 }));
+
+app.get('/test-session', (req, res) => {
+  req.session.token = 'testtoken';
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save failed:', err);
+      return res.status(500).send('Failed to save session');
+    }
+    res.send('Session saved');
+  });
+});
+
 
 const upload = multer({ dest: './uploads' });
 app.post('/upload',

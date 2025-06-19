@@ -4,13 +4,13 @@ import { saveCompanyInfo, removeQuickBooksData } from '../services/companyServic
 import { encryptToken } from '../helpers.js';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: '.env' });
 
 // GET /auth/uri
 export async function authUri(req, res, next) {
   try {
     const uri = await authService.getAuthUri();
-    res.json({ uri });
+    res.redirect(uri);
   } catch (err) {
     next(err);
   }
