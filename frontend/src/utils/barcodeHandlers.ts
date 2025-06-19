@@ -1,5 +1,6 @@
 import { ProductDetail, QuoteData } from '../utils/types';
-import { barcodeToName, barcodeScan } from '../api/quote';
+import { barcodeToName } from '../api/products';
+import { barcodeScan } from "../api/quote";
 import { ModalType } from './modalState';
 
 export const handleBarcodeScanned = async (

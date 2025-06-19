@@ -1,6 +1,13 @@
 import { apiCallDelete, apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
-import { Customer } from '../utils/types';
 
+export const barcodeToName = async (barcode: string) => {
+  const data = await apiCallGet(`products/barcode/${barcode}`);
+  if (data.error) {
+    throw new Error(data.error);
+  } else {
+    return data;
+  }
+};
 
 export const uploadProducts = async (file: File) => {
     const formData = new FormData();
@@ -14,26 +21,8 @@ export const uploadProducts = async (file: File) => {
     }
 };
 
-export const getCustomers = async () => {
-  const customers = await apiCallGet(`getCustomers`);
-  if (customers.error) {
-    throw new Error(customers.error);
-  } else {
-    return customers;
-  }
-};
-
-export const saveCustomers = async (customers: Customer[]) => {
-  const data = await apiCallPost(`saveCustomers`, customers);
-  if (data.error) {
-    throw new Error(data.error);
-  } else {
-    return data;
-  }
-};
-
 export const getProductInfo =  async (productId: number) => {
-  const response = await apiCallGet(`getProduct/${productId}`);
+  const response = await apiCallGet(`producst/${productId}`);
   if (response.error) {
     throw new Error(response.error);
   } else {
@@ -42,7 +31,7 @@ export const getProductInfo =  async (productId: number) => {
 }
 
 export const getAllProducts = async () => {
-  const response = await apiCallGet(`getAllProducts`);
+  const response = await apiCallGet(`products`);
   if (response.error) {
     throw new Error(response.error);
   } else {
@@ -51,7 +40,7 @@ export const getAllProducts = async () => {
 }
 
 export const saveProductForLater = async (quoteId: number, productId: number) => {
-  const response = await apiCallPut('saveProductForLater', { quoteId, productId });
+  const response = await apiCallPut('products/for-later', { quoteId, productId });
   if (response.error) {
     throw new Error(response.error);
   } else {
@@ -60,7 +49,7 @@ export const saveProductForLater = async (quoteId: number, productId: number) =>
 }
 
 export const setProductUnavailable = async (quoteId: number, productId: number) => {
-  const response = await apiCallPut('setProductUnavailable', { quoteId, productId });
+  const response = await apiCallPut('products/unavailable', { quoteId, productId });
   if (response.error) {
     throw new Error(response.error);
   } else {
@@ -69,16 +58,7 @@ export const setProductUnavailable = async (quoteId: number, productId: number) 
 }
 
 export const setProductFinished = async (quoteId: number, productId: number) => {
-  const response = await apiCallPut('setProductFinished', { quoteId, productId });
-  if (response.error) {
-    throw new Error(response.error);
-  } else {
-    return response;  
-  }
-}
-
-export const disconnectQB = async() => {
-  const response = await apiCallDelete('disconnect');
+  const response = await apiCallPut('products/finished', { quoteId, productId });
   if (response.error) {
     throw new Error(response.error);
   } else {
@@ -87,7 +67,7 @@ export const disconnectQB = async() => {
 }
 
 export const updateProductDb = async (productId: number) => {
-  const response = await apiCallPut(`updateProduct/${productId}`, {});
+  const response = await apiCallPut(`products/${productId}`, {});
   if (response.error) {
     throw new Error(response.error);
   } else {
@@ -96,7 +76,7 @@ export const updateProductDb = async (productId: number) => {
 }
 
 export const deleteProductDb = async (productId: number) => {
-  const response = await apiCallDelete(`deleteProduct/${productId}`);
+  const response = await apiCallDelete(`products/${productId}`);
   if (response.error) {
     throw new Error(response.error);
   } else {
@@ -105,7 +85,7 @@ export const deleteProductDb = async (productId: number) => {
 }
 
 export const addProductDb = async (productName: string, sku: string, barcode: string ) => {
-  const response = await apiCallPost(`addProduct`, { productName, sku, barcode });
+  const response = await apiCallPost(`products`, { productName, sku, barcode });
   if (response.error) {
     throw new Error(response.error);
   } else {

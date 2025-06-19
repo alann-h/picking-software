@@ -28,3 +28,11 @@ export class AccessError extends HttpError {
     super(message, 403); // Forbidden
   }
 }
+
+// eslint-disable-next-line no-unused-vars
+export default (err, req, res, next) => {
+  console.error(err);
+  res
+    .status(err.statusCode || 500)
+    .json({ error: err.message || 'Internal Server Error' });
+};

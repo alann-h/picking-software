@@ -1,22 +1,10 @@
-import { apiCallGet, apiCallPost } from '../utils/apiHelpers';
-
-/**
- * Login user with Quickbooks login (only admin should do this)
- */
-export const loginWithQb = async () => {
-  const data = await apiCallGet('authUri');
-  if (data.error) {
-    throw new Error(data.error);
-  } else {
-    return data;
-  }
-};
+import { apiCallGet, apiCallPost, apiCallDelete } from '../utils/apiHelpers';
 
 /**
  * Login user with credentials (for non admin users)
  */
 export const loginWithCredentials = async (email: string, password: string) => {
-  const data = await apiCallPost('login', { email, password });
+  const data = await apiCallPost('auth/login', { email, password });
   if (data.error) {
     throw new Error(data.error);
   } else {
@@ -35,3 +23,12 @@ export const verifyUser = async () => {
     return response;
   }
 };
+
+export const disconnectQB = async() => {
+  const response = await apiCallDelete('auth/disconnect');
+  if (response.error) {
+    throw new Error(response.error);
+  } else {
+    return response;  
+  }
+}

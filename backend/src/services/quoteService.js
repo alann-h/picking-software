@@ -1,7 +1,7 @@
-import { AccessError, InputError } from './error.js';
-import { query, transaction, makeCustomApiCall, validateAndRoundQty, productIdToQboId } from './helpers.js';
-import { getOAuthClient, getBaseURL, getCompanyId } from './auth.js';
-import { getProductFromDB } from './products.js';
+import { AccessError, InputError } from '../middlewares/errorHandler.js';
+import { query, transaction, makeCustomApiCall, validateAndRoundQty } from '../helpers.js';
+import { getOAuthClient, getBaseURL, getCompanyId } from './authService.js';
+import { getProductFromDB, productIdToQboId } from './productService.js';
 
 export async function getCustomerQuotes(customerId, token) {
   try {
@@ -325,7 +325,7 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
     
     const product = await query('SELECT price FROM products WHERE productid = $1', [productId]);
 
-    const qtyDiff = newQty - Number(quoteitems[0].originalqty) 
+    const qtyDiff = newQty - Number(quoteitems[0].originalqty);
     const priceChange = Number(product[0].price) * qtyDiff;
     const newTotalAmount = Number(quote[0].totalamount) + priceChange;
 

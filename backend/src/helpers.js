@@ -1,7 +1,6 @@
 import pool from './db.js';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
-import { AccessError } from './error.js';
 
 dotenv.config({ path: '.env' });
 
@@ -71,19 +70,4 @@ export function validateAndRoundQty(qty) {
   return parseFloat(parsed.toFixed(2));
 }
 
-export async function productIdToQboId(productId) {
-  try {
-    const result = await query(
-      `SELECT qbo_item_id FROM products WHERE productid = $1`,
-      [productId]
-    );
 
-    if (result.length === 0) {
-      throw new AccessError(`No product found with productid=${productId}`);
-    }
-
-    return result[0].qbo_item_id;
-  } catch (err) {
-    throw new AccessError(err.message);
-  }
-}

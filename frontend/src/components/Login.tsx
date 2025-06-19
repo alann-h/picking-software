@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Button, TextField, Box, Typography, Container } from '@mui/material';
-import { loginWithQb, loginWithCredentials, verifyUser } from '../api/auth';
+import { loginWithCredentials, verifyUser } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
 import { Helmet } from 'react-helmet-async';
+
+import { AUTH_URI } from '../api/config';
 
 const Login: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
@@ -28,13 +30,7 @@ const Login: React.FC = () => {
   }, [handleOpenSnackbar, navigate]);
 
   const handleQuickBooksLogin = () => {
-    loginWithQb()
-      .then((authUri: string) => {
-        window.location.href = authUri;
-      })
-      .catch((err: Error) => {
-        handleOpenSnackbar(err.message, 'error');
-      });
+    window.location.href = AUTH_URI;
   };
 
   const handleCredentialLogin = async (e: React.FormEvent) => {

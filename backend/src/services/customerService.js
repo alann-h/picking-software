@@ -1,6 +1,6 @@
-import { AccessError } from './error.js';
-import { transaction } from './helpers.js';
-import { getOAuthClient, getBaseURL, getCompanyId } from './auth.js';
+import { AccessError } from '../middlewares/errorHandler.js';
+import { transaction } from '../helpers.js';
+import { getOAuthClient, getBaseURL, getCompanyId } from './authService.js';
 
 export async function fetchCustomers(token) {
   try {

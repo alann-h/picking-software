@@ -9,9 +9,7 @@ export const useUserStatus = (skipFetch: boolean) => {
   useEffect(() => {
     const fetchUserStatus = async () => {
       try {
-        if (skipFetch) {
-          setIsAdmin(false)
-        } else {
+        if (!skipFetch) {
           const userStatus = await getUserStatus();
           setIsAdmin(userStatus.isAdmin);
         }

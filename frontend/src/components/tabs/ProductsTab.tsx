@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { Product } from '../../utils/types';
 import SearchBar from '../SearchBarSettings';
 import ProductList from '../ProductListSettings';
-import { updateProductDb, deleteProductDb, addProductDb } from '../../api/others'; 
+import { updateProductDb, deleteProductDb, addProductDb } from '../../api/products'; 
 import { Helmet } from 'react-helmet-async';
 
 interface ProductsTabProps {

@@ -25,7 +25,7 @@ import { useSnackbarContext } from './SnackbarContext';
 import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from '../api/user';
 import { UserData } from '../utils/types';
 import { useNavigate } from 'react-router-dom';
-import { disconnectQB } from '../api/others';
+import { disconnectQB } from '../api/auth';
 import { Helmet } from 'react-helmet-async';
 
 const DEFAULT_USER: UserData = {
