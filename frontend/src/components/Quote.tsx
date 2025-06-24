@@ -14,6 +14,10 @@ import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
 import ProductFilter from './ProductFilter';
+
+import CameraScannerModal from './CameraScannerModal';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+
 import { useSnackbarContext } from './SnackbarContext';
 import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote';
 import { useModalState } from '../utils/modalState';
@@ -50,6 +54,11 @@ const Quote: React.FC = () => {
       handleOpenSnackbar(`Error: ${(err as Error).message || 'Unknown'}`, 'error');
     }
   }, [handleBarcodeScan, handleOpenSnackbar, handleCloseSnackbar])
+
+  const handleCameraScanSuccess = useCallback((barcode: string) => {
+    closeModal();
+    handleScannedWithSnackbar(barcode);
+  }, [closeModal, handleScannedWithSnackbar]); 
 
   const productArray = useMemo(() => {
     return quoteData ? Object.values(quoteData.productInfo) : [];
@@ -90,6 +99,13 @@ const Quote: React.FC = () => {
           productName={scannedProductName}
         />
       )}
+      {modalState.type === 'cameraScanner' && (
+        <CameraScannerModal
+          isOpen={modalState.isOpen}
+          onClose={closeModal}
+          onScanSuccess={handleCameraScanSuccess}
+        />
+      )}
         {modalState.type === 'productDetails' && modalState.data && (
           <ProductDetails
             open={modalState.isOpen}
@@ -128,6 +144,15 @@ const Quote: React.FC = () => {
           Quote Details
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, mt: isMobile ? 2 : 0 }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => openModal('cameraScanner')}
+              disabled={quoteData.orderStatus === 'finalised'}
+            >
+              <CameraAltIcon />
+              {!isMobile && "Scan"}
+            </Button>
             <Button 
               variant="contained" 
               color="primary" 

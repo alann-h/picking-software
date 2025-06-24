@@ -1,7 +1,7 @@
 // src/worker.js
 import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
-import { processFile, enrichWithQBOData, insertProducts } from './products.js';
+import { processFile, enrichWithQBOData, insertProducts } from './services/productService.js';
 import { transaction } from './helpers.js';
 
 console.log('🚀 Worker starting up...');
@@ -18,9 +18,8 @@ const worker = new Worker(
   async (job) => {
     const { filePath, companyId, token } = job.data;
 
-    const list     = await processFile(filePath);
+    const list = await processFile(filePath);
     console.log(`    → Parsed ${list.length} products`);
-
     const enriched = await enrichWithQBOData(list, token);
     console.log(`    → Enriched ${enriched.length} products with QBO`);
 

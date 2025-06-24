@@ -4,7 +4,10 @@
  * Base URL for API requests. Configurable via environment variable.
  * Ensure you set REACT_APP_API_BASE_URL in your .env file (e.g., REACT_APP_API_BASE_URL=http://localhost:5033)
  */
-export const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5033';
+export const API_BASE = process.env.NODE_ENV === 'production' 
+  ? process.env.REACT_APP_API_BASE_URL
+  : 'http://localhost:5033';
+  
 
 /**
  * Auth endpoints

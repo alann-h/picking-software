@@ -33,7 +33,7 @@ export async function saveCompanyInfo(token) {
         const encryptedToken = await encryptToken(token);
         const result = await query(`
             INSERT INTO companies (company_name, companyid, qb_token) 
-            VALUES ($1, $2, $3::jsonb)
+            VALUES ($1, $2, $3)
             ON CONFLICT (companyid) DO UPDATE 
             SET 
                 company_name = EXCLUDED.company_name,

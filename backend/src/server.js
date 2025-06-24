@@ -39,6 +39,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+console.log(`Attempting to connect to Redis at: ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`);
+
 // — Redis & BullMQ setup
 const redisConn = new IORedis({
   host: process.env.REDIS_HOST,
