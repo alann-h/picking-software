@@ -11,11 +11,11 @@ const modalStyle = {
   transform: 'translate(-50%, -50%)',
   width: { xs: '90vw', sm: '80vw', md: 500 },
   bgcolor: 'background.paper',
-  border: '2px solid #000',
   boxShadow: 24,
   p: 4,
   display: 'flex',
   flexDirection: 'column',
+  borderRadius: '10px'
 };
 
 const QRCODE_REGION_ID = "reader";
