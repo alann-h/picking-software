@@ -1,12 +1,9 @@
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.smartpicker.au'
-  : 'http://localhost:5033';
-  
+import { API_BASE } from '../api/config';
 /**
  * Get CSRF token
  */
 const getCsrfToken = async () => {
-  const response = await fetch(`${API_BASE_URL}/csrf-token`, {
+  const response = await fetch(`${API_BASE}/csrf-token`, {
     credentials: 'include'
   });
   const data = await response.json();
@@ -23,21 +20,23 @@ const getCommonHeaders = async (): Promise<Record<string, string>> => {
 };
 
 const handleResponse = async (response: Response) => {
+  const data = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    // You might want to handle specific status codes differently
-    if (response.status === 403) {
-      throw new Error('CSRF token validation failed');
-    }
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const errorMsg =
+      (typeof data.error === "string" && data.error) ||
+      `HTTP error! status: ${response.status}`;
+    throw new Error(errorMsg);
   }
-  return response.json();
+
+  return data;
 };
 
 export const apiCallGet = async (path: string) => {
   const headers = await getCommonHeaders();
   headers['Content-Type'] = 'application/json';
 
-  const response = await fetch(`${API_BASE_URL}/${path}`, {
+  const response = await fetch(`${API_BASE}/${path}`, {
     method: 'GET',
     headers,
     credentials: 'include',
@@ -63,7 +62,7 @@ export const apiCallPost = async (path: string, body: object | FormData) => {
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(`${API_BASE_URL}/${path}`, options);
+  const response = await fetch(`${API_BASE}/${path}`, options);
   return handleResponse(response);
 };
 
@@ -74,7 +73,7 @@ export const apiCallPut = async (path: string, body: object) => {
   const headers = await getCommonHeaders();
   headers['Content-Type'] = 'application/json';
 
-  const response = await fetch(`${API_BASE_URL}/${path}`, {
+  const response = await fetch(`${API_BASE}/${path}`, {
     method: 'PUT',
     headers,
     credentials: 'include',
@@ -90,7 +89,7 @@ export const apiCallPut = async (path: string, body: object) => {
 export const apiCallDelete = async (path: string) => {
   const headers = await getCommonHeaders();
 
-  const response = await fetch(`${API_BASE_URL}/${path}`, {
+  const response = await fetch(`${API_BASE}/${path}`, {
     method: 'DELETE',
     headers,
     credentials: 'include',

@@ -39,6 +39,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+console.log(`Attempting to connect to Redis at: ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`);
+
 // — Redis & BullMQ setup
 const redisConn = new IORedis({
   host: process.env.REDIS_HOST,
@@ -120,18 +122,6 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
     userId: req.session.userId,
   });
 }));
-
-app.get('/test-session', (req, res) => {
-  req.session.token = 'testtoken';
-  req.session.save((err) => {
-    if (err) {
-      console.error('Session save failed:', err);
-      return res.status(500).send('Failed to save session');
-    }
-    res.send('Session saved');
-  });
-});
-
 
 const upload = multer({ dest: './uploads' });
 app.post('/upload',

@@ -1,5 +1,5 @@
 import { AccessError } from '../middlewares/errorHandler.js';
-import { query, transaction } from '../helpers.js';
+import { encryptToken, query, transaction } from '../helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './authService.js';
 
 export async function getCompanyInfo(token) {
@@ -30,15 +30,16 @@ export async function getCompanyInfo(token) {
 export async function saveCompanyInfo(token) {
     try {
         const companyInfo = await getCompanyInfo(token);
+        const encryptedToken = await encryptToken(token);
         const result = await query(`
             INSERT INTO companies (company_name, companyid, qb_token) 
-            VALUES ($1, $2, $3::jsonb)
+            VALUES ($1, $2, $3)
             ON CONFLICT (companyid) DO UPDATE 
             SET 
                 company_name = EXCLUDED.company_name,
                 qb_token = EXCLUDED.qb_token
             RETURNING *`,
-            [companyInfo.companyName, companyInfo.id, token]
+            [companyInfo.companyName, companyInfo.id, encryptedToken]
         );
         return result[0];
     } catch (error) {
