@@ -11,27 +11,24 @@ export const handleBarcodeScanned = async (
   setScannedProductName: (name: string) => void,
   openModal: (type: ModalType, data: any) => void
 ): Promise<void> => {
-  try {
-    setScannedBarcode(barcode);
-    const { productName } = await barcodeToName(barcode);
+  setScannedBarcode(barcode);
+  const { productName } = await barcodeToName(barcode);
 
-    const product: ProductDetail | undefined = Object.values(quoteData?.productInfo || {}).find(
-      (p) => p.barcode === barcode
-    );
-    if (!product) {
-      throw new Error('Product not found in quote data');
-    }
+  const product: ProductDetail | undefined = Object.values(quoteData?.productInfo || {}).find(
+    (p) => p.barcode === barcode
+  );
 
-    if (product.pickingQty === 0) {
-      throw new Error('Product quantity is already 0!');
-    }
-
-    setAvailableQty(product.pickingQty);
-    setScannedProductName(productName);
-    openModal('barcode', { productName });
-  } catch (error: any) {
-    throw new Error(error.message || 'Unexpected error during barcode scan');
+  if (!product) {
+    throw new Error('Product not found in quote data');
   }
+
+  if (product.pickingQty === 0) {
+    throw new Error('Product quantity is already 0!');
+  }
+
+  setAvailableQty(product.pickingQty);
+  setScannedProductName(productName);
+  openModal('barcode', { productName });
 };
 
 export const handleModalConfirm = (

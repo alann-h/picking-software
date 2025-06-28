@@ -201,7 +201,7 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   }, [handleOpenSnackbar, quoteId]);
 
-  const handleFinalizeInvoice = async () => {
+  const handleFinaliseInvoice = async () => {
     try {
       await updateQuoteInQuickBooks(quoteId);
       // Open QuickBooks in the first tab (ensures login)
@@ -222,5 +222,5 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
   };
 
   return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, setFinished, addProduct, 
-    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinalizeInvoice };
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinaliseInvoice };
 };

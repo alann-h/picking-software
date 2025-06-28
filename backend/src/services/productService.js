@@ -308,6 +308,8 @@ export async function setUnavailable(quoteId, productId) {
       [quoteId, productId]
     );
 
+    await query('UPDATE quotes SET lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $1', [quoteId]);
+
     const newStatus = updateResult[0].pickingstatus;
 
     return {
@@ -330,9 +332,13 @@ export async function setProductFinished(quoteId, productId) {
     if (result.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
+    
+    await query('UPDATE quotes SET lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $1', [quoteId]);
+
     return { 
       pickingQty: result[0].pickingqty,
-      newStatus: result[0].pickingstatus
+      newStatus: result[0].pickingstatus,
+      message: `Set ${result[0].productname} to finished!`
     }
     ;
   } catch (error) {

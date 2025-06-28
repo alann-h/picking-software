@@ -39,21 +39,18 @@ const Quote: React.FC = () => {
   const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
   const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
   const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, setFinished, addProduct, 
-    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinalizeInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinaliseInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
-  const { handleOpenSnackbar, handleCloseSnackbar } = useSnackbarContext();
+  const { handleOpenSnackbar } = useSnackbarContext();
 
   const handleScannedWithSnackbar = useCallback(async (barcode: string) => {
     handleOpenSnackbar('Fetching product…', 'info');
-    try {
-      await handleBarcodeScan(barcode);
-      handleCloseSnackbar();
-    } catch (err) {
-      handleOpenSnackbar(`Error: ${(err as Error).message || 'Unknown'}`, 'error');
-    }
-  }, [handleBarcodeScan, handleOpenSnackbar, handleCloseSnackbar])
+    const normalised = barcode.length === 13 ? '0' + barcode : barcode;
+
+    await handleBarcodeScan(normalised);
+  }, [handleBarcodeScan, handleOpenSnackbar])
 
   const handleCameraScanSuccess = useCallback((barcode: string) => {
     closeModal();
@@ -164,7 +161,7 @@ const Quote: React.FC = () => {
             </Button>
             <Button 
               variant="contained"
-              onClick={quoteData.orderStatus === 'checking' ? handleFinalizeInvoice : openQuoteInvoiceModal}
+              onClick={quoteData.orderStatus === 'checking' ? handleFinaliseInvoice : openQuoteInvoiceModal}
               disabled={quoteData.orderStatus === 'finalised'}
               sx={{
                 backgroundColor: theme.palette.warning.main,
@@ -219,7 +216,7 @@ const Quote: React.FC = () => {
         </Tooltip>
         <Tooltip title="Time when this picking session started">
           <Typography sx={{ color: theme.palette.text.secondary, fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
-            Started: {quoteData.timeStarted}
+            Last Modified: {quoteData.lastModified}
           </Typography>
         </Tooltip>
       </Box>

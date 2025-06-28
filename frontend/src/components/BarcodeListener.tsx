@@ -13,9 +13,8 @@ const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned, dis
 
       if (key >= '0' && key <= '9') {
         setBarcode(prev => (prev + key).slice(-14));
-      } else if (key === 'Enter' && (barcode.length === 13 || barcode.length === 14)) {
-        const normalised = barcode.length === 13 ? '0' + barcode : barcode;
-        onBarcodeScanned(normalised);
+      } else if (key === 'Enter' && barcode.length > 0) {
+        onBarcodeScanned(barcode);
         setBarcode('');
       }
     };

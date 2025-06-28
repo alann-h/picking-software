@@ -17,6 +17,7 @@ export interface QuoteData {
     productInfo: ProductInfo;
     totalAmount: number;
     timeStarted: string;
+    lastModified: string;
     orderStatus: string;
 }
 

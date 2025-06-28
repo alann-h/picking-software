@@ -183,6 +183,22 @@ export async function fetchQuoteData(quoteId) {
       return null;
     }
 
+    const lastModified = new Intl.DateTimeFormat('en-AU', {
+      timeZone: 'Australia/Sydney',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(new Date());
+
+    await query(`
+      UPDATE quotes
+      SET lastmodified = $1
+      WHERE quoteid = $2
+    `, [lastModified, quoteId]);
+
     const quote = {
       quoteId: result[0].quoteid,
       customerId: result[0].customerid,
@@ -190,7 +206,7 @@ export async function fetchQuoteData(quoteId) {
       totalAmount: result[0].totalamount,
       timeStarted: result[0].timestarted,
       orderStatus: result[0].orderstatus, 
-      lastModified: result[0].lastModified,
+      lastModified: lastModified,
       productInfo: {},
       companyId: result[0].companyid
     };
@@ -244,6 +260,9 @@ export async function processBarcode(barcode, quoteId, newQty) {
       'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND barcode = $3 RETURNING pickingqty, productname, pickingstatus',
       [newQty, quoteId, barcode]
     );
+
+    await query('UPDATE quotes SET lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $1', [quoteId]);
+
     return { productName: result[0].productname, updatedQty: result[0].pickingqty, pickingStatus: result[0].pickingstatus };
   } catch (error) {
     throw new AccessError(error.message);
@@ -291,7 +310,7 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
       
       const price = product[0].price * qty;
       const newTotalAmount =  Number(quote[0].totalamount) + price;
-      totalAmount = await client.query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
+      totalAmount = await client.query('UPDATE quotes SET totalamount = $1, lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
     });
     if (addNewProduct) {
       return {status: 'new', productInfo: addNewProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount};
@@ -334,7 +353,7 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
       [newQty, quoteId, productId]
     );
 
-    const updatedTotalAmt = await query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
+    const updatedTotalAmt = await query('UPDATE quotes SET totalamount = $1, lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
     return { pickingQty: updatedItem[0].pickingqty, originalQty: updatedItem[0].originalqty, totalAmount: updatedTotalAmt[0].totalamount };
   } catch (error) {
     throw new AccessError(error.message);
@@ -344,7 +363,7 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
 export async function setOrderStatus(quoteId, newStatus) {
   try {
     const result = await query(
-      'UPDATE quotes SET orderstatus = $1 WHERE quoteid = $2 returning orderstatus',
+      'UPDATE quotes SET orderstatus = $1, lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $2 returning orderstatus',
       [newStatus, quoteId]
     );
     return {orderStatus: result[0].orderstatus};
