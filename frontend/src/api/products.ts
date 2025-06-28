@@ -14,7 +14,7 @@ export const uploadProducts = async (file: File) => {
 };
 
 export const getProductInfo =  async (productId: number) => {
-  const response = await apiCallGet(`producst/${productId}`);
+  const response = await apiCallGet(`products/${productId}`);
   return response;  
 }
 
