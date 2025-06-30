@@ -136,45 +136,10 @@ const Quote: React.FC = () => {
             onProceed={setQuoteChecking}
         />
       )}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, flexDirection: isMobile ? 'column' : 'row' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
           Quote Details
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, mt: isMobile ? 2 : 0 }}>
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={() => openModal('cameraScanner')}
-              disabled={quoteData.orderStatus === 'finalised'}
-            >
-              <CameraAltIcon />
-              {!isMobile && "Scan"}
-            </Button>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={openAddProductModal}
-              disabled={quoteData.orderStatus === 'finalised'}
-            >
-              <AddIcon />
-              {!isMobile && "Add Product"}
-            </Button>
-            <Button 
-              variant="contained"
-              onClick={quoteData.orderStatus === 'checking' ? handleFinaliseInvoice : openQuoteInvoiceModal}
-              disabled={quoteData.orderStatus === 'finalised'}
-              sx={{
-                backgroundColor: theme.palette.warning.main,
-                color: theme.palette.warning.contrastText,
-                '&:hover': {
-                  backgroundColor: theme.palette.warning.dark,
-                }
-              }}
-            >
-              <ReceiptIcon />
-              {!isMobile && (quoteData.orderStatus === 'checking' ? "Finalise Invoice" : "Convert to Invoice")}
-            </Button>
-        </Box>
       </Box>
       <Box
         sx={{
@@ -220,6 +185,27 @@ const Quote: React.FC = () => {
           </Typography>
         </Tooltip>
       </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={() => openModal('cameraScanner')}
+          disabled={quoteData.orderStatus === 'finalised'}
+        >
+          <CameraAltIcon />
+          {!isMobile && "Scan"}
+        </Button>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={openAddProductModal}
+          disabled={quoteData.orderStatus === 'finalised'}
+        >
+          <AddIcon />
+          {!isMobile && "Add Product"}
+        </Button>
+      </Box>
+
       <ProductFilter products={productArray} onFilterChange={handleFilterChange} />
       <TableContainer component={Paper}>
         <Table>
@@ -248,6 +234,24 @@ const Quote: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, borderTop: 1, borderColor: 'divider', pt: 2 }}>
+          <Button 
+            variant="contained"
+            size="large"
+            onClick={quoteData.orderStatus === 'checking' ? handleFinaliseInvoice : openQuoteInvoiceModal}
+            disabled={quoteData.orderStatus === 'finalised'}
+            sx={{
+              backgroundColor: theme.palette.warning.main,
+              color: theme.palette.warning.contrastText,
+              '&:hover': {
+                backgroundColor: theme.palette.warning.dark,
+              }
+            }}
+          >
+          <ReceiptIcon sx={{ mr: 1 }} />
+          {quoteData.orderStatus === 'checking' ? "Finalise Invoice" : "Convert to Invoice"}
+        </Button>
+      </Box>
     </Paper>
   );
 };

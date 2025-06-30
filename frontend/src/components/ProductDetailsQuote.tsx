@@ -53,31 +53,31 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         </Typography>
         <Divider sx={{ my: 2 }} />
         <Grid container spacing={2}>
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <Box display="flex" alignItems="center">
               <AssignmentIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
               <Typography variant="body1">SKU: {localProductDetails.sku}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <Box display="flex" alignItems="center">
               <InventoryIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
               <Typography variant="body1">Quantity On Hand: {localProductDetails.qtyOnHand}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <Box display="flex" alignItems="center">
               <ShippingIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
               <Typography variant="body1">Picking Quantity: {localProductDetails.pickingQty}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <Box display="flex" alignItems="center">
               <ShippingIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
               <Typography variant="body1">Original Quantity: {localProductDetails.originalQty}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box display="flex" alignItems="center">
               <QrCodeIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
               <Typography variant="body1">

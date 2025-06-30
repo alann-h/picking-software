@@ -94,7 +94,7 @@ const OrdersToCheckPage: React.FC = () => {
       ) : (
         <Grid container spacing={3} sx={{ mt: 2 }}>
           {quotes.map((quote) => (
-            <Grid item xs={12} sm={6} md={4} key={quote.id}>
+            <Grid size={{ xs: 12, md: 4, sm: 6 }} key={quote.id}>
               <Card
                 sx={{
                   transition: '0.3s',

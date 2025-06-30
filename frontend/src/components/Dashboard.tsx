@@ -128,7 +128,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
       <Helmet>
         <title>Smart Picker | Dashboard</title>
       </Helmet>
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, px: { xs: 2, sm: 3 } }}>
         <AnimatedComponent yOffset={20}>
           <Typography variant="h4" gutterBottom component="h1" color="primary">
             Dashboard
@@ -137,7 +137,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
         <Grid container spacing={3}>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <AnimatedComponent xOffset={-20} delay={0.2}>
               <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="h6" gutterBottom>
@@ -158,7 +158,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             </AnimatedComponent>
           </Grid>
 
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <AnimatedComponent xOffset={20} delay={0.4}>
               <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="h6" gutterBottom>
@@ -226,7 +226,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
               Features
             </Typography>
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, md: 4, sm: 6 }}>
                 <Card>
                   <CardContent>
                     <Typography variant="h6" gutterBottom>
@@ -239,7 +239,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={6} md={4}>
+              <Grid size={{ xs: 12, md: 4, sm: 6 }}>
                 <Card>
                   <CardContent>
                     <Typography variant="h6" gutterBottom>

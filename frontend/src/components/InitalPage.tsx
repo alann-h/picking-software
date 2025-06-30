@@ -67,19 +67,19 @@ const InitalPage: React.FC = () => {
       <Box sx={{ backgroundColor: theme.palette.background.paper, py: { xs: 10, md: 14 }, px: { xs: 2, sm: 4 } }}>
         <Container maxWidth={false} sx={{ width: '100%', maxWidth: { xs: '100%', sm: 'lg' }, px: { xs: 2, sm: 3 } }}>
           <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <AnimatedSection>
                 <Box component="img" src="https://t3.ftcdn.net/jpg/04/18/86/92/360_F_418869208_hK7u41kiZti2GiF9Z9ARujhlhM7pOAiv.jpg" alt="Barcode Scanner"
                   sx={{ width: '100%', maxWidth: 400, height: 'auto', borderRadius: 2, boxShadow: 3, display: 'block', mx: 'auto' }}
                 />
               </AnimatedSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <AnimatedSection>
                 <Typography variant="h4" fontWeight="bold" gutterBottom>
                   Fulfill from your phone
                 </Typography>
-                <Typography variant="body1" color="text.secondary" paragraph>
+                <Typography variant="body1" color="text.secondary">
                   Scan to receive or fulfill orders from your iPhone or Android device.
                 </Typography>
                 <Button variant="outlined" color="primary" size="large" sx={{ mt: 2, borderRadius: '30px' }}>
@@ -95,14 +95,14 @@ const InitalPage: React.FC = () => {
       <Box sx={{ backgroundColor: theme.palette.background.default, py: { xs: 10, md: 14 }, px: { xs: 2, sm: 4 } }}>
         <Container maxWidth={false} sx={{ width: '100%', maxWidth: { xs: '100%', sm: 'lg' }, px: { xs: 2, sm: 3 } }}>
           <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <AnimatedSection>
                 <Box component="img" src="https://quickbooks.intuit.com/cas/dam/IMAGE/A732uaqi3/standardlogo.png" alt="QuickBooks Logo"
                   sx={{ width: '100%', maxWidth: 300, height: 'auto', display: 'block', mx: 'auto' }}
                 />
               </AnimatedSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <AnimatedSection>
                 <Typography variant="h4" fontWeight="bold" gutterBottom>
                   Connects to QuickBooks Online

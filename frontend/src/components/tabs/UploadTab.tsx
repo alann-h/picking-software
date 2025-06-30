@@ -33,14 +33,14 @@ const UploadTab: React.FC<UploadTabProps> = ({ refetch }) => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <FileUpload
           onFileSelect={setSelectedFile}
           onUpload={handleUpload}
           selectedFile={selectedFile}
         />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
