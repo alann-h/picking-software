@@ -41,7 +41,7 @@ const Quote: React.FC = () => {
   const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
   const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
   const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, setFinished, addProduct, 
-    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinaliseInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, savePickerNote, handleFinaliseInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
@@ -268,7 +268,7 @@ const Quote: React.FC = () => {
       </TableContainer>
         <Box sx={{ mt: 4, borderTop: 1, borderColor: 'divider', pt: 2 }}>
           <Typography variant="h6" gutterBottom>
-            Picker's Note
+            Picker&apos;s Note
           </Typography>
           <TextField
             label="Add any notes about preparing this order..."
@@ -283,10 +283,10 @@ const Quote: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
             <Button
               variant="outlined"
-              onClick={() => console.log("Connect savePickerNote function here")}
+              onClick={() => savePickerNote(pickerNote)}
               disabled={pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'finalised'}
             >
-              Save Picker's Note
+              Save Picker&apos;s Note
             </Button>
         </Box>
       </Box>

@@ -208,7 +208,8 @@ export async function fetchQuoteData(quoteId) {
       orderStatus: result[0].orderstatus, 
       lastModified: lastModified,
       productInfo: {},
-      companyId: result[0].companyid
+      companyId: result[0].companyid,
+      pickerNote: result[0].pickernote
     };
 
     result.forEach(row => {
@@ -391,6 +392,17 @@ export async function getQuotesWithStatus(status) {
     }));
   } catch (error) {
     throw new AccessError('Failed to fetch quotes');
+  }
+}
+
+export async function savePickerNote(quoteId, note) {
+  try {
+    const result = await query('UPDATE quotes SET pickernote = $1 WHERE quoteid = $2 returning pickernote', [note, quoteId]);
+
+    return {pickerNote: result[0].pickernote};
+
+  } catch(error) {
+    throw new AccessError(`Issue with saving note! ${error.message}`);
   }
 }
 

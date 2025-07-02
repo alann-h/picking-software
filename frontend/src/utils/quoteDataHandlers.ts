@@ -1,4 +1,4 @@
-import { extractQuote } from '../api/quote';
+import { extractQuote, savePickerNote } from '../api/quote';
 
 
 export const createFetchQuoteData = async (
@@ -14,3 +14,7 @@ export const createFetchQuoteData = async (
     }
 };
 
+export const handleSaveNote = async (quoteId: number, note: string) => {
+  const response = await savePickerNote(quoteId, note);
+  return response;
+}

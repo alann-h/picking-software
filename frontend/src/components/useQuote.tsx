@@ -2,8 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { QuoteData, ProductDetail, QuoteUpdateFunction } from '../utils/types';
 import { OpenModalFunction } from '../utils/modalState';
 import { handleBarcodeScanned, handleModalConfirm } from '../utils/barcodeHandlers';
-import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, setFinishedButton ,handleAddProduct } from '../utils/productHandlers';
-import { createFetchQuoteData } from '../utils/quoteDataHandlers';
+import { handleProductDetails, handleAdjustQuantity, saveForLaterButton, setUnavailableButton, setFinishedButton , handleAddProduct } from '../utils/productHandlers';
+import { createFetchQuoteData, handleSaveNote } from '../utils/quoteDataHandlers';
 import { useSnackbarContext } from './SnackbarContext';
 import { updateQuoteInQuickBooks, updateQuoteStatus } from '../api/quote';
 import { useNavigate } from 'react-router-dom';
@@ -201,6 +201,15 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     }
   }, [handleOpenSnackbar, quoteId]);
 
+  const savePickerNote = useCallback(async (note: string) => {
+    try {
+      await handleSaveNote(quoteId, note);
+      handleOpenSnackbar(`Saved the note!`, 'success');
+    } catch(error) {
+      handleOpenSnackbar(`${error}`, 'error');
+    }
+  }, [handleOpenSnackbar, quoteId])
+
   const handleFinaliseInvoice = async () => {
     try {
       await updateQuoteInQuickBooks(quoteId);
@@ -222,5 +231,5 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
   };
 
   return { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, setFinished, addProduct, 
-    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinaliseInvoice };
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinaliseInvoice, savePickerNote };
 };
