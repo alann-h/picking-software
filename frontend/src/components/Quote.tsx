@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Paper, Typography, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Box, useTheme, 
   Tooltip, CircularProgress, useMediaQuery, Button,
+  TextField,
 } 
 from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -25,6 +26,7 @@ import { ProductDetail } from '../utils/types';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
 import { Helmet } from 'react-helmet-async';
+import { useUserStatus } from '../utils/useUserStatus';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -44,6 +46,9 @@ const Quote: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
   const { handleOpenSnackbar } = useSnackbarContext();
+  const { isAdmin } = useUserStatus(false);
+
+  const [pickerNote, setPickerNote] = useState(quoteData?.pickerNote || '');
 
   const handleScannedWithSnackbar = useCallback(async (barcode: string) => {
     handleOpenSnackbar('Fetching product…', 'info');
@@ -56,6 +61,12 @@ const Quote: React.FC = () => {
     closeModal();
     handleScannedWithSnackbar(barcode);
   }, [closeModal, handleScannedWithSnackbar]); 
+
+  useEffect(() => {
+    if (quoteData?.pickerNote !== undefined) {
+      setPickerNote(quoteData.pickerNote);
+    }
+  }, [quoteData?.pickerNote]);
 
   const productArray = useMemo(() => {
     return quoteData ? Object.values(quoteData.productInfo) : [];
@@ -180,30 +191,51 @@ const Quote: React.FC = () => {
           </Typography>
         </Tooltip>
         <Tooltip title="Time when this picking session started">
-          <Typography sx={{ color: theme.palette.text.secondary, fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>
+          <Typography sx={{ color: theme.palette.text.secondary, fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, mb: isMobile ? 1 : 0 }}>
             Last Modified: {quoteData.lastModified}
           </Typography>
         </Tooltip>
       </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: 2 }}>
-        <Button
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          label="Customer/Sales Note"
           variant="outlined"
-          color="secondary"
-          onClick={() => openModal('cameraScanner')}
-          disabled={quoteData.orderStatus === 'finalised'}
-        >
-          <CameraAltIcon />
-          {!isMobile && "Scan"}
-        </Button>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={openAddProductModal}
-          disabled={quoteData.orderStatus === 'finalised'}
-        >
-          <AddIcon />
-          {!isMobile && "Add Product"}
-        </Button>
+          multiline
+          rows={3}
+          value={quoteData.orderNote || 'No note provided.'}
+          slotProps={{
+            input: {
+              readOnly: true,
+            },
+          }}
+          sx={{
+            width: {
+              xs: '100%',
+              sm: '22.5%',
+            }
+          }}
+        />
+
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={() => openModal('cameraScanner')}
+            disabled={quoteData.orderStatus === 'finalised'}
+          >
+            <CameraAltIcon />
+            {!isMobile && "Scan"}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={openAddProductModal}
+            disabled={quoteData.orderStatus === 'finalised'}
+          >
+            <AddIcon />
+            {!isMobile && "Add Product"}
+          </Button>
+        </Box>
       </Box>
 
       <ProductFilter products={productArray} onFilterChange={handleFilterChange} />
@@ -234,12 +266,39 @@ const Quote: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+        <Box sx={{ mt: 4, borderTop: 1, borderColor: 'divider', pt: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Picker's Note
+          </Typography>
+          <TextField
+            label="Add any notes about preparing this order..."
+            multiline
+            rows={4}
+            fullWidth
+            variant="outlined"
+            value={pickerNote}
+            onChange={(e) => setPickerNote(e.target.value)}
+            disabled={quoteData.orderStatus === 'finalised'}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => console.log("Connect savePickerNote function here")}
+              disabled={pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'finalised'}
+            >
+              Save Picker's Note
+            </Button>
+        </Box>
+      </Box>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, borderTop: 1, borderColor: 'divider', pt: 2 }}>
-          <Button 
+          <Button
             variant="contained"
             size="large"
             onClick={quoteData.orderStatus === 'checking' ? handleFinaliseInvoice : openQuoteInvoiceModal}
-            disabled={quoteData.orderStatus === 'finalised'}
+            disabled={
+              quoteData.orderStatus === 'finalised' ||
+              (quoteData.orderStatus === 'checking' && !isAdmin)
+            }
             sx={{
               backgroundColor: theme.palette.warning.main,
               color: theme.palette.warning.contrastText,
@@ -248,9 +307,9 @@ const Quote: React.FC = () => {
               }
             }}
           >
-          <ReceiptIcon sx={{ mr: 1 }} />
-          {quoteData.orderStatus === 'checking' ? "Finalise Invoice" : "Convert to Invoice"}
-        </Button>
+            <ReceiptIcon sx={{ mr: 1 }} />
+            {quoteData.orderStatus === 'checking' ? "Finalise Invoice" : "Convert to Invoice"}
+          </Button>
       </Box>
     </Paper>
   );

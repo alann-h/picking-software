@@ -19,6 +19,8 @@ export interface QuoteData {
     timeStarted: string;
     lastModified: string;
     orderStatus: string;
+    orderNote: string;
+    pickerNote: string;
 }
 
 export interface QuoteProps {
