@@ -203,17 +203,8 @@ const Quote: React.FC = () => {
           multiline
           rows={3}
           value={quoteData.orderNote || 'No note provided.'}
-          slotProps={{
-            input: {
-              readOnly: true,
-            },
-          }}
-          sx={{
-            width: {
-              xs: '100%',
-              sm: '22.5%',
-            }
-          }}
+          slotProps={{input: { readOnly: true }}}
+          sx={{width: { xs: '100%', sm: '22.5%' }, '& .MuiInputBase-input': { cursor: 'default' }}}
         />
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>

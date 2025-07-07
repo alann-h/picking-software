@@ -211,7 +211,8 @@ export async function fetchQuoteData(quoteId) {
       lastModified: lastModified,
       productInfo: {},
       companyId: result[0].companyid,
-      pickerNote: result[0].pickernote
+      pickerNote: result[0].pickernote,
+      orderNote: result[0].ordernote
     };
 
     result.forEach(row => {
