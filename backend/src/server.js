@@ -140,6 +140,20 @@ app.post('/upload',
   })
 );
 
+app.get('/job/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+  const job = await productQueue.getJob(jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  const state = await job.getState();
+  const progress = job.progress;
+
+  res.json({ jobId, state, progress });
+}));
+
 // — Swagger docs
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
