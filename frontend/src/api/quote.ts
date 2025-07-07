@@ -41,3 +41,8 @@ export const barcodeScan = async (barcode: string, quoteId: number, newQty: numb
   const data = await apiCallPut('quotes/products/scan', { barcode, quoteId, newQty });
   return data;
 };
+
+export const savePickerNote = async (quoteId: number, note: string) => {
+  const data = await apiCallPut('quotes/picker-note', { quoteId, note });
+  return data;
+}

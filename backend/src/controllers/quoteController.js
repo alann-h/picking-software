@@ -10,7 +10,8 @@ import {
   updateQuoteInQuickBooks,
   addProductToQuote,
   adjustProductQuantity,
-  processBarcode
+  processBarcode,
+  savePickerNote
 } from '../services/quoteService.js';
 import { validateAndRoundQty } from '../helpers.js';
 
@@ -131,6 +132,20 @@ export async function scanProduct(req, res, next) {
     }
     const message = await processBarcode(barcode, quoteId, qty);
     res.json(message);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /quotes/picker-note
+export async function savePickerNoteController(req, res, next) {
+  try {
+    const { quoteId, note } = req.body;
+    if (!quoteId) {
+      return res.status(400).json({ error: 'Quote ID is required' });
+    }
+    const updated = await savePickerNote(quoteId, note);
+    res.json(updated);
   } catch (err) {
     next(err);
   }

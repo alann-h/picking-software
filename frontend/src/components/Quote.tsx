@@ -41,7 +41,7 @@ const Quote: React.FC = () => {
   const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
   const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
   const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, setFinished, addProduct, 
-    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, handleFinaliseInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
+    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, savePickerNote, handleFinaliseInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
 
   const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
 
@@ -149,7 +149,7 @@ const Quote: React.FC = () => {
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
-          Quote Details
+          Quote no.{quoteId}
         </Typography>
       </Box>
       <Box
@@ -160,15 +160,11 @@ const Quote: React.FC = () => {
           alignItems: isMobile ? 'flex-start' : 'center',
           marginBottom: 2,
           backgroundColor: theme.palette.background.paper,
-          padding: 2,
+          py: 2,
           borderRadius: 1,
         }}
       >
-        <Tooltip title="Unique identifier for this quote">
-          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
-            Quote #{quoteId}
-          </Typography>
-        </Tooltip>
+
         <Tooltip title="Name of the customer for this quote">
           <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
             Customer: {quoteData.customerName}
@@ -203,17 +199,8 @@ const Quote: React.FC = () => {
           multiline
           rows={3}
           value={quoteData.orderNote || 'No note provided.'}
-          slotProps={{
-            input: {
-              readOnly: true,
-            },
-          }}
-          sx={{
-            width: {
-              xs: '100%',
-              sm: '22.5%',
-            }
-          }}
+          slotProps={{input: { readOnly: true }}}
+          sx={{width: { xs: '100%', sm: '22.5%' }, '& .MuiInputBase-input': { cursor: 'default' }}}
         />
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
@@ -268,7 +255,7 @@ const Quote: React.FC = () => {
       </TableContainer>
         <Box sx={{ mt: 4, borderTop: 1, borderColor: 'divider', pt: 2 }}>
           <Typography variant="h6" gutterBottom>
-            Picker's Note
+            Picker&apos;s Note
           </Typography>
           <TextField
             label="Add any notes about preparing this order..."
@@ -283,10 +270,10 @@ const Quote: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
             <Button
               variant="outlined"
-              onClick={() => console.log("Connect savePickerNote function here")}
+              onClick={() => savePickerNote(pickerNote)}
               disabled={pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'finalised'}
             >
-              Save Picker's Note
+              Save Picker&apos;s Note
             </Button>
         </Box>
       </Box>

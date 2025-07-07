@@ -10,7 +10,8 @@ import {
   syncToQuickBooks,
   addProduct,
   adjustQty,
-  scanProduct
+  scanProduct,
+  savePickerNoteController
 } from '../controllers/quoteController.js';
 
 const router = Router();
@@ -22,7 +23,7 @@ router.get('/:quoteId', isAuthenticated, asyncHandler(getEstimateById));
 // List and update quotes
 router.get('/', isAuthenticated, asyncHandler(listQuotes));
 router.put('/status', isAuthenticated, asyncHandler(updateStatus));
-
+router.put('/picker-note', isAuthenticated, asyncHandler(savePickerNoteController));
 // Sync with QuickBooks
 router.put('/:quoteId/quickbooks', isAuthenticated, asyncHandler(syncToQuickBooks));
 

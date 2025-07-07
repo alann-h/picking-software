@@ -50,6 +50,7 @@ async function filterEstimates(responseData, companyId) {
       };
     }
     const customerRef = estimate.CustomerRef;
+    const orderNote = estimate.CustomerMemo;
     const timeStarted = new Intl.DateTimeFormat('en-AU', {
       timeZone: 'Australia/Sydney',
       year: 'numeric',
@@ -68,7 +69,8 @@ async function filterEstimates(responseData, companyId) {
       orderStatus: 'pending',
       timeStarted,
       lastModified: timeStarted,
-      companyId
+      companyId,
+      orderNote: orderNote.value
     };
   });
   return Promise.all(filteredEstimatesPromises);
@@ -118,14 +120,14 @@ export async function estimateToDB(quote) {
         }).format(new Date());
         // Quote exists, update it
         await client.query(
-          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, timestarted = $6, lastmodified = $7 WHERE quoteid = $1',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, lastModified]
+          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, timestarted = $6, lastmodified = $7, ordernote = $8 WHERE quoteid = $1',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, lastModified, quote.orderNote]
         );
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified, companyid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, quote.lastModified, quote.companyId]
+          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified, companyid, ordernote) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, quote.lastModified, quote.companyId, quote.orderNote]
         );
       }
 
@@ -208,7 +210,9 @@ export async function fetchQuoteData(quoteId) {
       orderStatus: result[0].orderstatus, 
       lastModified: lastModified,
       productInfo: {},
-      companyId: result[0].companyid
+      companyId: result[0].companyid,
+      pickerNote: result[0].pickernote,
+      orderNote: result[0].ordernote
     };
 
     result.forEach(row => {
@@ -391,6 +395,17 @@ export async function getQuotesWithStatus(status) {
     }));
   } catch (error) {
     throw new AccessError('Failed to fetch quotes');
+  }
+}
+
+export async function savePickerNote(quoteId, note) {
+  try {
+    const result = await query('UPDATE quotes SET pickernote = $1 WHERE quoteid = $2 returning pickernote', [note, quoteId]);
+
+    return {pickerNote: result[0].pickernote};
+
+  } catch(error) {
+    throw new AccessError(`Issue with saving note! ${error.message}`);
   }
 }
 
