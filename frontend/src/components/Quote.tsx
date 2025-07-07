@@ -149,7 +149,7 @@ const Quote: React.FC = () => {
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
         <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
-          Quote Details
+          Quote no.{quoteId}
         </Typography>
       </Box>
       <Box
@@ -160,15 +160,11 @@ const Quote: React.FC = () => {
           alignItems: isMobile ? 'flex-start' : 'center',
           marginBottom: 2,
           backgroundColor: theme.palette.background.paper,
-          padding: 2,
+          py: 2,
           borderRadius: 1,
         }}
       >
-        <Tooltip title="Unique identifier for this quote">
-          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
-            Quote #{quoteId}
-          </Typography>
-        </Tooltip>
+
         <Tooltip title="Name of the customer for this quote">
           <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
             Customer: {quoteData.customerName}
