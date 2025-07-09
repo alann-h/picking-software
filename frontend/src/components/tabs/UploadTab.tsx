@@ -14,21 +14,22 @@ const UploadTab: React.FC<UploadTabProps> = ({ refetch }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { handleOpenSnackbar } = useSnackbarContext();
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!selectedFile) {
-      handleOpenSnackbar('No file selected', 'error');
-      return;
+      throw new Error('No file selected');
     }
+    try {
+      const response = await uploadProducts(selectedFile);
+      return response;
+    } catch (err) {
+      handleOpenSnackbar('Error starting upload: ' + err, 'error');
+    }
+  };
 
-    uploadProducts(selectedFile)
-      .then(() => {
-        handleOpenSnackbar('File uploaded successfully!', 'success');
-        setSelectedFile(null);
-        refetch();
-      })
-      .catch((err: Error) => {
-        handleOpenSnackbar('Error uploading file: ' + err.message, 'error');
-      });
+  const handleSuccess = () => {
+    handleOpenSnackbar('File processed successfully!', 'success');
+    setSelectedFile(null);
+    refetch();
   };
 
   return (
@@ -38,6 +39,7 @@ const UploadTab: React.FC<UploadTabProps> = ({ refetch }) => {
           onFileSelect={setSelectedFile}
           onUpload={handleUpload}
           selectedFile={selectedFile}
+          onSuccess={handleSuccess}
         />
       </Grid>
       <Grid size={{ xs: 12 }}>

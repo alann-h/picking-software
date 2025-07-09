@@ -52,3 +52,8 @@ export const addProductDb = async (productName: string, sku: string, barcode: st
   const response = await apiCallPost(`products`, { productName, sku, barcode });
   return response;
 }
+
+export const getJobProgress = async (jobId: number) => {
+  const response = await apiCallGet(`job/${jobId}/progress`);
+  return response;
+}
