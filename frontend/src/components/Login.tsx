@@ -5,14 +5,31 @@ import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
 import { Helmet } from 'react-helmet-async';
+import { z } from 'zod';
 
 import { AUTH_URI } from '../api/config';
+
+const loginSchema = z.object({
+  email: z.email({ message: "Please enter a valid email address." }),
+  password: z.string().min(1, { message: "Password cannot be empty." }),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
+interface ErrorTree {
+  errors: string[];
+  properties?: {
+    [key: string]: ErrorTree;
+  }
+}
+type FormErrors = ErrorTree | null;
+
 
 const Login: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  
+  const [formData, setFormData] = useState<LoginForm>({ email: '', password: '' });
+  const [errors, setErrors] = useState<FormErrors>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,10 +50,45 @@ const Login: React.FC = () => {
     window.location.href = AUTH_URI;
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (errors?.properties?.[name]) {
+      setErrors(prev => {
+        if (!prev?.properties) {
+          return prev;
+        }
+
+        const newProperties = { ...prev.properties };
+        
+        delete newProperties[name];
+
+        const newState: ErrorTree = {
+          errors: prev.errors,
+          properties: newProperties,
+        };
+
+        return newState;
+      });
+    }
+  };
+
   const handleCredentialLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validationResult = loginSchema.safeParse(formData);
+
+    if (!validationResult.success) {
+      setErrors(z.treeifyError(validationResult.error));
+      return;
+    }
+
+    setErrors(null);
     try {
-      await loginWithCredentials(email, password);
+      await loginWithCredentials(validationResult.data.email, validationResult.data.password);
       navigate('/dashboard');
     } catch (err) {
       handleOpenSnackbar((err as Error).message, 'error');
@@ -70,8 +122,11 @@ const Login: React.FC = () => {
               name="email"
               autoComplete="email"
               autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={handleInputChange}
+              // 3. Update how errors are checked and displayed for the tree structure.
+              error={!!errors?.properties?.email?.errors.length}
+              helperText={errors?.properties?.email?.errors[0]}
             />
             <TextField
               margin="normal"
@@ -82,13 +137,16 @@ const Login: React.FC = () => {
               type="password"
               id="password"
               autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleInputChange}
+              error={!!errors?.properties?.password?.errors.length}
+              helperText={errors?.properties?.password?.errors[0]}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
+              color="success"
               sx={{ mt: 3, mb: 2 }}
             >
               Sign In
@@ -101,16 +159,6 @@ const Login: React.FC = () => {
             fullWidth
             variant="outlined"
             onClick={handleQuickBooksLogin}
-            sx={{
-              mt: 1,
-              mb: 2,
-              borderColor: '#2CA01C',
-              color: '#2CA01C',
-              '&:hover': {
-                borderColor: '#238A14',
-                backgroundColor: 'rgba(44, 160, 28, 0.04)',
-              },
-            }}
           >
             Sign in with QuickBooks
           </Button>

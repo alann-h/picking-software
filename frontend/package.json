@@ -20,7 +20,8 @@
     "react-helmet-async": "^2.0.4",
     "react-router-dom": "^7.6.3",
     "react-scripts": "5.0.1",
-    "web-vitals": "^5.0.3"
+    "web-vitals": "^5.0.3",
+    "zod": "^4.0.2"
   },
   "scripts": {
     "start": "serve -s build",

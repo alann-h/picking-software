@@ -27,6 +27,31 @@ import { UserData } from '../utils/types';
 import { useNavigate } from 'react-router-dom';
 import { disconnectQB } from '../api/auth';
 import { Helmet } from 'react-helmet-async';
+import { z } from 'zod';
+
+const userSchema = z.object({
+  given_name: z.string().min(1, "First name is required."),
+  family_name: z.string(),
+  email: z.email("Please enter a valid email address."),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters long.")
+    .refine(data => /[A-Z]/.test(data), "Password must contain an uppercase letter.")
+    .refine(data => /[0-9]/.test(data), "Password must contain a number.")
+    .refine(data => /[^A-Za-z0-9]/.test(data), "Password must contain a symbol."),
+  is_admin: z.boolean(),
+  id: z.string().optional(),
+  company_id: z.number().optional(),
+});
+
+const passwordUpdateSchema = userSchema.pick({ password: true });
+
+interface ErrorTree {
+  errors: string[];
+  properties?: {
+    [key: string]: ErrorTree;
+  }
+}
+type FormErrors = ErrorTree | null;
 
 const DEFAULT_USER: UserData = {
   id: '',
@@ -44,11 +69,15 @@ const UsersManagement = () => {
   const [newUser, setNewUser] = useState<UserData>(DEFAULT_USER);
   const [isLoading, setIsLoading] = useState(true);
   const { handleOpenSnackbar } = useSnackbarContext();
+  
   const [editingField, setEditingField] = useState<{
     userId: string;
     field: keyof UserData;
+    error?: string;
   } | null>(null);
   const [editValue, setEditValue] = useState('');
+  
+  const [dialogErrors, setDialogErrors] = useState<FormErrors>(null);
 
   const navigate = useNavigate();
 
@@ -68,24 +97,24 @@ const UsersManagement = () => {
   }, [handleOpenSnackbar]);
 
   const handleAddUser = async () => {
-    // Only validate the email field as required
-    if (!newUser.email) {
-      handleOpenSnackbar('Email is required', 'error');
-      return;
-    }
-
     if (users.length >= 5) {
       handleOpenSnackbar('Maximum number of users (5) reached', 'error');
       return;
     }
 
+    const validationResult = userSchema.safeParse(newUser);
+    if (!validationResult.success) {
+      setDialogErrors(z.treeifyError(validationResult.error));
+      return;
+    }
+
     try {
       await registerUser(
-        newUser.email,
-        newUser.given_name,
-        newUser.family_name,
-        newUser.password,
-        newUser.is_admin
+        validationResult.data.email,
+        validationResult.data.given_name,
+        validationResult.data.family_name || '',
+        validationResult.data.password,
+        validationResult.data.is_admin
       );
       
       const updatedUsers = await getAllUsers();
@@ -94,6 +123,7 @@ const UsersManagement = () => {
       handleOpenSnackbar('User added successfully', 'success');
       setNewUser(DEFAULT_USER);
       setIsAddingUser(false);
+      setDialogErrors(null);
     } catch (error) {
       handleOpenSnackbar('Failed to add user', 'error');
     }
@@ -118,6 +148,15 @@ const UsersManagement = () => {
 
   const handleInputChange = (field: keyof UserData, value: string | boolean) => {
     setNewUser(prev => ({ ...prev, [field]: value }));
+    if (dialogErrors && dialogErrors.properties?.[field as keyof UserData]) {
+      setDialogErrors(prev => {
+        if (!prev || !prev.properties) return prev;
+        const newProperties = { ...prev.properties };
+        delete newProperties[field as keyof UserData];
+        const newState: ErrorTree = { errors: prev.errors, properties: newProperties };
+        return newState;
+      });
+    }
   };
 
   const handleFieldClick = (userId: string, field: keyof UserData, value: string) => {
@@ -127,32 +166,31 @@ const UsersManagement = () => {
 
   const handleFieldSave = async (userId: string) => {
     if (!editingField) return;
-  
+
+    const userToUpdate = users.find(u => u.id === userId);
+    if (!userToUpdate) return;
+    
+    if (editingField.field === 'password') {
+      if (!editValue) {
+        setEditingField(null);
+        return;
+      }
+      const validationResult = passwordUpdateSchema.safeParse({ password: editValue });
+      if (!validationResult.success) {
+        const errorTree = z.treeifyError(validationResult.error);
+        setEditingField({ ...editingField, error: errorTree.properties?.password?.errors[0] });
+        return;
+      }
+    } else {
+        if (editValue === userToUpdate[editingField.field]) {
+            setEditingField(null);
+            return;
+        }
+    }
+
     try {
-      const userToUpdate = users.find(u => u.id === userId);
-      if (!userToUpdate) return;
-  
-      // Don't update if value hasn't changed
-      if (editValue === userToUpdate[editingField.field]) {
-        setEditingField(null);
-        setEditValue('');
-        return;
-      }
-  
-      // For password field, don't update if empty
-      if (editingField.field === 'password' && !editValue) {
-        setEditingField(null);
-        setEditValue('');
-        return;
-      }
-  
-      const updatedUser = {
-        ...userToUpdate,
-        [editingField.field]: editValue
-      };
-  
+      const updatedUser = { ...userToUpdate, [editingField.field]: editValue };
       await updateUser(userId, updatedUser.email, updatedUser.password, updatedUser.given_name, updatedUser.family_name, updatedUser.is_admin);
-  
       const updatedUsers = await getAllUsers();
       setUsers(updatedUsers);
       handleOpenSnackbar('User updated successfully', 'success');
@@ -163,6 +201,7 @@ const UsersManagement = () => {
       setEditValue('');
     }
   };
+
   const handleAdminToggle = async (user: UserData, newAdminStatus: boolean) => {
     try {
       const userStatus = await getUserStatus();
@@ -193,6 +232,7 @@ const UsersManagement = () => {
 
   const renderEditableCell = (user: UserData, field: keyof UserData, displayValue: string) => {
     const isEditing = editingField?.userId === user.id && editingField?.field === field;
+    const errorText = isEditing ? editingField?.error : undefined;
 
     if (isEditing) {
       return (
@@ -202,13 +242,16 @@ const UsersManagement = () => {
             size="small"
             type={field === 'password' ? 'password' : 'text'}
             value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={() => handleFieldSave(user.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleFieldSave(user.id);
+            onChange={(e) => {
+              setEditValue(e.target.value);
+              if (editingField?.error) {
+                setEditingField({ ...editingField, error: undefined });
               }
             }}
+            onBlur={() => handleFieldSave(user.id)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleFieldSave(user.id) }}
+            error={!!errorText}
+            helperText={errorText}
           />
         </TableCell>
       );
@@ -217,9 +260,7 @@ const UsersManagement = () => {
     return (
       <TableCell
         onClick={() => handleFieldClick(user.id, field, field === 'password' ? '' : displayValue)}
-        sx={{ 
-          cursor: 'pointer'
-        }}
+        sx={{ cursor: 'pointer' }}
       >
         {field === 'password' ? '•'.repeat(8) : displayValue}
       </TableCell>
@@ -237,7 +278,7 @@ const UsersManagement = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Helmet>
-        <title>Smart Picker | User Managment</title>
+        <title>Smart Picker | User Management</title>
       </Helmet>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Button
@@ -297,9 +338,18 @@ const UsersManagement = () => {
               ))}
             </TableBody>
           </Table>
+          
         </TableContainer>
       )}
-
+      <Box sx={{ pt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={handleQbDisconnect}
+        >
+          Disconnect QB
+        </Button>
+      </Box>
       <Dialog 
         open={isAddingUser} 
         onClose={() => setIsAddingUser(false)} 
@@ -315,12 +365,17 @@ const UsersManagement = () => {
                 fullWidth
                 value={newUser.given_name}
                 onChange={(e) => handleInputChange('given_name', e.target.value)}
+                error={!!dialogErrors?.properties?.given_name?.errors.length}
+                helperText={dialogErrors?.properties?.given_name?.errors[0]}
+                required
               />
               <TextField
                 label="Last Name"
                 fullWidth
                 value={newUser.family_name}
                 onChange={(e) => handleInputChange('family_name', e.target.value)}
+                error={!!dialogErrors?.properties?.family_name?.errors.length}
+                helperText={dialogErrors?.properties?.family_name?.errors[0]}
               />
             </Box>
             <TextField
@@ -329,6 +384,9 @@ const UsersManagement = () => {
               fullWidth
               value={newUser.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
+              error={!!dialogErrors?.properties?.email?.errors.length}
+              helperText={dialogErrors?.properties?.email?.errors[0]}
+              required
             />
             <TextField
               label="Password"
@@ -336,12 +394,11 @@ const UsersManagement = () => {
               fullWidth
               value={newUser.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
+              error={!!dialogErrors?.properties?.password?.errors.length}
+              helperText={dialogErrors?.properties?.password?.errors[0]}
+              required
             />
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between'
-            }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography>Admin Access</Typography>
               <Switch
                 checked={newUser.is_admin}
@@ -351,26 +408,17 @@ const UsersManagement = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setIsAddingUser(false)}>
+          <Button onClick={() => { setIsAddingUser(false); setDialogErrors(null); }}>
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleAddUser}
-            disabled={!newUser.email}
           >
             Add User
           </Button>
         </DialogActions>
       </Dialog>
-      <Button
-        variant="contained"
-        color="error"
-        onClick={handleQbDisconnect}
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-      >
-        Disconnect QB
-      </Button>
     </Container>
   );
 };
