@@ -111,7 +111,6 @@ app.use('/customers', customerRoutes);
 app.use('/quotes', quoteRoutes);
 app.use('/products', productRoutes);
 
-// — Endpoints still in server.js
 app.get('/verifyUser', asyncHandler(async (req, res) => {
   res.json({ isValid: !!req.session.token });
 }));
