@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "services": [
+    {
+      "name": "worker",
+      "rootDirectory": "./backend",
+      "build": {
+        "builder": "NIXPACKS"
+      }
+    }
+  ]
+}
