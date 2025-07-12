@@ -1,5 +1,5 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query, transaction, makeCustomApiCall, validateAndRoundQty } from '../helpers.js';
+import { query, transaction, makeCustomApiCall, roundQuantity } from '../helpers.js';
 import { getOAuthClient, getBaseURL, getCompanyId } from './authService.js';
 import { getProductFromDB, productIdToQboId } from './productService.js';
 
@@ -143,11 +143,11 @@ export async function estimateToDB(quote) {
             productId,
             item.barcode,
             item.productName,
-            validateAndRoundQty(item.pickingQty),
-            validateAndRoundQty(item.originalQty),
+            roundQuantity(item.pickingQty),
+            roundQuantity(item.originalQty),
             item.pickingStatus,
             item.sku,
-            validateAndRoundQty(item.price),
+            roundQuantity(item.price),
             quote.companyId,
             item.tax_code_ref
           ]

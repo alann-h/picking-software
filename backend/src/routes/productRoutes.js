@@ -15,26 +15,36 @@ import {
   addProduct
 } from '../controllers/productController.js';
 
+import {
+  validate,
+  productIdRule,
+  barcodeRule,
+  addProductRules,
+  updateProductRules,
+  quoteProductRules
+} from '../validators/productValidator.js';
+
 const router = Router();
+router.use(isAuthenticated);
 
 // Barcode lookup
-router.get('/barcode/:barcode', isAuthenticated, asyncHandler(barcodeToName));
+router.get('/barcode/:barcode', barcodeRule(), validate, asyncHandler(barcodeToName));
 
 // Product retrieval
-router.get('/:productId', isAuthenticated, asyncHandler(getProduct));
-router.get('/', isAuthenticated, asyncHandler(listProducts));
+router.get('/:productId', productIdRule(), validate, asyncHandler(getProduct));
+router.get('/', asyncHandler(listProducts));
 
 // Quote-product operations
-router.put('/for-later', isAuthenticated, asyncHandler(saveForLaterHandler));
-router.put('/unavailable', isAuthenticated, asyncHandler(setUnavailableHandler));
-router.put('/finished', isAuthenticated, asyncHandler(setFinishedHandler));
+router.put('/for-later', quoteProductRules(), validate, asyncHandler(saveForLaterHandler));
+router.put('/unavailable', quoteProductRules(), validate, asyncHandler(setUnavailableHandler));
+router.put('/finished', quoteProductRules(), validate, asyncHandler(setFinishedHandler));
 
 // Product CRUD
-router.put('/:productId', isAuthenticated, asyncHandler(updateProduct));
-router.delete('/:productId', isAuthenticated, asyncHandler(deleteProduct));
+router.put('/:productId', updateProductRules(), validate, asyncHandler(updateProduct));
+router.delete('/:productId', productIdRule(), validate, asyncHandler(deleteProduct));
 
 // QBO ID lookup & creation
-router.get('/:productId/qbo-item-id', isAuthenticated, asyncHandler(getQboItemId));
-router.post('/', isAuthenticated, asyncHandler(addProduct));
+router.get('/:productId/qbo-item-id', productIdRule(), validate, asyncHandler(getQboItemId));
+router.post('/', addProductRules(), validate, asyncHandler(addProduct));
 
 export default router;

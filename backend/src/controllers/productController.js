@@ -11,7 +11,6 @@ import {
     addProductDb,
     getProductName
 } from '../services/productService.js';
-import { AccessError } from '../middlewares/errorHandler.js';
 
 // GET /products/barcode/:barcode
 export async function barcodeToName(req, res, next) {
@@ -104,9 +103,9 @@ export async function deleteProduct(req, res, next) {
 // GET /products/:productId/qbo-item-id
 export async function getQboItemId(req, res, next) {
   try {
-    const pid = parseInt(req.params.productId, 10);
-    if (isNaN(pid)) throw new AccessError('Invalid productId parameter');
-    const qboItemId = await productIdToQboId(pid);
+    const { productId } = req.params;
+
+    const qboItemId = await productIdToQboId(productId);
     res.json({ qboItemId });
   } catch (err) {
     next(err);

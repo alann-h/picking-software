@@ -62,11 +62,8 @@ export function decryptToken(encryptedToken) {
   return JSON.parse(decrypted);
 }
 
-export function validateAndRoundQty(qty) {
+export function roundQuantity(qty) {
   const parsed = parseFloat(qty);
-  if (isNaN(parsed) || parsed < 0) {
-    throw new Error('Invalid quantity');
-  }
   return parseFloat(parsed.toFixed(2));
 }
 
