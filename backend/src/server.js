@@ -47,6 +47,7 @@ console.log(`Attempting to connect to Redis at: ${process.env.REDIS_HOST}:${proc
 const redisConn = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  family: 6,
 });
 export const productQueue = new Queue('products', { connection: redisConn });
 
