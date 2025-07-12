@@ -2,9 +2,7 @@
 import * as authService from '../services/authService.js';
 import { saveCompanyInfo, removeQuickBooksData } from '../services/companyService.js';
 import { encryptToken } from '../helpers.js';
-import dotenv from 'dotenv';
 
-dotenv.config({ path: '.env' });
 
 // GET /auth/uri
 export async function authUri(req, res, next) {

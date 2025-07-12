@@ -1,11 +1,9 @@
 import OAuthClient from 'intuit-oauth';
-import dotenv from 'dotenv';
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
 import { query, transaction, encryptToken, decryptToken } from '../helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 
-dotenv.config({ path: '.env' });
 
 const environment = process.env.NODE_ENV;
 const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;

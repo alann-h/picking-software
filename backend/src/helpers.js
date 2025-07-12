@@ -1,8 +1,6 @@
 import pool from './db.js';
 import crypto from 'crypto';
-import dotenv from 'dotenv';
 
-dotenv.config({ path: '.env' });
 
 export async function query(text, params) {
   const client = await pool.connect();
