@@ -6,9 +6,7 @@ import { transaction } from './helpers.js';
 
 console.log('🚀 Worker starting up...');
 
-const connection = new IORedis({
-  host: process.env.REDIS_HOST,
-  port: Number(process.env.REDIS_PORT),
+const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 });
