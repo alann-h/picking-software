@@ -36,6 +36,8 @@ const corsOptions = {
     ? ['https://smartpicker.au', 'https://api.smartpicker.au']
     : ['http://localhost:3000', 'http://localhost:5033'],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
 };
 app.use(cors(corsOptions));
 

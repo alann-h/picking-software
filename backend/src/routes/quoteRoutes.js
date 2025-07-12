@@ -14,24 +14,37 @@ import {
   savePickerNoteController
 } from '../controllers/quoteController.js';
 
+import {
+  validate,
+  customerIdRule,
+  quoteIdRule,
+  listQuotesRules,
+  updateStatusRules,
+  pickerNoteRules,
+  addProductRules,
+  adjustQtyRules,
+  scanRules,
+} from '../validators/quoteValidator.js';
+
 const router = Router();
+router.use(isAuthenticated);
 
 // Estimate endpoints
-router.get('/customer/:customerId', isAuthenticated, asyncHandler(getEstimates));
-router.get('/:quoteId', isAuthenticated, asyncHandler(getEstimateById));
+router.get('/customer/:customerId', customerIdRule(), validate, asyncHandler(getEstimates));
+router.get('/:quoteId', quoteIdRule(), validate, asyncHandler(getEstimateById));
 
 // List and update quotes
-router.get('/', isAuthenticated, asyncHandler(listQuotes));
-router.put('/status', isAuthenticated, asyncHandler(updateStatus));
-router.put('/picker-note', isAuthenticated, asyncHandler(savePickerNoteController));
+router.get('/', listQuotesRules(), validate, asyncHandler(listQuotes));
+router.put('/status', updateStatusRules(), validate, asyncHandler(updateStatus));
+router.put('/picker-note', pickerNoteRules(), validate, asyncHandler(savePickerNoteController));
 // Sync with QuickBooks
-router.put('/:quoteId/quickbooks', isAuthenticated, asyncHandler(syncToQuickBooks));
+router.put('/:quoteId/quickbooks', quoteIdRule(), validate, asyncHandler(syncToQuickBooks));
 
 // Quote item endpoints
-router.put('/products', isAuthenticated, asyncHandler(addProduct));
-router.put('/products/qty', isAuthenticated, asyncHandler(adjustQty));
+router.put('/products', addProductRules(), validate, asyncHandler(addProduct));
+router.put('/products/qty', adjustQtyRules(), validate, asyncHandler(adjustQty));
 
 // Scan product into quote by barcode
-router.put('/products/scan', isAuthenticated, asyncHandler(scanProduct));
+router.put('/products/scan', scanRules(), validate, asyncHandler(scanProduct));
 
 export default router;
