@@ -9,6 +9,7 @@ console.log('🚀 Worker starting up...');
 const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  family: 6,
 });
 
 const worker = new Worker(
