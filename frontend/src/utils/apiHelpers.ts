@@ -3,7 +3,6 @@ import { API_BASE } from '../api/config';
  * Get CSRF token
  */
 const getCsrfToken = async () => {
-  console.log(API_BASE);
   const response = await fetch(`${API_BASE}/csrf-token`, {
     credentials: 'include'
   });
