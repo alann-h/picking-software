@@ -78,6 +78,7 @@ export async function refreshToken(token) {
 }
 
 export async function getOAuthClient(token) {
+  console.log(token);
   if (!token) {
     return null;
   }
