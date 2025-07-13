@@ -9,6 +9,12 @@ export const validate = (req, res, next) => {
   // If there are errors, respond with 422
   const extractedErrors = [];
   errors.array().map(err => extractedErrors.push({ [err.path]: err.msg }));
+  if (process.env.NODE_ENV === 'production') {
+      res.header('Access-Control-Allow-Origin', 'https://smartpicker.au');
+  } else {
+      res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
   return res.status(422).json({
     errors: extractedErrors,
   });

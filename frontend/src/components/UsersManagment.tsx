@@ -109,7 +109,6 @@ const UsersManagement = () => {
     }
 
     try {
-      console.log(validationResult.data);
       await registerUser(
         validationResult.data.email,
         validationResult.data.given_name,
