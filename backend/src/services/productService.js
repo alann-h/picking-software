@@ -1,5 +1,4 @@
 import excelToJson from 'convert-excel-to-json';
-import fs from 'fs-extra';
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query } from '../helpers.js';
 import { getBaseURL, getCompanyId, getOAuthClient } from './authService.js';
@@ -23,6 +22,7 @@ export async function productIdToQboId(productId) {
 
 export async function processFile(filePath) {
   try {
+    console.log(`Starting Excel to JSON conversion for file: ${filePath}`);
     const excelData = excelToJson({
       sourceFile: filePath,
       header: { rows: 1 },
@@ -31,17 +31,34 @@ export async function processFile(filePath) {
 
     const allProducts = [];
 
+    if (typeof excelData !== 'object' || excelData === null) {
+        throw new Error('Excel data could not be parsed or is empty.');
+    }
+
     for (const sheet in excelData) {
       if (Object.prototype.hasOwnProperty.call(excelData, sheet)) {
         const products = excelData[sheet];
 
+        if (!Array.isArray(products)) {
+            console.warn(`Sheet ${sheet} did not contain an array of products. Skipping.`);
+            continue;
+        }
+
         for (const product of products) {
+          if (typeof product !== 'object' || product === null) {
+              console.warn('Skipping non-object product entry:', product);
+              continue;
+          }
+
           const fullName = product["Product/Service Name"];
           const sku = product["SKU"]?.toString().trim();
           const barcodeRaw = product.GTIN?.toString().trim();
           const barcode = barcodeRaw?.length === 13 ? '0' + barcodeRaw : barcodeRaw;
 
-          if (!fullName || !sku) continue;
+          if (!fullName || !sku) {
+            console.warn(`Skipping product due to missing Full Name or SKU:`, product);
+            continue;
+          }
 
           const [category, productName] = fullName.split(/:(.+)/).map(s => s.trim());
 
@@ -49,10 +66,11 @@ export async function processFile(filePath) {
         }
       }
     }
+    console.log(`Successfully parsed ${allProducts.length} products from ${filePath}`);
 
-    await fs.remove(filePath);
     return allProducts;
   } catch (error) {
+    console.error(`Error in processFile for ${filePath}:`, error);
     throw new Error(`Error processing file: ${error.message}`);
   }
 }
