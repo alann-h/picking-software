@@ -32,6 +32,7 @@ const worker = new Worker(
   'products',
   async (job) => {
     const { s3Key, companyId, token } = job.data;
+    console.log(token);
     let tempLocalFilePath = null;
 
     try {
