@@ -29,13 +29,11 @@ async function filterEstimates(responseData, companyId) {
   const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
     const productInfo = {};
 
-    console.log(estimate);
     for (const line of estimate.Line) {
       if (line.DetailType === 'SubTotalLineDetail') {
         continue;
       }
 
-      console.log('[filterEstimates] Missing itemId value: ', line.SalesItemLineDetail.ItemRef.value);
       const itemId = line.SalesItemLineDetail.ItemRef.value;
       const itemLocal = await getProductFromDB(itemId);
 
@@ -45,20 +43,17 @@ async function filterEstimates(responseData, companyId) {
         productId: itemLocal.productid,
         sku: itemLocal.sku,
         price: itemLocal.price,
-        pickingQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
-        originalQty: line.SalesItemLineDetail && line.SalesItemLineDetail.Qty,
+        pickingQty: line.SalesItemLineDetail?.Qty || 0,
+        originalQty: line.SalesItemLineDetail?.Qty || 0,
         pickingStatus: 'pending',
         companyId,
         barcode: itemLocal.barcode,
         tax_code_ref: itemLocal.tax_code_ref
       };
     }
-    console.log('[filterEstimates] Missing customerRef values: ', estimate.CustomerRef);
-    console.log('[filterEstimates] Missing customerMemo values: ', estimate.CustomerMemo);
-    console.log('[filterEstimates] Missing quoteId value: ', estimate.Id);
-    console.log('[filterEstimates] Missing totalAmount value: ', estimate.TotalAmt);
     const customerRef = estimate.CustomerRef;
     const orderNote = estimate.CustomerMemo;
+
     const timeStarted = new Intl.DateTimeFormat('en-AU', {
       timeZone: 'Australia/Sydney',
       year: 'numeric',
@@ -78,7 +73,7 @@ async function filterEstimates(responseData, companyId) {
       timeStarted,
       lastModified: timeStarted,
       companyId,
-      orderNote: orderNote.value
+      orderNote: orderNote?.value || null
     };
   });
   return Promise.all(filteredEstimatesPromises);
