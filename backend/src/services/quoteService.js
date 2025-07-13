@@ -29,13 +29,17 @@ async function filterEstimates(responseData, companyId) {
   const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
     const productInfo = {};
 
+    console.log(estimate);
     for (const line of estimate.Line) {
       if (line.DetailType === 'SubTotalLineDetail') {
         continue;
       }
+
+      console.log('[filterEstimates] Missing itemId value: ', line.SalesItemLineDetail.ItemRef.value);
       const itemId = line.SalesItemLineDetail.ItemRef.value;
       const itemLocal = await getProductFromDB(itemId);
 
+      console.log('[filterEstimates] Local item values: ', itemLocal);
       productInfo[itemLocal.productid] = {
         productName: itemLocal.productname,
         productId: itemLocal.productid,
@@ -49,6 +53,10 @@ async function filterEstimates(responseData, companyId) {
         tax_code_ref: itemLocal.tax_code_ref
       };
     }
+    console.log('[filterEstimates] Missing customerRef values: ', estimate.CustomerRef);
+    console.log('[filterEstimates] Missing customerMemo values: ', estimate.CustomerMemo);
+    console.log('[filterEstimates] Missing quoteId value: ', estimate.Id);
+    console.log('[filterEstimates] Missing totalAmount value: ', estimate.TotalAmt);
     const customerRef = estimate.CustomerRef;
     const orderNote = estimate.CustomerMemo;
     const timeStarted = new Intl.DateTimeFormat('en-AU', {
