@@ -15,6 +15,10 @@ import pgSession from 'connect-pg-simple';
 import IORedis from 'ioredis';
 import { Queue } from 'bullmq';
 
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { createReadStream, unlink as fsUnlink } from 'fs';
+import { promisify } from 'util';
+
 import authRoutes from './routes/authRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import quoteRoutes from './routes/quoteRoutes.js';
@@ -30,6 +34,8 @@ dotenv.config({ path: '.env' });
 
 const app = express();
 
+const unlinkAsync = promisify(fsUnlink);
+
 // — CORS
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
@@ -41,8 +47,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-console.log(`Attempting to connect to Redis at: ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`);
-
 // — Redis & BullMQ setup
 const redisConn = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
@@ -50,6 +54,15 @@ const redisConn = new IORedis(process.env.REDIS_URL, {
   family: 6,
 });
 export const productQueue = new Queue('products', { connection: redisConn });
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+const S3_BUCKET_NAME = process.env.AWS_BUCKET_NAME; 
 
 // — Express proxy/trust
 app.set('trust proxy', 1);
@@ -123,7 +136,8 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   });
 }));
 
-const upload = multer({ dest: './uploads' });
+const upload = multer({ dest: '/tmp/' });
+
 app.post('/upload',
   isAuthenticated,
   upload.single('input'),
@@ -131,14 +145,50 @@ app.post('/upload',
     if (!req.file?.path) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    const job = await productQueue.add('process-and-save', {
-      filePath: req.file.path,
-      companyId: req.session.companyId,
-      token: req.decryptedToken,
-    });
-    res.status(202).json({ message: 'File queued', jobId: job.id });
+
+    const localFilePath = req.file.path;
+    const originalFileName = req.file.originalname;
+    // Create a unique key for S3 to avoid collisions and keep original name accessible
+    // Using Date.now() + original name to ensure uniqueness and readability
+    const s3Key = `uploads/${Date.now()}-${originalFileName}`;
+
+    try {
+      // 1. Upload the file to S3
+      const fileStream = createReadStream(localFilePath);
+      const uploadParams = {
+        Bucket: S3_BUCKET_NAME,
+        Key: s3Key,
+        Body: fileStream,
+        ContentType: req.file.mimetype,
+      };
+
+      await s3Client.send(new PutObjectCommand(uploadParams));
+      console.log(`Successfully uploaded ${s3Key} to S3.`);
+
+      // 2. Add job to BullMQ queue, passing the S3 key
+      const job = await productQueue.add('process-and-save', {
+        s3Key: s3Key,
+        companyId: req.session.companyId,
+        token: req.decryptedToken,
+      });
+
+      res.status(202).json({ message: 'File queued for processing', jobId: job.id });
+
+    } catch (error) {
+      console.error('Error during file upload to S3 or queueing job:', error);
+      res.status(500).json({ error: 'Failed to process file upload.' });
+    } finally {
+      // 3. Clean up the local temporary file after upload (important!)
+      try {
+        await unlinkAsync(localFilePath);
+        console.log(`Cleaned up temporary local file: ${localFilePath}`);
+      } catch (cleanupError) {
+        console.warn(`Failed to clean up temporary file ${localFilePath}:`, cleanupError);
+      }
+    }
   })
 );
+
 
 app.get('/job/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) => {
   const { jobId } = req.params;
