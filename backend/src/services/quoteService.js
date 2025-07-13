@@ -37,7 +37,6 @@ async function filterEstimates(responseData, companyId) {
       const itemId = line.SalesItemLineDetail.ItemRef.value;
       const itemLocal = await getProductFromDB(itemId);
 
-      console.log('[filterEstimates] Local item values: ', itemLocal);
       productInfo[itemLocal.productid] = {
         productName: itemLocal.productname,
         productId: itemLocal.productid,
