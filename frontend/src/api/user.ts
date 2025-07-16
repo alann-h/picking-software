@@ -1,4 +1,5 @@
 import { apiCallDelete, apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
+import { UserUpdateData } from '../utils/types';
 
 export const getAllUsers = async () => {
     const data = await apiCallGet('auth/users');
@@ -15,11 +16,10 @@ export const deleteUser = async (userId: string) => {
   return data;
 }
 
-export const updateUser = async(userId: string, email: string, password: string, givenName:string, familyName: string, isAdmin: boolean) => {
-  const data = await apiCallPut(`auth/update/${userId}`, {email, givenName, familyName, password, isAdmin});
+export const updateUser = async (userId: string, updateData: UserUpdateData) => {
+  const data = await apiCallPut(`auth/update/${userId}`, updateData);
   return data;
-}
-
+};
 export const getUserStatus = async() => {
   const data = await apiCallGet('user-status');
   return data;

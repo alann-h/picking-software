@@ -3,18 +3,18 @@ import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js
 import { query, transaction, encryptToken, decryptToken } from '../helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
-
-
-const environment = process.env.NODE_ENV;
-const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
-const clientSecret = environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
-const redirectUri = environment === 'production' ? process.env.REDIRECT_URI_PROD : process.env.REDIRECT_URI_DEV;
-
-if (!clientId || !clientSecret || !redirectUri || !environment) {
-  throw new Error('Missing required environment variables');
-}
+import validator from 'validator';
 
 function initializeOAuthClient() {
+  const environment = process.env.NODE_ENV;
+  const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
+  const clientSecret = environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
+  const redirectUri = environment === 'production' ? process.env.REDIRECT_URI_PROD : process.env.REDIRECT_URI_DEV;
+
+  if (!clientId || !clientSecret || !redirectUri || !environment) {
+    throw new Error('Missing required environment variables');
+  }
+
   return new OAuthClient({
     clientId,
     clientSecret,
@@ -66,13 +66,19 @@ export async function refreshToken(token) {
   }
 
   if (!oauthClient.token.isRefreshTokenValid()) {
+    console.warn('Refresh Token has expired!');
     throw new AuthenticationError('The Refresh token is invalid, please reauthenticate.');
   }
 
   try {
     const response = await oauthClient.refreshUsingToken(token.refresh_token);
+    console.log('Token Refreshed!');
     return response.getToken();
   } catch (e) {
+    // 💡 CHECK FOR THE SPECIFIC ERROR FROM INTUIT
+    if (e.error === 'invalid_grant') {
+      throw new AuthenticationError('QBO_TOKEN_REVOKED');
+    }
     throw new AccessError('Failed to refresh token: ' + e.message);
   }
 }
@@ -124,42 +130,48 @@ export async function login(email, password) {
         const encryptedToken = encryptToken(refreshedToken);
         // Update the company's token in the database with the newly encrypted token
         await query(
-          'UPDATE companies SET qb_token = $1::jsonb WHERE id = $2',
+          'UPDATE companies SET qb_token = $1::jsonb WHERE companyid = $2',
           [encryptedToken, user.companyid]
         );
         user.token = refreshedToken; // Optionally update the user object
       }
     } catch (error) {
-      throw new AuthenticationError('Failed to refresh token: ' + error.message);
+      // 💡 CATCH THE SPECIFIC REVOKED TOKEN ERROR
+      if (error.message === 'QBO_TOKEN_REVOKED') {
+        user.qboReAuthRequired = true;
+      } else {
+        throw new AuthenticationError(error.message);
+      }
     }
-
     return user;
   } catch (error) {
     throw new AuthenticationError(error.message);
   }
 }
 
-export async function register(email, password, is_admin, givenName, familyName, companyId) {
+export async function register(displayEmail, password, is_admin, givenName, familyName, companyId) {
   const userId = uuidv4();
   const saltRounds = 10;
+  const normalisedEmail = validator.normalizeEmail(displayEmail);
 
   try {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     const result = await query(`
-      INSERT INTO users (id, email, password, is_admin, given_name, family_name, companyid) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (email) DO UPDATE 
+      INSERT INTO users (id, normalised_email, password, is_admin, given_name, family_name, companyid, display_email) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (normalised_email) DO UPDATE 
       SET 
           password = EXCLUDED.password,
           is_admin = EXCLUDED.is_admin,
           given_name = EXCLUDED.given_name,
           family_name = EXCLUDED.family_name,
-          companyid = EXCLUDED.companyid
+          companyid = EXCLUDED.companyid,
+          display_email = EXCLUDED.display_email
       RETURNING *`,
-      [userId, email, hashedPassword, is_admin, givenName, familyName, companyId]
+      [userId, normalisedEmail, hashedPassword, is_admin, givenName, familyName, companyId, displayEmail]
     );    
     if (result.length === 0) {
-      throw new AuthenticationError('Invalid email or password');
+      throw new AccessError('Unable to register user: ');
     }
     return result[0];
   } catch (error) {
@@ -211,6 +223,7 @@ export async function saveUserQbButton(token, companyId) {
   try {
     const userInfo = await getUserInfo(token);
     const password = process.env.QBO_PASS;
+   
     const response = await register(userInfo.email, password, true, userInfo.givenName, userInfo.familyName, companyId, userInfo.sub);
     return response;
   } catch (e) {
@@ -220,7 +233,20 @@ export async function saveUserQbButton(token, companyId) {
 
 export async function getAllUsers(companyId) {
   try {
-    const result = await query('select * from users WHERE companyid = $1', [companyId]);
+    const result = await query( `
+      SELECT 
+        id, 
+        display_email, 
+        normalised_email, 
+        given_name, 
+        family_name, 
+        is_admin,
+        companyid
+      FROM 
+        users 
+      WHERE 
+        companyid = $1
+    `, [companyId]);
     return result;
   } catch (e) {
     throw new AccessError('Could not get user information: ' + e.message);
@@ -228,30 +254,64 @@ export async function getAllUsers(companyId) {
 }
 
 export async function updateUser(userId, userData) {
+  const fields = Object.keys(userData);
+  const saltRounds = 10;
+
+  if (fields.length === 0) {
+    throw new AccessError('No update data provided.');
+  }
+
+  const fieldToColumnMap = {
+    givenName: 'given_name',
+    familyName: 'family_name',
+    isAdmin: 'is_admin',
+    email: 'display_email',
+    password: 'password',
+  };
+
+  const setClauses = [];
+  const values = [];
+  let paramIndex = 1;
+
+  for (const field of fields) {
+    if (fieldToColumnMap[field]) {
+      let value = userData[field];
+
+      if (field === 'password') {
+        value = await bcrypt.hash(value, saltRounds);
+      }
+      
+      if (field === 'email') {
+        const normalisedEmail = validator.normalizeEmail(value);
+        setClauses.push(`normalised_email = $${paramIndex + 1}`);
+        values.push(value, normalisedEmail);
+        paramIndex += 1;
+      } else {
+        values.push(value);
+      }
+
+      setClauses.push(`${fieldToColumnMap[field]} = $${paramIndex}`);
+      paramIndex++;
+    }
+  }
+
+  values.push(userId);
+
+  const sql = `
+    UPDATE users 
+    SET ${setClauses.join(', ')} 
+    WHERE id = $${paramIndex}
+    RETURNING *
+  `;
+
   try {
-    const result = await query(
-      `UPDATE users 
-       SET email = $1,
-           password = $2,
-           given_name = $3,
-           family_name = $4,
-           is_admin = $5
-       WHERE id = $6
-       RETURNING *`,
-      [
-        userData.email,
-        userData.password,
-        userData.givenName,
-        userData.familyName,
-        userData.isAdmin,
-        userId
-      ]
-    );
+    const result = await query(sql, values);
 
     if (result.length === 0) {
-      throw new AccessError('User not found');
+      throw new AccessError('User not found or no update was necessary.');
     }
 
+    delete result[0].password;
     return result[0];
   } catch (error) {
     throw new AccessError(error.message);

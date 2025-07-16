@@ -71,10 +71,18 @@ export interface Product {
   }
 export interface UserData {
     id: string;
-    email: string;
-    password: string;
+    display_email: string;
+    password?: string;
     given_name: string;
     family_name: string;
     is_admin: boolean;
-    company_id: number;
+    companyid: number;
+}
+
+export interface UserUpdateData {
+  email?: string;
+  password?: string;
+  givenName?: string;
+  familyName?: string;
+  isAdmin?: boolean;
 }

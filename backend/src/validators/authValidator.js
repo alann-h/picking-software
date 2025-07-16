@@ -3,18 +3,13 @@ import { body, param, validationResult } from 'express-validator';
 // Middleware to handle the result of the validations
 export const validate = (req, res, next) => {
   const errors = validationResult(req);
+
   if (errors.isEmpty()) {
     return next();
   }
-  // If there are errors, respond with 422
-  const extractedErrors = [];
-  errors.array().map(err => extractedErrors.push({ [err.path]: err.msg }));
-  if (process.env.NODE_ENV === 'production') {
-      res.header('Access-Control-Allow-Origin', 'https://smartpicker.au');
-  } else {
-      res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-  }
-  res.header('Access-Control-Allow-Credentials', 'true');
+
+  const extractedErrors = errors.array().map(err => ({ [err.path]: err.msg }));
+  
   return res.status(422).json({
     errors: extractedErrors,
   });
@@ -39,7 +34,7 @@ export const registerRules = () => [
     .optional().trim().escape(),
   body('email')
     .isEmail().withMessage('Must be a valid email address')
-    .trim().normalizeEmail(),
+    .trim(),
   body('password')
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
     .matches(/\d/).withMessage('Password must contain a number')
@@ -58,6 +53,16 @@ export const updateUserRules = () => [
   param('userId').isUUID().withMessage('Invalid user ID format'),
   body('givenName').optional().trim().escape(),
   body('familyName').optional().trim().escape(),
-  body('email').optional().isEmail().withMessage('Must be a valid email address').trim().normalizeEmail(),
+  body('email')
+    .optional()
+    .isEmail().withMessage('Must be a valid email address')
+    .trim(),
   body('isAdmin').optional().isBoolean().withMessage('isAdmin must be a boolean'),
+  body('password')
+    .optional()
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+    .matches(/\d/).withMessage('Password must contain a number')
+    .matches(/[A-Z]/).withMessage('Password must contain an uppercase letter')
+    .matches(/[^A-Za-z0-9]/).withMessage('Password must contain a symbol')
+    .trim(),
 ];
