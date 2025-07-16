@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import {  
-  Box, 
-  Button, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Paper, 
-  IconButton,  
-  Switch,  
-  TextField, 
-  Typography, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  CircularProgress, 
+import {
+  Box,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Switch,
+  TextField,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
   Container
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
@@ -32,7 +32,7 @@ import { z } from 'zod';
 const userSchema = z.object({
   given_name: z.string().min(1, "First name is required."),
   family_name: z.string(),
-  email: z.email("Please enter a valid email address."),
+  display_email: z.email("Please enter a valid email address."),
   password: z.string()
     .min(8, "Password must be at least 8 characters long.")
     .refine(data => /[A-Z]/.test(data), "Password must contain an uppercase letter.")
@@ -40,7 +40,7 @@ const userSchema = z.object({
     .refine(data => /[^A-Za-z0-9]/.test(data), "Password must contain a symbol."),
   is_admin: z.boolean(),
   id: z.string().optional(),
-  company_id: z.number().optional(),
+  companyid: z.number().optional(),
 });
 
 const passwordUpdateSchema = userSchema.pick({ password: true });
@@ -53,30 +53,32 @@ interface ErrorTree {
 }
 type FormErrors = ErrorTree | null;
 
-const DEFAULT_USER: UserData = {
+const DEFAULT_USER: UserData & { password?: string } = {
   id: '',
-  email: '',
+  display_email: '',
   password: '',
   given_name: '',
   family_name: '',
   is_admin: false,
-  company_id: 1
+  companyid: 1
 };
+
+type EditableField = keyof Omit<UserData, 'id' | 'companyid'> | 'password';
 
 const UsersManagement = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isAddingUser, setIsAddingUser] = useState(false);
-  const [newUser, setNewUser] = useState<UserData>(DEFAULT_USER);
+  const [newUser, setNewUser] = useState<UserData & { password?: string }>(DEFAULT_USER);
   const [isLoading, setIsLoading] = useState(true);
   const { handleOpenSnackbar } = useSnackbarContext();
-  
+
   const [editingField, setEditingField] = useState<{
     userId: string;
-    field: keyof UserData;
+    field: EditableField;
     error?: string;
   } | null>(null);
   const [editValue, setEditValue] = useState('');
-  
+
   const [dialogErrors, setDialogErrors] = useState<FormErrors>(null);
 
   const navigate = useNavigate();
@@ -110,13 +112,12 @@ const UsersManagement = () => {
 
     try {
       await registerUser(
-        validationResult.data.email,
+        validationResult.data.display_email,
         validationResult.data.given_name,
         validationResult.data.family_name || '',
         validationResult.data.password,
         validationResult.data.is_admin
       );
-      
       const updatedUsers = await getAllUsers();
       setUsers(updatedUsers);
 
@@ -134,32 +135,32 @@ const UsersManagement = () => {
       const userStatus = await getUserStatus();
 
       if (userStatus.userId === userId) {
-        navigate('/login'); 
+        navigate('/login');
       }
       await deleteUser(userId);
       const updatedUsers = await getAllUsers();
       setUsers(updatedUsers);
-      
+
       handleOpenSnackbar('User deleted successfully', 'success');
     } catch (error) {
       handleOpenSnackbar('Failed to delete user', 'error');
     }
   };
 
-  const handleInputChange = (field: keyof UserData, value: string | boolean) => {
+  const handleInputChange = (field: keyof typeof newUser, value: string | boolean) => {
     setNewUser(prev => ({ ...prev, [field]: value }));
-    if (dialogErrors && dialogErrors.properties?.[field as keyof UserData]) {
+    if (dialogErrors && dialogErrors.properties?.[field as keyof typeof newUser]) {
       setDialogErrors(prev => {
         if (!prev || !prev.properties) return prev;
         const newProperties = { ...prev.properties };
-        delete newProperties[field as keyof UserData];
+        delete newProperties[field as keyof typeof newUser];
         const newState: ErrorTree = { errors: prev.errors, properties: newProperties };
         return newState;
       });
     }
   };
 
-  const handleFieldClick = (userId: string, field: keyof UserData, value: string) => {
+  const handleFieldClick = (userId: string, field: EditableField, value: string) => {
     setEditingField({ userId, field });
     setEditValue(value);
   };
@@ -169,7 +170,7 @@ const UsersManagement = () => {
 
     const userToUpdate = users.find(u => u.id === userId);
     if (!userToUpdate) return;
-    
+
     if (editingField.field === 'password') {
       if (!editValue) {
         setEditingField(null);
@@ -182,15 +183,26 @@ const UsersManagement = () => {
         return;
       }
     } else {
-        if (editValue === userToUpdate[editingField.field]) {
-            setEditingField(null);
-            return;
-        }
+      if (editValue === userToUpdate[editingField.field as keyof UserData]) {
+        setEditingField(null);
+        return;
+      }
     }
 
     try {
-      const updatedUser = { ...userToUpdate, [editingField.field]: editValue };
-      await updateUser(userId, updatedUser.email, updatedUser.password, updatedUser.given_name, updatedUser.family_name, updatedUser.is_admin);
+      const fieldMap = {
+        display_email: 'email',
+        given_name: 'givenName',
+        family_name: 'familyName',
+        is_admin: 'isAdmin',
+        password: 'password',
+      };
+
+      const backendField = fieldMap[editingField.field];
+      const fieldToUpdate = { [backendField]: editValue };
+
+      await updateUser(userId, fieldToUpdate);
+
       const updatedUsers = await getAllUsers();
       setUsers(updatedUsers);
       handleOpenSnackbar('User updated successfully', 'success');
@@ -205,13 +217,11 @@ const UsersManagement = () => {
   const handleAdminToggle = async (user: UserData, newAdminStatus: boolean) => {
     try {
       const userStatus = await getUserStatus();
-      if (userStatus.userId === user.id && newAdminStatus !== userStatus.isAdmin) {
+      if (userStatus.userId === user.id && newAdminStatus !== userStatus.is_admin) {
         handleOpenSnackbar('Cannot change your own admin privileges!', 'error');
         return
       }
-      await updateUser(
-        user.id, user.email, user.password, user.given_name, user.family_name, newAdminStatus
-      );
+      await updateUser(user.id, { isAdmin: newAdminStatus });
       const updatedUsers = await getAllUsers();
       setUsers(updatedUsers);
       handleOpenSnackbar('User updated successfully', 'success');
@@ -220,7 +230,7 @@ const UsersManagement = () => {
     }
   };
 
-  const handleQbDisconnect = async() => {
+  const handleQbDisconnect = async () => {
     try {
       await disconnectQB();
       navigate('/');
@@ -230,7 +240,7 @@ const UsersManagement = () => {
     }
   }
 
-  const renderEditableCell = (user: UserData, field: keyof UserData, displayValue: string) => {
+  const renderEditableCell = (user: UserData, field: EditableField, displayValue: string) => {
     const isEditing = editingField?.userId === user.id && editingField?.field === field;
     const errorText = isEditing ? editingField?.error : undefined;
 
@@ -316,8 +326,8 @@ const UsersManagement = () => {
                 <TableRow key={user.id}>
                   {renderEditableCell(user, 'given_name', user.given_name)}
                   {renderEditableCell(user, 'family_name', user.family_name)}
-                  {renderEditableCell(user, 'email', user.email)}
-                  {renderEditableCell(user, 'password', user.password)}
+                  {renderEditableCell(user, 'display_email', user.display_email)}
+                  {renderEditableCell(user, 'password', '')}
                   <TableCell align="center">
                     <Switch
                       checked={user.is_admin}
@@ -338,7 +348,7 @@ const UsersManagement = () => {
               ))}
             </TableBody>
           </Table>
-          
+
         </TableContainer>
       )}
       <Box sx={{ pt: 2, display: 'flex', justifyContent: 'flex-end' }}>
@@ -350,10 +360,10 @@ const UsersManagement = () => {
           Disconnect QB
         </Button>
       </Box>
-      <Dialog 
-        open={isAddingUser} 
-        onClose={() => setIsAddingUser(false)} 
-        maxWidth="sm" 
+      <Dialog
+        open={isAddingUser}
+        onClose={() => setIsAddingUser(false)}
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Add New User</DialogTitle>
@@ -382,10 +392,10 @@ const UsersManagement = () => {
               label="Email"
               type="email"
               fullWidth
-              value={newUser.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              error={!!dialogErrors?.properties?.email?.errors.length}
-              helperText={dialogErrors?.properties?.email?.errors[0]}
+              value={newUser.display_email}
+              onChange={(e) => handleInputChange('display_email', e.target.value)}
+              error={!!dialogErrors?.properties?.display_email?.errors.length}
+              helperText={dialogErrors?.properties?.display_email?.errors[0]}
               required
             />
             <TextField

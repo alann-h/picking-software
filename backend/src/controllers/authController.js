@@ -3,7 +3,6 @@ import * as authService from '../services/authService.js';
 import { saveCompanyInfo, removeQuickBooksData } from '../services/companyService.js';
 import { encryptToken } from '../helpers.js';
 
-
 // GET /auth/uri
 export async function authUri(req, res, next) {
   try {
@@ -61,6 +60,7 @@ export async function register(req, res, next) {
   try {
     const { email, password, isAdmin, givenName, familyName } = req.body;
     const companyId = req.session.companyId;
+
     const newUser = await authService.register(
       email,
       password,
@@ -100,6 +100,7 @@ export async function deleteUser(req, res, next) {
 export async function updateUser(req, res, next) {
   try {
     const { userId } = req.params;
+    console.log(req.body);
     const updated = await authService.updateUser(userId, req.body);
     res.json(updated);
   } catch (err) {

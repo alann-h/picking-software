@@ -88,8 +88,21 @@ const Login: React.FC = () => {
 
     setErrors(null);
     try {
-      await loginWithCredentials(validationResult.data.email, validationResult.data.password);
-      navigate('/dashboard');
+      // 1. Capture the user object returned from your API call
+      const user = await loginWithCredentials(validationResult.data.email, validationResult.data.password);
+
+      // 2. Check for the re-authentication flag from the backend
+      if (user.qboReAuthRequired) {
+        handleOpenSnackbar('Your QuickBooks connection has expired. Redirecting to reconnect...', 'warning');
+        
+        setTimeout(() => {
+          handleQuickBooksLogin();
+        }, 3000); 
+
+      } else {
+        // 4. If no re-auth is needed, proceed to the dashboard as normal
+        navigate('/dashboard');
+      }
     } catch (err) {
       handleOpenSnackbar((err as Error).message, 'error');
     }

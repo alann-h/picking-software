@@ -22,9 +22,9 @@ router.post('/login', loginRules(), validate ,asyncHandler(login));
 
 router.use(isAuthenticated);
 
-router.post('/register', isAdmin, registerRules, validate, asyncHandler(register));
-router.delete('/delete/:userId', isSelfOrAdmin, userIdRules, validate, asyncHandler(deleteUser));
-router.put('/update/:userId', isSelfOrAdmin, updateUserRules, validate, asyncHandler(updateUser));
+router.post('/register', isAdmin, registerRules(), validate, asyncHandler(register));
+router.delete('/delete/:userId', isSelfOrAdmin, userIdRules(), validate, asyncHandler(deleteUser));
+router.put('/update/:userId', isSelfOrAdmin, updateUserRules(), validate, asyncHandler(updateUser));
 router.get('/users', isAdmin, asyncHandler(getAllUsers));
 router.delete('/disconnect', asyncHandler(disconnect));
 
