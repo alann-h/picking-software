@@ -13,13 +13,13 @@ export const customerIdRule = () => [
 
 // NEW: For GET /quotes?status=...
 export const listQuotesRules = () => [
-  query('status').optional().isIn(['Pending', 'Accepted', 'Rejected', 'In Progress', 'Completed'])
+  query('status').optional().isIn(['pending', 'checking', 'finalised'])
     .withMessage('Invalid status provided.'),
 ];
 
 export const updateStatusRules = () => [
   body('quoteId').isInt({ min: 1 }).withMessage('Quote ID must be a positive integer.'),
-  body('newStatus').isIn(['Pending', 'Accepted', 'Rejected', 'In Progress', 'Completed'])
+  body('newStatus').isIn(['pending', 'checking', 'finalised'])
     .withMessage('Invalid status provided.'),
 ];
 
