@@ -4,6 +4,7 @@ import { query, transaction, encryptToken, decryptToken } from '../helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
+import crypto from 'crypto';
 
 function initializeOAuthClient() {
   const environment = process.env.NODE_ENV;
@@ -222,12 +223,12 @@ async function getUserInfo(token) {
 export async function saveUserQbButton(token, companyId) {
   try {
     const userInfo = await getUserInfo(token);
-    const password = process.env.QBO_PASS;
+    const password = crypto.randomBytes(16).toString('hex');
    
     const response = await register(userInfo.email, password, true, userInfo.givenName, userInfo.familyName, companyId, userInfo.sub);
     return response;
   } catch (e) {
-    throw new AccessError('Could not get user information: ' + e.message);
+    throw new AccessError(e.message);
   }
 }
 
