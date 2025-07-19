@@ -7,6 +7,7 @@ import { getJobProgress } from '../api/products';
 
 interface FileUploadProps {
   onFileSelect: (file: File | null) => void;
+  // CHANGED: jobId is a string
   onUpload: () => Promise<{ jobId: string }>;
   selectedFile: File | null;
   onSuccess?: () => void;
@@ -17,6 +18,7 @@ type UploadState = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
 const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selectedFile, onSuccess }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadState, setUploadState] = useState<UploadState>('idle');
+  // CHANGED: jobId state is a string
   const [jobId, setJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
@@ -24,6 +26,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
   const fileInputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
   const pollIntervalRef = useRef<NodeJS.Timeout>();
+
+  // This effect runs once on mount to check for an existing job
+  useEffect(() => {
+    const savedJobId = localStorage.getItem('activeJobId');
+    if (savedJobId) {
+      setJobId(savedJobId);
+      setUploadState('processing');
+    }
+  }, []);
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -65,6 +76,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
     try {
       const { jobId } = await onUpload();
       setJobId(jobId);
+      // Save the active job ID to localStorage
+      localStorage.setItem('activeJobId', jobId);
       setUploadState('processing');
     } catch (error) {
       console.error("Upload failed:", error);
@@ -79,6 +92,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
     setJobId(null);
     setProgress(0);
     setProgressMessage('');
+    // Clear the job ID from storage on reset
+    localStorage.removeItem('activeJobId');
   };
 
   // This effect will start polling when a jobId is set
@@ -98,27 +113,35 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
           setProgress(100);
           setProgressMessage('Processing complete!');
           clearInterval(pollIntervalRef.current);
+
+          localStorage.removeItem('activeJobId');
           if (onSuccess) {
             onSuccess();
           }
         } else if (state === 'failed') {
           setUploadState('error');
+
           setProgressMessage(error || 'An error occurred during processing.');
           clearInterval(pollIntervalRef.current);
+
+          localStorage.removeItem('activeJobId');
         }
       } catch (error) {
         console.error("Polling error:", error);
         setUploadState('error');
         setProgressMessage('Could not fetch progress.');
         clearInterval(pollIntervalRef.current);
+
+        localStorage.removeItem('activeJobId');
       }
     };
 
     if (uploadState === 'processing' && jobId) {
-      pollIntervalRef.current = setInterval(pollProgress, 2000); // Poll every 2 seconds
+      
+      pollProgress(); 
+      pollIntervalRef.current = setInterval(pollProgress, 2000);
     }
 
-    // Cleanup interval on component unmount or state change
     return () => {
       clearInterval(pollIntervalRef.current);
     };
