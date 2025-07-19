@@ -7,7 +7,7 @@ import { getJobProgress } from '../api/products';
 
 interface FileUploadProps {
   onFileSelect: (file: File | null) => void;
-  onUpload: () => Promise<{ jobId: number }>;
+  onUpload: () => Promise<{ jobId: string }>;
   selectedFile: File | null;
   onSuccess?: () => void;
 }
@@ -17,7 +17,7 @@ type UploadState = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
 const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selectedFile, onSuccess }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadState, setUploadState] = useState<UploadState>('idle');
-  const [jobId, setJobId] = useState<number | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
 
@@ -88,7 +88,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
 
       try {
         const response = await getJobProgress(jobId);
-        const { state, progress: jobProgress } = response;
+        const { state, progress: jobProgress, error } = response;
         
         setProgress(jobProgress?.percentage || 0);
         setProgressMessage(jobProgress?.message || 'Processing...');
@@ -103,7 +103,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
           }
         } else if (state === 'failed') {
           setUploadState('error');
-          setProgressMessage('An error occurred during processing.');
+          setProgressMessage(error || 'An error occurred during processing.');
           clearInterval(pollIntervalRef.current);
         }
       } catch (error) {
