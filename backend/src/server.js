@@ -144,6 +144,29 @@ app.post('/internal/jobs/:jobId/progress', verifyInternalRequest, asyncHandler(a
   res.sendStatus(200);
 }));
 
+app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+
+  const companyId = req.session.companyId;
+  const { rows } = await pool.query('SELECT * FROM jobs WHERE id = $1 AND companyid = $2', [jobId, companyId]);
+
+  const job = rows[0];
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  res.json({
+    jobId: job.id,
+    state: job.status,
+    progress: {
+      percentage: job.progress_percentage,
+      message: job.progress_message
+    },
+    error: job.error_message
+  });
+}));
+
 // Public & CSRF-protected routes
 app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken: generateToken(req, res) });
