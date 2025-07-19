@@ -87,7 +87,7 @@ export async function enrichWithQBOData(products, token) {
       const url = `${baseURL}v3/company/${companyID}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
       const response = await oauthClient.makeApiCall({ url });
-      const itemData = JSON.parse(response.text())?.QueryResponse?.Item?.[0];
+      const itemData = response.json?.QueryResponse?.Item?.[0];
 
       if (!itemData || !itemData.Active) continue;
 

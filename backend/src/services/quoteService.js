@@ -17,7 +17,7 @@ export async function getCustomerQuotes(customerId, token) {
       url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=75`
     });
 
-    const responseJSON = JSON.parse(response.text());
+    const responseJSON = response.json;
     const filteredEstimates = responseJSON.QueryResponse.Estimate.filter(estimate => estimate.TxnStatus !== 'Closed');
     return filteredEstimates;
   } catch {
@@ -92,7 +92,7 @@ export async function getQbEstimate(quoteId, token, rawDataNeeded) {
       url: `${baseURL}v3/company/${companyId}/query?query=${queryStr}&minorversion=75`
     });
 
-    const responseData = JSON.parse(estimateResponse.text());
+    const responseData = estimateResponse.json;
     if (rawDataNeeded) return responseData;
     
     const filteredQuote = await filterEstimates(responseData, companyId);

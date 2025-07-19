@@ -21,7 +21,7 @@ export async function fetchCustomers(token) {
         url: `${baseURL}v3/company/${companyID}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
       });
 
-      const responseData = JSON.parse(response.text());
+      const responseData = response.json;
       const customers = responseData.QueryResponse.Customer || [];
 
       allCustomers.push(...customers.map(customer => ({

@@ -12,7 +12,7 @@ export async function getCompanyInfo(token) {
         const response = await oauthClient.makeApiCall({
             url: `${baseURL}v3/company/${companyId}/query?query=${queryStr}&minorversion=75`
           });
-        const responseJSON = JSON.parse(response.text());
+        const responseJSON = response.json;
         // filter out if Email.Address is donotreply@intuit.com meaning it's a test company .filter(company => company.Email.Address !== 'donotreply@intuit.com');
         const companyInfoFull = responseJSON.QueryResponse.CompanyInfo[0];
         const companyInfo =  {
