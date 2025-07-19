@@ -114,6 +114,36 @@ const verifyInternalRequest = (req, res, next) => {
 // — Decrypt token on every request
 app.use(decryptSessionToken);
 
+
+// --- INTERNAL ROUTES (NO CSRF) ---
+app.post('/internal/save-products', verifyInternalRequest, asyncHandler(async (req, res) => {
+  const { products, companyId } = req.body;
+  const client = await pool.connect();
+  try {
+    await transaction(async (transactionClient) => {
+      await insertProducts(products, companyId, transactionClient);
+    });
+    res.status(200).json({ message: 'Products saved successfully.' });
+  } finally {
+    client.release();
+  }
+}));
+
+app.post('/internal/jobs/:jobId/progress', verifyInternalRequest, asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+  const { status, percentage, message, errorDetails } = req.body;
+  await pool.query(
+    `UPDATE jobs SET
+        status = $1,
+        progress_percentage = $2,
+        progress_message = $3,
+        error_message = $4
+     WHERE id = $5`,
+    [status, percentage, message, errorDetails, jobId]
+  );
+  res.sendStatus(200);
+}));
+
 // Public & CSRF-protected routes
 app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken: generateToken(req, res) });
@@ -203,36 +233,6 @@ app.post('/upload',
     }
   })
 );
-
-// Internal routes (for Lambda communication)
-app.post('/internal/save-products', verifyInternalRequest, asyncHandler(async (req, res) => {
-  const { products, companyId } = req.body;
-  const client = await pool.connect();
-  try {
-    await transaction(async (transactionClient) => {
-      await insertProducts(products, companyId, transactionClient);
-    });
-    res.status(200).json({ message: 'Products saved successfully.' });
-  } finally {
-    client.release();
-  }
-}));
-
-app.post('/internal/jobs/:jobId/progress', verifyInternalRequest, asyncHandler(async (req, res) => {
-  const { jobId } = req.params;
-  const { status, percentage, message, errorDetails } = req.body;
-  await pool.query(
-    `UPDATE jobs SET
-        status = $1,
-        progress_percentage = $2,
-        progress_message = $3,
-        error_message = $4
-     WHERE id = $5`,
-    [status, percentage, message, errorDetails, jobId]
-  );
-  res.sendStatus(200);
-}));
-
 
 // — Swagger docs
 const __filename = fileURLToPath(import.meta.url);
