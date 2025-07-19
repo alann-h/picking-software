@@ -166,7 +166,7 @@ app.post('/upload',
 
       // 2. Create a job record in your database
       const dbResponse = await pool.query(
-        `INSERT INTO jobs (s3_key, company_id) VALUES ($1, $2) RETURNING id`,
+        `INSERT INTO jobs (s3_key, companyid) VALUES ($1, $2) RETURNING id`,
         [s3Key, req.session.companyId]
       );
       const jobId = dbResponse.rows[0].id;
