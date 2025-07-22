@@ -31,6 +31,7 @@ import { isAuthenticated, decryptSessionToken } from './middlewares/authMiddlewa
 import errorHandler from './middlewares/errorHandler.js';
 import { transaction } from './helpers.js';
 import { insertProducts } from './services/productService.js';
+import { getOAuthClient } from './services/authService.js';
 import pool from './db.js';
 
 dotenv.config({ path: '.env' });
@@ -181,7 +182,7 @@ app.use('/products', productRoutes);
 
 // Utility routes
 app.get('/verifyUser', asyncHandler(async (req, res) => {
-  res.json({ isValid: !!req.session.token });
+  res.json({ isValid: !!req.session.userId });
 }));
 
 app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
@@ -224,12 +225,15 @@ app.post('/upload',
       );
       const jobId = dbResponse.rows[0].id;
 
+      const oauthClient = await getOAuthClient(req.session.companyId);
+      const freshTokenForLambda = oauthClient.getToken();
+
       // 3. Prepare the payload for the Lambda function
       const lambdaPayload = {
         jobId: jobId,
         s3Key: s3Key,
         companyId: req.session.companyId,
-        token: req.decryptedToken,
+        token: freshTokenForLambda,
       };
 
       // 4. Invoke the Lambda function asynchronously

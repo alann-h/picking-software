@@ -1,20 +1,19 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query, transaction, makeCustomApiCall, roundQuantity } from '../helpers.js';
-import { getOAuthClient, getBaseURL, getCompanyId } from './authService.js';
+import { getOAuthClient, getBaseURL } from './authService.js';
 import { getProductFromDB, productIdToQboId } from './productService.js';
 
-export async function getCustomerQuotes(customerId, token) {
+export async function getCustomerQuotes(customerId, companyId) {
   try {
-    const oauthClient = await getOAuthClient(token);
+    const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
-    const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
 
     const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
     const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=75`
+      url: `${baseURL}v3/company/${companyId}/query?query=${queryStr}&minorversion=75`
     });
 
     const responseJSON = response.json;
@@ -78,14 +77,13 @@ async function filterEstimates(responseData, companyId) {
   return Promise.all(filteredEstimatesPromises);
 }
 
-export async function getQbEstimate(quoteId, token, rawDataNeeded) {
+export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
   try {
-    const oauthClient = await getOAuthClient(token);
+    const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
 
-    const companyId = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
     const estimateResponse = await oauthClient.makeApiCall({
@@ -275,7 +273,7 @@ export async function processBarcode(barcode, quoteId, newQty) {
   }
 }
 
-export async function addProductToQuote(productId, quoteId, qty, token, companyId) {
+export async function addProductToQuote(productId, quoteId, qty, companyId) {
   try {
     const product = await query('SELECT * FROM products WHERE productid = $1', [productId]);
     if (product.length === 0) {
@@ -303,7 +301,7 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
           [qty, pickingStatus, quoteId, productId]
         );
       } else {
-          const oauthClient = await getOAuthClient(token);
+          const oauthClient = await getOAuthClient(companyId);
           if (!oauthClient) {
             throw new AccessError('OAuth client could not be initialised');
           }
@@ -411,9 +409,9 @@ export async function savePickerNote(quoteId, note) {
   }
 }
 
-export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, token) {
+export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, companyId) {
   try {
-    const oauthClient = await getOAuthClient(token);
+    const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
@@ -454,11 +452,10 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     }
 
     // Update the quote in QuickBooks
-    const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     await makeCustomApiCall(
       oauthClient,
-      `${baseURL}v3/company/${companyID}/estimate?operation=update&minorversion=75`,
+      `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
       'POST',
       updatePayload
     );

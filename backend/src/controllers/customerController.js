@@ -4,7 +4,7 @@ import { fetchCustomers, saveCustomers } from '../services/customerService.js';
 // GET /customers
 export async function getCustomers(req, res, next) {
   try {
-    const data = await fetchCustomers(req.decryptedToken);
+    const data = await fetchCustomers(req.session.companyId);
     res.json(data);
   } catch (err) {
     next(err);
