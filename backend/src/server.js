@@ -27,7 +27,7 @@ import customerRoutes from './routes/customerRoutes.js';
 import quoteRoutes from './routes/quoteRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import asyncHandler from './middlewares/asyncHandler.js';
-import { isAuthenticated, decryptSessionToken } from './middlewares/authMiddleware.js';
+import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
 import { transaction } from './helpers.js';
 import { insertProducts } from './services/productService.js';
@@ -111,10 +111,6 @@ const verifyInternalRequest = (req, res, next) => {
 };
 
 // --- ROUTES ---
-
-// — Decrypt token on every request
-app.use(decryptSessionToken);
-
 
 // --- INTERNAL ROUTES (NO CSRF) ---
 app.post('/internal/save-products', verifyInternalRequest, asyncHandler(async (req, res) => {
