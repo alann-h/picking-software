@@ -21,6 +21,7 @@ export interface QuoteData {
     orderStatus: string;
     orderNote: string;
     pickerNote: string;
+    quoteId: number;
 }
 
 export interface QuoteProps {
@@ -63,10 +64,10 @@ export interface Product {
     productName: string;
     barcode: string;
     sku: string;
-    quantityOnHand: number | null;
-    price: number | null;
+    quantityOnHand: number;
+    price: number;
     companyId: number;
-    category: string | null;
+    category: string;
     qboItemId: string;
   }
 export interface UserData {
@@ -85,4 +86,11 @@ export interface UserUpdateData {
   givenName?: string;
   familyName?: string;
   isAdmin?: boolean;
+}
+
+export interface QuoteSummary {
+    Id: number;
+    TotalAmt: number;
+    CustomerName: string;
+    LastUpdatedTime: string;
 }

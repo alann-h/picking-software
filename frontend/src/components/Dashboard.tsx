@@ -1,68 +1,95 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Container, Autocomplete, TextField, List, ListItemText, Card, CardContent, 
-  Paper, ListItemButton, Typography, Box, Grid, useTheme, Chip,
+  Container, Autocomplete, TextField, Paper, Typography, Box, Grid, useTheme, Stack, Skeleton
 } from '@mui/material';
-import {QrCodeScanner, Inventory } from '@mui/icons-material';
+import { 
+  PersonOutline, CalendarTodayOutlined, ReceiptLongOutlined, Search, DirectionsRunOutlined 
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { Customer } from '../utils/types';
+import { Customer, QuoteSummary } from '../utils/types';
 import { getCustomers, saveCustomers } from '../api/customers';
 import { useSnackbarContext } from './SnackbarContext';
 import { getCustomerQuotes } from '../api/quote';
 import { useNavigate, useLocation } from 'react-router-dom';
-import LoadingWrapper from './LoadingWrapper';
 import { Helmet } from 'react-helmet-async';
 
 // Reusable AnimatedComponent
 const AnimatedComponent: React.FC<{
   children: React.ReactNode;
   delay?: number;
-  xOffset?: number;
-  yOffset?: number;
-}> = ({ children, delay = 0, xOffset = 0, yOffset = 0 }) => (
+}> = ({ children, delay = 0 }) => (
   <motion.div
-    initial={{ opacity: 0, x: xOffset, y: yOffset }}
-    animate={{ opacity: 1, x: 0, y: 0 }}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5, delay }}
   >
     {children}
   </motion.div>
 );
 
-interface DashboardProps {}
+// A cleaner, more focused Quote Item component
+const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quote, onClick }) => (
+  <Paper
+    variant="outlined"
+    onClick={onClick}
+    sx={{
+      p: 2,
+      cursor: 'pointer',
+      transition: 'box-shadow 0.3s, border-color 0.3s',
+      '&:hover': {
+        boxShadow: (theme) => theme.shadows[4],
+        borderColor: 'primary.main',
+      }
+    }}
+  >
+    <Stack spacing={1.5}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography variant="h6" color="primary.main" fontWeight="bold">
+          Quote #{quote.Id}
+        </Typography>
+        <Typography variant="h6" fontWeight="bold">
+          ${quote.TotalAmt.toFixed(2)}
+        </Typography>
+      </Stack>
+      <Stack direction="row" justifyContent="space-between" color="text.secondary">
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <PersonOutline fontSize="small" />
+          <Typography variant="body2">{quote.CustomerName}</Typography>
+        </Stack>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <CalendarTodayOutlined fontSize="small" />
+          <Typography variant="body2">
+            {new Date(quote.LastUpdatedTime).toLocaleDateString()}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
+  </Paper>
+);
 
-const Dashboard: React.FC<DashboardProps> = () => {
+
+const Dashboard: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomer, setInputValue] = useState<string>('');
-  const [quotes, setQuotes] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [quotes, setQuotes] = useState<QuoteSummary[]>([]);
   const [isQuotesLoading, setIsQuotesLoading] = useState<boolean>(false);
-  const [isCustomerLoading, setIsCustomerLoading] = useState<boolean>(false);
+  const [isCustomerLoading, setIsCustomerLoading] = useState<boolean>(true);
+  
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
 
-  const listAvailableQuotes = useCallback((selectedCustomerId: number) => {
-    if (selectedCustomerId === null) {
-      handleOpenSnackbar('Could not get Customer Id', 'error');
-      return;
-    }
+  const listAvailableQuotes = useCallback((customerId: number) => {
     setIsQuotesLoading(true);
-    getCustomerQuotes(selectedCustomerId)
-      .then((data) => {
-        setQuotes(data);
-        setIsQuotesLoading(false);
-      })
-      .catch((err: Error) => {
-        handleOpenSnackbar(err.message, 'error');
-        setIsQuotesLoading(false);
-      });
-  }, [setIsQuotesLoading, setQuotes, handleOpenSnackbar]);
+    setQuotes([]);
+    getCustomerQuotes(customerId)
+      .then(data => setQuotes(data))
+      .catch(err => handleOpenSnackbar(err.message, 'error'))
+      .finally(() => setIsQuotesLoading(false));
+  }, [handleOpenSnackbar]);
 
-  const fetchAndSetCustomers = useCallback(() => {
-    if (customers.length > 0) return;
-
-    setIsCustomerLoading(true);
+  const fetchCustomers = useCallback(() => {
     getCustomers()
       .then(data => {
         setCustomers(data);
@@ -70,193 +97,139 @@ const Dashboard: React.FC<DashboardProps> = () => {
       })
       .catch(err => handleOpenSnackbar(err.message, 'error'))
       .finally(() => setIsCustomerLoading(false));
-  }, [customers, handleOpenSnackbar]);
+  }, [handleOpenSnackbar]);
 
   useEffect(() => {
-    fetchAndSetCustomers();
-  }, [fetchAndSetCustomers]);
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   useEffect(() => {
+    if (customers.length === 0) return;
+
     const params = new URLSearchParams(location.search);
-    const customerIdURL = params.get('customer');
-
-    if (!customerIdURL) return;
-
-    const match = customers.find(c => String(c.customerId) === customerIdURL);
-    if (!match) return;
-
-    setInputValue(match.customerName);
-    listAvailableQuotes(match.customerId);
-  }, [location.search, customers, listAvailableQuotes]);
-  
-  const handleChange = (_: React.SyntheticEvent, newValue: string | null) => {
-    if (newValue) {
-      const customer = customers.find(c => c.customerName === newValue);
-      if (customer) {
-        setInputValue(newValue);
-  
-        // 🔁 Update URL with customerId instead of name
-        const searchParams = new URLSearchParams(location.search);
-        searchParams.set('customer', String(customer.customerId));
-        navigate({
-          pathname: location.pathname,
-          search: searchParams.toString(),
-        });
-  
-        listAvailableQuotes(customer.customerId);
-      } else {
-        handleOpenSnackbar('Customer not found', 'error');
+    const customerIdFromUrl = params.get('customer');
+    if (customerIdFromUrl) {
+      const customerFromUrl = customers.find(c => String(c.customerId) === customerIdFromUrl);
+      if (customerFromUrl && customerFromUrl.customerId !== selectedCustomer?.customerId) {
+        setSelectedCustomer(customerFromUrl);
+        listAvailableQuotes(customerFromUrl.customerId);
       }
     }
+  }, [customers, location.search, listAvailableQuotes, selectedCustomer]);
+  
+  const handleCustomerChange = (_: React.SyntheticEvent, customer: Customer | null) => {
+    setSelectedCustomer(customer);
+    const searchParams = new URLSearchParams(location.search);
+
+    if (customer) {
+      listAvailableQuotes(customer.customerId);
+      searchParams.set('customer', String(customer.customerId));
+    } else {
+      setQuotes([]);
+      searchParams.delete('customer');
+    }
+    navigate({ pathname: location.pathname, search: searchParams.toString() }, { replace: true });
   };
   
-
-  const handleQuoteClick = (quoteId: string) => {
-    if (!quoteId) {
-      return handleOpenSnackbar('Quote Id is undefined', 'error');
-    }
-    navigate(`/quote?id=${quoteId}`);
-  };
-
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        backgroundColor: theme.palette.background.default,
-      }}
->
+    <Box sx={{ minHeight: '100vh', bgcolor: theme.palette.background.default, py: { xs: 2, sm: 4 } }}>
       <Helmet>
         <title>Smart Picker | Dashboard</title>
       </Helmet>
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, px: { xs: 2, sm: 3 } }}>
-        <AnimatedComponent yOffset={20}>
-          <Typography variant="h4" gutterBottom component="h1" color="primary">
-            Dashboard
-          </Typography>
-        </AnimatedComponent>
-
-        <Grid container spacing={3}>
-
-          <Grid size={{ xs: 12, md: 4 }}>
-            <AnimatedComponent xOffset={-20} delay={0.2}>
-              <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" gutterBottom>
-                  Select Customer
-                </Typography>
-                <LoadingWrapper isLoading={isCustomerLoading} height="100px">
-                <Autocomplete
-                  id="customer-box"
-                  options={customers.map((option) => option.customerName)}
-                  value={selectedCustomer || null}
-                  inputValue={selectedCustomer}
-                  onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
-                  onChange={handleChange}
-                  renderInput={(params) => <TextField {...params} label="Customer" />}
-                />
-                </LoadingWrapper>
-              </Paper>
-            </AnimatedComponent>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 8 }}>
-            <AnimatedComponent xOffset={20} delay={0.4}>
-              <Paper elevation={3} sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" gutterBottom>
-                  Customer Quotes
-                </Typography>
-                <LoadingWrapper isLoading={isQuotesLoading}>
-                <List>
-                  {quotes.map((quote, index) => (
-                    <AnimatedComponent key={quote.Id} yOffset={20} delay={index * 0.1}>
-                      <ListItemButton onClick={() => handleQuoteClick(quote.Id)}>
-                        <Card sx={{ width: '100%', mb: 1, backgroundColor: theme.palette.background.default }}>
-                          <CardContent>
-                            <ListItemText
-                              primary={
-                                <Typography variant="subtitle1" color="primary" sx={{fontWeight: 'bold'}}>
-                                  Quote ID: {quote.Id}
-                                </Typography>
-                              }
-                              secondary={
-                                <Box component="span">
-                                <Typography variant="body2" component="span" sx={{fontWeight: 'bold', display: 'block'}}>
-                                  Customer: {quote.CustomerRef.name}
-                                </Typography>
-                                <Typography variant="body2" component="span" sx={{fontWeight: 'bold', display: 'block'}}>
-                                  Last Updated: {new Date(quote.MetaData.LastUpdatedTime).toLocaleString()}
-                                </Typography>
-                                <Typography variant="body2" component="span" color="secondary" sx={{fontWeight: 'bold', display: 'block'}}>
-                                  Total: ${quote.TotalAmt}
-                                </Typography>
-                              </Box>
-                              }
-                            />
-                          </CardContent>
-                        </Card>
-                      </ListItemButton>
-                    </AnimatedComponent>
-                  ))}
-                </List>
-                </LoadingWrapper>
-              </Paper>
-            </AnimatedComponent>
-          </Grid>
-        </Grid>
-        
-        {/* Rest of the component remains the same */}
-        <AnimatedComponent yOffset={20} delay={0.8}>
-          <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
-            <Typography variant="h5" gutterBottom color="primary">
-              QuickBooks Integration
+      <Container maxWidth="xl">
+        <Stack spacing={{ xs: 3, sm: 4 }}>
+          <AnimatedComponent>
+            <Typography variant="h4" component="h1" fontWeight="bold"
+              sx={{
+                [theme.breakpoints.down('sm')]: {
+                  fontSize: theme.typography.h5.fontSize,
+                },
+              }}
+            >
+              Dashboard
             </Typography>
-            <Typography variant="body1" paragraph>
-              This application is integrated with QuickBooks, allowing you to:
-            </Typography>
-            <Typography variant="body1" component="ul" sx={{ pl: 2 }}>
-              <li>Access and manage customer quotes directly from QuickBooks</li>
-              <li>Synchronize order data with your QuickBooks account</li>
-              <li>Maintain consistent financial records across systems</li>
-            </Typography>
-          </Paper>
-        </AnimatedComponent>
+          </AnimatedComponent>
 
-        <AnimatedComponent yOffset={20} delay={1}>
-          <Paper elevation={3} sx={{ p: 2, mt: 4 }}>
-            <Typography variant="h5" gutterBottom color="primary">
-              Features
-            </Typography>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid size={{ xs: 12, md: 4, sm: 6 }}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      <QrCodeScanner sx={{ mr: 1 }} />
-                      Barcode Scanner
-                    </Typography>
-                    <Typography variant="body2">
-                      Quickly process orders and manage inventory with our integrated barcode scanning feature.
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, md: 4, sm: 6 }}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      <Inventory sx={{ mr: 1 }} />
-                      Inventory Management
-                    </Typography>
-                    <Typography variant="body2">
-                      Efficiently track and manage your stock levels.
-                    </Typography>
-                    <Chip label="Coming Soon" color="secondary" sx={{ mt: 2 }} />
-                  </CardContent>
-                </Card>
-              </Grid>
-              {/* Add more feature cards here */}
+          <Grid container spacing={{ xs: 2, md: 4 }}>
+            {/* Left Column */}
+            <Grid size={{ xs: 12, md: 4 }}>
+              <AnimatedComponent delay={0.1}>
+                <Stack spacing={{ xs: 2, md: 4 }}>
+                  <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+                    <Stack spacing={2}>
+                      <Typography variant="h6" fontWeight={600}>Select Customer</Typography>
+                      <Autocomplete
+                        options={customers}
+                        getOptionLabel={(option) => option.customerName}
+                        value={selectedCustomer}
+                        onChange={handleCustomerChange}
+                        isOptionEqualToValue={(option, value) => option.customerId === value.customerId}
+                        loading={isCustomerLoading}
+                        disablePortal
+                        renderInput={(params) => <TextField {...params} label="Search customers..." />}
+                      />
+                    </Stack>
+                  </Paper>
+
+                  <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+                    <Stack spacing={2}>
+                      <Typography variant="h6" fontWeight={600}>Active Picking Runs</Typography>
+                      <Box textAlign="center" p={{ xs: 2, sm: 3 }} sx={{ border: '2px dashed', borderColor: 'divider', borderRadius: 2 }}>
+                        <DirectionsRunOutlined sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+                        <Typography color="text.secondary">No active runs.</Typography>
+                        <Typography variant="caption" color="text.secondary">This feature is coming soon.</Typography>
+                      </Box>
+                    </Stack>
+                  </Paper>
+                </Stack>
+              </AnimatedComponent>
             </Grid>
-          </Paper>
-        </AnimatedComponent>
+
+            {/* Right Column */}
+            <Grid size={{ xs: 12, md: 8 }}>
+              <AnimatedComponent delay={0.2}>
+                <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, minHeight: 400 }}>
+                  <Typography variant="h6" fontWeight={600} gutterBottom>
+                    {selectedCustomer ? `Quotes for ${selectedCustomer.customerName}` : 'Select a Customer to View Quotes'}
+                  </Typography>
+
+                  {isQuotesLoading && (
+                    <Stack spacing={2}>
+                      {[...Array(3)].map((_, i) => <Skeleton key={i} variant="rounded" height={95} />)}
+                    </Stack>
+                  )}
+
+                  {!isQuotesLoading && quotes.length > 0 && (
+                    <Stack spacing={2}>
+                      {quotes.map((quote, index) => (
+                        <AnimatedComponent key={quote.Id} delay={index * 0.05}>
+                          <QuoteItem 
+                            quote={quote} 
+                            onClick={() => navigate(`/quote?id=${quote.Id}`)} 
+                          />
+                        </AnimatedComponent>
+                      ))}
+                    </Stack>
+                  )}
+                  
+                  {!isQuotesLoading && quotes.length === 0 && selectedCustomer && (
+                    <Box textAlign="center" p={{ xs: 3, sm: 5 }}>
+                       <ReceiptLongOutlined sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                       <Typography variant="h6" color="text.secondary">No quotes found for this customer.</Typography>
+                    </Box>
+                  )}
+
+                  {!selectedCustomer && !isQuotesLoading && (
+                     <Box textAlign="center" p={{ xs: 3, sm: 5 }}>
+                       <Search sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                       <Typography variant="h6" color="text.secondary">Quotes will appear here.</Typography>
+                    </Box>
+                  )}
+                </Paper>
+              </AnimatedComponent>
+            </Grid>
+          </Grid>
+        </Stack>
       </Container>
     </Box>
   );

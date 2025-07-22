@@ -15,12 +15,14 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, onSearchChange }) => 
       placeholder="Search products by name"
       value={searchTerm}
       onChange={onSearchChange}
-      InputProps={{
-        startAdornment: (
+      slotProps={{
+        input: {
+          startAdornment: (
           <InputAdornment position="start">
             <SearchIcon />
           </InputAdornment>
         ),
+        },
       }}
     />
   );

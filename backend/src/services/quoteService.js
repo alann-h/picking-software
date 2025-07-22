@@ -13,12 +13,22 @@ export async function getCustomerQuotes(customerId, companyId) {
 
     const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
     const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyId}/query?query=${queryStr}&minorversion=75`
+      url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
     const responseJSON = response.json;
-    const filteredEstimates = responseJSON.QueryResponse.Estimate.filter(estimate => estimate.TxnStatus !== 'Closed');
-    return filteredEstimates;
+    const estimates = responseJSON.QueryResponse.Estimate || [];
+
+    const customerQuotes = estimates
+      .filter(quote => quote.TxnStatus !== 'Closed')
+      .map(quote => ({
+        Id: quote.Id,
+        TotalAmt: quote.TotalAmt,
+        CustomerName: quote.CustomerRef.name,
+        LastUpdatedTime: quote.MetaData.LastUpdatedTime,
+      }));
+
+    return customerQuotes;
   } catch {
     throw new InputError('This quote does not exist');
   }
@@ -87,7 +97,7 @@ export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
     const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyId}/query?query=${queryStr}&minorversion=75`
+      url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
     const responseData = estimateResponse.json;

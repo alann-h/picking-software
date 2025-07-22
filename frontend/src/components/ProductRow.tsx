@@ -115,8 +115,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
               anchorEl={anchorEl}
               open={open}
               onClose={handleClose}
-              MenuListProps={{
+              slotProps={{ 
+                list: {
                 'aria-labelledby': `more-button-${product.productId}`,
+                }
               }}
             >
               <MenuItem onClick={() => handleAction('details')}>Details</MenuItem>
@@ -132,27 +134,31 @@ const ProductRow: React.FC<ProductRowProps> = ({
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
-              <Chip label="Details" onClick={() => onProductDetails(product.productId, product)} />
+              <Chip label="Details" onClick={() => onProductDetails(product.productId, product)} variant='outlined'/>
               <Chip label="Adjust Quantity" 
                 onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} 
                 disabled={product.pickingStatus === 'completed'}
+                variant='outlined'
                 />
               <Chip 
                 label={product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
                 onClick={() => onSaveForLater(product.productId)}
                 disabled={product.pickingStatus === 'completed'} 
+                variant='outlined'
               />
               <Chip 
                 label={product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable'}
                 onClick={() => onSetUnavailable(product.productId)}
                 color={product.pickingStatus === 'unavailable' ? 'primary' : 'error'}
                 disabled={product.pickingStatus === 'completed'}
+                variant='outlined'
               />
               {isAdmin && (
                 <Chip label="Set as Complete" 
                 onClick={() => onSetFinished(product.productId)}
                 color='success'
                 disabled={product.pickingStatus === 'completed'}
+                variant='outlined'
                 />
               )}
           </Box>
