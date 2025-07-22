@@ -59,10 +59,7 @@ Upon approval, a new, updated **Estimate** is created in QuickBooks, reflecting 
 
 Smart Picker is built with a modern, scalable architecture that separates concerns between the frontend, backend, and background processing jobs.
 
-> **➡️ You should create and insert a simple architectural diagram here.**
-> *The diagram should show boxes for: Frontend (React) -> Backend (Node.js) -> Database (Postgres). And a separate flow for: File Upload -> S3 -> Lambda -> QuickBooks API & Database.*
-
-* **Frontend:** React
+* **Frontend:** React with Material UI
 * **Backend:** Node.js, Express
 * **Database:** PostgreSQL
 * **Hosting & CI/CD:** Railway (hosting all three core services)
