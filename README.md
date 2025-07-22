@@ -76,7 +76,7 @@ To run this project locally, you will need to have the following prerequisites i
 
 ### Prerequisites
 
-* Node.js (v18.x or later)
+* Node.js (v22.x or later)
 * A local or cloud-hosted PostgreSQL instance
 * An AWS Account (for S3 and Lambda)
 * A QuickBooks Developer Account
@@ -149,5 +149,4 @@ The frontend will be available at `http://localhost:3000` and the backend at `ht
 ## API Documentation
 
 API endpoints are documented using Swagger. Once the backend server is running, the documentation is available at `http://localhost:5033/docs`.
-```
 ```
