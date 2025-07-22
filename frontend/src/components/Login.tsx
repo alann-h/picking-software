@@ -123,7 +123,7 @@ const Login: React.FC = () => {
             <title>Smart Picker | Login</title>
           </Helmet>
           <Typography component="h1" variant="h5" color="primary" fontWeight="bold">
-            Sign in to SmartPicker
+            Sign in to Smart Picker
           </Typography>
           <Box component="form" onSubmit={handleCredentialLogin} noValidate sx={{ mt: 1 }}>
             <TextField

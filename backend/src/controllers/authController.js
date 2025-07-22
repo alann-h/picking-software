@@ -16,7 +16,7 @@ export async function authUri(req, res, next) {
 export async function callback(req, res, next) {
   try {
     const token = await authService.handleCallback(req.url);
-    const companyInfo = await saveCompanyInfo(token.realmId);
+    const companyInfo = await saveCompanyInfo(token);
     const user = await authService.saveUserQbButton(token, companyInfo.companyid);
 
     req.session.companyId = companyInfo.companyid;
