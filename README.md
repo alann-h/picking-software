@@ -150,5 +150,4 @@ The frontend will be available at `http://localhost:3000` and the backend at `ht
 
 API endpoints are documented using Swagger. Once the backend server is running, the documentation is available at `http://localhost:5033/docs`.
 ```
-</markdown>
 ```
