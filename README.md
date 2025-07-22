@@ -1,4 +1,4 @@
-# Smart Picker - Warehouse Accuracy Platform for QuickBooks ![Smart Picker Logo](https://smartpicker.au/favicon.ico)
+![Smart Picker Logo](https://smartpicker.au/favicon.ico) # Smart Picker - Warehouse Accuracy Platform for QuickBooks 
 
 **Smart Picker is a warehouse accuracy and workflow platform that bridges the operational gap between creating a sales quote in QuickBooks and physically preparing the order for shipment.**
 
