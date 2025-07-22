@@ -1,10 +1,9 @@
 import { AccessError } from '../middlewares/errorHandler.js';
 import { encryptToken, query, transaction } from '../helpers.js';
-import { getOAuthClient, getBaseURL } from './authService.js';
+import { initializeOAuthClient, getBaseURL } from './authService.js';
 
-export async function getCompanyInfo(companyId) {
+export async function getCompanyInfo(oauthClient, companyId) {
     try {
-        const oauthClient = await getOAuthClient(companyId);
         const baseURL = getBaseURL(oauthClient);
         const queryStr = `SELECT * FROM CompanyInfo`;
     
@@ -28,7 +27,10 @@ export async function getCompanyInfo(companyId) {
 
 export async function saveCompanyInfo(token) {
     try {
-        const companyInfo = await getCompanyInfo(token.realmId);
+        const tempOAuthClient = initializeOAuthClient();
+        tempOAuthClient.setToken(token);
+
+        const companyInfo = await getCompanyInfo(tempOAuthClient, token.realmId);
         const encryptedToken = await encryptToken(token);
         const result = await query(`
             INSERT INTO companies (company_name, companyid, qb_token) 

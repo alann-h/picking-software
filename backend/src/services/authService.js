@@ -6,7 +6,7 @@ import bcrypt from 'bcrypt';
 import validator from 'validator';
 import crypto from 'crypto';
 
-function initializeOAuthClient() {
+export function initializeOAuthClient() {
   const environment = process.env.NODE_ENV;
   const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
   const clientSecret = environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
@@ -167,33 +167,32 @@ export async function login(email, password) {
 }
 
 export async function register(displayEmail, password, is_admin, givenName, familyName, companyId) {
-  const userId = uuidv4();
   const saltRounds = 10;
   const normalisedEmail = validator.normalizeEmail(displayEmail);
 
-  try {
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const result = await query(`
-      INSERT INTO users (id, normalised_email, password, is_admin, given_name, family_name, companyid, display_email) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      ON CONFLICT (normalised_email) DO UPDATE 
-      SET 
-          password = EXCLUDED.password,
-          is_admin = EXCLUDED.is_admin,
-          given_name = EXCLUDED.given_name,
-          family_name = EXCLUDED.family_name,
-          companyid = EXCLUDED.companyid,
-          display_email = EXCLUDED.display_email
-      RETURNING *`,
-      [userId, normalisedEmail, hashedPassword, is_admin, givenName, familyName, companyId, displayEmail]
-    );    
-    if (result.length === 0) {
-      throw new AccessError('Unable to register user: ');
-    }
-    return result[0];
-  } catch (error) {
-    throw new AuthenticationError(error.message);
+  const existingUser = await query(
+    'SELECT id FROM users WHERE normalised_email = $1',
+    [normalisedEmail]
+  );
+
+  if (existingUser.length > 0) {
+    throw new AuthenticationError('An account with this email address already exists. Please log in.');
   }
+
+  const userId = uuidv4();
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  
+  const result = await query(`
+    INSERT INTO users (id, normalised_email, password, is_admin, given_name, family_name, companyid, display_email) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING *`,
+    [userId, normalisedEmail, hashedPassword, is_admin, givenName, familyName, companyId, displayEmail]
+  );
+  
+  if (result.length === 0) {
+    throw new AccessError('Unable to register user.');
+  }
+  return result[0];
 }
 
 export async function deleteUser(userId, sessionId) {
@@ -239,12 +238,36 @@ async function getUserInfo(token) {
 export async function saveUserQbButton(token, companyId) {
   try {
     const userInfo = await getUserInfo(token);
-    const password = crypto.randomBytes(16).toString('hex');
-   
-    const response = await register(userInfo.email, password, true, userInfo.givenName, userInfo.familyName, companyId, userInfo.sub);
-    return response;
+    const normalisedEmail = validator.normalizeEmail(userInfo.email);
+
+    // Check if a user with this email already exists in your database
+    const existingUserResult = await query(
+      'SELECT * FROM users WHERE normalised_email = $1',
+      [normalisedEmail]
+    );
+
+    // If the user exists, return their data immediately.
+    if (existingUserResult.length > 0) {
+      console.log(`Existing user re-authenticated: ${normalisedEmail}`);
+      return existingUserResult[0];
+    } 
+    
+    else {
+      console.log(`New user registering via QuickBooks: ${normalisedEmail}`);
+      const password = crypto.randomBytes(16).toString('hex');
+      
+      const newUser = await register(
+        userInfo.email,
+        password,
+        true, // is_admin
+        userInfo.givenName,
+        userInfo.familyName,
+        companyId
+      );
+      return newUser;
+    }
   } catch (e) {
-    throw new AccessError(e.message);
+    throw new AccessError(`Failed during QuickBooks user processing: ${e.message}`);
   }
 }
 
