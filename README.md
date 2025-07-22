@@ -144,9 +144,8 @@ AES_SECRET_KEY=a-32-byte-long-secret-key-for-aes-256
 
 The frontend will be available at `http://localhost:3000` and the backend at `http://localhost:5033`.
 
----
 
 ## API Documentation
 
 API endpoints are documented using Swagger. Once the backend server is running, the documentation is available at `http://localhost:5033/docs`.
-```
+
