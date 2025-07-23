@@ -62,15 +62,6 @@ async function filterEstimates(responseData, companyId) {
     const customerRef = estimate.CustomerRef;
     const orderNote = estimate.CustomerMemo;
 
-    const timeStarted = new Intl.DateTimeFormat('en-AU', {
-      timeZone: 'Australia/Sydney',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).format(new Date());
     return {
       quoteId: estimate.Id,
       customerId: customerRef.value,
@@ -78,8 +69,7 @@ async function filterEstimates(responseData, companyId) {
       productInfo,
       totalAmount: estimate.TotalAmt,
       orderStatus: 'pending',
-      timeStarted,
-      lastModified: timeStarted,
+      lastModified: estimate.MetaData.LastUpdatedTime,
       companyId,
       orderNote: orderNote?.value || null
     };
@@ -119,25 +109,16 @@ export async function estimateToDB(quote) {
         [quote.quoteId]
       );
       if (existingQuote.rows.length > 0) {
-        const lastModified = new Intl.DateTimeFormat('en-AU', {
-          timeZone: 'Australia/Sydney',
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        }).format(new Date());
         // Quote exists, update it
         await client.query(
-          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, timestarted = $6, lastmodified = $7, ordernote = $8 WHERE quoteid = $1',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, lastModified, quote.orderNote]
+          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, ordernote = $6 WHERE quoteid = $1',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.orderNote]
         );
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified, companyid, ordernote) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, quote.lastModified, quote.companyId, quote.orderNote]
+          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified, companyid, ordernote) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.companyId, quote.orderNote]
         );
       }
 

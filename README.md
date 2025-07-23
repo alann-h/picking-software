@@ -87,7 +87,7 @@ Clone the repository and create a `.env` file in the `./backend` directory. Popu
 
 ```env
 # Server Configuration
-NODE_ENV=development
+NODE_ENV=sandbox
 BACKEND_PORT=5033
 
 # Database
@@ -105,6 +105,8 @@ REDIRECT_URI_DEV=http://localhost:5033/auth/callback
 # AWS Configuration
 AWS_REGION=...
 AWS_BUCKET_NAME=...
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
 # (Ensure your local environment or server has AWS credentials configured)
 
 # Encryption Key for Tokens

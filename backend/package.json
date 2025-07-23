@@ -6,9 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "dev:worker": "nodemon src/worker.js",
     "start": "node src/server.js",
-    "start:worker": "node src/worker.js",
     "lint": "eslint src/*.js",
     "test": "jest"
   },

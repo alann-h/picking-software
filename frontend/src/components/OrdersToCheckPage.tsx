@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -9,14 +10,22 @@ import {
   Grid,
   CircularProgress,
   Paper,
+  Stack,
 } from '@mui/material';
-import InboxIcon from '@mui/icons-material/Inbox'; // NEW: Icon for empty state
-import { useNavigate } from 'react-router-dom';
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
+import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
+import UpdateOutlinedIcon from '@mui/icons-material/UpdateOutlined';
+import AllInboxOutlinedIcon from '@mui/icons-material/AllInboxOutlined';
+import { Helmet } from 'react-helmet-async';
+
+// Context and API Imports
 import { useSnackbarContext } from './SnackbarContext';
 import { getQuotesWithStatus } from '../api/quote';
 import { getUserStatus } from '../api/user';
-import { Helmet } from 'react-helmet-async';
 
+// =================================================================
+// 1. INTERFACE
+// =================================================================
 interface Quote {
   id: string;
   customerName: string;
@@ -24,7 +33,10 @@ interface Quote {
   lastModified: string;
 }
 
-const OrdersToCheckPage: React.FC = () => {
+// =================================================================
+// 2. LOGIC HOOK
+// =================================================================
+const useOrdersToCheck = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { handleOpenSnackbar } = useSnackbarContext();
@@ -32,17 +44,21 @@ const OrdersToCheckPage: React.FC = () => {
 
   useEffect(() => {
     const fetchQuotes = async () => {
+      setIsLoading(true);
       try {
         const userStatus = await getUserStatus();
         if (!userStatus.isAdmin) {
+          handleOpenSnackbar('Access denied. Admin privileges required.', 'warning');
           navigate('/dashboard');
           return;
         }
 
         const fetchedQuotes = await getQuotesWithStatus('checking');
+        console.log(fetchedQuotes);
         setQuotes(fetchedQuotes);
       } catch (error) {
-        handleOpenSnackbar('Failed to fetch quotes', 'error');
+        console.error("Failed to fetch quotes:", error);
+        handleOpenSnackbar('Failed to fetch orders to check.', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -51,80 +67,116 @@ const OrdersToCheckPage: React.FC = () => {
     fetchQuotes();
   }, [handleOpenSnackbar, navigate]);
 
-  const handleQuoteClick = (quoteId: string) => {
-    navigate(`/quote?id=${quoteId}`);
-  };
+  return { quotes, isLoading };
+};
 
-  if (isLoading) {
+// =================================================================
+// 3. CHILD UI COMPONENTS
+// =================================================================
+const EmptyState: React.FC = () => (
+  <Paper
+    variant="outlined"
+    sx={{
+      mt: 4,
+      p: { xs: 3, sm: 6 },
+      textAlign: 'center',
+      backgroundColor: (theme) => theme.palette.grey[50],
+    }}
+  >
+    <Stack spacing={2} alignItems="center">
+      <AllInboxOutlinedIcon sx={{ fontSize: 60, color: 'grey.400' }} />
+      <Typography variant="h6" sx={{ fontWeight: 500 }}>
+        You&apos;re all caught up!
+      </Typography>
+      <Typography variant="body1" color="text.secondary">
+        There are no orders pending review at the moment.
+      </Typography>
+    </Stack>
+  </Paper>
+);
+
+const QuoteCard: React.FC<{ quote: Quote }> = ({ quote }) => {
+  const navigate = useNavigate();
+  const handleQuoteClick = () => navigate(`/quote?id=${quote.id}`);
+
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        height: '100%',
+        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: (theme) => `0 4px 20px ${theme.palette.action.hover}`,
+        },
+      }}
+    >
+      <CardActionArea onClick={handleQuoteClick} sx={{ height: '100%' }}>
+        <CardContent>
+          <Typography variant="h6" component="h2" gutterBottom sx={{ fontWeight: '600' }}>
+            Quote #{quote.id}
+          </Typography>
+          <Stack spacing={1.5} sx={{ mt: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PersonOutlineOutlinedIcon color="action" />
+              <Typography variant="body2">{quote.customerName}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <MonetizationOnOutlinedIcon color="action" />
+              <Typography variant="body2">${quote.totalAmount.toFixed(2)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <UpdateOutlinedIcon color="action" />
+              <Typography variant="body2" color="text.secondary">
+                {quote.lastModified}
+              </Typography>
+            </Box>
+          </Stack>
+        </CardContent>
+      </CardActionArea>
+    </Card>
+  );
+};
+
+// =================================================================
+// 4. MAIN EXPORTED COMPONENT
+// =================================================================
+const OrdersToCheckPage: React.FC = () => {
+  const { quotes, isLoading } = useOrdersToCheck();
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: '60vh' }}>
+          <CircularProgress size={60} />
+        </Box>
+      );
+    }
+
+    if (quotes.length === 0) {
+      return <EmptyState />;
+    }
+
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-        <CircularProgress size={60} thickness={5} />
-      </Box>
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        {quotes.map((quote) => (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={quote.id}>
+            <QuoteCard quote={quote} />
+          </Grid>
+        ))}
+      </Grid>
     );
-  }
+  };
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Helmet>
         <title>Smart Picker | Orders To Check</title>
       </Helmet>
-      <Typography variant="h4" gutterBottom color="primary" fontWeight="bold">
-        Orders to Check
+      <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+        Orders Pending Review
       </Typography>
-
-      {quotes.length === 0 ? (
-        <Paper
-          elevation={3}
-          sx={{
-            mt: 6,
-            py: 6,
-            px: 4,
-            textAlign: 'center',
-            backgroundColor: theme => theme.palette.background.default,
-          }}
-        >
-          <InboxIcon sx={{ fontSize: 64, color: 'text.secondary' }} />
-          <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
-            You&apos;re all caught up!
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            There are no orders pending review at the moment.
-          </Typography>
-        </Paper>
-      ) : (
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          {quotes.map((quote) => (
-            <Grid size={{ xs: 12, md: 4, sm: 6 }} key={quote.id}>
-              <Card
-                sx={{
-                  transition: '0.3s',
-                  '&:hover': {
-                    boxShadow: 6,
-                    transform: 'scale(1.02)',
-                  },
-                }}
-              >
-                <CardActionArea onClick={() => handleQuoteClick(quote.id)}>
-                  <CardContent>
-                    <Typography variant="h6" fontWeight="bold">
-                      Quote #{quote.id}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Customer: {quote.customerName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total: ${quote.totalAmount.toFixed(2)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Last Updated: {quote.lastModified}
-                    </Typography>
-                  </CardContent>
-                </CardActionArea>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+      {renderContent()}
     </Container>
   );
 };

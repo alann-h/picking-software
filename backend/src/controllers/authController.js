@@ -22,6 +22,7 @@ export async function callback(req, res, next) {
     req.session.companyId = companyInfo.companyid;
     req.session.isAdmin = true;
     req.session.userId = user.id;
+    req.session.name = user.given_name;
 
     req.session.save(err => {
       if (err) return next(err);
@@ -45,6 +46,7 @@ export async function login(req, res, next) {
     req.session.isAdmin = user.is_admin;
     req.session.userId = user.id;
     req.session.companyId = user.companyid;
+    req.session.name = user.given_name;
 
     res.json(user);
   } catch (err) {

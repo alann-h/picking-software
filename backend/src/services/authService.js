@@ -136,13 +136,11 @@ export async function login(email, password) {
       throw new AuthenticationError('Invalid password');
     }
 
-    // Decrypt the token before using it if it's stored encrypted
     const decryptedToken = decryptToken(user.token);
 
     try {
       const refreshedToken = await refreshToken(decryptedToken);
 
-      // Encrypt the refreshed token for storage if it has changed
       if (JSON.stringify(refreshedToken) !== JSON.stringify(decryptedToken)) {
         const encryptedToken = encryptToken(refreshedToken);
         // Update the company's token in the database with the newly encrypted token
@@ -150,7 +148,7 @@ export async function login(email, password) {
           'UPDATE companies SET qb_token = $1::jsonb WHERE companyid = $2',
           [encryptedToken, user.companyid]
         );
-        user.token = refreshedToken; // Optionally update the user object
+        user.token = refreshedToken;
       }
     } catch (error) {
       // 💡 CATCH THE SPECIFIC REVOKED TOKEN ERROR
