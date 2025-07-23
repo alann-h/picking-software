@@ -1,25 +1,34 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query, transaction, makeCustomApiCall, roundQuantity } from '../helpers.js';
-import { getOAuthClient, getBaseURL, getCompanyId } from './authService.js';
+import { getOAuthClient, getBaseURL } from './authService.js';
 import { getProductFromDB, productIdToQboId } from './productService.js';
 
-export async function getCustomerQuotes(customerId, token) {
+export async function getCustomerQuotes(customerId, companyId) {
   try {
-    const oauthClient = await getOAuthClient(token);
+    const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
-    const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
 
     const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
     const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyID}/query?query=${queryStr}&minorversion=75`
+      url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
-    const responseJSON = JSON.parse(response.text());
-    const filteredEstimates = responseJSON.QueryResponse.Estimate.filter(estimate => estimate.TxnStatus !== 'Closed');
-    return filteredEstimates;
+    const responseJSON = response.json;
+    const estimates = responseJSON.QueryResponse.Estimate || [];
+
+    const customerQuotes = estimates
+      .filter(quote => quote.TxnStatus !== 'Closed')
+      .map(quote => ({
+        Id: quote.Id,
+        TotalAmt: quote.TotalAmt,
+        CustomerName: quote.CustomerRef.name,
+        LastUpdatedTime: quote.MetaData.LastUpdatedTime,
+      }));
+
+    return customerQuotes;
   } catch {
     throw new InputError('This quote does not exist');
   }
@@ -53,15 +62,6 @@ async function filterEstimates(responseData, companyId) {
     const customerRef = estimate.CustomerRef;
     const orderNote = estimate.CustomerMemo;
 
-    const timeStarted = new Intl.DateTimeFormat('en-AU', {
-      timeZone: 'Australia/Sydney',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).format(new Date());
     return {
       quoteId: estimate.Id,
       customerId: customerRef.value,
@@ -69,8 +69,7 @@ async function filterEstimates(responseData, companyId) {
       productInfo,
       totalAmount: estimate.TotalAmt,
       orderStatus: 'pending',
-      timeStarted,
-      lastModified: timeStarted,
+      lastModified: estimate.MetaData.LastUpdatedTime,
       companyId,
       orderNote: orderNote?.value || null
     };
@@ -78,21 +77,20 @@ async function filterEstimates(responseData, companyId) {
   return Promise.all(filteredEstimatesPromises);
 }
 
-export async function getQbEstimate(quoteId, token, rawDataNeeded) {
+export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
   try {
-    const oauthClient = await getOAuthClient(token);
+    const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
 
-    const companyId = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
     const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyId}/query?query=${queryStr}&minorversion=75`
+      url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
-    const responseData = JSON.parse(estimateResponse.text());
+    const responseData = estimateResponse.json;
     if (rawDataNeeded) return responseData;
     
     const filteredQuote = await filterEstimates(responseData, companyId);
@@ -111,25 +109,16 @@ export async function estimateToDB(quote) {
         [quote.quoteId]
       );
       if (existingQuote.rows.length > 0) {
-        const lastModified = new Intl.DateTimeFormat('en-AU', {
-          timeZone: 'Australia/Sydney',
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        }).format(new Date());
         // Quote exists, update it
         await client.query(
-          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, timestarted = $6, lastmodified = $7, ordernote = $8 WHERE quoteid = $1',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, lastModified, quote.orderNote]
+          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, ordernote = $6 WHERE quoteid = $1',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.orderNote]
         );
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified, companyid, ordernote) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.timeStarted, quote.lastModified, quote.companyId, quote.orderNote]
+          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified, companyid, ordernote) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.companyId, quote.orderNote]
         );
       }
 
@@ -275,7 +264,7 @@ export async function processBarcode(barcode, quoteId, newQty) {
   }
 }
 
-export async function addProductToQuote(productId, quoteId, qty, token, companyId) {
+export async function addProductToQuote(productId, quoteId, qty, companyId) {
   try {
     const product = await query('SELECT * FROM products WHERE productid = $1', [productId]);
     if (product.length === 0) {
@@ -303,7 +292,7 @@ export async function addProductToQuote(productId, quoteId, qty, token, companyI
           [qty, pickingStatus, quoteId, productId]
         );
       } else {
-          const oauthClient = await getOAuthClient(token);
+          const oauthClient = await getOAuthClient(companyId);
           if (!oauthClient) {
             throw new AccessError('OAuth client could not be initialised');
           }
@@ -411,9 +400,9 @@ export async function savePickerNote(quoteId, note) {
   }
 }
 
-export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, token) {
+export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, companyId) {
   try {
-    const oauthClient = await getOAuthClient(token);
+    const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
@@ -454,11 +443,10 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     }
 
     // Update the quote in QuickBooks
-    const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     await makeCustomApiCall(
       oauthClient,
-      `${baseURL}v3/company/${companyID}/estimate?operation=update&minorversion=75`,
+      `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
       'POST',
       updatePayload
     );

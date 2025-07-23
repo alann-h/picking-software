@@ -7,7 +7,8 @@ import { getJobProgress } from '../api/products';
 
 interface FileUploadProps {
   onFileSelect: (file: File | null) => void;
-  onUpload: () => Promise<{ jobId: number }>;
+  // CHANGED: jobId is a string
+  onUpload: () => Promise<{ jobId: string }>;
   selectedFile: File | null;
   onSuccess?: () => void;
 }
@@ -17,13 +18,23 @@ type UploadState = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
 const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selectedFile, onSuccess }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadState, setUploadState] = useState<UploadState>('idle');
-  const [jobId, setJobId] = useState<number | null>(null);
+  // CHANGED: jobId state is a string
+  const [jobId, setJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
   const pollIntervalRef = useRef<NodeJS.Timeout>();
+
+  // This effect runs once on mount to check for an existing job
+  useEffect(() => {
+    const savedJobId = localStorage.getItem('activeJobId');
+    if (savedJobId) {
+      setJobId(savedJobId);
+      setUploadState('processing');
+    }
+  }, []);
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -65,6 +76,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
     try {
       const { jobId } = await onUpload();
       setJobId(jobId);
+      // Save the active job ID to localStorage
+      localStorage.setItem('activeJobId', jobId);
       setUploadState('processing');
     } catch (error) {
       console.error("Upload failed:", error);
@@ -79,50 +92,55 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
     setJobId(null);
     setProgress(0);
     setProgressMessage('');
+    // Clear the job ID from storage on reset
+    localStorage.removeItem('activeJobId');
   };
 
   // This effect will start polling when a jobId is set
-  useEffect(() => {
-    const pollProgress = async () => {
-      if (!jobId) return;
-
-      try {
-        const response = await getJobProgress(jobId);
-        const { state, progress: jobProgress } = response;
-        
-        setProgress(jobProgress?.percentage || 0);
-        setProgressMessage(jobProgress?.message || 'Processing...');
-
-        if (state === 'completed') {
-          setUploadState('success');
-          setProgress(100);
-          setProgressMessage('Processing complete!');
-          clearInterval(pollIntervalRef.current);
-          if (onSuccess) {
-            onSuccess();
-          }
-        } else if (state === 'failed') {
-          setUploadState('error');
-          setProgressMessage('An error occurred during processing.');
-          clearInterval(pollIntervalRef.current);
-        }
-      } catch (error) {
-        console.error("Polling error:", error);
-        setUploadState('error');
-        setProgressMessage('Could not fetch progress.');
-        clearInterval(pollIntervalRef.current);
+useEffect(() => {
+  const poll = async (currentJobId: string) => {
+    try {
+      const { state, progress: jobProgress, error } = await getJobProgress(currentJobId);
+      
+      if (state === 'completed') {
+        setUploadState('success');
+        setProgress(100);
+        setProgressMessage('Processing complete!');
+        localStorage.removeItem('activeJobId');
+        if (onSuccess) onSuccess();
+        return;
       }
-    };
+      
+      if (state === 'failed') {
+        setUploadState('error');
+        setProgressMessage(error || 'An error occurred during processing.');
+        localStorage.removeItem('activeJobId');
+        return;
+      }
 
-    if (uploadState === 'processing' && jobId) {
-      pollIntervalRef.current = setInterval(pollProgress, 2000); // Poll every 2 seconds
+      // If still processing, update progress and schedule the next poll
+      setProgress(jobProgress?.percentage || 0);
+      setProgressMessage(jobProgress?.message || 'Processing...');
+      pollIntervalRef.current = setTimeout(() => poll(currentJobId), 2000);
+
+    } catch (err) {
+      console.error("Polling error:", err);
+      setUploadState('error');
+      setProgressMessage('Could not fetch progress.');
+      localStorage.removeItem('activeJobId');
     }
+  };
 
-    // Cleanup interval on component unmount or state change
-    return () => {
-      clearInterval(pollIntervalRef.current);
-    };
-  }, [uploadState, jobId, onSuccess]);
+  if (uploadState === 'processing' && jobId) {
+    poll(jobId);
+  }
+
+  return () => {
+    if (pollIntervalRef.current) {
+      clearTimeout(pollIntervalRef.current);
+    }
+  };
+}, [uploadState, jobId, onSuccess]);
 
 
   return (

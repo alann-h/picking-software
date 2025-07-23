@@ -4,8 +4,9 @@ import { query, transaction, encryptToken, decryptToken } from '../helpers.js';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
+import crypto from 'crypto';
 
-function initializeOAuthClient() {
+export function initializeOAuthClient() {
   const environment = process.env.NODE_ENV;
   const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
   const clientSecret = environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
@@ -83,18 +84,34 @@ export async function refreshToken(token) {
   }
 }
 
-export async function getOAuthClient(token) {
-  if (!token) {
-    return null;
+export async function getOAuthClient(companyId) {
+  if (!companyId) {
+    throw new Error('A companyId is required to get the QuickBooks client.');
   }
-  try {
-    const refreshedToken = await refreshToken(token);
-    const oauthClient = initializeOAuthClient();
-    oauthClient.setToken(refreshedToken);
-    return oauthClient;
-  } catch (e) {
-    throw new AccessError('Error getting OAuth client: ' + e.message);
+
+  const result = await query('SELECT qb_token FROM companies WHERE companyid = $1', [companyId]);
+  if (!result || result.length === 0 || !result[0].qb_token) {
+    throw new AuthenticationError('QBO_REAUTH_REQUIRED');
   }
+
+  const encryptedTokenFromDB = result[0].qb_token;
+  const decryptedToken = decryptToken(encryptedTokenFromDB);
+
+  const refreshedToken = await refreshToken(decryptedToken);
+
+
+  if (refreshedToken.access_token !== decryptedToken.access_token) {
+    console.log('Saving new token to the database for company:', companyId);
+    const newlyEncryptedToken = encryptToken(refreshedToken);
+    await query(
+      'UPDATE companies SET qb_token = $1 WHERE companyid = $2',
+      [newlyEncryptedToken, companyId]
+    );
+  }
+
+  const oauthClient = initializeOAuthClient();
+  oauthClient.setToken(refreshedToken);
+  return oauthClient;
 }
 
 export async function login(email, password) {
@@ -119,13 +136,11 @@ export async function login(email, password) {
       throw new AuthenticationError('Invalid password');
     }
 
-    // Decrypt the token before using it if it's stored encrypted
     const decryptedToken = decryptToken(user.token);
 
     try {
       const refreshedToken = await refreshToken(decryptedToken);
 
-      // Encrypt the refreshed token for storage if it has changed
       if (JSON.stringify(refreshedToken) !== JSON.stringify(decryptedToken)) {
         const encryptedToken = encryptToken(refreshedToken);
         // Update the company's token in the database with the newly encrypted token
@@ -133,7 +148,7 @@ export async function login(email, password) {
           'UPDATE companies SET qb_token = $1::jsonb WHERE companyid = $2',
           [encryptedToken, user.companyid]
         );
-        user.token = refreshedToken; // Optionally update the user object
+        user.token = refreshedToken;
       }
     } catch (error) {
       // 💡 CATCH THE SPECIFIC REVOKED TOKEN ERROR
@@ -150,33 +165,32 @@ export async function login(email, password) {
 }
 
 export async function register(displayEmail, password, is_admin, givenName, familyName, companyId) {
-  const userId = uuidv4();
   const saltRounds = 10;
   const normalisedEmail = validator.normalizeEmail(displayEmail);
 
-  try {
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const result = await query(`
-      INSERT INTO users (id, normalised_email, password, is_admin, given_name, family_name, companyid, display_email) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      ON CONFLICT (normalised_email) DO UPDATE 
-      SET 
-          password = EXCLUDED.password,
-          is_admin = EXCLUDED.is_admin,
-          given_name = EXCLUDED.given_name,
-          family_name = EXCLUDED.family_name,
-          companyid = EXCLUDED.companyid,
-          display_email = EXCLUDED.display_email
-      RETURNING *`,
-      [userId, normalisedEmail, hashedPassword, is_admin, givenName, familyName, companyId, displayEmail]
-    );    
-    if (result.length === 0) {
-      throw new AccessError('Unable to register user: ');
-    }
-    return result[0];
-  } catch (error) {
-    throw new AuthenticationError(error.message);
+  const existingUser = await query(
+    'SELECT id FROM users WHERE normalised_email = $1',
+    [normalisedEmail]
+  );
+
+  if (existingUser.length > 0) {
+    throw new AuthenticationError('An account with this email address already exists. Please log in.');
   }
+
+  const userId = uuidv4();
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  
+  const result = await query(`
+    INSERT INTO users (id, normalised_email, password, is_admin, given_name, family_name, companyid, display_email) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING *`,
+    [userId, normalisedEmail, hashedPassword, is_admin, givenName, familyName, companyId, displayEmail]
+  );
+  
+  if (result.length === 0) {
+    throw new AccessError('Unable to register user.');
+  }
+  return result[0];
 }
 
 export async function deleteUser(userId, sessionId) {
@@ -222,12 +236,36 @@ async function getUserInfo(token) {
 export async function saveUserQbButton(token, companyId) {
   try {
     const userInfo = await getUserInfo(token);
-    const password = process.env.QBO_PASS;
-   
-    const response = await register(userInfo.email, password, true, userInfo.givenName, userInfo.familyName, companyId, userInfo.sub);
-    return response;
+    const normalisedEmail = validator.normalizeEmail(userInfo.email);
+
+    // Check if a user with this email already exists in your database
+    const existingUserResult = await query(
+      'SELECT * FROM users WHERE normalised_email = $1',
+      [normalisedEmail]
+    );
+
+    // If the user exists, return their data immediately.
+    if (existingUserResult.length > 0) {
+      console.log(`Existing user re-authenticated: ${normalisedEmail}`);
+      return existingUserResult[0];
+    } 
+    
+    else {
+      console.log(`New user registering via QuickBooks: ${normalisedEmail}`);
+      const password = crypto.randomBytes(16).toString('hex');
+      
+      const newUser = await register(
+        userInfo.email,
+        password,
+        true, // is_admin
+        userInfo.givenName,
+        userInfo.familyName,
+        companyId
+      );
+      return newUser;
+    }
   } catch (e) {
-    throw new AccessError('Could not get user information: ' + e.message);
+    throw new AccessError(`Failed during QuickBooks user processing: ${e.message}`);
   }
 }
 

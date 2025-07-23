@@ -4,6 +4,8 @@ node_modules/
 .env
 
 *.yml
-# This is the start file which runs the connection to the aws tunnel and starts docker-compose.yml
-/start.sh
+
+# Used to run code locally on pc
 /start-dev.sh
+
+lambda-function/

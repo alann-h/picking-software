@@ -157,14 +157,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                     {...params}
                     label="Select Product"
                     variant="outlined"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {isLoading && <CircularProgress size={20} />}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
+                    slotProps={{
+                      input: {
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {isLoading && <CircularProgress size={20} />}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }
                     }}
                   />
                 )}
@@ -188,7 +190,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                   type="number"
                   value={numeratorInput}
                   onChange={handleNumeratorChange}
-                  inputProps={{ min: 0 }}
+                  slotProps={{ htmlInput : {min: 0 }}}
                   fullWidth
                   margin="dense"
                   error={parseFloat(numeratorInput) < 0}
@@ -199,7 +201,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                   type="number"
                   value={denominatorInput}
                   onChange={handleDenominatorChange}
-                  inputProps={{ min: 1 }}
+                  slotProps={{ htmlInput : {min: 1 }}}
                   fullWidth
                   margin="dense"
                   error={isInvalidFraction}
@@ -212,31 +214,30 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                 type="number"
                 value={decimalInput}
                 onChange={handleDecimalChange}
-                inputProps={{
-                  min: 0,
-                  step: 'any',
-                }}
                 fullWidth
                 margin="dense"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconButton onClick={handleDecrement} size="small">
-                        <RemoveIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={handleIncrement} size="small">
-                        <AddIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
                 helperText={isTooLow ? 'Enter a number greater than zero' : ''}
                 error={isTooLow}
                 sx={{ mb: 3 }}
+                slotProps={{ 
+                  htmlInput : { min: 0, step: 'any' }, 
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <IconButton onClick={handleDecrement} size="small">
+                          <RemoveIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={handleIncrement} size="small">
+                          <AddIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }
+                }}
               />
             )}
 

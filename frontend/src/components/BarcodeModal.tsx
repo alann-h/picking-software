@@ -110,7 +110,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
               type="number"
               value={numeratorInput}
               onChange={handleNumeratorChange}
-              inputProps={{ min: 0 }}
+              slotProps={{ htmlInput: { min: 0 }}}
               fullWidth
               margin="dense"
             />
@@ -119,7 +119,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
               type="number"
               value={denominatorInput}
               onChange={handleDenominatorChange}
-              inputProps={{ min: 1 }}
+              slotProps={{ htmlInput: { min: 1 }}}
               fullWidth
               margin="dense"
               helperText={
@@ -134,10 +134,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
             type="number"
             value={decimalInput}
             onChange={handleDecimalChange}
-            inputProps={{
-              min: 0,
-              step: 'any',
-            }}
+            slotProps={{ htmlInput: { min: 0, step: 'any' }}}
             fullWidth
             margin="dense"
             helperText={

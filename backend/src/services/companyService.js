@@ -1,18 +1,16 @@
 import { AccessError } from '../middlewares/errorHandler.js';
 import { encryptToken, query, transaction } from '../helpers.js';
-import { getOAuthClient, getBaseURL, getCompanyId } from './authService.js';
+import { initializeOAuthClient, getBaseURL } from './authService.js';
 
-export async function getCompanyInfo(token) {
+export async function getCompanyInfo(oauthClient, companyId) {
     try {
-        const oauthClient = await getOAuthClient(token);
-        const companyId = getCompanyId(oauthClient);
         const baseURL = getBaseURL(oauthClient);
         const queryStr = `SELECT * FROM CompanyInfo`;
     
         const response = await oauthClient.makeApiCall({
-            url: `${baseURL}v3/company/${companyId}/query?query=${queryStr}&minorversion=75`
+            url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
           });
-        const responseJSON = JSON.parse(response.text());
+        const responseJSON = response.json;
         // filter out if Email.Address is donotreply@intuit.com meaning it's a test company .filter(company => company.Email.Address !== 'donotreply@intuit.com');
         const companyInfoFull = responseJSON.QueryResponse.CompanyInfo[0];
         const companyInfo =  {
@@ -29,7 +27,10 @@ export async function getCompanyInfo(token) {
 
 export async function saveCompanyInfo(token) {
     try {
-        const companyInfo = await getCompanyInfo(token);
+        const tempOAuthClient = initializeOAuthClient();
+        tempOAuthClient.setToken(token);
+
+        const companyInfo = await getCompanyInfo(tempOAuthClient, token.realmId);
         const encryptedToken = await encryptToken(token);
         const result = await query(`
             INSERT INTO companies (company_name, companyid, qb_token) 
@@ -55,6 +56,7 @@ export async function removeQuickBooksData(companyId) {
             client.query('DELETE FROM quoteitems WHERE companyid = $1', [companyId]),
             client.query('DELETE FROM products WHERE companyid = $1', [companyId]),
             client.query('DELETE FROM quotes WHERE companyid = $1', [companyId]),
+            client.query('DELETE FROM jobs WHERE companyid = $1', [companyId])
         ]);
 
         await client.query('DELETE FROM companies WHERE companyid = $1', [companyId]); // Delete company last

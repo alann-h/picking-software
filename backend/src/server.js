@@ -1,39 +1,42 @@
 // src/server.js
+
+// --- Core & External Imports
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
-import { doubleCsrf } from 'csrf-csrf';
-import swaggerUi from 'swagger-ui-express';
-import { readFile } from 'fs/promises';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import multer from 'multer';
 import pgSession from 'connect-pg-simple';
-import IORedis from 'ioredis';
-import { Queue } from 'bullmq';
-
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import swaggerUi from 'swagger-ui-express';
+import { doubleCsrf } from 'csrf-csrf';
+import { readFile } from 'fs/promises';
 import { createReadStream, unlink as fsUnlink } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { promisify } from 'util';
 
+// --- AWS SDK Imports
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
+
+// --- Local Imports
 import authRoutes from './routes/authRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import quoteRoutes from './routes/quoteRoutes.js';
 import productRoutes from './routes/productRoutes.js';
-
 import asyncHandler from './middlewares/asyncHandler.js';
-import { isAuthenticated, decryptSessionToken } from './middlewares/authMiddleware.js';
+import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
-
+import { transaction } from './helpers.js';
+import { insertProducts } from './services/productService.js';
+import { getOAuthClient } from './services/authService.js';
 import pool from './db.js';
 
 dotenv.config({ path: '.env' });
 
 const app = express();
-
 const unlinkAsync = promisify(fsUnlink);
 
 // — CORS
@@ -47,22 +50,10 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// — Redis & BullMQ setup
-const redisConn = new IORedis(process.env.REDIS_URL, {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  family: 6,
-});
-export const productQueue = new Queue('products', { connection: redisConn });
-
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
-const S3_BUCKET_NAME = process.env.AWS_BUCKET_NAME; 
+// --- AWS Clients
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
+const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
+const S3_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
 
 // — Express proxy/trust
 app.set('trust proxy', 1);
@@ -110,23 +101,84 @@ const { generateToken, doubleCsrfProtection } = doubleCsrf({
   getTokenFromRequest: req => req.headers['x-csrf-token'],
 });
 
+// Middleware to protect internal endpoints by checking for a secret key
+const verifyInternalRequest = (req, res, next) => {
+  const apiKey = req.headers['x-internal-api-key'];
+  if (apiKey && apiKey === process.env.INTERNAL_API_KEY) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized' });
+};
+
+// --- ROUTES ---
+
+// --- INTERNAL ROUTES (NO CSRF) ---
+app.post('/internal/save-products', verifyInternalRequest, asyncHandler(async (req, res) => {
+  const { products, companyId } = req.body;
+  const client = await pool.connect();
+  try {
+    await transaction(async (transactionClient) => {
+      await insertProducts(products, companyId, transactionClient);
+    });
+    res.status(200).json({ message: 'Products saved successfully.' });
+  } finally {
+    client.release();
+  }
+}));
+
+app.post('/internal/jobs/:jobId/progress', verifyInternalRequest, asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+  const { status, percentage, message, errorDetails } = req.body;
+  await pool.query(
+    `UPDATE jobs SET
+        status = $1,
+        progress_percentage = $2,
+        progress_message = $3,
+        error_message = $4
+     WHERE id = $5`,
+    [status, percentage, message, errorDetails, jobId]
+  );
+  res.sendStatus(200);
+}));
+
+app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) => {
+  const { jobId } = req.params;
+
+  const companyId = req.session.companyId;
+  const { rows } = await pool.query('SELECT * FROM jobs WHERE id = $1 AND companyid = $2', [jobId, companyId]);
+
+  const job = rows[0];
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  res.json({
+    jobId: job.id,
+    state: job.status,
+    progress: {
+      percentage: job.progress_percentage,
+      message: job.progress_message
+    },
+    error: job.error_message
+  });
+}));
+
+// Public & CSRF-protected routes
 app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken: generateToken(req, res) });
 });
-
 app.use(doubleCsrfProtection);
 
-// — Decrypt token on every request
-app.use(decryptSessionToken);
-
-// — Mount feature routers
+// Feature routes
 app.use('/auth', authRoutes);
 app.use('/customers', customerRoutes);
 app.use('/quotes', quoteRoutes);
 app.use('/products', productRoutes);
 
+// Utility routes
 app.get('/verifyUser', asyncHandler(async (req, res) => {
-  res.json({ isValid: !!req.session.token });
+  res.json({ isValid: !!req.session.userId });
 }));
 
 app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
@@ -136,8 +188,8 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   });
 }));
 
+// File upload route
 const upload = multer({ dest: '/tmp/' });
-
 app.post('/upload',
   isAuthenticated,
   upload.single('input'),
@@ -148,8 +200,6 @@ app.post('/upload',
 
     const localFilePath = req.file.path;
     const originalFileName = req.file.originalname;
-    // Create a unique key for S3 to avoid collisions and keep original name accessible
-    // Using Date.now() + original name to ensure uniqueness and readability
     const s3Key = `uploads/${Date.now()}-${originalFileName}`;
 
     try {
@@ -161,24 +211,42 @@ app.post('/upload',
         Body: fileStream,
         ContentType: req.file.mimetype,
       };
-
       await s3Client.send(new PutObjectCommand(uploadParams));
       console.log(`Successfully uploaded ${s3Key} to S3.`);
 
-      // 2. Add job to BullMQ queue, passing the S3 key
-      const job = await productQueue.add('process-and-save', {
+      // 2. Create a job record in your database
+      const dbResponse = await pool.query(
+        `INSERT INTO jobs (s3_key, companyid) VALUES ($1, $2) RETURNING id`,
+        [s3Key, req.session.companyId]
+      );
+      const jobId = dbResponse.rows[0].id;
+
+      const oauthClient = await getOAuthClient(req.session.companyId);
+      const freshTokenForLambda = oauthClient.getToken();
+
+      // 3. Prepare the payload for the Lambda function
+      const lambdaPayload = {
+        jobId: jobId,
         s3Key: s3Key,
         companyId: req.session.companyId,
-        token: req.decryptedToken,
-      });
+        token: freshTokenForLambda,
+      };
 
-      res.status(202).json({ message: 'File queued for processing', jobId: job.id });
+      // 4. Invoke the Lambda function asynchronously
+      const invokeCommand = new InvokeCommand({
+        FunctionName: 'product-processor',
+        InvocationType: 'Event',
+        Payload: JSON.stringify(lambdaPayload),
+      });
+      await lambdaClient.send(invokeCommand);
+
+      // 5. Respond to the client with the new job ID from the database
+      res.status(202).json({ message: 'File queued for processing', jobId: jobId });
 
     } catch (error) {
-      console.error('Error during file upload to S3 or queueing job:', error);
+      console.error('Error during file upload or Lambda invocation:', error);
       res.status(500).json({ error: 'Failed to process file upload.' });
     } finally {
-      // 3. Clean up the local temporary file after upload (important!)
       try {
         await unlinkAsync(localFilePath);
         console.log(`Cleaned up temporary local file: ${localFilePath}`);
@@ -188,21 +256,6 @@ app.post('/upload',
     }
   })
 );
-
-
-app.get('/job/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) => {
-  const { jobId } = req.params;
-  const job = await productQueue.getJob(jobId);
-
-  if (!job) {
-    return res.status(404).json({ error: 'Job not found' });
-  }
-
-  const state = await job.getState();
-  const progress = job.progress;
-
-  res.json({ jobId, state, progress });
-}));
 
 // — Swagger docs
 const __filename = fileURLToPath(import.meta.url);

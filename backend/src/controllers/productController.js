@@ -117,7 +117,7 @@ export async function addProduct(req, res, next) {
   try {
     const { productName, sku, barcode } = req.body;
     const productArr = [{ productName, sku, barcode }];
-    const result = await addProductDb(productArr, req.session.companyId, req.decryptedToken);
+    const result = await addProductDb(productArr, req.session.companyId);
     res.json(result);
   } catch (err) {
     next(err);

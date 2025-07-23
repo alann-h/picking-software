@@ -53,7 +53,7 @@ export const addProductDb = async (productName: string, sku: string, barcode: st
   return response;
 }
 
-export const getJobProgress = async (jobId: number) => {
-  const response = await apiCallGet(`job/${jobId}/progress`);
+export const getJobProgress = async (jobId: string) => {
+  const response = await apiCallGet(`jobs/${jobId}/progress`);
   return response;
 }

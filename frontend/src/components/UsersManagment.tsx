@@ -1,436 +1,202 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Switch,
-  TextField,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  CircularProgress,
-  Container
+    Box,
+    Button,
+    Container,
+    Typography,
+    Stack,
+    Alert,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, PowerOff as PowerOffIcon } from '@mui/icons-material';
 import { useSnackbarContext } from './SnackbarContext';
 import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from '../api/user';
 import { UserData } from '../utils/types';
 import { useNavigate } from 'react-router-dom';
 import { disconnectQB } from '../api/auth';
 import { Helmet } from 'react-helmet-async';
-import { z } from 'zod';
 
-const userSchema = z.object({
-  given_name: z.string().min(1, "First name is required."),
-  family_name: z.string(),
-  display_email: z.email("Please enter a valid email address."),
-  password: z.string()
-    .min(8, "Password must be at least 8 characters long.")
-    .refine(data => /[A-Z]/.test(data), "Password must contain an uppercase letter.")
-    .refine(data => /[0-9]/.test(data), "Password must contain a number.")
-    .refine(data => /[^A-Za-z0-9]/.test(data), "Password must contain a symbol."),
-  is_admin: z.boolean(),
-  id: z.string().optional(),
-  companyid: z.number().optional(),
-});
-
-const passwordUpdateSchema = userSchema.pick({ password: true });
-
-interface ErrorTree {
-  errors: string[];
-  properties?: {
-    [key: string]: ErrorTree;
-  }
-}
-type FormErrors = ErrorTree | null;
-
-const DEFAULT_USER: UserData & { password?: string } = {
-  id: '',
-  display_email: '',
-  password: '',
-  given_name: '',
-  family_name: '',
-  is_admin: false,
-  companyid: 1
-};
-
-type EditableField = keyof Omit<UserData, 'id' | 'companyid'> | 'password';
+// Import the new components
+import UserTable from './userManagement/UserTable';
+import AddUserDialog from './userManagement/AddUserDialog';
+import ConfirmationDialog from './userManagement/ConfirmationDialog';
+import UserTableSkeleton from './userManagement/UserTableSkeleton';
 
 const UsersManagement = () => {
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [isAddingUser, setIsAddingUser] = useState(false);
-  const [newUser, setNewUser] = useState<UserData & { password?: string }>(DEFAULT_USER);
-  const [isLoading, setIsLoading] = useState(true);
-  const { handleOpenSnackbar } = useSnackbarContext();
+    const [users, setUsers] = useState<UserData[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAddDialogOpen, setAddDialogOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+    const [isDisconnecting, setDisconnecting] = useState(false);
 
-  const [editingField, setEditingField] = useState<{
-    userId: string;
-    field: EditableField;
-    error?: string;
-  } | null>(null);
-  const [editValue, setEditValue] = useState('');
+    const { handleOpenSnackbar } = useSnackbarContext();
+    const navigate = useNavigate();
 
-  const [dialogErrors, setDialogErrors] = useState<FormErrors>(null);
+    const fetchUsers = useCallback(async () => {
+        try {
+            const fetchedUsers = await getAllUsers();
+            setUsers(fetchedUsers);
+        } catch (error) {
+            handleOpenSnackbar('Failed to fetch users', 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [handleOpenSnackbar]);
 
-  const navigate = useNavigate();
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const getUsers = await getAllUsers();
-        setUsers(getUsers);
-        setIsLoading(false);
-      } catch (error) {
-        handleOpenSnackbar('Failed to fetch users', 'error');
-        setIsLoading(false);
-      }
+    const handleAddUser = async (newUserData: Omit<UserData, 'id' | 'companyid'>) => {
+        try {
+            await registerUser(
+                newUserData.display_email,
+                newUserData.given_name,
+                newUserData.family_name,
+                newUserData.password!,
+                newUserData.is_admin
+            );
+            handleOpenSnackbar('User added successfully', 'success');
+            fetchUsers();
+            return true;
+        } catch (error) {
+            handleOpenSnackbar('Failed to add user', 'error');
+            return false;
+        }
     };
 
-    fetchUsers();
-  }, [handleOpenSnackbar]);
+    const handleUpdateUser = async (userId: string, data: Partial<UserData>) => {
+        const originalUsers = [...users];
+        const updatedUsers = users.map(u => u.id === userId ? { ...u, ...data } : u);
+        setUsers(updatedUsers);
 
-  const handleAddUser = async () => {
-    if (users.length >= 5) {
-      handleOpenSnackbar('Maximum number of users (5) reached', 'error');
-      return;
-    }
+        try {
+            const userStatus = await getUserStatus();
+            if (userId === userStatus.userId && data.is_admin !== undefined) {
+                 handleOpenSnackbar('You cannot change your own admin privileges.', 'warning');
+                 setUsers(originalUsers);
+                 return;
+            }
+            await updateUser(userId, data);
+            handleOpenSnackbar('User updated successfully', 'success');
+        } catch (error) {
+            setUsers(originalUsers);
+            handleOpenSnackbar('Failed to update user', 'error');
+        }
+    };
 
-    const validationResult = userSchema.safeParse(newUser);
-    if (!validationResult.success) {
-      setDialogErrors(z.treeifyError(validationResult.error));
-      return;
-    }
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return;
 
-    try {
-      await registerUser(
-        validationResult.data.display_email,
-        validationResult.data.given_name,
-        validationResult.data.family_name || '',
-        validationResult.data.password,
-        validationResult.data.is_admin
-      );
-      const updatedUsers = await getAllUsers();
-      setUsers(updatedUsers);
+        try {
+            const userStatus = await getUserStatus();
+            if (userStatus.userId === userToDelete.id) {
+                await deleteUser(userToDelete.id);
+                navigate('/login');
+                handleOpenSnackbar('User deleted successfully. You have been logged out.', 'success');
+            } else {
+                await deleteUser(userToDelete.id);
+                handleOpenSnackbar('User deleted successfully', 'success');
+                setUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
+            }
+        } catch (error) {
+            handleOpenSnackbar('Failed to delete user', 'error');
+        } finally {
+            setUserToDelete(null);
+        }
+    };
 
-      handleOpenSnackbar('User added successfully', 'success');
-      setNewUser(DEFAULT_USER);
-      setIsAddingUser(false);
-      setDialogErrors(null);
-    } catch (error) {
-      handleOpenSnackbar('Failed to add user', 'error');
-    }
-  };
-
-  const handleDeleteUser = async (userId: string) => {
-    try {
-      const userStatus = await getUserStatus();
-
-      if (userStatus.userId === userId) {
-        navigate('/login');
-      }
-      await deleteUser(userId);
-      const updatedUsers = await getAllUsers();
-      setUsers(updatedUsers);
-
-      handleOpenSnackbar('User deleted successfully', 'success');
-    } catch (error) {
-      handleOpenSnackbar('Failed to delete user', 'error');
-    }
-  };
-
-  const handleInputChange = (field: keyof typeof newUser, value: string | boolean) => {
-    setNewUser(prev => ({ ...prev, [field]: value }));
-    if (dialogErrors && dialogErrors.properties?.[field as keyof typeof newUser]) {
-      setDialogErrors(prev => {
-        if (!prev || !prev.properties) return prev;
-        const newProperties = { ...prev.properties };
-        delete newProperties[field as keyof typeof newUser];
-        const newState: ErrorTree = { errors: prev.errors, properties: newProperties };
-        return newState;
-      });
-    }
-  };
-
-  const handleFieldClick = (userId: string, field: EditableField, value: string) => {
-    setEditingField({ userId, field });
-    setEditValue(value);
-  };
-
-  const handleFieldSave = async (userId: string) => {
-    if (!editingField) return;
-
-    const userToUpdate = users.find(u => u.id === userId);
-    if (!userToUpdate) return;
-
-    if (editingField.field === 'password') {
-      if (!editValue) {
-        setEditingField(null);
-        return;
-      }
-      const validationResult = passwordUpdateSchema.safeParse({ password: editValue });
-      if (!validationResult.success) {
-        const errorTree = z.treeifyError(validationResult.error);
-        setEditingField({ ...editingField, error: errorTree.properties?.password?.errors[0] });
-        return;
-      }
-    } else {
-      if (editValue === userToUpdate[editingField.field as keyof UserData]) {
-        setEditingField(null);
-        return;
-      }
-    }
-
-    try {
-      const fieldMap = {
-        display_email: 'email',
-        given_name: 'givenName',
-        family_name: 'familyName',
-        is_admin: 'isAdmin',
-        password: 'password',
-      };
-
-      const backendField = fieldMap[editingField.field];
-      const fieldToUpdate = { [backendField]: editValue };
-
-      await updateUser(userId, fieldToUpdate);
-
-      const updatedUsers = await getAllUsers();
-      setUsers(updatedUsers);
-      handleOpenSnackbar('User updated successfully', 'success');
-    } catch (error) {
-      handleOpenSnackbar('Failed to update user', 'error');
-    } finally {
-      setEditingField(null);
-      setEditValue('');
-    }
-  };
-
-  const handleAdminToggle = async (user: UserData, newAdminStatus: boolean) => {
-    try {
-      const userStatus = await getUserStatus();
-      if (userStatus.userId === user.id && newAdminStatus !== userStatus.is_admin) {
-        handleOpenSnackbar('Cannot change your own admin privileges!', 'error');
-        return
-      }
-      await updateUser(user.id, { isAdmin: newAdminStatus });
-      const updatedUsers = await getAllUsers();
-      setUsers(updatedUsers);
-      handleOpenSnackbar('User updated successfully', 'success');
-    } catch (error) {
-      handleOpenSnackbar('Failed to update user', 'error');
-    }
-  };
-
-  const handleQbDisconnect = async () => {
-    try {
-      await disconnectQB();
-      navigate('/');
-      handleOpenSnackbar('All quickbooks data removed successfully', 'success');
-    } catch (e) {
-      handleOpenSnackbar('Cannot remove all Quickbooks Data', 'error')
-    }
-  }
-
-  const renderEditableCell = (user: UserData, field: EditableField, displayValue: string) => {
-    const isEditing = editingField?.userId === user.id && editingField?.field === field;
-    const errorText = isEditing ? editingField?.error : undefined;
-
-    if (isEditing) {
-      return (
-        <TableCell>
-          <TextField
-            autoFocus
-            size="small"
-            type={field === 'password' ? 'password' : 'text'}
-            value={editValue}
-            onChange={(e) => {
-              setEditValue(e.target.value);
-              if (editingField?.error) {
-                setEditingField({ ...editingField, error: undefined });
-              }
-            }}
-            onBlur={() => handleFieldSave(user.id)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleFieldSave(user.id) }}
-            error={!!errorText}
-            helperText={errorText}
-          />
-        </TableCell>
-      );
-    }
-
+    const handleQbDisconnect = async () => {
+        try {
+            await disconnectQB();
+            navigate('/');
+            handleOpenSnackbar('All QuickBooks data removed successfully', 'success');
+        } catch (e) {
+            handleOpenSnackbar('Failed to disconnect from QuickBooks', 'error');
+        } finally {
+            setDisconnecting(false);
+        }
+    };
+    
     return (
-      <TableCell
-        onClick={() => handleFieldClick(user.id, field, field === 'password' ? '' : displayValue)}
-        sx={{ cursor: 'pointer' }}
-      >
-        {field === 'password' ? '•'.repeat(8) : displayValue}
-      </TableCell>
-    );
-  };
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Helmet>
+                <title>Smart Picker | User Management</title>
+            </Helmet>
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Helmet>
-        <title>Smart Picker | User Management</title>
-      </Helmet>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Button
-          variant="contained"
-          onClick={() => setIsAddingUser(true)}
-          disabled={users.length >= 5}
-          startIcon={<AddIcon />}
-        >
-          Add User
-        </Button>
-      </Box>
-
-      {users.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'grey.50' }}>
-          <Typography variant="h6" sx={{ mb: 1 }}>No Users Available</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Click the Add User button to add users to the system.
-          </Typography>
-        </Paper>
-      ) : (
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>First Name</TableCell>
-                <TableCell>Last Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Password</TableCell>
-                <TableCell align="center">Admin</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  {renderEditableCell(user, 'given_name', user.given_name)}
-                  {renderEditableCell(user, 'family_name', user.family_name)}
-                  {renderEditableCell(user, 'display_email', user.display_email)}
-                  {renderEditableCell(user, 'password', '')}
-                  <TableCell align="center">
-                    <Switch
-                      checked={user.is_admin}
-                      size="small"
-                      onChange={(e) => handleAdminToggle(user, e.target.checked)}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      onClick={() => handleDeleteUser(user.id)}
-                      color="error"
-                      size="small"
+            <Stack spacing={4}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" spacing={2}>
+                    <Box>
+                        <Typography variant="h4" component="h1" fontWeight="bold">
+                            User Management
+                        </Typography>
+                        <Typography color="text.secondary">
+                            Add, edit, or remove users from your organization.
+                        </Typography>
+                    </Box>
+                    <Button
+                        variant="contained"
+                        onClick={() => setAddDialogOpen(true)}
+                        disabled={users.length >= 5}
+                        startIcon={<AddIcon />}
+                        sx={{ flexShrink: 0 }}
                     >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        Add User
+                    </Button>
+                </Stack>
 
-        </TableContainer>
-      )}
-      <Box sx={{ pt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={handleQbDisconnect}
-        >
-          Disconnect QB
-        </Button>
-      </Box>
-      <Dialog
-        open={isAddingUser}
-        onClose={() => setIsAddingUser(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Add New User</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                label="First Name"
-                fullWidth
-                value={newUser.given_name}
-                onChange={(e) => handleInputChange('given_name', e.target.value)}
-                error={!!dialogErrors?.properties?.given_name?.errors.length}
-                helperText={dialogErrors?.properties?.given_name?.errors[0]}
-                required
-              />
-              <TextField
-                label="Last Name"
-                fullWidth
-                value={newUser.family_name}
-                onChange={(e) => handleInputChange('family_name', e.target.value)}
-                error={!!dialogErrors?.properties?.family_name?.errors.length}
-                helperText={dialogErrors?.properties?.family_name?.errors[0]}
-              />
-            </Box>
-            <TextField
-              label="Email"
-              type="email"
-              fullWidth
-              value={newUser.display_email}
-              onChange={(e) => handleInputChange('display_email', e.target.value)}
-              error={!!dialogErrors?.properties?.display_email?.errors.length}
-              helperText={dialogErrors?.properties?.display_email?.errors[0]}
-              required
+                {users.length >= 5 && (
+                    <Alert severity="warning">
+                        You have reached the maximum limit of 5 users. To add a new user, please delete an existing one.
+                    </Alert>
+                )}
+
+                {isLoading ? (
+                    <UserTableSkeleton />
+                ) : (
+                    <UserTable
+                        users={users}
+                        onDeleteUser={(user) => setUserToDelete(user)}
+                        onUpdateUser={handleUpdateUser}
+                    />
+                )}
+                 <Box sx={{ pt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        startIcon={<PowerOffIcon />}
+                        onClick={() => setDisconnecting(true)}
+                    >
+                        Disconnect QuickBooks
+                    </Button>
+                </Box>
+            </Stack>
+            
+            <AddUserDialog
+                open={isAddDialogOpen}
+                onClose={() => setAddDialogOpen(false)}
+                onAddUser={handleAddUser}
             />
-            <TextField
-              label="Password"
-              type="password"
-              fullWidth
-              value={newUser.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
-              error={!!dialogErrors?.properties?.password?.errors.length}
-              helperText={dialogErrors?.properties?.password?.errors[0]}
-              required
+
+            <ConfirmationDialog
+                open={!!userToDelete}
+                onClose={() => setUserToDelete(null)}
+                onConfirm={handleDeleteUser}
+                confirmColor="error"
+                title="Delete User?"
+                content={`Are you sure you want to delete the user "${userToDelete?.given_name}"? This action cannot be undone.`}
             />
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography>Admin Access</Typography>
-              <Switch
-                checked={newUser.is_admin}
-                onChange={(e) => handleInputChange('is_admin', e.target.checked)}
-              />
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => { setIsAddingUser(false); setDialogErrors(null); }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleAddUser}
-          >
-            Add User
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
-  );
+            
+            <ConfirmationDialog
+                open={isDisconnecting}
+                onClose={() => setDisconnecting(false)}
+                onConfirm={handleQbDisconnect}
+                title="Disconnect from QuickBooks?"
+                content="Are you sure? This will permanently delete all associated QuickBooks data from our system. This action cannot be undone."
+                confirmColor="error"
+                confirmText="Disconnect"
+            />
+        </Container>
+    );
 };
 
 export default UsersManagement;

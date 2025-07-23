@@ -1,7 +1,7 @@
 import excelToJson from 'convert-excel-to-json';
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query } from '../helpers.js';
-import { getBaseURL, getCompanyId, getOAuthClient } from './authService.js';
+import { getBaseURL, getOAuthClient } from './authService.js';
 
 export async function productIdToQboId(productId) {
   try {
@@ -75,19 +75,18 @@ export async function processFile(filePath) {
   }
 }
 
-export async function enrichWithQBOData(products, token) {
-  const oauthClient = await getOAuthClient(token);
+export async function enrichWithQBOData(products, companyId) {
+  const oauthClient = await getOAuthClient(companyId);
   const enriched = [];
 
   for (const product of products) {
     try {
       const query = `SELECT * FROM Item WHERE Sku = '${product.sku}'`;
-      const companyID = getCompanyId(oauthClient);
       const baseURL = getBaseURL(oauthClient);
-      const url = `${baseURL}v3/company/${companyID}/query?query=${encodeURIComponent(query)}&minorversion=75`;
+      const url = `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
       const response = await oauthClient.makeApiCall({ url });
-      const itemData = JSON.parse(response.text())?.QueryResponse?.Item?.[0];
+      const itemData = response.json?.QueryResponse?.Item?.[0];
 
       if (!itemData || !itemData.Active) continue;
 
@@ -233,9 +232,9 @@ export async function deleteProductDb(productId) {
   return result.rows[0];
 }
 
-export async function addProductDb(product, companyId, token) {
+export async function addProductDb(product, companyId) {
   try{
-    const enrichedProduct = await enrichWithQBOData(product, token);
+    const enrichedProduct = await enrichWithQBOData(product);
 
     const { productName, barcode, sku } = product;
 

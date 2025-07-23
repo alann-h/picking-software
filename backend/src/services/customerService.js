@@ -1,14 +1,13 @@
 import { AccessError } from '../middlewares/errorHandler.js';
 import { transaction } from '../helpers.js';
-import { getOAuthClient, getBaseURL, getCompanyId } from './authService.js';
+import { getOAuthClient, getBaseURL } from './authService.js';
 
-export async function fetchCustomers(token) {
+export async function fetchCustomers(companyId) {
   try {
-    const oauthClient = await getOAuthClient(token);
+    const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
-    const companyID = getCompanyId(oauthClient);
     const baseURL = getBaseURL(oauthClient);
     
     let allCustomers = [];
@@ -18,10 +17,10 @@ export async function fetchCustomers(token) {
 
     while (moreRecords) {
       const response = await oauthClient.makeApiCall({
-        url: `${baseURL}v3/company/${companyID}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
+        url: `${baseURL}v3/company/${companyId}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
       });
 
-      const responseData = JSON.parse(response.text());
+      const responseData = response.json;
       const customers = responseData.QueryResponse.Customer || [];
 
       allCustomers.push(...customers.map(customer => ({

@@ -18,7 +18,7 @@ import {
 export async function getEstimates(req, res, next) {
   try {
     const { customerId } = req.params;
-    const quotes = await getCustomerQuotes(customerId, req.decryptedToken);
+    const quotes = await getCustomerQuotes(customerId, req.session.companyId);
     res.json(quotes);
   } catch (err) {
     next(err);
@@ -34,7 +34,7 @@ export async function getEstimateById(req, res, next) {
       const quote = await fetchQuoteData(quoteId);
       return res.json({ source: 'database', data: quote });
     }
-    const [apiQuote] = await getQbEstimate(quoteId, req.decryptedToken, false);
+    const [apiQuote] = await getQbEstimate(quoteId, req.session.companyId, false);
     await estimateToDB(apiQuote);
     res.json({ source: 'api', data: apiQuote });
   } catch (err) {
@@ -69,8 +69,8 @@ export async function syncToQuickBooks(req, res, next) {
   try {
     const { quoteId } = req.params;
     const localQuote = await fetchQuoteData(quoteId);
-    const rawData = await getQbEstimate(quoteId, req.decryptedToken, true);
-    const result = await updateQuoteInQuickBooks(quoteId, localQuote, rawData, req.decryptedToken);
+    const rawData = await getQbEstimate(quoteId, req.session.companyId, true);
+    const result = await updateQuoteInQuickBooks(quoteId, localQuote, rawData, req.session.companyId);
     res.json({ message: result.message });
   } catch (err) {
     next(err);
@@ -86,7 +86,6 @@ export async function addProduct(req, res, next) {
       productId,
       quoteId,
       qty,
-      req.decryptedToken,
       req.session.companyId
     );
     res.json(response);
