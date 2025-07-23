@@ -14,6 +14,8 @@ import Quote from './components/Quote';
 import theme from './theme';
 import Footer from './components/Footer';
 import OrdersToCheckPage from './components/OrdersToCheckPage';
+import Runs from './components/Runs';
+
 import ProtectedRoute from './components/ProtectedRoute';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import EULA from './components/Eula';
@@ -65,6 +67,11 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 } />
 
+                <Route path="/runs" element={
+                  <ProtectedRoute>
+                    <Runs />
+                  </ProtectedRoute>
+                } />
                 {/* Catch-all route - redirects any unknown path to home */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

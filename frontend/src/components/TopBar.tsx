@@ -12,8 +12,9 @@ import {
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'; // Import new icon
 import { useNavigate } from 'react-router-dom';
-import { useUserStatus } from '../utils/useUserStatus';
+import { useUserStatus } from '../utils/useUserStatus'; // Import useUserStatus
 
 interface TopBarProps {
   disableTopBar: boolean;
@@ -32,11 +33,11 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   return (
     <AppBar
       position="static"
-      color="transparent"
-      elevation={0}
+      elevation={2}
       sx={{
-        background: 'linear-gradient(to right, #ece9e6, #ffffff)',
-        borderBottom: '1px solid #dce0d7',
+        backgroundColor: theme.palette.background.paper,
+        borderBottom: '1px solid',
+        borderColor: theme.palette.divider,
       }}
     >
       <Toolbar
@@ -44,7 +45,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
           flexDirection: isMobile ? 'column' : 'row',
           alignItems: isMobile ? 'flex-start' : 'center',
           justifyContent: 'space-between',
-          gap: isMobile ? 1 : 0,
+          py: 1.5,
         }}
       >
         <Typography
@@ -55,6 +56,9 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
             fontWeight: 'bold',
             color: theme.palette.primary.main,
             fontSize: isMobile ? '1.2rem' : '1.5rem',
+            '&:hover': {
+              color: theme.palette.primary.dark,
+            },
           }}
         >
           Smart Picker
@@ -68,41 +72,63 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
               alignItems: 'center',
               gap: isMobile ? 1 : 2,
               alignSelf: isMobile ? 'flex-end' : 'auto',
+              mt: isMobile ? 1 : 0,
             }}
           >
-            {isAdmin && (
-              isMobile ? (
-                <Tooltip title="Orders to Check">
-                  <span>
+            {isAdmin && ( // Only show Orders to Check and Manage Runs to admins
+              <>
+                {isMobile ? (
+                  <Tooltip title="Orders to Check">
                     <IconButton
                       color="inherit"
                       onClick={() => navigate('/orders-to-check')}
+                      aria-label="orders to check"
                     >
                       <AssignmentIcon />
                     </IconButton>
-                  </span>
-                </Tooltip>
-              ) : (
-                <Button
-                  startIcon={<AssignmentIcon />}
-                  onClick={() => navigate('/orders-to-check')}
-                  sx={{ marginRight: 1 }}
-                >
-                  Orders to Check
-                </Button>
-              )
+                  </Tooltip>
+                ) : (
+                  <Button
+                    startIcon={<AssignmentIcon />}
+                    onClick={() => navigate('/orders-to-check')}
+                    variant="text"
+                  >
+                    Orders to Check
+                  </Button>
+                )}
+
+                {/* New Runs Tab/Button - Only for Admins */}
+                {isMobile ? (
+                  <Tooltip title="Manage Runs">
+                    <IconButton
+                      color="inherit"
+                      onClick={() => navigate('/runs')}
+                      aria-label="manage runs"
+                    >
+                      <DirectionsRunIcon />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    startIcon={<DirectionsRunIcon />}
+                    onClick={() => navigate('/runs')}
+                    variant="text"
+                  >
+                    Manage Runs
+                  </Button>
+                )}
+              </>
             )}
 
             <Tooltip title="Settings">
-              <span>
-                <IconButton
-                  color="inherit"
-                  onClick={() => navigate('/settings')}
-                  disabled={!isAdmin}
-                >
-                  <SettingsIcon />
-                </IconButton>
-              </span>
+              <IconButton
+                onClick={() => navigate('/settings')}
+                disabled={!isAdmin} // Settings button is disabled for non-admins
+                aria-label="settings"
+                sx={{ color: theme.palette.text.primary }}
+              >
+                <SettingsIcon />
+              </IconButton>
             </Tooltip>
           </Box>
         )}

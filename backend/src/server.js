@@ -26,6 +26,8 @@ import authRoutes from './routes/authRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import quoteRoutes from './routes/quoteRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import runRoutes from './routes/runRoutes.js';
+
 import asyncHandler from './middlewares/asyncHandler.js';
 import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -175,6 +177,7 @@ app.use('/auth', authRoutes);
 app.use('/customers', customerRoutes);
 app.use('/quotes', quoteRoutes);
 app.use('/products', productRoutes);
+app.use('/runs', runRoutes);
 
 // Utility routes
 app.get('/verifyUser', asyncHandler(async (req, res) => {
@@ -185,6 +188,7 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   res.json({
     isAdmin: req.session.isAdmin || false,
     userId: req.session.userId,
+    companyId: req.session.companyId
   });
 }));
 

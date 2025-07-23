@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextField, Box, Typography, Container } from '@mui/material';
+import { Button, TextField, Box, Typography, Container, InputAdornment, IconButton } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { loginWithCredentials, verifyUser } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +11,7 @@ import { z } from 'zod';
 import { AUTH_URI } from '../api/config';
 
 const loginSchema = z.object({
-  email: z.email({ message: "Please enter a valid email address." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(1, { message: "Password cannot be empty." }),
 });
 
@@ -23,14 +24,14 @@ interface ErrorTree {
 }
 type FormErrors = ErrorTree | null;
 
-
 const Login: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState<LoginForm>({ email: '', password: '' });
   const [errors, setErrors] = useState<FormErrors>(null);
   const [loading, setLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     verifyUser()
@@ -63,7 +64,7 @@ const Login: React.FC = () => {
         }
 
         const newProperties = { ...prev.properties };
-        
+
         delete newProperties[name];
 
         const newState: ErrorTree = {
@@ -74,6 +75,14 @@ const Login: React.FC = () => {
         return newState;
       });
     }
+  };
+
+  const handleClickShowPassword = () => {
+    setShowPassword((prev) => !prev);
+  };
+
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
   };
 
   const handleCredentialLogin = async (e: React.FormEvent) => {
@@ -88,19 +97,16 @@ const Login: React.FC = () => {
 
     setErrors(null);
     try {
-      // 1. Capture the user object returned from your API call
       const user = await loginWithCredentials(validationResult.data.email, validationResult.data.password);
 
-      // 2. Check for the re-authentication flag from the backend
       if (user.qboReAuthRequired) {
         handleOpenSnackbar('Your QuickBooks connection has expired. Redirecting to reconnect...', 'warning');
-        
+
         setTimeout(() => {
           handleQuickBooksLogin();
-        }, 3000); 
+        }, 3000);
 
       } else {
-        // 4. If no re-auth is needed, proceed to the dashboard as normal
         navigate('/dashboard');
       }
     } catch (err) {
@@ -117,15 +123,19 @@ const Login: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
+            padding: 4,
+            borderRadius: 2,
+            boxShadow: 3,
+            backgroundColor: 'background.paper',
           }}
         >
           <Helmet>
             <title>Smart Picker | Login</title>
           </Helmet>
-          <Typography component="h1" variant="h5" color="primary" fontWeight="bold">
-            Sign in to Smart Picker
+          <Typography component="h1" variant="h5" color="primary" fontWeight="bold" sx={{ mb: 3 }}>
+            Welcome to Smart Picker
           </Typography>
-          <Box component="form" onSubmit={handleCredentialLogin} noValidate sx={{ mt: 1 }}>
+          <Box component="form" onSubmit={handleCredentialLogin} noValidate sx={{ width: '100%' }}> {/* Adjusted width */}
             <TextField
               margin="normal"
               required
@@ -137,9 +147,9 @@ const Login: React.FC = () => {
               autoFocus
               value={formData.email}
               onChange={handleInputChange}
-              // 3. Update how errors are checked and displayed for the tree structure.
               error={!!errors?.properties?.email?.errors.length}
               helperText={errors?.properties?.email?.errors[0]}
+              variant="outlined"
             />
             <TextField
               margin="normal"
@@ -147,31 +157,50 @@ const Login: React.FC = () => {
               fullWidth
               name="password"
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               id="password"
               autoComplete="current-password"
               value={formData.password}
               onChange={handleInputChange}
               error={!!errors?.properties?.password?.errors.length}
               helperText={errors?.properties?.password?.errors[0]}
+              variant="outlined" // Modern input style
+              slotProps={{ 
+                  input: {
+                    endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={handleClickShowPassword}
+                            onMouseDown={handleMouseDownPassword}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                  }
+              }}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              color="success"
-              sx={{ mt: 3, mb: 2 }}
+              color="primary"
+              sx={{ mt: 3, mb: 2, py: 1.5 }}
             >
               Sign In
             </Button>
           </Box>
-          <Typography variant="body1" sx={{ mt: 2, mb: 2 }}>
-            Or
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 2 }}>
+            — Or sign in with —
           </Typography>
           <Button
             fullWidth
             variant="outlined"
             onClick={handleQuickBooksLogin}
+            sx={{ py: 1.5 }}
+            color='success'
           >
             Sign in with QuickBooks
           </Button>

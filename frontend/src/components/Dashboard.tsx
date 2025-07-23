@@ -139,7 +139,7 @@ const Dashboard: React.FC = () => {
       <Container maxWidth="xl">
         <Stack spacing={{ xs: 3, sm: 4 }}>
           <AnimatedComponent>
-            <Typography variant="h4" component="h1" fontWeight="bold"
+            <Typography variant="h4" component="h1" fontWeight="bold" color='primary'
               sx={{
                 [theme.breakpoints.down('sm')]: {
                   fontSize: theme.typography.h5.fontSize,

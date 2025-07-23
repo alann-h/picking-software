@@ -94,3 +94,14 @@ export interface QuoteSummary {
     CustomerName: string;
     LastUpdatedTime: string;
 }
+
+export interface Run {
+  id: string;
+  companyid: string;
+  created_at: string;
+  quoteid: number;
+  run_number: number;
+  status: 'pending' | 'checking' | 'finalised';
+  customername?: string;
+  totalamt?: number; 
+}
