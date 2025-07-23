@@ -17,13 +17,13 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto space-y-6">
           <motion.h1
             {...fadeInUp}
-            className="text-4xl sm:text-6xl font-bold text-[#4285F4]"
+            className="text-5xl sm:text-7xl font-bold text-[#4285F4]"
           >
             Goodbye spreadsheets,<br />hello Smart Picker
           </motion.h1>
           <motion.p
             {...fadeInUp}
-            className="text-lg text-gray-600"
+            className="text-xl text-gray-600"
           >
             Manage your stock and orders from any device
           </motion.p>
