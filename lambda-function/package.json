@@ -1,0 +1,16 @@
+{
+  "name": "lambda-function",
+  "version": "1.0.0",
+  "description": "handles excel file uploads with lamdba",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.848.0",
+    "convert-excel-to-json": "^1.7.0",
+    "intuit-oauth": "^4.2.0"
+  }
+}
