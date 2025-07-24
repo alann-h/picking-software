@@ -1,5 +1,5 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query, transaction, makeCustomApiCall, roundQuantity } from '../helpers.js';
+import { query, transaction, makeCustomApiCall, roundQuantity, formatTimestampForSydney } from '../helpers.js';
 import { getOAuthClient, getBaseURL } from './authService.js';
 import { getProductFromDB, productIdToQboId } from './productService.js';
 
@@ -117,7 +117,7 @@ export async function estimateToDB(quote) {
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, timestarted, lastmodified, companyid, ordernote) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, companyid, ordernote) VALUES ($1, $2, $3, $4, $5, $6, $7)',
           [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.companyId, quote.orderNote]
         );
       }
@@ -175,22 +175,7 @@ export async function fetchQuoteData(quoteId) {
     if (result.length === 0) {
       return null;
     }
-
-    const lastModified = new Intl.DateTimeFormat('en-AU', {
-      timeZone: 'Australia/Sydney',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).format(new Date());
-
-    await query(`
-      UPDATE quotes
-      SET lastmodified = $1
-      WHERE quoteid = $2
-    `, [lastModified, quoteId]);
+    const formattedTime = formatTimestampForSydney(result[0].lastmodified);
 
     const quote = {
       quoteId: result[0].quoteid,
@@ -199,7 +184,7 @@ export async function fetchQuoteData(quoteId) {
       totalAmount: result[0].totalamount,
       timeStarted: result[0].timestarted,
       orderStatus: result[0].orderstatus, 
-      lastModified: lastModified,
+      lastModified: formattedTime,
       productInfo: {},
       companyId: result[0].companyid,
       pickerNote: result[0].pickernote,
@@ -256,8 +241,6 @@ export async function processBarcode(barcode, quoteId, newQty) {
       [newQty, quoteId, barcode]
     );
 
-    await query('UPDATE quotes SET lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $1', [quoteId]);
-
     return { productName: result[0].productname, updatedQty: result[0].pickingqty, pickingStatus: result[0].pickingstatus };
   } catch (error) {
     throw new AccessError(error.message);
@@ -305,12 +288,12 @@ export async function addProductToQuote(productId, quoteId, qty, companyId) {
       
       const price = product[0].price * qty;
       const newTotalAmount =  Number(quote[0].totalamount) + price;
-      totalAmount = await client.query('UPDATE quotes SET totalamount = $1, lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
+      totalAmount = await client.query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
     });
     if (addNewProduct) {
-      return {status: 'new', productInfo: addNewProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount};
+      return {status: 'new', productInfo: addNewProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount, lastModified: totalAmount.rows[0].lastmodified};
     } else {
-      return {status: 'exists', productInfo: addExisitingProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount};
+      return {status: 'exists', productInfo: addExisitingProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount };
     }
   } catch (e) {
     throw new AccessError(e.message);
@@ -348,7 +331,7 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
       [newQty, quoteId, productId]
     );
 
-    const updatedTotalAmt = await query('UPDATE quotes SET totalamount = $1, lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
+    const updatedTotalAmt = await query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
     return { pickingQty: updatedItem[0].pickingqty, originalQty: updatedItem[0].originalqty, totalAmount: updatedTotalAmt[0].totalamount };
   } catch (error) {
     throw new AccessError(error.message);
@@ -358,7 +341,7 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
 export async function setOrderStatus(quoteId, newStatus) {
   try {
     const result = await query(
-      'UPDATE quotes SET orderstatus = $1, lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $2 returning orderstatus',
+      'UPDATE quotes SET orderstatus = $1 WHERE quoteid = $2 returning orderstatus',
       [newStatus, quoteId]
     );
     return {orderStatus: result[0].orderstatus};
@@ -374,17 +357,23 @@ export async function getQuotesWithStatus(status) {
       [status]
     );
 
-    return result.map(quote => ({
-      id: quote.quoteid,
-      customerId: quote.customerid,
-      customerName: quote.customername,
-      totalAmount: parseFloat(quote.totalamount),
-      orderStatus: quote.orderstatus,
-      timeStarted: quote.timestarted,
-      lastModified: quote.lastmodified,
-      companyId: quote.companyid
-    }));
+    return result.map(quote => {
+      const formattedTimeStarted = formatTimestampForSydney(quote.timestarted);
+      const formattedLastModified = formatTimestampForSydney(quote.lastmodified);
+
+      return {
+        id: quote.quoteid,
+        customerId: quote.customerid,
+        customerName: quote.customername,
+        totalAmount: parseFloat(quote.totalamount),
+        orderStatus: quote.orderstatus,
+        timeStarted: formattedTimeStarted,
+        lastModified: formattedLastModified,
+        companyId: quote.companyid
+      };
+    });
   } catch (error) {
+    console.error('Error fetching quotes with status:', error);
     throw new AccessError('Failed to fetch quotes');
   }
 }

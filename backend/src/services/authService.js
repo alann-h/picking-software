@@ -33,7 +33,7 @@ export function getAuthUri() {
       OAuthClient.scopes.Profile,
       OAuthClient.scopes.Email,
     ], 
-    state: 'intuit-test' 
+    state: crypto.randomBytes(16).toString('hex') 
   });
   return Promise.resolve(authUri);
 }
