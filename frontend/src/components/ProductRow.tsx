@@ -8,7 +8,8 @@ import {
   Box,
   Menu,
   MenuItem,
-  IconButton
+  IconButton,
+  CircularProgress
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { ProductDetail } from '../utils/types';
@@ -17,8 +18,8 @@ import { getUserStatus } from '../api/user';
 
 interface ProductRowProps {
   product: ProductDetail;
-  onProductDetails: (productId: number, product: ProductDetail) => void;
-  onAdjustQuantityModal: (productId: number, pickingQty: number, productName: string) => void;
+  onProductDetails: (productId: number, product: ProductDetail) => Promise<void>;
+  onAdjustQuantityModal: (productId: number, pickingQty: number, productName: string) => Promise<void>;
   onSaveForLater: (productId: number) => Promise<{ newStatus: string }>;
   onSetUnavailable: (productId: number) => Promise<{ newStatus: string }>;
   onSetFinished: (productId: number) => Promise<{ newPickingQty: number }>;
@@ -37,6 +38,8 @@ const ProductRow: React.FC<ProductRowProps> = ({
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -47,24 +50,31 @@ const ProductRow: React.FC<ProductRowProps> = ({
     setAnchorEl(null);
   };
 
-  const handleAction = (action: string) => {
-    handleClose();
-    switch (action) {
-      case 'details':
-        onProductDetails(product.productId, product);
-        break;
-      case 'adjust':
-        onAdjustQuantityModal(product.productId, product.pickingQty, product.productName);
-        break;
-      case 'saveForLater':
-        onSaveForLater(product.productId);
-        break;
-      case 'setUnavailable':
-        onSetUnavailable(product.productId);
-        break;
-      case 'setFinished':
-        onSetFinished(product.productId);
-        break;
+  const handleAction = async (action: string) => {
+    setLoadingAction(action);
+    try {
+      switch (action) {
+        case 'details':
+          await onProductDetails(product.productId, product);
+          break;
+        case 'adjust':
+          await onAdjustQuantityModal(product.productId, product.pickingQty, product.productName);
+          break;
+        case 'saveForLater':
+          await onSaveForLater(product.productId);
+          break;
+        case 'setUnavailable':
+          await onSetUnavailable(product.productId);
+          break;
+        case 'setFinished':
+          await onSetFinished(product.productId);
+          break;
+      }
+    } catch (error) {
+        console.error(`Failed to perform action: ${action}`, error);
+    } finally {
+      setLoadingAction(null);
+      handleClose();
     }
   };
 
@@ -77,6 +87,9 @@ const ProductRow: React.FC<ProductRowProps> = ({
     fetchUserStatus();
   }, []);
 
+  const getActionContent = (action: string, defaultLabel: string) => {
+    return loadingAction === action ? <CircularProgress size={20} color="inherit" /> : defaultLabel;
+  };
   return (
     <TableRow>
       <TableCell>{product.sku}</TableCell>
@@ -107,6 +120,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
               aria-expanded={open ? 'true' : undefined}
               aria-haspopup="true"
               onClick={handleClick}
+              disabled={!!loadingAction} 
             >
               <MoreVertIcon />
             </IconButton>
@@ -115,50 +129,56 @@ const ProductRow: React.FC<ProductRowProps> = ({
               anchorEl={anchorEl}
               open={open}
               onClose={handleClose}
-              slotProps={{ 
-                list: {
-                'aria-labelledby': `more-button-${product.productId}`,
-                }
-              }}
             >
-              <MenuItem onClick={() => handleAction('details')}>Details</MenuItem>
-              <MenuItem onClick={() => handleAction('adjust')}>Adjust Quantity</MenuItem>
-              <MenuItem onClick={() => handleAction('saveForLater')}>
-                {product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
+              <MenuItem onClick={() => handleAction('details')} disabled={!!loadingAction}>{getActionContent('details', 'Details')}</MenuItem>
+              <MenuItem onClick={() => handleAction('adjust')} disabled={!!loadingAction}>{getActionContent('adjust', 'Adjust Quantity')}</MenuItem>
+              <MenuItem onClick={() => handleAction('saveForLater')} disabled={!!loadingAction}>
+                {getActionContent('saveForLater', product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later')}
               </MenuItem>
-              <MenuItem onClick={() => handleAction('setUnavailable')}>
-                {product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable'}
+              <MenuItem onClick={() => handleAction('setUnavailable')} disabled={!!loadingAction}>
+                {getActionContent('setUnavailable', product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable')}
               </MenuItem>
-              <MenuItem onClick={() => handleAction('setFinished')}>Set as completed</MenuItem>
+              {isAdmin && 
+                <MenuItem onClick={() => handleAction('setFinished')} disabled={!!loadingAction}>
+                  {getActionContent('setFinished', 'Set as completed')}
+                </MenuItem>
+              }
             </Menu>
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
-              <Chip label="Details" onClick={() => onProductDetails(product.productId, product)} variant='outlined'/>
-              <Chip label="Adjust Quantity" 
-                onClick={() => onAdjustQuantityModal(product.productId, product.pickingQty, product.productName)} 
-                disabled={product.pickingStatus === 'completed'}
-                variant='outlined'
-                />
               <Chip 
-                label={product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later'}
-                onClick={() => onSaveForLater(product.productId)}
-                disabled={product.pickingStatus === 'completed'} 
+                label={getActionContent('details', 'Details')}
+                onClick={() => handleAction('details')} 
+                variant='outlined'
+                disabled={!!loadingAction}
+              />
+              <Chip 
+                label={getActionContent('adjust', 'Adjust Quantity')}
+                onClick={() => handleAction('adjust')} 
+                disabled={product.pickingStatus === 'completed' || !!loadingAction}
                 variant='outlined'
               />
               <Chip 
-                label={product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable'}
-                onClick={() => onSetUnavailable(product.productId)}
+                label={getActionContent('saveForLater', product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later')}
+                onClick={() => handleAction('saveForLater')}
+                disabled={product.pickingStatus === 'completed' || !!loadingAction} 
+                variant='outlined'
+              />
+              <Chip 
+                label={getActionContent('setUnavailable', product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable')}
+                onClick={() => handleAction('setUnavailable')}
                 color={product.pickingStatus === 'unavailable' ? 'primary' : 'error'}
-                disabled={product.pickingStatus === 'completed'}
+                disabled={product.pickingStatus === 'completed' || !!loadingAction}
                 variant='outlined'
               />
               {isAdmin && (
-                <Chip label="Set as Complete" 
-                onClick={() => onSetFinished(product.productId)}
-                color='success'
-                disabled={product.pickingStatus === 'completed'}
-                variant='outlined'
+                <Chip 
+                  label={getActionContent('setFinished', 'Set as Complete')}
+                  onClick={() => handleAction('setFinished')}
+                  color='success'
+                  disabled={product.pickingStatus === 'completed' || !!loadingAction}
+                  variant='outlined'
                 />
               )}
           </Box>

@@ -27,7 +27,6 @@ export async function getCustomerQuotes(customerId, companyId) {
         CustomerName: quote.CustomerRef.name,
         LastUpdatedTime: quote.MetaData.LastUpdatedTime,
       }));
-
     return customerQuotes;
   } catch {
     throw new InputError('This quote does not exist');

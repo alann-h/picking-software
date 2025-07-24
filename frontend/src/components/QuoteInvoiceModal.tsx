@@ -1,12 +1,10 @@
-// show a modal when clickinmg the convert to invoice button to show all unavailable, pending and backorder items to confirm. 
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  Typography,
   Table,
   TableBody,
   TableCell,
@@ -14,11 +12,18 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Chip,
+  Alert,
+  AlertTitle,
+  CircularProgress,
 } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { ProductDetail, QuoteData } from '../utils/types';
-import { getStatusColor } from '../utils/other';
-import { useNavigate } from 'react-router-dom';
+import { useSnackbarContext } from './SnackbarContext';
 
+/**
+ * Props for the QuoteInvoiceModal component.
+ */
 interface QuoteInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,87 +31,140 @@ interface QuoteInvoiceModalProps {
   onProceed: (newStatus: string) => Promise<void>;
 }
 
+/**
+ * A modal to review products with specific statuses before converting a quote to an invoice.
+ * It provides clear user feedback during and after the confirmation process.
+ */
 const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
   isOpen,
   onClose,
   quoteData,
   onProceed,
 }) => {
-  const navigate = useNavigate();
-  
-  const productsToReview = useMemo(() => {
-    return Object.values(quoteData.productInfo).filter(
-      (product) => ['pending', 'backorder', 'unavailable'].includes(product.pickingStatus)
+  const [isLoading, setIsLoading] = React.useState(false);
+  const { handleOpenSnackbar } = useSnackbarContext();
+
+  const productsToReview = React.useMemo(() => {
+    if (!quoteData?.productInfo) return [];
+    return Object.values(quoteData.productInfo).filter((product) =>
+      ['pending', 'backorder', 'unavailable'].includes(product.pickingStatus)
     );
   }, [quoteData]);
 
-  const hasPendingProducts = useMemo(() => {
+  const hasPendingProducts = React.useMemo(() => {
     return productsToReview.some((product) => product.pickingStatus === 'pending');
   }, [productsToReview]);
 
-  const handleProceed = useCallback(async () => {
+  /**
+   * Maps a product status to a specific color for the Chip component.
+   * @param {string} status - The picking status of the product.
+   * @returns 'error' | 'warning' | 'info' - The color for the Chip.
+   */
+  const getStatusChipColor = (status: string): 'error' | 'warning' | 'info' => {
+    switch (status) {
+      case 'unavailable':
+        return 'error';
+      case 'backorder':
+        return 'warning';
+      case 'pending':
+        return 'info';
+      default:
+        return 'info';
+    }
+  };
+
+  /**
+   * Handles the "Proceed" button click.
+   * Sets loading state, calls the onProceed prop, and handles any potential errors.
+   */
+  const handleProceed = async () => {
+    setIsLoading(true);
     try {
       await onProceed('checking');
       onClose();
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Failed to convert to invoice:', error);
+    } catch (err) {
+      console.error('Failed to convert to invoice:', err);
+      handleOpenSnackbar('Failed to convert to invoice', 'error');
+    } finally {
+      setIsLoading(false);
     }
-  }, [onProceed, onClose, navigate]);
+  };
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setIsLoading(false);
+    }
+  }, [isOpen]);
+
+  const renderContent = () => {
+    if (productsToReview.length > 0) {
+      return (
+        <>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <AlertTitle>Attention Required</AlertTitle>
+            The following products have statuses that need review. Please resolve any
+            <strong> &apos;pending&apos;</strong> items before you can proceed.
+          </Alert>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>SKU</TableCell>
+                  <TableCell>Product Name</TableCell>
+                  <TableCell align="center">Quantity</TableCell>
+                  <TableCell align="center">Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {productsToReview.map((product: ProductDetail) => (
+                  <TableRow key={product.productId}>
+                    <TableCell>{product.sku}</TableCell>
+                    <TableCell>{product.productName}</TableCell>
+                    <TableCell align="center">{`${product.pickingQty}/${product.originalQty}`}</TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={product.pickingStatus}
+                        color={getStatusChipColor(product.pickingStatus)}
+                        size="small"
+                        sx={{ textTransform: 'capitalize' }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </>
+      );
+    }
+    return (
+      <Alert severity="success">
+        <AlertTitle>Ready to Go!</AlertTitle>
+        All products have been checked and are ready for admin review.
+      </Alert>
+    );
+  };
 
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Review Before Converting to Invoice</DialogTitle>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <WarningAmberIcon color="primary" />
+        Review Before Sending To Admin
+      </DialogTitle>
       <DialogContent>
-        {productsToReview.length > 0 ? (
-          <>
-            <Typography variant="body1" gutterBottom>
-              The following products need attention before converting to an invoice:
-            </Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>SKU</TableCell>
-                    <TableCell>Product Name</TableCell>
-                    <TableCell>Quantity</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {productsToReview.map((product: ProductDetail) => (
-                    <TableRow key={product.productId}>
-                      <TableCell>{product.sku}</TableCell>
-                      <TableCell>{product.productName}</TableCell>
-                      <TableCell>{product.pickingQty}/{product.originalQty}</TableCell>
-                      <TableCell>
-                        <Typography style={{ color: getStatusColor(product.pickingStatus) }}>
-                          {product.pickingStatus}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </>
-        ) : (
-          <Typography variant="body1">
-            All products are ready to be converted to an invoice.
-          </Typography>
-        )}
+        {renderContent()}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="primary">
+      <DialogActions sx={{ p: '16px 24px' }}>
+        <Button onClick={onClose} color="inherit" disabled={isLoading}>
           Cancel
         </Button>
         <Button
           onClick={handleProceed}
-          color="primary"
           variant="contained"
-          disabled={hasPendingProducts}
+          disabled={hasPendingProducts || isLoading}
+          startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
         >
-          {hasPendingProducts ? 'Resolve Pending Items' : 'Proceed to Convert'}
+          {isLoading ? 'Processing...' : 'Confirm & Convert'}
         </Button>
       </DialogActions>
     </Dialog>
