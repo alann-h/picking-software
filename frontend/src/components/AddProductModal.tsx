@@ -9,7 +9,6 @@ import {
   IconButton,
   Paper,
   Fade,
-  useTheme,
   InputAdornment,
   CircularProgress,
 } from '@mui/material';
@@ -28,8 +27,7 @@ interface AddProductModalProps {
 const STEP = 1;
 
 const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubmit }) => {
-  const theme = useTheme();
-  const { allProducts, isLoading, refetch } = useAllProducts();
+  const { allProducts, isLoading: isProductListLoading, refetch } = useAllProducts();
 
   const [isFractionMode, setIsFractionMode] = useState<boolean>(false);
 
@@ -42,6 +40,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
 
   const [product, setProduct] = useState<Product | null>(null);
 
+   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
   // Whenever the modal opens, reset fields
   useEffect(() => {
     if (open) {
@@ -52,6 +52,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
       setNumeratorInput('1');
       setDenominatorInput('1');
       setParsedQty(1);
+      setIsSubmitting(false);
     }
   }, [open, refetch]);
 
@@ -109,8 +110,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (product && parsedQty > 0) {
-      await onSubmit(product.productId, parsedQty);
-      onClose();
+      setIsSubmitting(true);
+      try {
+        await onSubmit(product.productId, parsedQty);
+        onClose();
+      } catch (error) {
+        console.error("Failed to add product:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -138,7 +146,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
             <Typography variant="h5" component="h2" fontWeight="bold" color="primary">
               Add Product
             </Typography>
-            <IconButton onClick={onClose} size="small">
+            <IconButton onClick={onClose} size="small" disabled={isSubmitting}>
               <CloseIcon />
             </IconButton>
           </Box>
@@ -151,6 +159,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                 getOptionLabel={(option) => option.productName}
                 isOptionEqualToValue={(option, value) => option.productId === value.productId}
                 value={product}
+                disabled={isSubmitting}
+                loading={isProductListLoading}
                 onChange={(_, newValue) => setProduct(newValue)}
                 renderInput={(params) => (
                   <TextField
@@ -162,7 +172,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                         ...params.InputProps,
                         endAdornment: (
                           <>
-                            {isLoading && <CircularProgress size={20} />}
+                            {isProductListLoading && <CircularProgress size={20} />}
                             {params.InputProps.endAdornment}
                           </>
                         ),
@@ -179,34 +189,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
               size="small"
               onClick={() => setIsFractionMode((prev) => !prev)}
               sx={{ mb: 2 }}
+              disabled={isSubmitting}
             >
               {isFractionMode ? 'Switch to Decimal' : 'Switch to Fraction'}
             </Button>
 
             {isFractionMode ? (
               <>
-                <TextField
-                  label="Units"
-                  type="number"
-                  value={numeratorInput}
-                  onChange={handleNumeratorChange}
-                  slotProps={{ htmlInput : {min: 0 }}}
-                  fullWidth
-                  margin="dense"
-                  error={parseFloat(numeratorInput) < 0}
-                  helperText={parseFloat(numeratorInput) < 0 ? 'Enter a valid numerator' : ''}
-                />
-                <TextField
-                  label="Units in Box"
-                  type="number"
-                  value={denominatorInput}
-                  onChange={handleDenominatorChange}
-                  slotProps={{ htmlInput : {min: 1 }}}
-                  fullWidth
-                  margin="dense"
-                  error={isInvalidFraction}
-                  helperText={isInvalidFraction ? 'Denominator must be > 0' : ''}
-                />
+                <TextField label="Units" type="number" value={numeratorInput} onChange={handleNumeratorChange} inputProps={{ min: 0 }} fullWidth margin="dense" error={parseFloat(numeratorInput) < 0} helperText={parseFloat(numeratorInput) < 0 ? 'Enter a valid numerator' : ''} disabled={isSubmitting} />
+                <TextField label="Units in Box" type="number" value={denominatorInput} onChange={handleDenominatorChange} inputProps={{ min: 1 }} fullWidth margin="dense" error={isInvalidFraction} helperText={isInvalidFraction ? 'Denominator must be > 0' : ''} disabled={isSubmitting} />
               </>
             ) : (
               <TextField
@@ -218,22 +209,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                 margin="dense"
                 helperText={isTooLow ? 'Enter a number greater than zero' : ''}
                 error={isTooLow}
+                disabled={isSubmitting}
                 sx={{ mb: 3 }}
-                slotProps={{ 
-                  htmlInput : { min: 0, step: 'any' }, 
-                  input: {
+                slotProps={{
+                  htmlInput: { min: 0, step: 'any' },
+                  input : {
                     startAdornment: (
                       <InputAdornment position="start">
-                        <IconButton onClick={handleDecrement} size="small">
-                          <RemoveIcon />
-                        </IconButton>
+                        <IconButton onClick={handleDecrement} size="small" disabled={isSubmitting}><RemoveIcon /></IconButton>
                       </InputAdornment>
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton onClick={handleIncrement} size="small">
-                          <AddIcon />
-                        </IconButton>
+                        <IconButton onClick={handleIncrement} size="small" disabled={isSubmitting}><AddIcon /></IconButton>
                       </InputAdornment>
                     ),
                   }
@@ -244,20 +232,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
             <Button
               type="submit"
               variant="contained"
-              disabled={!product || parsedQty <= 0 || (isFractionMode && isInvalidFraction)}
+              // UPDATED: disabled logic now includes isSubmitting
+              disabled={isProductListLoading || isSubmitting || !product || parsedQty <= 0 || (isFractionMode && isInvalidFraction)}
+              // UPDATED: startIcon now uses isSubmitting
+              startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <AddIcon />}
               fullWidth
               size="large"
-              sx={{
-                borderRadius: 2,
-                py: 1.5,
-                backgroundColor: theme.palette.primary.main,
-                '&:hover': { backgroundColor: theme.palette.primary.dark },
-              }}
+              sx={{ mt: 2, borderRadius: 2, py: 1.5 }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <AddIcon sx={{ mr: 1 }} />
-                Add Product
-              </Box>
+              {isSubmitting ? 'Adding...' : 'Add Product'}
             </Button>
           </form>
         </Paper>

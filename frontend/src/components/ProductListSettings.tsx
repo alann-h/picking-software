@@ -140,7 +140,9 @@ const ProductList: React.FC<ProductListProps> = ({
           <Typography variant="subtitle1" gutterBottom>
             Showing {products.length} products
           </Typography>
-
+          <Button variant="outlined" color="primary" onClick={handleOpenAdd}>
+            Add Product
+          </Button>
           <TableContainer component={Paper}>
             <Table sx={{ minWidth: 650 }} aria-label="product table">
               <TableHead>
@@ -169,9 +171,6 @@ const ProductList: React.FC<ProductListProps> = ({
           <Box mt={3} display="flex" justifyContent="center" gap={2}>
             <Button variant="contained" color="primary" onClick={onRefresh}>
               Refresh Products
-            </Button>
-            <Button variant="outlined" color="primary" onClick={handleOpenAdd}>
-              Add Product
             </Button>
           </Box>
 

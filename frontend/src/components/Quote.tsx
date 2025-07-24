@@ -25,6 +25,7 @@ import { useModalState } from '../utils/modalState';
 import { ProductDetail } from '../utils/types';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
+import FinalConfirmationModal from './FinalConfirmationModal';
 import { Helmet } from 'react-helmet-async';
 import { useUserStatus } from '../utils/useUserStatus';
 
@@ -49,6 +50,7 @@ const Quote: React.FC = () => {
   const { isAdmin } = useUserStatus(false);
 
   const [pickerNote, setPickerNote] = useState(quoteData?.pickerNote || '');
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   const handleScannedWithSnackbar = useCallback(async (barcode: string) => {
     handleOpenSnackbar('Fetching product…', 'info');
@@ -72,6 +74,12 @@ const Quote: React.FC = () => {
     return quoteData ? Object.values(quoteData.productInfo) : [];
   }, [quoteData]);
 
+    const { hasPendingProducts, backorderProducts } = useMemo(() => {
+    const pending = productArray.some(p => p.pickingStatus === 'pending');
+    const backorder = productArray.filter(p => p.pickingStatus === 'backorder');
+    return { hasPendingProducts: pending, backorderProducts: backorder };
+  }, [productArray]);
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -88,8 +96,31 @@ const Quote: React.FC = () => {
     setFilteredProducts(newFilteredProducts);
   };
 
-  const displayProducts = filteredProducts.length > 0 ? filteredProducts : productArray;
+    const handleMainActionClick = () => {
+    if (quoteData.orderStatus === 'checking') {
+      if (hasPendingProducts) {
+        handleOpenSnackbar('Please resolve all "pending" items before finalising the invoice.', 'error');
+      } else {
+        openModal('finalConfirmation');
+      }
+    } else {
+      openQuoteInvoiceModal();
+    }
+  };
 
+  const handleSaveNote = async () => {
+    setIsSavingNote(true);
+    try {
+      await savePickerNote(pickerNote);
+    } catch (error) {
+      console.error("Failed to save picker's note:", error);
+      handleOpenSnackbar("Failed to save picker's note:", 'error');
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const displayProducts = filteredProducts.length > 0 ? filteredProducts : productArray;
   const barcodeDisabled = modalState.type === 'barcode' && modalState.isOpen;
 
   return (
@@ -98,53 +129,19 @@ const Quote: React.FC = () => {
         <title>{`Smart Picker | Quote: ${quoteId}`}</title>
       </Helmet>
        <BarcodeListener onBarcodeScanned={handleScannedWithSnackbar} disabled={barcodeDisabled} />
-      {modalState.type === 'barcode' && (
-        <BarcodeModal
+        {modalState.type === 'barcode' && <BarcodeModal isOpen={modalState.isOpen} onClose={closeModal} onConfirm={handleBarcodeModal} availableQty={availableQty} productName={scannedProductName} />}
+        {modalState.type === 'cameraScanner' && <CameraScannerModal isOpen={modalState.isOpen} onClose={closeModal} onScanSuccess={handleCameraScanSuccess} />}
+        {modalState.type === 'productDetails' && modalState.data && <ProductDetails open={modalState.isOpen} onClose={closeModal} productName={modalState.data.name} productDetails={modalState.data.details} />}
+        {modalState.type === 'adjustQuantity' && modalState.data && <AdjustQuantityModal isOpen={modalState.isOpen} onClose={closeModal} productName={modalState.data.productName} currentQty={modalState.data.pickingQty} productId={modalState.data.productId} onConfirm={adjustQuantity} />}
+        {modalState.type === 'addProduct' && <AddProductModal open={modalState.isOpen} onClose={closeModal} onSubmit={addProduct} />}
+        {modalState.type === 'quoteInvoice' && <QuoteInvoiceModal isOpen={modalState.isOpen} onClose={closeModal} quoteData={quoteData} onProceed={setQuoteChecking} />}
+        
+      {modalState.type === 'finalConfirmation' && (
+        <FinalConfirmationModal
           isOpen={modalState.isOpen}
           onClose={closeModal}
-          onConfirm={handleBarcodeModal}
-          availableQty={availableQty}
-          productName={scannedProductName}
-        />
-      )}
-      {modalState.type === 'cameraScanner' && (
-        <CameraScannerModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          onScanSuccess={handleCameraScanSuccess}
-        />
-      )}
-        {modalState.type === 'productDetails' && modalState.data && (
-          <ProductDetails
-            open={modalState.isOpen}
-            onClose={closeModal}
-            productName={modalState.data.name}
-            productDetails={modalState.data.details}
-          />
-        )}
-          {modalState.type === 'adjustQuantity' && modalState.data && (
-          <AdjustQuantityModal
-            isOpen={modalState.isOpen}
-            onClose={closeModal}
-            productName={modalState.data.productName}
-            currentQty={modalState.data.pickingQty}
-            productId={modalState.data.productId}
-            onConfirm={adjustQuantity}
-          />
-        )}
-        {modalState.type === 'addProduct' && (
-        <AddProductModal
-          open={modalState.isOpen}
-          onClose={closeModal}
-          onSubmit={addProduct}
-        />
-      )}
-      {modalState.type === 'quoteInvoice' && (
-        <QuoteInvoiceModal
-            isOpen={modalState.isOpen}
-            onClose={closeModal}
-            quoteData={quoteData}
-            onProceed={setQuoteChecking}
+          onConfirm={handleFinaliseInvoice}
+          backorderProducts={backorderProducts}
         />
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
@@ -270,33 +267,26 @@ const Quote: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
             <Button
               variant="outlined"
-              onClick={() => savePickerNote(pickerNote)}
-              disabled={pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'finalised'}
+              onClick={handleSaveNote}
+              disabled={isSavingNote || pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'finalised'}
+              startIcon={isSavingNote ? <CircularProgress size={20} /> : null}
             >
-              Save Picker&apos;s Note
+              {isSavingNote ? 'Saving...' : "Save Picker's Note"}
             </Button>
         </Box>
       </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, borderTop: 1, borderColor: 'divider', pt: 2 }}>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={quoteData.orderStatus === 'checking' ? handleFinaliseInvoice : openQuoteInvoiceModal}
-            disabled={
-              quoteData.orderStatus === 'finalised' ||
-              (quoteData.orderStatus === 'checking' && !isAdmin)
-            }
-            sx={{
-              backgroundColor: theme.palette.warning.main,
-              color: theme.palette.warning.contrastText,
-              '&:hover': {
-                backgroundColor: theme.palette.warning.dark,
-              }
-            }}
-          >
-            <ReceiptIcon sx={{ mr: 1 }} />
-            {quoteData.orderStatus === 'checking' ? "Finalise Invoice" : "Convert to Invoice"}
-          </Button>
+      {/* Final Action Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, borderTop: 1, borderColor: 'divider', pt: 2 }}>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={handleMainActionClick}
+          disabled={quoteData.orderStatus === 'finalised' || !isAdmin}
+          sx={{ backgroundColor: theme.palette.warning.main, color: theme.palette.warning.contrastText, '&:hover': { backgroundColor: theme.palette.warning.dark, } }}
+        >
+          <ReceiptIcon sx={{ mr: 1 }} />
+          {quoteData.orderStatus === 'checking' ? "Send To Quickbooks" : "Send To Admin"}
+        </Button>
       </Box>
     </Paper>
   );

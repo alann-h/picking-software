@@ -27,7 +27,6 @@ export async function getCustomerQuotes(customerId, companyId) {
         CustomerName: quote.CustomerRef.name,
         LastUpdatedTime: quote.MetaData.LastUpdatedTime,
       }));
-
     return customerQuotes;
   } catch {
     throw new InputError('This quote does not exist');
@@ -408,6 +407,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     for (const localItem of Object.values(quoteLocalDb.productInfo)) {
       // Skip items marked as 'unavailable'
       if (localItem.pickingStatus === 'unavailable') continue;
+      if (localItem.pickingStatus === 'pending') return AccessError('Wuote must not have any products pending!');
       const amount = Number(localItem.price) * Number(localItem.originalQty);
 
       const qboItemId = await productIdToQboId(localItem.productId);

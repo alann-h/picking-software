@@ -5,12 +5,12 @@ export const getStatusColor = (status: string) => {
       case 'completed':
         return theme.palette.success.main;
       case 'pending':
-        return theme.palette.grey[500];
+        return theme.palette.info.main;
       case 'backorder':
         return theme.palette.warning.main;
       case 'unavailable':
         return theme.palette.error.main;
       default:
-        return theme.palette.grey[500];
+        return theme.palette.info.main;
     }
   };

@@ -195,7 +195,7 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     try {
       await updateQuoteStatus(quoteId, newStatus);
       handleOpenSnackbar(`${quoteId} Quote Id set to checking status!`, 'success');
-      return;
+      navigate('/dashboard');
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
