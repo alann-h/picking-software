@@ -1,9 +1,20 @@
+// src/utils/useUserStatus.ts
 import { useState, useEffect } from 'react';
 import { getUserStatus } from '../api/user';
 import { useSnackbarContext } from '../components/SnackbarContext';
 
-export const useUserStatus = (skipFetch: boolean) => {
-  const [isAdmin, setIsAdmin] = useState(false);
+interface UserStatus {
+  isAdmin: boolean;
+  userCompanyId: string | null;
+  isLoading: boolean;
+}
+
+export const useUserStatus = (skipFetch: boolean): UserStatus => {
+  const [status, setStatus] = useState<UserStatus>({
+    isAdmin: false,
+    userCompanyId: null,
+    isLoading: true,
+  });
   const { handleOpenSnackbar } = useSnackbarContext();
 
   useEffect(() => {
@@ -11,15 +22,22 @@ export const useUserStatus = (skipFetch: boolean) => {
       try {
         if (!skipFetch) {
           const userStatus = await getUserStatus();
-          setIsAdmin(userStatus.isAdmin);
+          setStatus({
+            isAdmin: userStatus.isAdmin,
+            userCompanyId: userStatus.companyId || null,
+            isLoading: false,
+          });
+        } else {
+          setStatus(prev => ({ ...prev, isLoading: false }));
         }
       } catch (err) {
         handleOpenSnackbar((err as Error).message, 'error');
+        setStatus({ isAdmin: false, userCompanyId: null, isLoading: false });
       }
     };
 
     fetchUserStatus();
   }, [skipFetch, handleOpenSnackbar]);
 
-  return { isAdmin };
+  return status;
 };

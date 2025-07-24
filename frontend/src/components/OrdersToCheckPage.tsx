@@ -54,7 +54,6 @@ const useOrdersToCheck = () => {
         }
 
         const fetchedQuotes = await getQuotesWithStatus('checking');
-        console.log(fetchedQuotes);
         setQuotes(fetchedQuotes);
       } catch (error) {
         console.error("Failed to fetch quotes:", error);

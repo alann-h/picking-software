@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { motion } from 'framer-motion';
 import UserManagement from '../UsersManagment';
 
@@ -10,9 +10,6 @@ const UsersTab: React.FC = () => (
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Typography variant="h6" gutterBottom color="primary">
-        User Management
-      </Typography>
       <UserManagement />
     </motion.div>
   </Box>
