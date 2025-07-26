@@ -140,7 +140,7 @@ const ProductList: React.FC<ProductListProps> = ({
           <Typography variant="subtitle1" gutterBottom>
             Showing {products.length} products
           </Typography>
-          <Button variant="outlined" color="primary" onClick={handleOpenAdd}>
+          <Button variant="outlined" color="primary" onClick={handleOpenAdd} sx={{ my: 1 }}>
             Add Product
           </Button>
           <TableContainer component={Paper}>
