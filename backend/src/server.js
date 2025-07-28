@@ -6,11 +6,10 @@ import cors from 'cors';
 import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import multer from 'multer';
 import pgSession from 'connect-pg-simple';
 import swaggerUi from 'swagger-ui-express';
-import { doubleCsrf } from 'csrf-csrf';
+import csurf from '@dr.pogodin/csurf';
 import { readFile } from 'fs/promises';
 import { createReadStream, unlink as fsUnlink } from 'fs';
 import { fileURLToPath } from 'url';
@@ -36,7 +35,8 @@ import { insertProducts } from './services/productService.js';
 import { getOAuthClient } from './services/authService.js';
 import pool from './db.js';
 
-dotenv.config({ path: '.env' });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const unlinkAsync = promisify(fsUnlink);
@@ -44,8 +44,8 @@ const unlinkAsync = promisify(fsUnlink);
 // — CORS
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://smartpicker.au']
-    : ['http://localhost:5173'],
+    ? ['https://smartpicker.au', 'https://api.smartpicker.au']
+    : ['http://localhost:3000', 'http://localhost:5033'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
@@ -62,7 +62,7 @@ app.set('trust proxy', 1);
 
 // — Sessions with Postgres store
 const PgStore = pgSession(session);
-app.use(cookieParser(process.env.SESSION_SECRET));
+app.use(cookieParser());
 app.use(session({
   store: new PgStore({ pool, tableName: 'sessions' }),
   secret: process.env.SESSION_SECRET,
@@ -88,20 +88,7 @@ app.use(express.json());
 app.use(morgan(':method :url :status'));
 
 // — CSRF protection
-const { doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => process.env.SESSION_SECRET,
-  cookieName: 'x-csrf-token',
-  cookieOptions: {
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    signed: true,
-    domain: process.env.NODE_ENV === 'production' ? '.smartpicker.au' : undefined,
-  },
-  size: 64,
-  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-  getTokenFromRequest: req => req.headers['x-csrf-token'],
-});
+const csrfProtection = csurf({ cookie: true });
 
 // Middleware to protect internal endpoints by checking for a secret key
 const verifyInternalRequest = (req, res, next) => {
@@ -166,11 +153,12 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
   });
 }));
 
+app.use(csrfProtection);
+
 // Public & CSRF-protected routes
 app.get('/csrf-token', (req, res) => {
-  res.json({ csrfToken: req.csrfToken });
+  res.json({ csrfToken: req.csrfToken() });
 });
-app.use(doubleCsrfProtection);
 
 // Feature routes
 app.use('/auth', authRoutes);
@@ -262,8 +250,6 @@ app.post('/upload',
 );
 
 // — Swagger docs
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const swaggerDoc = JSON.parse(
   await readFile(join(__dirname, '../swagger.json'), 'utf8')
 );
