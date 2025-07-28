@@ -5,7 +5,4 @@ node_modules/
 
 *.yml
 
-# Used to run code locally on pc
-/start.sh
-
 lambda-function/

@@ -44,8 +44,8 @@ const unlinkAsync = promisify(fsUnlink);
 // — CORS
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://smartpicker.au', 'https://api.smartpicker.au']
-    : ['http://localhost:3000', 'http://localhost:5033'],
+    ? ['https://smartpicker.au']
+    : ['http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
@@ -88,7 +88,7 @@ app.use(express.json());
 app.use(morgan(':method :url :status'));
 
 // — CSRF protection
-const { generateToken, doubleCsrfProtection } = doubleCsrf({
+const { doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.SESSION_SECRET,
   cookieName: 'x-csrf-token',
   cookieOptions: {
@@ -168,7 +168,7 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
 
 // Public & CSRF-protected routes
 app.get('/csrf-token', (req, res) => {
-  res.json({ csrfToken: generateToken(req, res) });
+  res.json({ csrfToken: req.csrfToken });
 });
 app.use(doubleCsrfProtection);
 

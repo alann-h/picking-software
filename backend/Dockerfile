@@ -1,12 +1,31 @@
-FROM node:22.17.0-alpine
+# ---- Stage 1: Build & Prune ----
+# Use a full Node.js image to install all dependencies, including devDependencies
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
+COPY frontend/package.json ./frontend/
+COPY backend/package.json ./backend/
 
 RUN npm install
 
-COPY . .
+COPY backend/ ./backend/
+
+RUN npm prune --omit=dev
+
+
+# ---- Stage 2: Production ----
+# Start from a fresh, lightweight Node.js image for the final stage
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+
+COPY backend/package.json ./
+
+COPY backend/ ./
 
 EXPOSE 5033
 
