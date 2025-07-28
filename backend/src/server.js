@@ -153,12 +153,12 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
   });
 }));
 
-app.use(csrfProtection);
 
 // Public & CSRF-protected routes
 app.get('/csrf-token', (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
+app.use(csrfProtection);
 
 // Feature routes
 app.use('/auth', authRoutes);

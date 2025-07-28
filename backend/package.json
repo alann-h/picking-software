@@ -5,8 +5,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
+    "dev": "nodemon --env-file=../.env.dev src/server.js",
+    "start": "node --env-file=../.env.dev src/server.js",
     "lint": "eslint src/*.js",
     "test": "jest"
   },
@@ -23,13 +23,13 @@
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.848.0",
     "@aws-sdk/client-s3": "^3.844.0",
+    "@dr.pogodin/csurf": "^1.16.5",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.53.0",
     "connect-pg-simple": "^10.0.0",
     "convert-excel-to-json": "^1.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "csrf-csrf": "^4.0.3",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "express-session": "^1.18.1",

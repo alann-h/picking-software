@@ -48,7 +48,8 @@ const Login: React.FC = () => {
   }, [handleOpenSnackbar, navigate]);
 
   const handleQuickBooksLogin = () => {
-    window.location.href = AUTH_URI;
+    console.log(AUTH_URI);
+    // window.location.href = AUTH_URI;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
