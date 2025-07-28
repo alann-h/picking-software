@@ -1,6 +1,6 @@
 import pg from 'pg';
 
-const sslConfig = process.env.NODE_ENV === 'production' 
+const sslConfig = process.env.VITE_APP_ENV === 'production' 
   ? { rejectUnauthorized: false } 
   : false;
 

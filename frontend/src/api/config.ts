@@ -4,11 +4,8 @@
  * Base URL for API requests. Configurable via environment variable.
  * Ensure you set API_BASE_URL in your .env file (e.g., API_BASE_URL=http://localhost:5033)
  */
-export const API_BASE = process.env.NODE_ENV === 'production' 
-  ? 'https://api.smartpicker.au'
-  : 'http://localhost:5033';
+export const API_BASE = import.meta.env.VITE_API_BASE_URL;
   
-
 /**
  * Auth endpoints
  */

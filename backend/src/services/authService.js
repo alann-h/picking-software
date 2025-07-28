@@ -7,7 +7,7 @@ import validator from 'validator';
 import crypto from 'crypto';
 
 export function initializeOAuthClient() {
-  const environment = process.env.NODE_ENV;
+  const environment = process.env.VITE_APP_ENV;
   const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
   const clientSecret = environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
   const redirectUri = environment === 'production' ? process.env.REDIRECT_URI_PROD : process.env.REDIRECT_URI_DEV;

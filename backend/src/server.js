@@ -6,7 +6,6 @@ import cors from 'cors';
 import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import multer from 'multer';
 import pgSession from 'connect-pg-simple';
 import swaggerUi from 'swagger-ui-express';
@@ -36,16 +35,14 @@ import { insertProducts } from './services/productService.js';
 import { getOAuthClient } from './services/authService.js';
 import pool from './db.js';
 
-dotenv.config({ path: '.env' });
-
 const app = express();
 const unlinkAsync = promisify(fsUnlink);
 
 // — CORS
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://smartpicker.au', 'https://api.smartpicker.au']
-    : ['http://localhost:3000', 'http://localhost:5033'],
+  origin: process.env.VITE_APP_ENV === 'production'
+    ? ['https://smartpicker.au']
+    : ['http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
@@ -62,18 +59,18 @@ app.set('trust proxy', 1);
 
 // — Sessions with Postgres store
 const PgStore = pgSession(session);
-app.use(cookieParser(process.env.SESSION_SECRET));
+app.use(cookieParser());
 app.use(session({
   store: new PgStore({ pool, tableName: 'sessions' }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.VITE_APP_ENV === 'production',
+    sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
-    domain: process.env.NODE_ENV === 'production' ? '.smartpicker.au' : undefined,
+    domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
   },
 }));
 
@@ -88,19 +85,19 @@ app.use(express.json());
 app.use(morgan(':method :url :status'));
 
 // — CSRF protection
-const { generateToken, doubleCsrfProtection } = doubleCsrf({
+const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.SESSION_SECRET,
   cookieName: 'x-csrf-token',
   cookieOptions: {
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    signed: true,
-    domain: process.env.NODE_ENV === 'production' ? '.smartpicker.au' : undefined,
+    sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.VITE_APP_ENV === 'production',
+    domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
   },
   size: 64,
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   getTokenFromRequest: req => req.headers['x-csrf-token'],
+  getSessionIdentifier: (req) => req.session.id,
 });
 
 // Middleware to protect internal endpoints by checking for a secret key
@@ -166,11 +163,12 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
   });
 }));
 
+app.use(doubleCsrfProtection);
+
 // Public & CSRF-protected routes
 app.get('/csrf-token', (req, res) => {
-  res.json({ csrfToken: generateToken(req, res) });
+  res.json({ csrfToken: generateCsrfToken(req, res) });
 });
-app.use(doubleCsrfProtection);
 
 // Feature routes
 app.use('/auth', authRoutes);
