@@ -24,9 +24,9 @@ interface ProductListProps {
   products: Product[];
   isLoading: boolean;
   onRefresh: () => void;
-  updateProductDb: (productId: number, fields: Partial<Product>) => Promise<void>;
-  deleteProductDb: (productId: number) => Promise<void>;
-  addProductDb: (productName: string, sku: string, barcode: string) => Promise<string>;
+  updateProductDb: (_productId: number, _fields: Partial<Product>) => Promise<void>;
+  deleteProductDb: (_productId: number) => Promise<void>;
+  addProductDb: (_productName: string, _sku: string, _barcode: string) => Promise<string>;
 }
 
 const ProductList: React.FC<ProductListProps> = ({

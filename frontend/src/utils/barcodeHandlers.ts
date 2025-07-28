@@ -6,10 +6,10 @@ import { ModalType } from './modalState';
 export const handleBarcodeScanned = async (
   barcode: string,
   quoteData: QuoteData | null,
-  setScannedBarcode: (barcode: string) => void,
-  setAvailableQty: (qty: number) => void,
-  setScannedProductName: (name: string) => void,
-  openModal: (type: ModalType, data: any) => void
+  setScannedBarcode: (_barcode: string) => void,
+  setAvailableQty: (_qty: number) => void,
+  setScannedProductName: (_name: string) => void,
+  openModal: (_type: ModalType, _data: any) => void
 ): Promise<void> => {
   setScannedBarcode(barcode);
   const { productName } = await barcodeToName(barcode);
@@ -35,7 +35,7 @@ export const handleModalConfirm = (
   scannedBarcode: string,
   quoteId: number,
   inputQty: number,
-  updateQuoteData: (updater: (prevQuoteData: QuoteData) => Partial<QuoteData>) => void
+  updateQuoteData: (updater: (_prevQuoteData: QuoteData) => Partial<QuoteData>) => void
 ) => {
   barcodeScan(scannedBarcode, quoteId, inputQty)
     .then((data) => {

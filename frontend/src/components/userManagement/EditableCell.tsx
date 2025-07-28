@@ -21,7 +21,7 @@ type EditableField = 'given_name' | 'family_name' | 'display_email' | 'password'
 interface EditableCellProps {
     user: UserData;
     field: EditableField;
-    onSave: (userId: string, data: Partial<UserData>) => void;
+    onSave: (_userId: string, _data: Partial<UserData>) => void;
 }
 
 const EditableCell: React.FC<EditableCellProps> = ({ user, field, onSave }) => {

@@ -4,7 +4,7 @@ import { Search as SearchIcon } from '@mui/icons-material';
 
 interface SearchBarProps {
   searchTerm: string;
-  onSearchChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSearchChange: (_event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, onSearchChange }) => {

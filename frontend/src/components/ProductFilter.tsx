@@ -5,7 +5,7 @@ import { ProductDetail } from '../utils/types';
 
 interface ProductFilterProps {
   products: ProductDetail[];
-  onFilterChange: (filteredProducts: ProductDetail[]) => void;
+  onFilterChange: (_filteredProducts: ProductDetail[]) => void;
 }
 
 type SortField = keyof Pick<ProductDetail, 'sku' | 'productName' | 'pickingQty' | 'pickingStatus'>;

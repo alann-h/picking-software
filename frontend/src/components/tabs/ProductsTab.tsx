@@ -8,7 +8,7 @@ import { Helmet } from 'react-helmet-async';
 
 interface ProductsTabProps {
   searchTerm: string;
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSearchChange: (_e: React.ChangeEvent<HTMLInputElement>) => void;
   filteredProducts: Product[];
   isLoading: boolean;
   refetch: () => void;

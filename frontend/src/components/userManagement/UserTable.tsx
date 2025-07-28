@@ -7,8 +7,8 @@ import EditableCell from './EditableCell';
 
 interface UserTableProps {
     users: UserData[];
-    onDeleteUser: (user: UserData) => void;
-    onUpdateUser: (userId: string, data: Partial<UserData>) => void;
+    onDeleteUser: (_user: UserData) => void;
+    onUpdateUser: (_userId: string, _data: Partial<UserData>) => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({ users, onDeleteUser, onUpdateUser }) => {

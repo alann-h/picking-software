@@ -173,6 +173,7 @@ export async function getProductFromDB(QboProductId) {
       [QboProductId]
     );
   } catch (err) {
+    console.error(err);
     throw new AccessError('Error accessing the database');
   }
 

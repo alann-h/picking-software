@@ -36,6 +36,7 @@ const UsersManagement = () => {
             const fetchedUsers = await getAllUsers();
             setUsers(fetchedUsers);
         } catch (error) {
+            console.error(error);
             handleOpenSnackbar('Failed to fetch users', 'error');
         } finally {
             setIsLoading(false);
@@ -59,6 +60,7 @@ const UsersManagement = () => {
             fetchUsers();
             return true;
         } catch (error) {
+            console.error(error);
             handleOpenSnackbar('Failed to add user', 'error');
             return false;
         }
@@ -80,6 +82,7 @@ const UsersManagement = () => {
             handleOpenSnackbar('User updated successfully', 'success');
         } catch (error) {
             setUsers(originalUsers);
+            console.error(error);
             handleOpenSnackbar('Failed to update user', 'error');
         }
     };
@@ -99,6 +102,7 @@ const UsersManagement = () => {
                 setUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
             }
         } catch (error) {
+            console.error(error);
             handleOpenSnackbar('Failed to delete user', 'error');
         } finally {
             setUserToDelete(null);
@@ -110,7 +114,8 @@ const UsersManagement = () => {
             await disconnectQB();
             navigate('/');
             handleOpenSnackbar('All QuickBooks data removed successfully', 'success');
-        } catch (e) {
+        } catch (error) {
+            console.error(error);
             handleOpenSnackbar('Failed to disconnect from QuickBooks', 'error');
         } finally {
             setDisconnecting(false);

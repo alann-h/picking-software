@@ -1,5 +1,5 @@
+import React from 'react';
 import { extractQuote, savePickerNote } from '../api/quote';
-
 
 export const createFetchQuoteData = async (
   quoteId: number,

@@ -28,7 +28,7 @@ interface QuoteInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   quoteData: QuoteData;
-  onProceed: (newStatus: string) => Promise<void>;
+  onProceed: (_newStatus: string) => Promise<void>;
 }
 
 /**

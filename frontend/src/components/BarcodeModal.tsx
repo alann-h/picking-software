@@ -12,7 +12,7 @@ import {
 interface BarcodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (qty: number) => void;
+  onConfirm: (_qty: number) => void;
   availableQty: number;
   productName: string;
 }

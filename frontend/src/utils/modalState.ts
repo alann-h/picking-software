@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 export type ModalType = 'barcode' | 'addProduct' | 'productDetails' | 'adjustQuantity' | 'quoteInvoice' | 'cameraScanner' | 'finalConfirmation';
 
-export type OpenModalFunction = (type: ModalType, data: any) => void;
+export type OpenModalFunction = (_type: ModalType, _data: any) => void;
 export interface ModalState {
   type: ModalType | null;
   isOpen: boolean;
