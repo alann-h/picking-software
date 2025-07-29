@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --env-file=../.env.development src/server.js",
-    "start": "node --env-file=../.env.development src/server.js",
+    "start": "node src/server.js",
     "lint": "eslint src/*.js",
     "test": "jest"
   },
