@@ -237,7 +237,7 @@ const Quote: React.FC = () => {
           <TableBody>
             {displayProducts.map((product) => (
               <ProductRow
-                key={`${product.barcode}-${product.productId}`}
+                key={product.productId}
                 product={product}
                 onProductDetails={productDetails}
                 onAdjustQuantityModal={openAdjustQuantityModal}
