@@ -33,6 +33,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
   const startTimeoutId = useRef<number | null>(null);
+  const startScannerTimeoutId = useRef<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -47,14 +48,19 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         console.error("Error stopping the scanner:", err);
       }
     }
-    setIsLoading(false);
-    setErrorMessage(null);
+    if (!isOpen) {
+      setIsLoading(false);
+      setErrorMessage(null);
+    }
   };
 
   useEffect(() => {
     if (!isOpen) {
       if (startTimeoutId.current) {
         clearTimeout(startTimeoutId.current);
+      }
+      if (startScannerTimeoutId.current) {
+        clearTimeout(startScannerTimeoutId.current);
       }
       stopScanner();
       return;
@@ -63,67 +69,80 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     setIsLoading(true);
     setErrorMessage(null);
 
-    startTimeoutId.current = window.setTimeout(async () => {
-      if (!html5QrCodeRef.current) {
-        html5QrCodeRef.current = new Html5Qrcode(QRCODE_REGION_ID, {
-          verbose: false,
-        });
-      }
-
-      const html5QrCode = html5QrCodeRef.current;
-
+    const initializeCameraAndRenderScanner = async () => {
       try {
         await navigator.mediaDevices.getUserMedia({ video: true });
-
         const devices = await Html5Qrcode.getCameras();
         console.log("Available Cameras:", devices);
 
-        let cameraIdToUse: string | undefined;
-
-        if (devices && devices.length > 0) {
-          const environmentCamera = devices.find(device =>
-            device.label.toLowerCase().includes('back') ||
-            device.label.toLowerCase().includes('environment') ||
-            device.label.toLowerCase().includes('rear') ||
-            device.label.toLowerCase().includes('main')
-          );
-
-          if (environmentCamera) {
-            cameraIdToUse = environmentCamera.id;
-            console.log("Selected environment camera:", environmentCamera.label, environmentCamera.id);
-          } else {
-            cameraIdToUse = devices[0].id;
-            console.warn("No 'environment/rear' camera found. Using the first available camera:", devices[0].label, devices[0].id);
-            handleOpenSnackbar("No rear camera found. Using front camera if available.", 'warning');
-          }
-        } else {
+        if (!devices || devices.length === 0) {
           setErrorMessage("No cameras found on this device.");
           handleOpenSnackbar("No cameras found on this device.", 'error');
           setIsLoading(false);
           return;
         }
 
-        if (html5QrCode.getState() === Html5QrcodeScannerState.NOT_STARTED) {
-          await html5QrCode.start(
-            cameraIdToUse,
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-              aspectRatio: 1.0,
-            },
-            (decodedText) => {
-              stopScanner();
-              onScanSuccess(decodedText);
-              onClose();
-            },
-            (errorMessage) => {
-              if (!errorMessage.includes("NotFoundException") && !errorMessage.includes("No QR code found")) {
-                console.warn("QR Scanner Error:", errorMessage);
-              }
-            }
-          );
-          console.log("Scanner started successfully with ID:", cameraIdToUse);
+        let cameraIdToUse: string | undefined;
+        const environmentCamera = devices.find(device =>
+          device.label.toLowerCase().includes('back') ||
+          device.label.toLowerCase().includes('environment') ||
+          device.label.toLowerCase().includes('rear') ||
+          device.label.toLowerCase().includes('main')
+        );
+
+        if (environmentCamera) {
+          cameraIdToUse = environmentCamera.id;
+          console.log("Selected environment camera:", environmentCamera.label, environmentCamera.id);
+        } else {
+          cameraIdToUse = devices[0].id;
+          console.warn("No 'environment/rear' camera found. Using the first available camera:", devices[0].label, devices[0].id);
+          handleOpenSnackbar("No rear camera found. Using front camera if available.", 'warning');
         }
+
+        setIsLoading(false);
+
+        startScannerTimeoutId.current = window.setTimeout(async () => {
+          const readerElement = document.getElementById(QRCODE_REGION_ID);
+          if (!readerElement) {
+            setErrorMessage("Scanner display area not found. Please try again.");
+            handleOpenSnackbar("Scanner display area not found. Cannot start scanner.", 'error');
+            return;
+          }
+
+          // Initialize Html5Qrcode only if it hasn't been already
+          if (!html5QrCodeRef.current) {
+            html5QrCodeRef.current = new Html5Qrcode(QRCODE_REGION_ID, {
+              verbose: false,
+            });
+          }
+
+          const html5QrCode = html5QrCodeRef.current;
+
+          if (html5QrCode.getState() === Html5QrcodeScannerState.NOT_STARTED) {
+            await html5QrCode.start(
+              cameraIdToUse!,
+              {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+              },
+              (decodedText) => {
+                stopScanner();
+                onScanSuccess(decodedText);
+                onClose();
+              },
+              (errMessage) => {
+                if (!errMessage.includes("NotFoundException") && !errMessage.includes("No QR code found")) {
+                  console.warn("QR Scanner Error:", errMessage);
+                }
+              }
+            );
+            console.log("Scanner started successfully with ID:", cameraIdToUse);
+          } else {
+            console.log("Scanner is already running or in a non-startable state:", html5QrCode.getState());
+          }
+        }, 500) as unknown as number;
+
       } catch (err: any) {
         let displayError = "Failed to start camera.";
         if (err.name === "NotAllowedError") {
@@ -135,20 +154,25 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         }
         setErrorMessage(displayError);
         handleOpenSnackbar(displayError, 'error');
-        console.error("Failed to start html5-qrcode scanner:", err);
-        stopScanner();
-      } finally {
+        console.error("Failed to initialize camera or scanner:", err);
         setIsLoading(false);
       }
-    }, 200) as unknown as number;
+    };
+    if (startTimeoutId.current) {
+      clearTimeout(startTimeoutId.current);
+    }
+    startTimeoutId.current = window.setTimeout(initializeCameraAndRenderScanner, 200) as unknown as number;
 
     return () => {
       if (startTimeoutId.current) {
         clearTimeout(startTimeoutId.current);
       }
+      if (startScannerTimeoutId.current) {
+        clearTimeout(startScannerTimeoutId.current);
+      }
       stopScanner();
     };
-  }, [isOpen, onScanSuccess, onClose, handleOpenSnackbar]);
+  }, [isOpen, onScanSuccess, onClose, handleOpenSnackbar]); 
 
   return (
     <Modal open={isOpen} onClose={onClose}>
@@ -175,6 +199,8 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
           </Box>
         )}
 
+        {/* The QR code region is only rendered when not loading and no error,
+            ensuring Html5Qrcode has an element to attach to. */}
         {!isLoading && !errorMessage && (
           <Box id={QRCODE_REGION_ID} sx={{ width: '100%', mt: 2, minHeight: 250 }} />
         )}
