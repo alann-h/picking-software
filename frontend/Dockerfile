@@ -1,6 +1,8 @@
 # ---- Stage 1: Build ----
 FROM node:22-alpine AS builder
 
+ARG VITE_API_BASE_URL
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -11,6 +13,8 @@ RUN npm install
 
 COPY frontend/ ./frontend/
 COPY frontend/tsconfig.json ./frontend/
+
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 RUN npm run build --workspace=frontend
 
