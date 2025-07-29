@@ -197,7 +197,7 @@ const Quote: React.FC = () => {
           rows={3}
           value={quoteData.orderNote || 'No note provided.'}
           slotProps={{input: { readOnly: true }}}
-          sx={{width: { xs: '100%', sm: '22.5%' }, '& .MuiInputBase-input': { cursor: 'default' }}}
+          sx={{width: '100%', '& .MuiInputBase-input': { cursor: 'default' }}}
         />
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
@@ -244,7 +244,6 @@ const Quote: React.FC = () => {
                 onSaveForLater={saveForLater}
                 onSetUnavailable={setUnavailable}
                 onSetFinished = {setFinished}
-                isMobile={isMobile}
               />
             ))}
           </TableBody>
