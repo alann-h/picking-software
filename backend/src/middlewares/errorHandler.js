@@ -29,8 +29,7 @@ export class AccessError extends HttpError {
   }
 }
 
-// eslint-disable-next-line no-unused-vars
-export default (err, req, res, next) => {
+export default (err, req, res, _next) => {
   console.error(err);
   res
     .status(err.statusCode || 500)

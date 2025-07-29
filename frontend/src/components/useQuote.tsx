@@ -40,7 +40,7 @@ export const useQuoteData = (quoteId: number) => {
   }, [fetchQuoteData]);
 
   const updateQuoteData = useCallback((
-    updater: (prev: QuoteData) => Partial<QuoteData>
+    updater: (_prev: QuoteData) => Partial<QuoteData>
   ) => {
     setQuoteData(prev => {
       if (!prev) return null;
@@ -199,7 +199,7 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
     } catch(error) {
       handleOpenSnackbar(`${error}`, 'error');
     }
-  }, [handleOpenSnackbar, quoteId]);
+  }, [handleOpenSnackbar, quoteId, navigate]);
 
   const savePickerNote = useCallback(async (note: string) => {
     try {
@@ -226,6 +226,7 @@ export const useProductActions = (quoteId: number, updateQuoteData: QuoteUpdateF
       handleOpenSnackbar('Quote updated and opened in QuickBooks', 'success');
       navigate('/dashboard');
     } catch (error) {
+      console.error(error);
       handleOpenSnackbar('Failed to finalise invoice', 'error');
     }
   };

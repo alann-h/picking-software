@@ -71,7 +71,7 @@ const useManageRuns = () => {
 // =================================================================
 // 3. CHILD UI COMPONENTS
 // =================================================================
-const RunItem: React.FC<{ run: Run; onStatusChange: (runId: string, newStatus: Run['status']) => void; isAdmin: boolean }> = ({ run, onStatusChange, isAdmin }) => {
+const RunItem: React.FC<{ run: Run; onStatusChange: (_runId: string, _newStatus: Run['status']) => void; isAdmin: boolean }> = ({ run, onStatusChange, isAdmin }) => {
     const theme = useTheme();
 
     const statusColor = (status: Run['status']) => {

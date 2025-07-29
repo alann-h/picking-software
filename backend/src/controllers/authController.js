@@ -27,9 +27,9 @@ export async function callback(req, res, next) {
     req.session.save(err => {
       if (err) return next(err);
       const redirectUri =
-        process.env.NODE_ENV === 'production'
+        process.env.VITE_APP_ENV === 'production'
           ? 'https://smartpicker.au/oauth/callback'
-          : 'http://localhost:3000/oauth/callback';
+          : 'http://localhost:5173/oauth/callback';
       res.redirect(redirectUri);
     });
   } catch (err) {

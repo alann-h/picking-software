@@ -6,7 +6,7 @@ import { Helmet } from 'react-helmet-async';
 import { getJobProgress } from '../api/products';
 
 interface FileUploadProps {
-  onFileSelect: (file: File | null) => void;
+  onFileSelect: (_file: File | null) => void;
   // CHANGED: jobId is a string
   onUpload: () => Promise<{ jobId: string }>;
   selectedFile: File | null;
@@ -25,7 +25,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
-  const pollIntervalRef = useRef<NodeJS.Timeout>();
+  const pollIntervalRef = useRef<NodeJS.Timeout>(null);
 
   // This effect runs once on mount to check for an existing job
   useEffect(() => {

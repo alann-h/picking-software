@@ -1,4 +1,5 @@
-import { apiCallDelete, apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
+import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
+import { Product } from '../utils/types';
 
 export const barcodeToName = async (barcode: string) => {
   const data = await apiCallGet(`products/barcode/${barcode}`);
@@ -38,13 +39,13 @@ export const setProductFinished = async (quoteId: number, productId: number) => 
   return response;
 }
 
-export const updateProductDb = async (productId: number) => {
-  const response = await apiCallPut(`products/${productId}`, {});
+export const updateProductDb = async (productId: number, productData: Partial<Product>) => {
+  const response = await apiCallPut(`products/${productId}`, productData);
   return response;
 }
 
-export const deleteProductDb = async (productId: number) => {
-  const response = await apiCallDelete(`products/${productId}`);
+export const setProductArchiveStatus = async (productId: number, isArchived: boolean) => {
+  const response = await apiCallPut(`products/${productId}/archive-status`, { isArchived });
   return response;  
 }
 

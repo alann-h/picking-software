@@ -18,11 +18,11 @@ import { getUserStatus } from '../api/user';
 
 interface ProductRowProps {
   product: ProductDetail;
-  onProductDetails: (productId: number, product: ProductDetail) => Promise<void>;
-  onAdjustQuantityModal: (productId: number, pickingQty: number, productName: string) => Promise<void>;
-  onSaveForLater: (productId: number) => Promise<{ newStatus: string }>;
-  onSetUnavailable: (productId: number) => Promise<{ newStatus: string }>;
-  onSetFinished: (productId: number) => Promise<{ newPickingQty: number }>;
+  onProductDetails: (_productId: number, _product: ProductDetail) => Promise<void>;
+  onAdjustQuantityModal: (_productId: number, _pickingQty: number, _productName: string) => Promise<void>;
+  onSaveForLater: (_productId: number) => Promise<{ newStatus: string }>;
+  onSetUnavailable: (_productId: number) => Promise<{ newStatus: string }>;
+  onSetFinished: (_productId: number) => Promise<{ newPickingQty: number }>;
   isMobile: boolean;
 }
 

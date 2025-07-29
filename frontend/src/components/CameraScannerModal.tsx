@@ -23,7 +23,7 @@ const QRCODE_REGION_ID = "reader";
 interface CameraScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onScanSuccess: (decodedText: string) => void;
+  onScanSuccess: (_decodedText: string) => void;
 }
 
 const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose, onScanSuccess }) => {

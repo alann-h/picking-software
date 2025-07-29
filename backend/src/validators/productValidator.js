@@ -16,7 +16,7 @@ export const barcodeRule = () => [
 // For adding a new product
 export const addProductRules = () => [
   body('productName').notEmpty().withMessage('Product name is required.').trim().escape(),
-  body('sku').optional().trim().escape(),
+  body('sku').notEmpty().withMessage('Product SKU is required').trim().escape(),
   body('barcode').optional().trim().escape(),
 ];
 
@@ -34,6 +34,10 @@ export const quoteProductRules = () => [
     body('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer.'),
 ];
 
+export const setArchiveStatusRules = () => [
+  param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer.'),
+  body('isArchived').isBoolean().withMessage('The "isArchived" status must be a boolean (true or false).'),
+];
 
 // Export the generic error handler
 export { validate };

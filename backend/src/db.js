@@ -1,9 +1,6 @@
 import pg from 'pg';
-import dotenv from 'dotenv';
 
-dotenv.config({ path: '.env' });
-
-const sslConfig = process.env.NODE_ENV === 'production' 
+const sslConfig = process.env.VITE_APP_ENV === 'production' 
   ? { rejectUnauthorized: false } 
   : false;
 

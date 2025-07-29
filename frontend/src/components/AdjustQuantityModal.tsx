@@ -15,7 +15,7 @@ interface AdjustQuantityModalProps {
   productName: string;
   currentQty: number;
   productId: number;
-  onConfirm: (productId: number, newQty: number) => Promise<void>;
+  onConfirm: (_productId: number, _newQty: number) => Promise<void>;
 }
 
 const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({

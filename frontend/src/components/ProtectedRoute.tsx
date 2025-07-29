@@ -18,6 +18,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         const response = await verifyUser();
         setIsAuthenticated(response.isValid);
       } catch (error) {
+        console.error(error);
         setIsAuthenticated(false);
       }
     };

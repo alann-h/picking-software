@@ -87,7 +87,7 @@ Clone the repository and create a `.env` file in the `./backend` directory. Popu
 
 ```env
 # Server Configuration
-NODE_ENV=sandbox
+VITE_APP_ENV=sandbox
 BACKEND_PORT=5033
 
 # Database
@@ -144,7 +144,7 @@ AES_SECRET_KEY=a-32-byte-long-secret-key-for-aes-256
     npm run dev
     ```
 
-The frontend will be available at `http://localhost:3000` and the backend at `http://localhost:5033`.
+The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:5033`.
 
 
 ## API Documentation

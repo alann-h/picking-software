@@ -31,10 +31,10 @@ export interface QuoteProps {
     itemsPerPage: number;
 }
 export interface BarcodeListenerProps {
-    onBarcodeScanned: (barcode: string) => void;
+    onBarcodeScanned: (_barcode: string) => void;
     disabled?: boolean; 
 }
-export type QuoteUpdateFunction = (updater: (prevQuoteData: QuoteData) => Partial<QuoteData>) => void;
+export type QuoteUpdateFunction = (_updater: (_prevQuoteData: QuoteData) => Partial<QuoteData>) => void;
 
 export interface Customer {
     customerName: string;
@@ -45,7 +45,7 @@ export interface SnackbarContextType {
     openSnackbar: boolean;
     snackbarMessage: string;
     snackbarSeverity: SnackbarSeverity;
-    handleOpenSnackbar: (message: string, severity: 'error' | 'success' | 'info' | 'warning') => void;
+    handleOpenSnackbar: (_message: string, _severity: 'error' | 'success' | 'info' | 'warning') => void;
     handleCloseSnackbar: () => void;
 }
 // need to clean up below type
@@ -69,6 +69,7 @@ export interface Product {
     companyId: number;
     category: string;
     qboItemId: string;
+    isArchived: boolean;
   }
 export interface UserData {
     id: string;

@@ -21,7 +21,7 @@ import { useAllProducts } from './useAllProducts';
 interface AddProductModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (productId: number, qty: number) => Promise<ProductDetail | undefined>;
+  onSubmit: (_productId: number, _qty: number) => Promise<ProductDetail | undefined>;
 }
 
 const STEP = 1;
