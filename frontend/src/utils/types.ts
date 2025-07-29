@@ -69,6 +69,7 @@ export interface Product {
     companyId: number;
     category: string;
     qboItemId: string;
+    isArchived: boolean;
   }
 export interface UserData {
     id: string;

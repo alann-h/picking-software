@@ -10,9 +10,9 @@ import {
   setUnavailableHandler,
   setFinishedHandler,
   updateProduct,
-  deleteProduct,
   getQboItemId,
-  addProduct
+  addProduct,
+  setProductArchiveStatus
 } from '../controllers/productController.js';
 
 import {
@@ -21,7 +21,8 @@ import {
   barcodeRule,
   addProductRules,
   updateProductRules,
-  quoteProductRules
+  quoteProductRules,
+  setArchiveStatusRules
 } from '../validators/productValidator.js';
 
 const router = Router();
@@ -41,7 +42,7 @@ router.put('/finished', quoteProductRules(), validate, asyncHandler(setFinishedH
 
 // Product CRUD
 router.put('/:productId', updateProductRules(), validate, asyncHandler(updateProduct));
-router.delete('/:productId', productIdRule(), validate, asyncHandler(deleteProduct));
+router.put('/:productId/archive-status', setArchiveStatusRules(), validate, asyncHandler(setProductArchiveStatus));
 
 // QBO ID lookup & creation
 router.get('/:productId/qbo-item-id', productIdRule(), validate, asyncHandler(getQboItemId));

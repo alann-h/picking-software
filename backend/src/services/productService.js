@@ -20,61 +20,6 @@ export async function productIdToQboId(productId) {
   }
 }
 
-export async function processFile(filePath) {
-  try {
-    console.log(`Starting Excel to JSON conversion for file: ${filePath}`);
-    const excelData = excelToJson({
-      sourceFile: filePath,
-      header: { rows: 1 },
-      columnToKey: { '*': '{{columnHeader}}' }
-    });
-
-    const allProducts = [];
-
-    if (typeof excelData !== 'object' || excelData === null) {
-        throw new Error('Excel data could not be parsed or is empty.');
-    }
-
-    for (const sheet in excelData) {
-      if (Object.prototype.hasOwnProperty.call(excelData, sheet)) {
-        const products = excelData[sheet];
-
-        if (!Array.isArray(products)) {
-            console.warn(`Sheet ${sheet} did not contain an array of products. Skipping.`);
-            continue;
-        }
-
-        for (const product of products) {
-          if (typeof product !== 'object' || product === null) {
-              console.warn('Skipping non-object product entry:', product);
-              continue;
-          }
-
-          const fullName = product["Product/Service Name"];
-          const sku = product["SKU"]?.toString().trim();
-          const barcodeRaw = product.GTIN?.toString().trim();
-          const barcode = barcodeRaw?.length === 13 ? '0' + barcodeRaw : barcodeRaw;
-
-          if (!fullName || !sku) {
-            console.warn(`Skipping product due to missing Full Name or SKU:`, product);
-            continue;
-          }
-
-          const [category, productName] = fullName.split(/:(.+)/).map(s => s.trim());
-
-          allProducts.push({ category, productName, barcode, sku });
-        }
-      }
-    }
-    console.log(`Successfully parsed ${allProducts.length} products from ${filePath}`);
-
-    return allProducts;
-  } catch (error) {
-    console.error(`Error in processFile for ${filePath}:`, error);
-    throw new Error(`Error processing file: ${error.message}`);
-  }
-}
-
 export async function enrichWithQBOData(products, companyId) {
   const oauthClient = await getOAuthClient(companyId);
   const enriched = [];
@@ -169,7 +114,7 @@ export async function getProductFromDB(QboProductId) {
   let result;
   try {
     result = await query(
-      'SELECT * FROM products WHERE qbo_item_id = $1',
+      'SELECT * FROM products WHERE qbo_item_id = $1 AND is_archived = FALSE',
       [QboProductId]
     );
   } catch (err) {
@@ -196,6 +141,7 @@ export async function getAllProducts(companyId) {
       companyId: Number(product.companyid),
       category: product.category ?? null,
       qboItemId: product.qbo_item_id ?? '',
+      isArchived: product.is_archived
     }));
   } catch (error) {
     throw new AccessError(error.message);
@@ -225,21 +171,20 @@ export async function updateProductDb(productId, updateFields) {
   return result.rows[0];
 }
 
-export async function deleteProductDb(productId) {
+export async function setProductArchiveStatusDb(productId, isArchived) {
   const result = await query(
-    'DELETE FROM products WHERE productid = $1 RETURNING *;',
-    [productId]
+    'UPDATE products SET is_archived = $1 WHERE productid = $2 RETURNING *;',
+    [isArchived, productId]
   );
-  return result.rows[0];
+  return result[0];
 }
 
 export async function addProductDb(product, companyId) {
   try{
-    const enrichedProduct = await enrichWithQBOData(product);
+    const enrichedProduct = await enrichWithQBOData(product, companyId);
 
-    const { productName, barcode, sku } = product;
-
-    const { price, quantity_on_hand, qbo_item_id, tax_code_ref } = enrichedProduct;
+    const { productName, barcode, sku } = product[0];
+    const { price, quantity_on_hand, qbo_item_id, tax_code_ref } = enrichedProduct[0];
 
     const values = [
       productName,       // $1 → productname
@@ -248,9 +193,8 @@ export async function addProductDb(product, companyId) {
       price,             // $4 → price
       quantity_on_hand,  // $5 → quantity_on_hand
       qbo_item_id,       // $6 → qbo_item_id
-      // category,          // $7 → category ignore for now
-      companyId,          // $8 → companyid
-      tax_code_ref
+      companyId,         // $7 → companyid
+      tax_code_ref       // $8 → tax_code_ref
     ];
     const text = `
       INSERT INTO products
@@ -266,9 +210,8 @@ export async function addProductDb(product, companyId) {
       RETURNING sku;
     `;
 
-    const { rows } = await query(text, values);
-
-    return rows[0].sku;
+    const result = await query(text, values);
+    return result[0].sku;
 
   } catch (err) {
     throw new InputError(`addProductDb failed: ${err.message}`);

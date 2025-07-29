@@ -7,7 +7,7 @@ import {
     setUnavailable,
     setProductFinished,
     updateProductDb,
-    deleteProductDb,
+    setProductArchiveStatusDb,
     addProductDb,
     getProductName
 } from '../services/productService.js';
@@ -89,11 +89,12 @@ export async function updateProduct(req, res, next) {
   }
 }
 
-// DELETE /products/:productId
-export async function deleteProduct(req, res, next) {
+// PUT /products/:productId/archive-status
+export async function setProductArchiveStatus(req, res, next) {
   try {
     const { productId } = req.params;
-    const result = await deleteProductDb(productId);
+    const { isArchived } = req.body;
+    const result = await setProductArchiveStatusDb(productId, isArchived);
     res.json(result);
   } catch (err) {
     next(err);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -16,16 +16,30 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { Product } from '../utils/types';
 import { useSnackbarContext } from './SnackbarContext';
+
+// NOTE: Ensure your Product type in '../utils/types' includes the isArchived property.
+// interface Product {
+//   productId: number;
+//   productName: string;
+//   isArchived: boolean;
+//   price: number;
+//   barcode: string;
+//   quantityOnHand: number;
+//   sku: string;
+//   // ... other properties
+// }
 
 interface ProductListProps {
   products: Product[];
   isLoading: boolean;
   onRefresh: () => void;
   updateProductDb: (_productId: number, _fields: Partial<Product>) => Promise<void>;
-  deleteProductDb: (_productId: number) => Promise<void>;
+  setProductArchiveStatus: (_productId: number, _isArchived: boolean) => Promise<void>;
   addProductDb: (_productName: string, _sku: string, _barcode: string) => Promise<string>;
 }
 
@@ -34,23 +48,25 @@ const ProductList: React.FC<ProductListProps> = ({
   isLoading,
   onRefresh,
   updateProductDb,
-  deleteProductDb,
+  setProductArchiveStatus,
   addProductDb,
 }) => {
   const { handleOpenSnackbar } = useSnackbarContext();
 
-  // “Edit Product” dialog
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [openEdit, setOpenEdit] = useState(false);
-
-  // “Add Product” dialog
   const [openAdd, setOpenAdd] = useState(false);
   const [newProductName, setNewProductName] = useState('');
   const [newSku, setNewSku] = useState('');
   const [newBarcode, setNewBarcode] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
-  // ---------- Existing “Edit” handlers ----------
+  const filteredProducts = useMemo(
+    () => products.filter((p) => p.isArchived === showArchived),
+    [products, showArchived],
+  );
+
   const handleOpenEdit = (product: Product) => {
     setSelectedProduct(product);
     setOpenEdit(true);
@@ -85,19 +101,23 @@ const ProductList: React.FC<ProductListProps> = ({
     }
   };
 
-  const handleDeleteEdit = async () => {
-    if (!selectedProduct) return;
-    try {
-      await deleteProductDb(selectedProduct.productId);
-      handleOpenSnackbar('Product deleted successfully', 'success');
-      onRefresh();
-      handleCloseEdit();
-    } catch (err) {
-      handleOpenSnackbar((err as Error).message || 'Failed to delete product', 'error');
-    }
-  };
+const handleArchiveAction = async () => {
+  if (!selectedProduct) return;
 
-  // ---------- NEW: “Add Product” handlers ----------
+  const newStatus = !selectedProduct.isArchived; 
+  const successMessage = newStatus ? 'Product archived successfully' : 'Product restored successfully';
+
+  try {
+    await setProductArchiveStatus(selectedProduct.productId, newStatus);
+    
+    handleOpenSnackbar(successMessage, 'success');
+    onRefresh();
+    handleCloseEdit();
+  } catch (err) {
+    handleOpenSnackbar((err as Error).message || 'Failed to update status', 'error');
+  }
+};
+
   const handleOpenAdd = () => {
     setNewProductName('');
     setNewSku('');
@@ -105,17 +125,13 @@ const ProductList: React.FC<ProductListProps> = ({
     setOpenAdd(true);
   };
 
-  const handleCloseAdd = () => {
-    setOpenAdd(false);
-  };
+  const handleCloseAdd = () => setOpenAdd(false);
 
   const handleAdd = async () => {
-    // Basic validation: ensure no field is blank
-    if (!newProductName.trim() || !newSku.trim() || !newBarcode.trim()) {
-      handleOpenSnackbar('All fields are required to add a new product.', 'error');
+    if (!newProductName.trim() || !newSku.trim()) {
+      handleOpenSnackbar('Product Name and SKU are required.', 'error');
       return;
     }
-
     setIsAdding(true);
     try {
       await addProductDb(newProductName.trim(), newSku.trim(), newBarcode.trim());
@@ -137,12 +153,18 @@ const ProductList: React.FC<ProductListProps> = ({
         </Box>
       ) : (
         <>
+          <Box display="flex" justifyContent="space-between" alignItems="center" my={1}>
+            <Button variant="outlined" color="primary" onClick={handleOpenAdd}>
+              Add Product
+            </Button>
+            <FormControlLabel
+              control={<Switch checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />}
+              label="Show Archived"
+            />
+          </Box>
           <Typography variant="subtitle1" gutterBottom>
-            Showing {products.length} products
+            Showing {filteredProducts.length} {showArchived ? 'archived' : 'active'} products
           </Typography>
-          <Button variant="outlined" color="primary" onClick={handleOpenAdd} sx={{ my: 1 }}>
-            Add Product
-          </Button>
           <TableContainer component={Paper}>
             <Table sx={{ minWidth: 650 }} aria-label="product table">
               <TableHead>
@@ -152,12 +174,18 @@ const ProductList: React.FC<ProductListProps> = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <TableRow
                     key={product.productId}
                     hover
                     onClick={() => handleOpenEdit(product)}
-                    sx={{ cursor: 'pointer' }}
+                    sx={{
+                      cursor: 'pointer',
+                      ...(product.isArchived && {
+                        backgroundColor: 'action.hover',
+                        color: 'text.disabled',
+                      }),
+                    }}
                   >
                     <TableCell>{product.productName}</TableCell>
                     <TableCell>{product.barcode}</TableCell>
@@ -167,8 +195,7 @@ const ProductList: React.FC<ProductListProps> = ({
             </Table>
           </TableContainer>
 
-          {/* Refresh + Add buttons */}
-          <Box mt={3} display="flex" justifyContent="center" gap={2}>
+          <Box mt={3} display="flex" justifyContent="center">
             <Button variant="contained" color="primary" onClick={onRefresh}>
               Refresh Products
             </Button>
@@ -206,7 +233,7 @@ const ProductList: React.FC<ProductListProps> = ({
                 margin="dense"
                 type="number"
                 value={selectedProduct?.quantityOnHand ?? ''}
-                onChange={(e) => handleChangeEdit('quantityOnHand', parseInt(e.target.value))}
+                onChange={(e) => handleChangeEdit('quantityOnHand', parseInt(e.target.value, 10))}
               />
               <TextField
                 label="SKU"
@@ -217,8 +244,8 @@ const ProductList: React.FC<ProductListProps> = ({
               />
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleDeleteEdit} color="error">
-                Delete
+              <Button onClick={handleArchiveAction} color={selectedProduct?.isArchived ? 'success' : 'error'}>
+                {selectedProduct?.isArchived ? 'Restore' : 'Archive'}
               </Button>
               <Button onClick={handleCloseEdit}>Cancel</Button>
               <Button onClick={handleSaveEdit} variant="contained" color="primary">
@@ -231,7 +258,6 @@ const ProductList: React.FC<ProductListProps> = ({
           <Dialog open={openAdd} onClose={handleCloseAdd} maxWidth="sm" fullWidth>
             <DialogTitle>Add New Product</DialogTitle>
             <DialogContent>
-              {/* Warning Note */}
               <Box mb={2}>
                 <Typography color="warning.main" variant="body2">
                   ⚠️ <strong>Warning:</strong> This product must already exist in QuickBooks with the exact same
@@ -244,12 +270,14 @@ const ProductList: React.FC<ProductListProps> = ({
                 fullWidth
                 margin="dense"
                 value={newProductName}
+                required
                 onChange={(e) => setNewProductName(e.target.value)}
               />
               <TextField
                 label="SKU"
                 fullWidth
                 margin="dense"
+                required
                 value={newSku}
                 onChange={(e) => setNewSku(e.target.value)}
               />
