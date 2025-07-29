@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  TableRow, 
-  TableCell, 
-  Chip, 
-  useTheme, 
-  Tooltip, 
+import {
+  TableRow,
+  TableCell,
+  Chip,
+  useTheme,
+  Tooltip,
   Box,
   Menu,
   MenuItem,
@@ -23,7 +23,6 @@ interface ProductRowProps {
   onSaveForLater: (_productId: number) => Promise<{ newStatus: string }>;
   onSetUnavailable: (_productId: number) => Promise<{ newStatus: string }>;
   onSetFinished: (_productId: number) => Promise<{ newPickingQty: number }>;
-  isMobile: boolean;
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({
@@ -33,7 +32,6 @@ const ProductRow: React.FC<ProductRowProps> = ({
   onSaveForLater,
   onSetUnavailable,
   onSetFinished,
-  isMobile,
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -90,6 +88,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
   const getActionContent = (action: string, defaultLabel: string) => {
     return loadingAction === action ? <CircularProgress size={20} color="inherit" /> : defaultLabel;
   };
+
   return (
     <TableRow>
       <TableCell>{product.sku}</TableCell>
@@ -111,81 +110,42 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </Tooltip>
       </TableCell>
       <TableCell>
-        {isMobile ? (
-          <Box>
-            <IconButton
-              aria-label="more options"
-              id={`more-button-${product.productId}`}
-              aria-controls={open ? `actions-menu-${product.productId}` : undefined}
-              aria-expanded={open ? 'true' : undefined}
-              aria-haspopup="true"
-              onClick={handleClick}
-              disabled={!!loadingAction} 
-            >
-              <MoreVertIcon />
-            </IconButton>
-            <Menu
-              id={`actions-menu-${product.productId}`}
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleClose}
-            >
-              <MenuItem onClick={() => handleAction('details')} disabled={!!loadingAction}>{getActionContent('details', 'Details')}</MenuItem>
-              <MenuItem onClick={() => handleAction('adjust')} disabled={!!loadingAction}>{getActionContent('adjust', 'Adjust Quantity')}</MenuItem>
-              <MenuItem onClick={() => handleAction('saveForLater')} disabled={!!loadingAction}>
-                {getActionContent('saveForLater', product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later')}
+        <Box>
+          <IconButton
+            aria-label="more options"
+            id={`more-button-${product.productId}`}
+            aria-controls={open ? `actions-menu-${product.productId}` : undefined}
+            aria-expanded={open ? 'true' : undefined}
+            aria-haspopup="true"
+            onClick={handleClick}
+            disabled={!!loadingAction}
+          >
+            <MoreVertIcon />
+          </IconButton>
+          <Menu
+            id={`actions-menu-${product.productId}`}
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+          >
+            <MenuItem onClick={() => handleAction('details')} disabled={!!loadingAction}>{getActionContent('details', 'Details')}</MenuItem>
+            <MenuItem onClick={() => handleAction('adjust')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>{getActionContent('adjust', 'Adjust Quantity')}</MenuItem>
+            <MenuItem onClick={() => handleAction('saveForLater')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
+              {getActionContent('saveForLater', product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later')}
+            </MenuItem>
+            <MenuItem onClick={() => handleAction('setUnavailable')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
+              {getActionContent('setUnavailable', product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable')}
+            </MenuItem>
+            {isAdmin &&
+              <MenuItem onClick={() => handleAction('setFinished')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
+                {getActionContent('setFinished', 'Set as completed')}
               </MenuItem>
-              <MenuItem onClick={() => handleAction('setUnavailable')} disabled={!!loadingAction}>
-                {getActionContent('setUnavailable', product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable')}
-              </MenuItem>
-              {isAdmin && 
-                <MenuItem onClick={() => handleAction('setFinished')} disabled={!!loadingAction}>
-                  {getActionContent('setFinished', 'Set as completed')}
-                </MenuItem>
-              }
-            </Menu>
-          </Box>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
-              <Chip 
-                label={getActionContent('details', 'Details')}
-                onClick={() => handleAction('details')} 
-                variant='outlined'
-                disabled={!!loadingAction}
-              />
-              <Chip 
-                label={getActionContent('adjust', 'Adjust Quantity')}
-                onClick={() => handleAction('adjust')} 
-                disabled={product.pickingStatus === 'completed' || !!loadingAction}
-                variant='outlined'
-              />
-              <Chip 
-                label={getActionContent('saveForLater', product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later')}
-                onClick={() => handleAction('saveForLater')}
-                disabled={product.pickingStatus === 'completed' || !!loadingAction} 
-                variant='outlined'
-              />
-              <Chip 
-                label={getActionContent('setUnavailable', product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable')}
-                onClick={() => handleAction('setUnavailable')}
-                color={product.pickingStatus === 'unavailable' ? 'primary' : 'error'}
-                disabled={product.pickingStatus === 'completed' || !!loadingAction}
-                variant='outlined'
-              />
-              {isAdmin && (
-                <Chip 
-                  label={getActionContent('setFinished', 'Set as Complete')}
-                  onClick={() => handleAction('setFinished')}
-                  color='success'
-                  disabled={product.pickingStatus === 'completed' || !!loadingAction}
-                  variant='outlined'
-                />
-              )}
-          </Box>
-        )}
+            }
+          </Menu>
+        </Box>
       </TableCell>
     </TableRow>
   );
 };
 
-export default ProductRow
+export default ProductRow;
