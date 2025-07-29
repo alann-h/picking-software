@@ -10,7 +10,7 @@ COPY backend/package.json ./backend/
 RUN npm install
 
 COPY frontend/ ./frontend/
-COPY tsconfig.json ./
+COPY frontend/tsconfig.json ./frontend/
 
 RUN npm run build --workspace=frontend
 
