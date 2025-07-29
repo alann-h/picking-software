@@ -166,8 +166,22 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
 app.use(doubleCsrfProtection);
 
 // Public & CSRF-protected routes
-app.get('/csrf-token', (req, res) => {
-  res.json({ csrfToken: generateCsrfToken(req, res) });
+// src/server.js
+app.get('/csrf-token', (req, res, next) => {
+  try {
+    const csrfToken = generateCsrfToken(req, res);
+    req.session.csrfSessionEnsured = true;
+
+    req.session.save(err => {
+      if (err) {
+        console.error("Error saving session after CSRF token generation:", err);
+        return next(err);
+      }
+      res.json({ csrfToken });
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Feature routes

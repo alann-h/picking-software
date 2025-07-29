@@ -83,7 +83,7 @@ To run this project locally, you will need to have the following prerequisites i
 
 ### Environment Variables
 
-Clone the repository and create a `.env` file in the `./backend` directory. Populate it with the following variables:
+Clone the repository and create a `.env.development` file in the `root` directory. Populate it with the following variables:
 
 ```env
 # Server Configuration

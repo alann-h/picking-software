@@ -122,7 +122,7 @@ export async function login(email, password) {
         c.qb_token as token
       FROM users u
       JOIN companies c ON u.companyid = c.companyid
-      WHERE u.email = $1
+      WHERE u.normalised_email = $1
     `, [email]);
 
     if (result.length === 0) {
@@ -145,7 +145,7 @@ export async function login(email, password) {
         const encryptedToken = encryptToken(refreshedToken);
         // Update the company's token in the database with the newly encrypted token
         await query(
-          'UPDATE companies SET qb_token = $1::jsonb WHERE companyid = $2',
+          'UPDATE companies SET qb_token = $1 WHERE companyid = $2',
           [encryptedToken, user.companyid]
         );
         user.token = refreshedToken;

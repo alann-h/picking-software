@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { CssBaseline, Box, ThemeProvider } from '@mui/material';
@@ -20,10 +20,38 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import EULA from './components/Eula';
 
+import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
+
+
 const App: React.FC = () => {
   const location = useLocation();
   const disableTopBarLocations = ['/', '/login', '/oauth/callback', '/privacy-policy', '/eula'];
   const disableTopBar = disableTopBarLocations.includes(location.pathname);
+
+  const [isCsrfTokenLoading, setIsCsrfTokenLoading] = useState(true);
+    
+  useEffect(() => {
+    const loadCsrfToken = async () => {
+        try {
+            await fetchAndCacheCsrfToken();
+            console.log("CSRF token fetched and cached successfully on app startup.");
+        } catch (error) {
+            console.error("Failed to fetch initial CSRF token:", error);
+        } finally {
+            setIsCsrfTokenLoading(false);
+        }
+    };
+    loadCsrfToken();
+  }, []);
+
+    if (isCsrfTokenLoading) {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <Box> ... Loading UI ... </Box>
+            </ThemeProvider>
+        );
+    }
 
   return (
     <ThemeProvider theme={theme}>

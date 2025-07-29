@@ -18,7 +18,7 @@ const router = new Router();
 
 router.get('/uri', asyncHandler(authUri));
 router.get('/callback', asyncHandler(callback));
-router.post('/login', loginRules(), validate ,asyncHandler(login));
+router.post('/login', loginRules(), validate , asyncHandler(login));
 
 router.use(isAuthenticated);
 

@@ -121,14 +121,17 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
             )}
 
             <Tooltip title="Settings">
-              <IconButton
-                onClick={() => navigate('/settings')}
-                disabled={!isAdmin} // Settings button is disabled for non-admins
-                aria-label="settings"
-                sx={{ color: theme.palette.text.primary }}
-              >
-                <SettingsIcon />
-              </IconButton>
+              <div>
+                <IconButton
+                  onClick={() => navigate('/settings')}
+                  disabled={!isAdmin} // Settings button is disabled for non-admins
+                  aria-label="settings"
+                  sx={{ color: theme.palette.text.primary }}
+                >
+                  <SettingsIcon />
+                </IconButton>
+              </div>
+
             </Tooltip>
           </Box>
         )}
