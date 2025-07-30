@@ -45,21 +45,21 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
     <Stack spacing={1.5}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h6" color="primary.main" fontWeight="bold">
-          Quote #{quote.Id}
+          Quote #{quote.id}
         </Typography>
         <Typography variant="h6" fontWeight="bold">
-          ${quote.TotalAmt.toFixed(2)}
+          ${quote.totalAmt.toFixed(2)}
         </Typography>
       </Stack>
       <Stack direction="row" justifyContent="space-between" color="text.secondary">
         <Stack direction="row" alignItems="center" spacing={1}>
           <PersonOutline fontSize="small" />
-          <Typography variant="body2">{quote.CustomerName}</Typography>
+          <Typography variant="body2">{quote.customerName}</Typography>
         </Stack>
         <Stack direction="row" alignItems="center" spacing={1}>
           <CalendarTodayOutlined fontSize="small" />
           <Typography variant="body2">
-            {new Date(quote.LastUpdatedTime).toLocaleDateString()}
+            {new Date(quote.lastUpdatedTime).toLocaleDateString()}
           </Typography>
         </Stack>
       </Stack>
@@ -202,10 +202,10 @@ const Dashboard: React.FC = () => {
                   {!isQuotesLoading && quotes.length > 0 && (
                     <Stack spacing={2}>
                       {quotes.map((quote, index) => (
-                        <AnimatedComponent key={quote.Id} delay={index * 0.05}>
+                        <AnimatedComponent key={quote.id} delay={index * 0.05}>
                           <QuoteItem 
                             quote={quote} 
-                            onClick={() => navigate(`/quote?id=${quote.Id}`)} 
+                            onClick={() => navigate(`/quote?id=${quote.id}`)} 
                           />
                         </AnimatedComponent>
                       ))}

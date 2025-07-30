@@ -24,12 +24,6 @@ export interface QuoteData {
     quoteId: number;
 }
 
-export interface QuoteProps {
-    quoteData: QuoteData | null;
-    quoteNumber: string;
-    currentPage: number;
-    itemsPerPage: number;
-}
 export interface BarcodeListenerProps {
     onBarcodeScanned: (_barcode: string) => void;
     disabled?: boolean; 
@@ -90,10 +84,11 @@ export interface UserUpdateData {
 }
 
 export interface QuoteSummary {
-    Id: number;
-    TotalAmt: number;
-    CustomerName: string;
-    LastUpdatedTime: string;
+    id: number;
+    totalAmt: number;
+    customerName: string;
+    lastUpdatedTime: string;
+    preparerNames?: string;
 }
 
 export interface Run {

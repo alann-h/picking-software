@@ -110,7 +110,8 @@ export async function adjustQty(req, res, next) {
 export async function scanProduct(req, res, next) {
   try {
     const { barcode, quoteId, newQty } = req.body;
-    const message = await processBarcode(barcode, quoteId, newQty);
+    const userName = req.session.name;
+    const message = await processBarcode(barcode, quoteId, newQty, userName);
     res.json(message);
   } catch (err) {
     next(err);

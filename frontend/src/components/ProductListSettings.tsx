@@ -135,7 +135,7 @@ const handleArchiveAction = async () => {
     setIsAdding(true);
     try {
       await addProductDb(newProductName.trim(), newSku.trim(), newBarcode.trim());
-      handleOpenSnackbar('Product added successfully', 'success');
+      handleOpenSnackbar(`Product ${newProductName} added successfully`, 'success');
       onRefresh();
       handleCloseAdd();
     } catch (err) {

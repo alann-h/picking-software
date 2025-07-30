@@ -136,11 +136,9 @@ const ProductRow: React.FC<ProductRowProps> = ({
             <MenuItem onClick={() => handleAction('setUnavailable')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
               {getActionContent('setUnavailable', product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable')}
             </MenuItem>
-            {isAdmin &&
-              <MenuItem onClick={() => handleAction('setFinished')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
-                {getActionContent('setFinished', 'Set as completed')}
-              </MenuItem>
-            }
+            <MenuItem onClick={() => handleAction('setFinished')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
+              {getActionContent('setFinished', 'Set as completed')}
+            </MenuItem>
           </Menu>
         </Box>
       </TableCell>

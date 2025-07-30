@@ -5,6 +5,7 @@ import {
   TableContainer, TableHead, TableRow, Box, useTheme, 
   Tooltip, CircularProgress, useMediaQuery, Button,
   TextField,
+  Container,
 } 
 from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -18,6 +19,7 @@ import ProductFilter from './ProductFilter';
 
 import CameraScannerModal from './CameraScannerModal';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import { DescriptionOutlined as QuoteIcon } from '@mui/icons-material';
 
 import { useSnackbarContext } from './SnackbarContext';
 import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote';
@@ -88,10 +90,45 @@ const Quote: React.FC = () => {
     );
   }
 
+  // --- BEGIN: No Quote Data Empty State ---
   if (!quoteData) {
-    return <Typography>No quote data available.</Typography>;
+    return (
+      <Container maxWidth="md" sx={{ mt: 8, mb: 8 }}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: { xs: 3, md: 6 },
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            minHeight: '400px',
+            justifyContent: 'center',
+            backgroundColor: theme.palette.background.paper,
+            borderRadius: (theme.shape.borderRadius as number) * 2,
+          }}
+        >
+          <QuoteIcon sx={{ fontSize: 80, color: theme.palette.text.secondary, mb: 3 }} /> {/* Large, relevant icon */}
+          <Typography variant="h5" component="h2" gutterBottom color="text.primary">
+            Quote Not Found
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 450 }}>
+            There was an issue with loading quote no. {quoteId}. Check if quote exists on quickbooks and that all products on 
+            quote are in the database.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            onClick={() => window.history.back()}
+            sx={{ borderRadius: '30px', px: 4, py: 1.5 }}
+          >
+            Go Back
+          </Button>
+        </Paper>
+      </Container>
+    );
   }
-
   const handleFilterChange = (newFilteredProducts: ProductDetail[]) => {
     setFilteredProducts(newFilteredProducts);
   };
