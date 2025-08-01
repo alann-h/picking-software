@@ -16,28 +16,24 @@ import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined
 import MonetizationOnOutlinedIcon from '@mui/icons-material/MonetizationOnOutlined';
 import UpdateOutlinedIcon from '@mui/icons-material/UpdateOutlined';
 import AllInboxOutlinedIcon from '@mui/icons-material/AllInboxOutlined';
+import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined'; // Import new icon
+
 import { Helmet } from 'react-helmet-async';
 
 // Context and API Imports
 import { useSnackbarContext } from './SnackbarContext';
 import { getQuotesWithStatus } from '../api/quote';
 import { getUserStatus } from '../api/user';
+import { QuoteSummary } from '../utils/types';
 
 // =================================================================
 // 1. INTERFACE
 // =================================================================
-interface Quote {
-  id: string;
-  customerName: string;
-  totalAmount: number;
-  lastModified: string;
-}
-
 // =================================================================
 // 2. LOGIC HOOK
 // =================================================================
 const useOrdersToCheck = () => {
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quotes, setQuotes] = useState<QuoteSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
@@ -94,10 +90,13 @@ const EmptyState: React.FC = () => (
   </Paper>
 );
 
-const QuoteCard: React.FC<{ quote: Quote }> = ({ quote }) => {
+const QuoteCard: React.FC<{ quote: QuoteSummary }> = ({ quote }) => {
   const navigate = useNavigate();
   const handleQuoteClick = () => navigate(`/quote?id=${quote.id}`);
 
+    const preparers = quote.preparerNames && quote.preparerNames.length > 0
+    ? quote.preparerNames
+    : 'Not started';
   return (
     <Card
       variant="outlined"
@@ -122,12 +121,18 @@ const QuoteCard: React.FC<{ quote: Quote }> = ({ quote }) => {
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <MonetizationOnOutlinedIcon color="action" />
-              <Typography variant="body2">${quote.totalAmount.toFixed(2)}</Typography>
+              <Typography variant="body2">${quote.totalAmt.toFixed(2)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AssignmentIndOutlinedIcon color="action" />
+              <Typography variant="body2">
+                Prepared by: <span style={{ fontWeight: 600 }}>{quote.preparerNames}</span>
+              </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <UpdateOutlinedIcon color="action" />
               <Typography variant="body2" color="text.secondary">
-                {quote.lastModified}
+                {quote.lastUpdatedTime}
               </Typography>
             </Box>
           </Stack>

@@ -43,21 +43,37 @@ async function filterEstimates(responseData, companyId) {
       }
 
       const itemId = line.SalesItemLineDetail.ItemRef.value;
-      const itemLocal = await getProductFromDB(itemId);
+      let productName = line.SalesItemLineDetail.ItemRef.name;
 
-      productInfo[itemLocal.productid] = {
-        productName: itemLocal.productname,
-        productId: itemLocal.productid,
-        sku: itemLocal.sku,
-        price: itemLocal.price,
-        pickingQty: line.SalesItemLineDetail?.Qty || 0,
-        originalQty: line.SalesItemLineDetail?.Qty || 0,
-        pickingStatus: 'pending',
-        companyId,
-        barcode: itemLocal.barcode,
-        tax_code_ref: itemLocal.tax_code_ref
-      };
+      const colonIndex = productName.indexOf(':');
+      if (colonIndex !== -1) {
+        productName = productName.substring(colonIndex + 1).trim();
+      } else {
+        productName = productName.trim();
+      }
+
+      try {
+        const itemLocal = await getProductFromDB(itemId);
+
+        productInfo[itemLocal.productid] = {
+          productName: itemLocal.productname,
+          productId: itemLocal.productid,
+          sku: itemLocal.sku,
+          price: itemLocal.price,
+          pickingQty: line.SalesItemLineDetail?.Qty || 0,
+          originalQty: line.SalesItemLineDetail?.Qty || 0,
+          pickingStatus: 'pending',
+          companyId,
+          barcode: itemLocal.barcode,
+          tax_code_ref: itemLocal.tax_code_ref
+        };
+      } catch (error) {
+        if (error.message.includes('does not exist within the database')) {
+          throw new AccessError(`Product from QuickBooks: ${productName} not found in database`);
+        }
+      }
     }
+
     const customerRef = estimate.CustomerRef;
     const orderNote = estimate.CustomerMemo;
 
@@ -215,9 +231,45 @@ export async function fetchQuoteData(quoteId) {
   }
 }
 
-export async function processBarcode(barcode, quoteId, newQty) {
+/**
+ * Updates the list of preparer names for a given quote.
+ * Adds the current user's name if not already present.
+ * @param {number} quoteId The ID of the quote.
+ * @param {string} userName The name of the user performing the action.
+ */
+async function updateQuotePreparerNames(quoteId, userName) {
   try {
-    // check the current status of the item
+    const result = await query(
+      'SELECT preparer_names FROM quotes WHERE quoteid = $1',
+      [quoteId]
+    );
+
+    let currentNames = [];
+    if (result.rows.length > 0 && result.rows[0].preparer_names) {
+      currentNames = result.rows[0].preparer_names.split(',').map(name => name.trim());
+    }
+
+    const normalizedNewName = userName.trim();
+    if (!currentNames.some(name => name.toLowerCase() === normalizedNewName.toLowerCase())) {
+      currentNames.push(normalizedNewName);
+      currentNames.sort();
+
+      const updatedNamesString = currentNames.join(', ');
+
+      await query(
+        'UPDATE quotes SET preparer_names = $1 WHERE quoteid = $2',
+        [updatedNamesString, quoteId]
+      );
+      console.log(`Quote ${quoteId}: Preparer names updated to "${updatedNamesString}" by ${userName}`);
+    }
+  } catch (err) {
+    console.error(`Error updating preparer names for quote ${quoteId} by user ${userName}:`, err);
+    throw new Error('Failed to update quote preparer names.');
+  }
+}
+
+export async function processBarcode(barcode, quoteId, newQty, userName) {
+  try {
     const checkStatusResult = await query(
       'SELECT pickingstatus FROM quoteitems WHERE quoteid = $1 AND barcode = $2',
       [quoteId, barcode]
@@ -239,6 +291,8 @@ export async function processBarcode(barcode, quoteId, newQty) {
       'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND barcode = $3 RETURNING pickingqty, productname, pickingstatus',
       [newQty, quoteId, barcode]
     );
+
+    await updateQuotePreparerNames(quoteId, userName);
 
     return { productName: result[0].productname, updatedQty: result[0].pickingqty, pickingStatus: result[0].pickingstatus };
   } catch (error) {
@@ -368,7 +422,8 @@ export async function getQuotesWithStatus(status) {
         orderStatus: quote.orderstatus,
         timeStarted: formattedTimeStarted,
         lastModified: formattedLastModified,
-        companyId: quote.companyid
+        companyId: quote.companyid,
+        preparerNames: quote.preparer_names
       };
     });
   } catch (error) {

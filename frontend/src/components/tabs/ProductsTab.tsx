@@ -12,6 +12,7 @@ interface ProductsTabProps {
   filteredProducts: Product[];
   isLoading: boolean;
   refetch: () => void;
+  isAdmin: boolean;
 }
 
 const ProductsTab: React.FC<ProductsTabProps> = ({
@@ -20,6 +21,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   filteredProducts,
   isLoading,
   refetch,
+  isAdmin
 }) => (
   <Box>
     <Helmet>
@@ -31,7 +33,8 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     <Box mb={3}>
       <SearchBar searchTerm={searchTerm} onSearchChange={onSearchChange} />
     </Box>
-    <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} updateProductDb={updateProductDb} setProductArchiveStatus={setProductArchiveStatus} addProductDb={addProductDb}/>
+    <ProductList products={filteredProducts} isLoading={isLoading} onRefresh={refetch} updateProductDb={updateProductDb} 
+    setProductArchiveStatus={setProductArchiveStatus} addProductDb={addProductDb} isAdmin={isAdmin}/>
   </Box>
 );
 

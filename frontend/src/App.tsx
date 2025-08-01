@@ -21,6 +21,7 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import EULA from './components/Eula';
 
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
+import LogoLoader from './components/LogoLoader';
 
 
 const App: React.FC = () => {
@@ -45,14 +46,10 @@ const App: React.FC = () => {
   }, []);
 
     if (isCsrfTokenLoading) {
-        return (
-            <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Box> ... Loading UI ... </Box>
-            </ThemeProvider>
-        );
+        // Use your new LogoLoader component here
+        return <LogoLoader />;
     }
-
+    
   return (
     <ThemeProvider theme={theme}>
       <SnackbarProvider>

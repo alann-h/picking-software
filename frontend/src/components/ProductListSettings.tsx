@@ -22,18 +22,6 @@ import {
 import { Product } from '../utils/types';
 import { useSnackbarContext } from './SnackbarContext';
 
-// NOTE: Ensure your Product type in '../utils/types' includes the isArchived property.
-// interface Product {
-//   productId: number;
-//   productName: string;
-//   isArchived: boolean;
-//   price: number;
-//   barcode: string;
-//   quantityOnHand: number;
-//   sku: string;
-//   // ... other properties
-// }
-
 interface ProductListProps {
   products: Product[];
   isLoading: boolean;
@@ -41,6 +29,7 @@ interface ProductListProps {
   updateProductDb: (_productId: number, _fields: Partial<Product>) => Promise<void>;
   setProductArchiveStatus: (_productId: number, _isArchived: boolean) => Promise<void>;
   addProductDb: (_productName: string, _sku: string, _barcode: string) => Promise<string>;
+  isAdmin: boolean;
 }
 
 const ProductList: React.FC<ProductListProps> = ({
@@ -50,6 +39,7 @@ const ProductList: React.FC<ProductListProps> = ({
   updateProductDb,
   setProductArchiveStatus,
   addProductDb,
+  isAdmin
 }) => {
   const { handleOpenSnackbar } = useSnackbarContext();
 
@@ -135,7 +125,7 @@ const handleArchiveAction = async () => {
     setIsAdding(true);
     try {
       await addProductDb(newProductName.trim(), newSku.trim(), newBarcode.trim());
-      handleOpenSnackbar('Product added successfully', 'success');
+      handleOpenSnackbar(`Product ${newProductName} added successfully`, 'success');
       onRefresh();
       handleCloseAdd();
     } catch (err) {
@@ -154,7 +144,7 @@ const handleArchiveAction = async () => {
       ) : (
         <>
           <Box display="flex" justifyContent="space-between" alignItems="center" my={1}>
-            <Button variant="outlined" color="primary" onClick={handleOpenAdd}>
+            <Button variant="outlined" color="primary" onClick={handleOpenAdd} disabled={!isAdmin}>
               Add Product
             </Button>
             <FormControlLabel
@@ -170,6 +160,7 @@ const handleArchiveAction = async () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Product Name</TableCell>
+                  <TableCell>SKU</TableCell>
                   <TableCell>Barcode</TableCell>
                 </TableRow>
               </TableHead>
@@ -188,6 +179,7 @@ const handleArchiveAction = async () => {
                     }}
                   >
                     <TableCell>{product.productName}</TableCell>
+                    <TableCell>{product.sku}</TableCell>
                     <TableCell>{product.barcode}</TableCell>
                   </TableRow>
                 ))}
@@ -211,6 +203,7 @@ const handleArchiveAction = async () => {
                 margin="dense"
                 value={selectedProduct?.productName || ''}
                 onChange={(e) => handleChangeEdit('productName', e.target.value)}
+                slotProps={{input:{readOnly: !isAdmin}}}
               />
               <TextField
                 label="Price"
@@ -219,6 +212,7 @@ const handleArchiveAction = async () => {
                 type="number"
                 value={selectedProduct?.price ?? ''}
                 onChange={(e) => handleChangeEdit('price', parseFloat(e.target.value))}
+                slotProps={{input:{readOnly: !isAdmin}}}
               />
               <TextField
                 label="Barcode"
@@ -226,6 +220,7 @@ const handleArchiveAction = async () => {
                 margin="dense"
                 value={selectedProduct?.barcode || ''}
                 onChange={(e) => handleChangeEdit('barcode', e.target.value)}
+                slotProps={{input:{readOnly: !isAdmin}}}
               />
               <TextField
                 label="Quantity On Hand"
@@ -234,6 +229,7 @@ const handleArchiveAction = async () => {
                 type="number"
                 value={selectedProduct?.quantityOnHand ?? ''}
                 onChange={(e) => handleChangeEdit('quantityOnHand', parseInt(e.target.value, 10))}
+                slotProps={{input:{readOnly: !isAdmin}}}
               />
               <TextField
                 label="SKU"
@@ -241,6 +237,7 @@ const handleArchiveAction = async () => {
                 margin="dense"
                 value={selectedProduct?.sku || ''}
                 onChange={(e) => handleChangeEdit('sku', e.target.value)}
+                slotProps={{input:{readOnly: !isAdmin}}}
               />
             </DialogContent>
             <DialogActions>

@@ -1,7 +1,7 @@
-import excelToJson from 'convert-excel-to-json';
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query } from '../helpers.js';
 import { getBaseURL, getOAuthClient } from './authService.js';
+import he from 'he';
 
 export async function productIdToQboId(productId) {
   try {
@@ -148,10 +148,39 @@ export async function getAllProducts(companyId) {
   }
 }
 
-export async function updateProductDb(productId, updateFields) {
-  const fields = Object.keys(updateFields);
-  const values = Object.values(updateFields);
+const fieldToDbColumnMap = {
+  productName: 'productname',
+  price: 'price',
+  barcode: 'barcode',
+  quantityOnHand: 'quantity_on_hand',
+  sku: 'sku',
+};
 
+const fieldsToDecode = ['productName', 'sku'];
+
+export async function updateProductDb(productId, updateFields) {
+  const processedUpdateFields = {};
+
+  for (const key in updateFields) {
+    if (updateFields.hasOwnProperty(key)) {
+      const dbColumnName = fieldToDbColumnMap[key];
+      let value = updateFields[key];
+
+      if (fieldsToDecode.includes(key) && typeof value === 'string') {
+        value = he.decode(value);
+      }
+
+      if (dbColumnName) {
+        processedUpdateFields[dbColumnName] = value;
+      } else {
+        console.warn(`Attempted to update unknown field "${key}". Skipping.`);
+      }
+    }
+  }
+
+  const fields = Object.keys(processedUpdateFields);
+  const values = Object.values(processedUpdateFields);
+  
   if (fields.length === 0) {
     throw new Error('No fields provided for update');
   }
@@ -160,15 +189,15 @@ export async function updateProductDb(productId, updateFields) {
   .map((field, index) => `"${field}" = $${index + 1}`)
   .join(', ');
 
-  const query = `
+  const sqlQuery = `
     UPDATE products
     SET ${setClause}
     WHERE productid = $${fields.length + 1}
     RETURNING *;
   `;
 
-  const result = await query(query, [...values, productId]);
-  return result.rows[0];
+  const result = await query(sqlQuery, [...values, productId]);
+  return result[0];
 }
 
 export async function setProductArchiveStatusDb(productId, isArchived) {
@@ -183,12 +212,18 @@ export async function addProductDb(product, companyId) {
   try{
     const enrichedProduct = await enrichWithQBOData(product, companyId);
 
-    const { productName, barcode, sku } = product[0];
+    let { productName, barcode, sku } = product[0];
+
+    const barcodeValue = barcode === '' ? null : barcode;
+
+    if (productName) { productName = he.decode(productName); }
+    if (sku) { sku = he.decode(sku); }
+
     const { price, quantity_on_hand, qbo_item_id, tax_code_ref } = enrichedProduct[0];
 
     const values = [
       productName,       // $1 → productname
-      barcode,           // $2 → barcode
+      barcodeValue,      // $2 → barcode
       sku,               // $3 → sku
       price,             // $4 → price
       quantity_on_hand,  // $5 → quantity_on_hand
