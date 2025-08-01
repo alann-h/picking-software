@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AppBar,
   Button,
@@ -9,12 +9,19 @@ import {
   useMediaQuery,
   Box,
   Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'; // Import new icon
+import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
+import InventoryIcon from '@mui/icons-material/Inventory'; // New icon for products
+import UploadFileIcon from '@mui/icons-material/UploadFile'; // New icon for upload
+import GroupIcon from '@mui/icons-material/Group'; // New icon for users
 import { useNavigate } from 'react-router-dom';
-import { useUserStatus } from '../utils/useUserStatus'; // Import useUserStatus
+import { useUserStatus } from '../utils/useUserStatus';
 
 interface TopBarProps {
   disableTopBar: boolean;
@@ -26,8 +33,24 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { isAdmin } = useUserStatus(disableTopBar);
 
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   const handleTitleClick = () => {
     navigate(disableTopBar ? '/' : '/dashboard');
+  };
+
+  const handleMenuItemClick = (path: string) => {
+    navigate(path);
+    handleMenuClose();
   };
 
   return (
@@ -75,7 +98,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
               mt: isMobile ? 1 : 0,
             }}
           >
-            {isAdmin && ( // Only show Orders to Check and Manage Runs to admins
+            {isAdmin && (
               <>
                 {isMobile ? (
                   <Tooltip title="Orders to Check">
@@ -97,7 +120,6 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                   </Button>
                 )}
 
-                {/* New Runs Tab/Button - Only for Admins */}
                 {isMobile ? (
                   <Tooltip title="Manage Runs">
                     <IconButton
@@ -121,18 +143,58 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
             )}
 
             <Tooltip title="Settings">
-              <div>
-                <IconButton
-                  onClick={() => navigate('/settings')}
-                  disabled={!isAdmin} // Settings button is disabled for non-admins
-                  aria-label="settings"
-                  sx={{ color: theme.palette.text.primary }}
-                >
-                  <SettingsIcon />
-                </IconButton>
-              </div>
-
+              <IconButton
+                onClick={handleMenuClick}
+                aria-controls={open ? 'settings-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={open ? 'true' : undefined}
+                aria-label="settings menu"
+                sx={{ color: theme.palette.text.primary }}
+              >
+                <SettingsIcon />
+              </IconButton>
             </Tooltip>
+
+            <Menu
+              id="settings-menu"
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleMenuClose}
+              MenuListProps={{
+                'aria-labelledby': 'settings-button',
+              }}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <MenuItem onClick={() => handleMenuItemClick('/settings/products')}>
+                <ListItemIcon>
+                  <InventoryIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Current Products</ListItemText>
+              </MenuItem>
+              {isAdmin && (
+                <>
+                  <MenuItem onClick={() => handleMenuItemClick('/settings/upload')}>
+                    <ListItemIcon>
+                      <UploadFileIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Upload Data</ListItemText>
+                  </MenuItem>
+                  <MenuItem onClick={() => handleMenuItemClick('/settings/users')}>
+                    <ListItemIcon>
+                      <GroupIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>User Management</ListItemText>
+                  </MenuItem>
+                </>
+              )}
+            </Menu>
           </Box>
         )}
       </Toolbar>

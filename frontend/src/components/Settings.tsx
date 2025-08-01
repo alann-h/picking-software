@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 
 import { useAllProducts } from './useAllProducts';
+import { useUserStatus } from '../utils/useUserStatus'; // Import useUserStatus
 
 import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
@@ -14,6 +15,7 @@ const Settings: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useUserStatus(false);
 
   const { allProducts, isLoading, refetch } = useAllProducts();
 
@@ -70,8 +72,12 @@ const Settings: React.FC = () => {
       <Paper elevation={3} sx={{ backgroundColor: theme.palette.background.paper }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="settings tabs" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
           <Tab label="Current Products" />
-          <Tab label="Upload Data" />
-          <Tab label="User Management" />
+          {isAdmin && (
+            <>
+              <Tab label="Upload Data" />
+              <Tab label="User Management" />
+            </>
+          )}
         </Tabs>
 
         <Box sx={{ p: 3 }}>
@@ -85,12 +91,17 @@ const Settings: React.FC = () => {
                   filteredProducts={filteredProducts}
                   isLoading={isLoading}
                   refetch={refetch}
+                  isAdmin={isAdmin}
                 />
               }
             />
-            <Route path="upload" element={<UploadTab refetch={refetch} />} />
-            <Route path="users" element={<UsersTab />} />
-            <Route path="/" element={<Navigate to="products" replace />} />
+            {isAdmin && (
+              <>
+                <Route path="upload" element={<UploadTab refetch={refetch} />} />
+                <Route path="users" element={<UsersTab />} />
+              </>
+            )}
+            <Route path="*" element={<Navigate to="products" replace />} />
           </Routes>
         </Box>
       </Paper>

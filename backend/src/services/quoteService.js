@@ -237,7 +237,7 @@ export async function fetchQuoteData(quoteId) {
  * @param {number} quoteId The ID of the quote.
  * @param {string} userName The name of the user performing the action.
  */
-export async function updateQuotePreparerNames(quoteId, userName) {
+async function updateQuotePreparerNames(quoteId, userName) {
   try {
     const result = await query(
       'SELECT preparer_names FROM quotes WHERE quoteid = $1',
