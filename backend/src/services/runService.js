@@ -79,31 +79,60 @@ export async function createBulkRun(orderedQuoteIds, companyId) {
  */
 export async function getRunsByCompanyId(companyId) {
     try {
-        const result = await query(
-            `SELECT r.id, r.companyid, r.created_at, r.quoteid, r.run_number, r.status,
-                    q.customername, q.totalamount
-             FROM runs r
-             JOIN quotes q ON r.quoteid = q.quoteid
-             WHERE r.companyid = $1 AND r.status IN ('pending', 'checking')
-             ORDER BY r.run_number DESC`,
-            [companyId]
-        );
-        if (result.length == 0) {
-            return null;
+        // --- Step 1: Fetch all the parent 'runs' for the company ---
+        const runsSql = `
+            SELECT id, companyid, created_at, run_number, status
+            FROM runs
+            WHERE companyid = $1 AND status IN ('pending', 'checking')
+            ORDER BY run_number DESC
+        `;
+        const runsResult = await query(runsSql, [companyId]);
+
+        if (runsResult.length === 0) {
+            return [];
         }
 
-        return result.map(row => ({
-            id: row.id,
-            companyid: row.companyid,
-            created_at: row.created_at,
-            quoteid: row.quoteid,
-            run_number: row.run_number,
-            status: row.status,
-            customername: row.customername,
-            totalamt: parseFloat(row.totalamount)
+        const runs = runsResult.rows;
+        const runIds = runs.map(run => run.id);
+
+        // --- Step 2: Fetch all related items for those runs in a single batch ---
+        const itemsSql = `
+            SELECT 
+                ri.run_id, 
+                ri.priority, 
+                q.quoteid, 
+                q.customername, 
+                q.totalamount
+            FROM run_items ri
+            JOIN quotes q ON ri.quote_id = q.quoteid
+            WHERE ri.run_id = ANY($1) -- Use ANY($1) to match all IDs in the runIds array
+            ORDER BY ri.priority ASC
+        `;
+        const itemsResult = await query(itemsSql, [runIds]);
+        const items = itemsResult.rows;
+
+        const itemsByRunId = new Map();
+        for (const item of items) {
+            if (!itemsByRunId.has(item.run_id)) {
+                itemsByRunId.set(item.run_id, []);
+            }
+            itemsByRunId.get(item.run_id).push({
+                quoteId: item.quoteid,
+                customerName: item.customername,
+                totalAmount: parseFloat(item.totalamount),
+                priority: item.priority
+            });
+        }
+
+        const finalResult = runs.map(run => ({
+            ...run,
+            quotes: itemsByRunId.get(run.id) || []
         }));
+
+        return finalResult;
+
     } catch (error) {
-        console.log('Error in getRunsByCompanyId service:', error);
+        console.error('Error in getRunsByCompanyId service:', error);
         throw new AccessError('Failed to fetch runs.');
     }
 }
