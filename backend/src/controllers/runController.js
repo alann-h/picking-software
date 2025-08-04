@@ -1,5 +1,5 @@
 import {
-    createRun,
+    createBulkRun,
     getRunsByCompanyId,
     updateRunStatus,
 } from '../services/runService.js'; // New service file for runs
@@ -8,11 +8,11 @@ import {
  * Controller to create a new run.
  * Accessible by Admins only.
  */
-export async function createRunController(req, res, next) {
+export async function createBulkRunController(req, res, next) {
     const { quoteId, companyId } = req.body; 
-    
+
     try {
-        const newRun = await createRun(quoteId, companyId);
+        const newRun = await createBulkRun(quoteId, companyId);
         res.status(201).json(newRun);
     } catch (error) {
         next(error);

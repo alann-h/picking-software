@@ -8,9 +8,9 @@ import { Run } from '../utils/types';
  * @param {string} companyId The ID of the company creating the run.
  * @returns {Promise<Run>} The newly created run object.
  */
-export const createRun = async (quoteId: number, companyId: string): Promise<Run> => {
+export const createRunFromQuotes  = async (orderedQuoteIds: number[], companyId: string): Promise<Run> => {
   // Use apiCallPost for POST requests
-  const data = await apiCallPost('runs', { quoteId, companyId });
+  const data = await apiCallPost('runs/bulk', { orderedQuoteIds, companyId });
   return data;
 };
 

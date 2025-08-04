@@ -22,36 +22,51 @@ async function getNextRunNumber(companyId) {
  * @throws {InputError} If the quote does not exist or is not in a valid status.
  * @throws {AccessError} If there's a database error.
  */
-export async function createRun(quoteId, companyId) {
+export async function createBulkRun(orderedQuoteIds, companyId) {
     try {
         return await transaction(async (client) => {
-            const quoteResult = await client.query(
-                'SELECT status FROM quotes WHERE quoteid = $1',
-                [quoteId]
+            const quotesResult = await client.query(
+                'SELECT quoteid, orderstatus FROM quotes WHERE quoteid = ANY($1::int[])',
+                [orderedQuoteIds]
             );
 
-            if (quoteResult.rows.length === 0) {
-                throw new InputError(`Quote with ID ${quoteId} not found.`);
+            if (quotesResult.rows.length !== orderedQuoteIds.length) {
+                const foundIds = new Set(quotesResult.rows.map(r => r.quoteid));
+                const missingIds = orderedQuoteIds.filter(id => !foundIds.has(id));
+                throw new InputError(`The following quotes were not found: ${missingIds.join(', ')}`);
+            }
+            
+            for (const quote of quotesResult.rows) {
+                if (!['pending', 'checking'].includes(quote.orderstatus)) {
+                    throw new InputError(`Quote ID ${quote.quoteid} has status '${quote.orderstatus}' and cannot be added to a run.`);
+                }
             }
 
-            const quoteStatus = quoteResult.rows[0].status;
-            if (!['pending', 'checking'].includes(quoteStatus)) {
-                throw new InputError(`Quote status '${quoteStatus}' cannot be added to a run.`);
-            }
-
-            const nextRunNumber = await getNextRunNumber(companyId);
+            const nextRunNumber = await getNextRunNumber(companyId, client);
 
             const newRunResult = await client.query(
-                `INSERT INTO runs (companyid, quoteid, run_number, status)
-                 VALUES ($1, $2, $3, 'pending')
-                 RETURNING id, companyid, created_at, quoteid, run_number, status`,
-                [companyId, quoteId, nextRunNumber]
+                `INSERT INTO runs (companyid, run_number, status)
+                 VALUES ($1, $2, 'pending')
+                 RETURNING id, companyid, created_at, run_number, status`,
+                [companyId, nextRunNumber]
             );
-            return newRunResult.rows[0];
+            
+            const newRun = newRunResult.rows[0];
+            const runId = newRun.id;
+
+            const runItemsValues = orderedQuoteIds.map((quoteId, index) => {
+                return `(${runId}, ${quoteId}, ${index})`;
+            }).join(',');
+
+            await client.query(
+                `INSERT INTO run_items (run_id, quote_id, priority) VALUES ${runItemsValues}`
+            );
+
+            return newRun;
         });
     } catch (error) {
-        console.error('Error in createRun service:', error);
-        throw error; // Re-throw specific errors like InputError
+        console.error('Error in createBulkRun service:', error);
+        throw error;
     }
 }
 
@@ -73,6 +88,9 @@ export async function getRunsByCompanyId(companyId) {
              ORDER BY r.run_number DESC`,
             [companyId]
         );
+        if (result.length == 0) {
+            return null;
+        }
 
         return result.map(row => ({
             id: row.id,

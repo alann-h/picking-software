@@ -160,9 +160,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
               anchorEl={anchorEl}
               open={open}
               onClose={handleMenuClose}
-              MenuListProps={{
-                'aria-labelledby': 'settings-button',
-              }}
+              slotProps={{list:{'aria-labelledby': 'settings-button'}}}
               anchorOrigin={{
                 vertical: 'bottom',
                 horizontal: 'right',
@@ -178,22 +176,20 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                 </ListItemIcon>
                 <ListItemText>Current Products</ListItemText>
               </MenuItem>
-              {isAdmin && (
-                <>
-                  <MenuItem onClick={() => handleMenuItemClick('/settings/upload')}>
-                    <ListItemIcon>
-                      <UploadFileIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Upload Data</ListItemText>
-                  </MenuItem>
-                  <MenuItem onClick={() => handleMenuItemClick('/settings/users')}>
-                    <ListItemIcon>
-                      <GroupIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>User Management</ListItemText>
-                  </MenuItem>
-                </>
-              )}
+              {isAdmin && [
+                <MenuItem key="upload" onClick={() => handleMenuItemClick('/settings/upload')}>
+                  <ListItemIcon>
+                    <UploadFileIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Upload Data</ListItemText>
+                </MenuItem>,
+                <MenuItem key="users" onClick={() => handleMenuItemClick('/settings/users')}>
+                  <ListItemIcon>
+                    <GroupIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>User Management</ListItemText>
+                </MenuItem>
+              ]}
             </Menu>
           </Box>
         )}

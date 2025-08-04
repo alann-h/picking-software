@@ -92,7 +92,7 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 } />
 
-                <Route path="/runs" element={
+                <Route path="/run" element={
                   <ProtectedRoute>
                     <Runs />
                   </ProtectedRoute>

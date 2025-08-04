@@ -22,10 +22,10 @@ export async function getCustomerQuotes(customerId, companyId) {
     const customerQuotes = estimates
       .filter(quote => quote.TxnStatus !== 'Closed')
       .map(quote => ({
-        Id: quote.Id,
-        TotalAmt: quote.TotalAmt,
-        CustomerName: quote.CustomerRef.name,
-        LastUpdatedTime: quote.MetaData.LastUpdatedTime,
+        id: Number(quote.Id),
+        totalAmt: quote.TotalAmt,
+        customerName: quote.CustomerRef.name,
+        lastUpdatedTime: quote.MetaData.LastUpdatedTime,
       }));
     return customerQuotes;
   } catch {
