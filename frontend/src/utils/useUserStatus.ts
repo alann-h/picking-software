@@ -6,14 +6,14 @@ import { useSnackbarContext } from '../components/SnackbarContext';
 interface UserStatus {
   isAdmin: boolean;
   userCompanyId: string | null;
-  isLoading: boolean;
+  isLoadingStatus: boolean;
 }
 
 export const useUserStatus = (skipFetch: boolean): UserStatus => {
   const [status, setStatus] = useState<UserStatus>({
     isAdmin: false,
     userCompanyId: null,
-    isLoading: true,
+    isLoadingStatus: true,
   });
   const { handleOpenSnackbar } = useSnackbarContext();
 
@@ -25,14 +25,14 @@ export const useUserStatus = (skipFetch: boolean): UserStatus => {
           setStatus({
             isAdmin: userStatus.isAdmin,
             userCompanyId: userStatus.companyId || null,
-            isLoading: false,
+            isLoadingStatus: false,
           });
         } else {
-          setStatus(prev => ({ ...prev, isLoading: false }));
+          setStatus(prev => ({ ...prev, isLoadingStatus: false }));
         }
       } catch (err) {
         handleOpenSnackbar((err as Error).message, 'error');
-        setStatus({ isAdmin: false, userCompanyId: null, isLoading: false });
+        setStatus({ isAdmin: false, userCompanyId: null, isLoadingStatus: false });
       }
     };
 

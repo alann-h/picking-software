@@ -87,6 +87,7 @@ export interface QuoteSummary {
     id: number;
     totalAmt: number;
     customerName: string;
+    customerId?: number;
     lastUpdatedTime: string;
     preparerNames?: string;
 }

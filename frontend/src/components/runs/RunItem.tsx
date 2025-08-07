@@ -13,7 +13,6 @@ import { useSnackbarContext } from '../SnackbarContext';
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount);
 
-// A new sub-component for a single draggable quote row in edit mode
 const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: number) => void }> = ({ quote, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.quoteId });
     const style = {
@@ -52,11 +51,9 @@ export const RunItem: React.FC<{
 }> = ({ run, isAdmin, onStatusChange, onDeleteRun }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    // Local state to hold quotes while editing
     const [editableQuotes, setEditableQuotes] = useState<RunQuote[]>([]);
     const { handleOpenSnackbar } = useSnackbarContext();
 
-    // When editing starts, copy the current quotes into the editable state
     useEffect(() => {
         if (isEditing) {
             setEditableQuotes(run.quotes || []);
@@ -86,7 +83,6 @@ export const RunItem: React.FC<{
 
     const handleCancelEdit = () => {
         setIsEditing(false);
-        // No need to reset editableQuotes, useEffect will handle it next time edit is clicked
     };
 
     const handleRemoveQuote = (quoteIdToRemove: number) => {
@@ -109,8 +105,7 @@ export const RunItem: React.FC<{
             const orderedQuoteIds = editableQuotes.map(q => q.quoteId);
             await updateRunQuotes(run.id, orderedQuoteIds);
             handleOpenSnackbar('Run updated successfully!', 'success');
-            // Instead of a full refresh, we just update the status and exit edit mode
-            onStatusChange(run.id, run.status); // This will trigger a local state update in the parent
+            onStatusChange(run.id, run.status);
             setIsEditing(false);
         } catch (error) {
             handleOpenSnackbar('Failed to update run.', 'error');
@@ -180,6 +175,7 @@ export const RunItem: React.FC<{
                             </Table>
                             {isAdmin && (
                                 <Stack direction="row" spacing={1} sx={{ mt: 2, justifyContent: 'flex-end' }}>
+                                    <Button size="small" variant="outlined" onClick={() => onStatusChange(run.id, 'pending')} disabled={run.status === 'pending'}>Mark Checking</Button>
                                     <Button size="small" variant="outlined" onClick={() => onStatusChange(run.id, 'checking')} disabled={run.status === 'checking'}>Mark Checking</Button>
                                     <Button size="small" variant="outlined" color="success" onClick={() => onStatusChange(run.id, 'finalised')} disabled={run.status === 'finalised'}>Mark Completed</Button>
                                 </Stack>

@@ -25,7 +25,7 @@ interface RunBuilder {
 const RUN_BUILDER_STORAGE_KEY = 'runBuilderState';
 
 const useRunPlanner = (onRunsCreated: () => void) => {
-	  const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [availableQuotes, setAvailableQuotes] = useState<QuoteSummary[]>([]);
@@ -83,7 +83,7 @@ const useRunPlanner = (onRunsCreated: () => void) => {
     const handleCustomerChange = useCallback(async (_: React.SyntheticEvent | null, customer: Customer | null) => {
         setSelectedCustomer(customer);
 
-				if (customer) {
+        if (customer) {
             setSearchParams({ customerId: String(customer.customerId) }, { replace: true });
         } else {
             setSearchParams({}, { replace: true });
@@ -94,8 +94,12 @@ const useRunPlanner = (onRunsCreated: () => void) => {
         setAvailableQuotes([]);
         try {
             const data: QuoteSummary[] = await getCustomerQuotes(customer.customerId);
+            const quotesWithId = data.map(quote => ({
+                ...quote,
+                customerId: customer.customerId
+            }));
             const allUsedQuoteIds = new Set([...stagedQuotes.map(q => q.id), ...runsToCreate.flatMap(r => r.quotes.map(q => q.id))]);
-            setAvailableQuotes(data.filter(q => !allUsedQuoteIds.has(q.id)));
+            setAvailableQuotes(quotesWithId.filter(q => !allUsedQuoteIds.has(q.id)));
         } catch (error) {
             console.error(error);
             handleOpenSnackbar('Failed to fetch quotes.', 'error');
@@ -104,7 +108,7 @@ const useRunPlanner = (onRunsCreated: () => void) => {
         }
     }, [handleOpenSnackbar, stagedQuotes, runsToCreate, setSearchParams]);
 
-		useEffect(() => {
+    useEffect(() => {
         const customerIdFromUrl = searchParams.get('customerId');
         if (customerIdFromUrl && customers.length > 0) {
             const customerFromUrl = customers.find(c => String(c.customerId) === customerIdFromUrl);
@@ -118,6 +122,17 @@ const useRunPlanner = (onRunsCreated: () => void) => {
     const handleStageQuote = (quote: QuoteSummary) => {
         setStagedQuotes(prev => [quote, ...prev]);
         setAvailableQuotes(prev => prev.filter(q => q.id !== quote.id));
+    };
+    
+    const handleUnstageQuote = (quoteId: number) => {
+        const quoteToUnstage = stagedQuotes.find(q => q.id === quoteId);
+        if (!quoteToUnstage) return;
+
+        setStagedQuotes(prev => prev.filter(q => q.id !== quoteId));
+
+        if (selectedCustomer && quoteToUnstage.customerId === selectedCustomer.customerId) {
+            setAvailableQuotes(prev => [quoteToUnstage, ...prev]);
+        }
     };
 
     const handleAddNewRun = () => setRunsToCreate(prev => [...prev, { id: `run-builder-${Date.now()}`, quotes: [] }]);
@@ -212,7 +227,6 @@ const useRunPlanner = (onRunsCreated: () => void) => {
             await Promise.all(creationPromises);
             handleOpenSnackbar(`${validRuns.length} run(s) created successfully!`, 'success');
             
-            // Clear storage after successful creation
             window.localStorage.removeItem(RUN_BUILDER_STORAGE_KEY);
             setRunsToCreate([]);
             setStagedQuotes([]);
@@ -227,7 +241,8 @@ const useRunPlanner = (onRunsCreated: () => void) => {
     return {
         customers, selectedCustomer, availableQuotes, isCustomerLoading, isQuotesLoading,
         stagedQuotes, runsToCreate, activeDraggedItem, isFinalizing,
-        handleCustomerChange, handleStageQuote, handleAddNewRun, handleRemoveRun, handleDragStart, handleDragEnd, handleFinalizeRuns
+        handleCustomerChange, handleStageQuote, handleAddNewRun, handleRemoveRun, handleDragStart, handleDragEnd, handleFinalizeRuns,
+        handleUnstageQuote
     };
 };
 
@@ -253,7 +268,7 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
     </Paper>
 );
 
-const DraggableQuoteCard: React.FC<{ quote: QuoteSummary }> = ({ quote }) => {
+const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: number) => void }> = ({ quote, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.id });
     const theme = useTheme();
     const style = { 
@@ -265,10 +280,17 @@ const DraggableQuoteCard: React.FC<{ quote: QuoteSummary }> = ({ quote }) => {
     return (
         <Paper ref={setNodeRef} style={style} variant='elevation' sx={{ p: 1.5, mb: 1, userSelect: 'none', display: 'flex', alignItems: 'center', bgcolor: 'background.paper' }}>
             <Box {...attributes} {...listeners} sx={{ cursor: 'grab', pr: 1.5, color: 'text.secondary', touchAction: 'none' }}><DragIndicator /></Box>
-            <Stack>
+            <Stack sx={{ flexGrow: 1 }}>
                 <Typography variant="subtitle2" fontWeight="bold">Quote #{quote.id}</Typography>
                 <Typography variant="caption" color="text.secondary">{quote.customerName}</Typography>
             </Stack>
+            {onRemove && (
+                <Tooltip title="Remove from Staging">
+                    <IconButton size="small" onClick={() => onRemove(quote.id)}>
+                        <Delete />
+                    </IconButton>
+                </Tooltip>
+            )}
         </Paper>
     );
 };
@@ -340,7 +362,7 @@ export const CreateRun: React.FC<{ onRunCreated: () => void }> = ({ onRunCreated
                             <Typography variant="subtitle1" fontWeight={600} gutterBottom color="text.secondary">Staging Pool ({planner.stagedQuotes.length})</Typography>
                             <Paper sx={{ height: 450, p: 1, bgcolor: 'grey.100', overflowY: 'auto' }}>
                                 <SortableContext id="staged-quotes" items={planner.stagedQuotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                                    {planner.stagedQuotes.length > 0 ? planner.stagedQuotes.map(q => <DraggableQuoteCard key={q.id} quote={q} />) : <EmptyState text="Add quotes from the list above to stage them for a run." />}
+                                    {planner.stagedQuotes.length > 0 ? planner.stagedQuotes.map(q => <DraggableQuoteCard key={q.id} quote={q} onRemove={planner.handleUnstageQuote} />) : <EmptyState text="Add quotes from the list above to stage them for a run." />}
                                 </SortableContext>
                             </Paper>
                         </Grid>

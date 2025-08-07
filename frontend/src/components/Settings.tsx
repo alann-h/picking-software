@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Typography, Paper, useTheme, Tabs, Tab } from '@mui/material';
+import { Box, Typography, Paper, useTheme, Tabs, Tab, CircularProgress } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 
@@ -15,18 +15,23 @@ const Settings: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useUserStatus(false);
+  const { isAdmin, isLoadingStatus } = useUserStatus(false);
 
   const { allProducts, isLoading, refetch } = useAllProducts();
 
   const [searchTerm, setSearchTerm] = useState('');
 
   const tabValue = useMemo(() => {
+    if (isLoadingStatus) {
+      return false;
+    }
     const path = location.pathname;
-    if (path.includes('/settings/upload')) return 1;
-    if (path.includes('/settings/users')) return 2;
+    if (isAdmin) {
+      if (path.includes('/settings/upload')) return 1;
+      if (path.includes('/settings/users')) return 2;
+    }
     return 0;
-  }, [location.pathname]);
+  }, [location.pathname, isAdmin, isLoadingStatus]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     switch (newValue) {
@@ -79,28 +84,36 @@ const Settings: React.FC = () => {
         </Tabs>
 
         <Box sx={{ p: 3 }}>
-          <Routes>
-            <Route
-              path="products"
-              element={
-                <ProductsTab
-                  searchTerm={searchTerm}
-                  onSearchChange={handleSearchChange}
-                  filteredProducts={filteredProducts}
-                  isLoading={isLoading}
-                  refetch={refetch}
-                  isAdmin={isAdmin}
-                />
-              }
-            />
-            {isAdmin && (
-              <>
-                <Route path="upload" element={<UploadTab refetch={refetch} />} />
-                <Route path="users" element={<UsersTab />} />
-              </>
-            )}
-            <Route path="*" element={<Navigate to="products" replace />} />
-          </Routes>
+          {isLoadingStatus ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%'}}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Routes>
+              <Route
+                path="products"
+                element={
+                  <ProductsTab
+                    searchTerm={searchTerm}
+                    onSearchChange={handleSearchChange}
+                    filteredProducts={filteredProducts}
+                    isLoading={isLoading}
+                    refetch={refetch}
+                    isAdmin={isAdmin}
+                  />
+                }
+              />
+              <Route 
+                path="upload" 
+                element={isAdmin ? <UploadTab refetch={refetch} /> : <Navigate to="/settings/products" replace />} 
+              />
+              <Route 
+                path="users" 
+                element={isAdmin ? <UsersTab /> : <Navigate to="/settings/products" replace />} 
+              />
+              <Route path="*" element={<Navigate to="products" replace />} />
+            </Routes>
+          )}
         </Box>
       </Paper>
     </Box>

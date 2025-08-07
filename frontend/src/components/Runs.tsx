@@ -9,7 +9,7 @@ import { CreateRun } from '../components/runs/CreateRun';
 import { RunList } from '../components/runs/RunList';
 
 const Runs: React.FC = () => {
-    const { isAdmin, userCompanyId, isLoading: isUserStatusLoading } = useUserStatus(false);
+    const { isAdmin, userCompanyId, isLoadingStatus: isUserStatusLoading } = useUserStatus(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const navigate = useNavigate();
     const { handleOpenSnackbar } = useSnackbarContext();
