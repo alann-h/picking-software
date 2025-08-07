@@ -67,14 +67,14 @@ export async function insertProducts(products, companyId, client) {
         `INSERT INTO products
            (category, productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid, tax_code_ref)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-         ON CONFLICT (sku) DO UPDATE
+         ON CONFLICT (qbo_item_id) DO UPDATE
            SET productname     = EXCLUDED.productname,
               category         = EXCLUDED.category,
               barcode          = EXCLUDED.barcode,
               price            = EXCLUDED.price,
-              qbo_item_id      = EXCLUDED.qbo_item_id,
               quantity_on_hand = EXCLUDED.quantity_on_hand,
-              tax_code_ref     = EXCLUDED.tax_code_ref
+              tax_code_ref     = EXCLUDED.tax_code_ref,
+              sku              = EXCLUDED.sku
          RETURNING sku`,
         [
           p.category,
