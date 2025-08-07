@@ -51,13 +51,13 @@ export const userIdRules = () => [
 
 export const updateUserRules = () => [
   param('userId').isUUID().withMessage('Invalid user ID format'),
-  body('givenName').optional().trim().escape(),
-  body('familyName').optional().trim().escape(),
-  body('email')
+  body('given_name').optional().trim().escape(),
+  body('family_name').optional().trim().escape(),
+  body('display_email')
     .optional()
     .isEmail().withMessage('Must be a valid email address')
     .trim(),
-  body('isAdmin').optional().isBoolean().withMessage('isAdmin must be a boolean'),
+  body('is_admin').optional().isBoolean().withMessage('is_admin must be a boolean'),
   body('password')
     .optional()
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')

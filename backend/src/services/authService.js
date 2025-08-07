@@ -293,7 +293,6 @@ export async function getAllUsers(companyId) {
 
 export async function updateUser(userId, userData) {
   const fields = Object.keys(userData);
-  console.log(userData);
   const saltRounds = 10;
 
   if (fields.length === 0) {
@@ -301,10 +300,10 @@ export async function updateUser(userId, userData) {
   }
 
   const fieldToColumnMap = {
-    givenName: 'given_name',
-    familyName: 'family_name',
-    isAdmin: 'is_admin',
-    email: 'display_email',
+    given_name: 'given_name',
+    family_name: 'family_name',
+    is_admin: 'is_admin',
+    display_email: 'display_email',
     password: 'password',
   };
 
