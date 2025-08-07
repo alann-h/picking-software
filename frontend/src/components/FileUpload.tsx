@@ -55,7 +55,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
     if (uploadState !== 'idle') return;
 
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+    if (file && (file.name.endsWith('.csv'))) {
       onFileSelect(file);
     }
   };
@@ -160,7 +160,7 @@ useEffect(() => {
         {uploadState === 'idle' && (
             <>
               <Typography variant="body1" component="p" gutterBottom>
-                Upload your Excel file (.xlsx or .xls) containing product data:
+                Upload your file (.csv) containing product data:
               </Typography>
               <Box
                 sx={{
@@ -180,7 +180,7 @@ useEffect(() => {
               >
                 <input
                   type="file"
-                  accept=".xlsx, .xls"
+                  accept=".csv"
                   onChange={handleFileChange}
                   ref={fileInputRef}
                   style={{ display: 'none' }}

@@ -30,7 +30,7 @@ const ExcelInfoComponent: React.FC = () => {
   const steps = [
     'Go to Reports > List Reports > Item Listing',
     'Customize the report to include the Name and SKU fields.',
-    'Export the report as an Excel file.',
+    'Export the report as an CSV file.',
     'Add a new "Barcode" column and fill in the unique barcodes.',
   ];
 
@@ -44,16 +44,16 @@ const ExcelInfoComponent: React.FC = () => {
       }}
     >
       <Stack spacing={5}>
-        {/* Section 1: Excel File Structure */}
+        {/* Section 1: CSV File Structure */}
         <Stack spacing={3}>
           <Stack direction="row" spacing={2} alignItems="center">
             <DescriptionOutlinedIcon color="primary" sx={{ fontSize: '2.5rem' }} />
             <Box>
               <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold' }}>
-                Excel File Structure
+                CSV File Structure
               </Typography>
               <Typography variant="body1" color="text.secondary">
-                Your uploaded Excel file must follow this structure.
+                Your uploaded CSV file must follow this structure.
               </Typography>
             </Box>
           </Stack>
@@ -143,7 +143,7 @@ const ExcelInfoComponent: React.FC = () => {
         {/* Final Note */}
         <Alert severity="info" icon={<InfoOutlinedIcon />} sx={{ mt: 2 }}>
           <AlertTitle sx={{ fontWeight: 'bold' }}>Important</AlertTitle>
-          Ensure that the <strong>Product Name</strong> and <strong>SKU</strong> in your Excel file match exactly with those in QuickBooks to avoid data synchronization errors.
+          Ensure that the <strong>Product Name</strong> and <strong>SKU</strong> in your CSV file match exactly with those in QuickBooks to avoid data synchronization errors.
         </Alert>
 
       </Stack>
