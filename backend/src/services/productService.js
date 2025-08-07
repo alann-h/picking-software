@@ -55,48 +55,59 @@ export async function enrichWithQBOData(products, companyId) {
   return enriched;
 }
 
-export async function insertProducts(products, companyId, client) {
-  for (let i = 0; i < products.length; i++) {
-    const p = products[i];
-    const savepointName = `sp_${i}`;
+export async function insertProductsBulk(products, companyId, client) {
+  if (products.length === 0) {
+    return;
+  }
 
-    await client.query(`SAVEPOINT ${savepointName}`);
+  await client.query('BEGIN');
 
-    try {
-      const { rows } = await client.query(
-        `INSERT INTO products
-           (category, productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid, tax_code_ref)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-         ON CONFLICT (qbo_item_id) DO UPDATE
-           SET productname     = EXCLUDED.productname,
-              category         = EXCLUDED.category,
-              barcode          = EXCLUDED.barcode,
-              price            = EXCLUDED.price,
-              quantity_on_hand = EXCLUDED.quantity_on_hand,
-              tax_code_ref     = EXCLUDED.tax_code_ref,
-              sku              = EXCLUDED.sku
-         RETURNING sku`,
-        [
-          p.category,
-          p.productName,
-          p.barcode ?? null,
-          p.sku,
-          p.price,
-          p.quantity_on_hand,
-          p.qbo_item_id,
-          companyId,
-          p.tax_code_ref
-        ]
-      );
-      console.log(`  ➕ Upserted SKU=${rows[0].sku}`);
-    } catch (err) {
-      await client.query(`ROLLBACK TO SAVEPOINT ${savepointName}`);
-      console.warn(`⚠️ Skipped SKU=${p.sku} — ${err.code || err.message}`);
-    }
-    await client.query(`RELEASE SAVEPOINT ${savepointName}`);
+  try {
+    const values = products.map((p, index) => {
+      const start = index * 9;
+      return `$${start + 1},$${start + 2},$${start + 3},$${start + 4},$${start + 5},$${start + 6},$${start + 7},$${start + 8},$${start + 9}`;
+    }).join('), (');
+
+    const params = products.flatMap(p => [
+      p.category,
+      p.productName,
+      p.barcode ?? null,
+      p.sku,
+      p.price,
+      p.quantity_on_hand,
+      p.qbo_item_id,
+      companyId,
+      p.tax_code_ref,
+    ]);
+
+    const bulkQuery = `
+      INSERT INTO products (
+        category, productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid, tax_code_ref
+      ) VALUES (${values})
+      ON CONFLICT (qbo_item_id) DO UPDATE
+        SET productname     = EXCLUDED.productname,
+            category         = EXCLUDED.category,
+            barcode          = EXCLUDED.barcode,
+            price            = EXCLUDED.price,
+            quantity_on_hand = EXCLUDED.quantity_on_hand,
+            tax_code_ref     = EXCLUDED.tax_code_ref,
+            sku              = EXCLUDED.sku;
+    `;
+
+    // 2. Execute the single bulk upsert query
+    await client.query(bulkQuery, params);
+
+    // 3. Commit the transaction if successful
+    await client.query('COMMIT');
+    console.log(`✅ Successfully upserted ${products.length} products.`);
+
+  } catch (err) {
+    // 4. Rollback the entire transaction on error
+    await client.query('ROLLBACK');
+    console.error('❌ Bulk upsert failed. Rolling back transaction.', err);
+    throw err;
   }
 }
-
 
 export async function getProductName(barcode) {
   try {
