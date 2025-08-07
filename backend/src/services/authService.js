@@ -321,15 +321,17 @@ export async function updateUser(userId, userData) {
       
       if (field === 'email') {
         const normalisedEmail = validator.normalizeEmail(value);
-        setClauses.push(`normalised_email = $${paramIndex + 1}`);
-        values.push(value, normalisedEmail);
-        paramIndex += 1;
-      } else {
+        setClauses.push(`${fieldToColumnMap[field]} = $${paramIndex}`);
         values.push(value);
+        paramIndex++;
+        setClauses.push(`normalised_email = $${paramIndex}`);
+        values.push(normalisedEmail);
+        paramIndex++;
+      } else {
+        setClauses.push(`${fieldToColumnMap[field]} = $${paramIndex}`);
+        values.push(value);
+        paramIndex++;
       }
-
-      setClauses.push(`${fieldToColumnMap[field]} = $${paramIndex}`);
-      paramIndex++;
     }
   }
 

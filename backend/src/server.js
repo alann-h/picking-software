@@ -121,7 +121,7 @@ const streamToString = (stream) =>
   });
 
 app.post('/internal/process-s3-job', verifyInternalRequest, asyncHandler(async (req, res) => {
-  const { companyId, processedDataS3Key, jobId } = req.body;
+  const { companyId, processedDataS3Key } = req.body;
 
   // 1. Download the processed JSON file from S3
   const getCommand = new GetObjectCommand({

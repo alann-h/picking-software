@@ -1,6 +1,6 @@
 
 export const isAuthenticated = (req, res, next) => {
-  if (req.session.userId && req.session.companyId) {
+  if (req.session && req.session.userId && req.session.companyId) {
     return next();
   }
   return res.status(401).json({ error: 'Authentication required. Please log in.' });
