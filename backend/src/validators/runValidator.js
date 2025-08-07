@@ -33,4 +33,18 @@ export const runStatusUpdateRules = () => [
         .isIn(['pending', 'checking', 'finalised']).withMessage('Invalid status. Must be "pending", "checking", or "finalised".')
 ];
 
+export const runUpdateRules = () => [
+    param('runId')
+        .exists().withMessage('Run ID is required in the URL.')
+        .isInt({ gt: 0 }).withMessage('Run ID must be a positive integer.'),
+
+    body('orderedQuoteIds')
+        .exists().withMessage('An array of Quote IDs is required.')
+        .isArray().withMessage('orderedQuoteIds must be an array (it can be empty).'),
+    
+    body('orderedQuoteIds.*')
+        .isInt({ gt: 0 }).withMessage('Each Quote ID in the array must be a positive integer.')
+];
+
+
 export { validate };

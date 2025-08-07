@@ -1,5 +1,5 @@
 // src/api/runs.ts
-import { apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
+import { apiCallDelete, apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
 import { Run } from '../utils/types';
 
 /**
@@ -9,7 +9,6 @@ import { Run } from '../utils/types';
  * @returns {Promise<Run>} The newly created run object.
  */
 export const createRunFromQuotes  = async (orderedQuoteIds: number[], companyId: string): Promise<Run> => {
-  // Use apiCallPost for POST requests
   const data = await apiCallPost('runs/bulk', { orderedQuoteIds, companyId });
   return data;
 };
@@ -20,7 +19,6 @@ export const createRunFromQuotes  = async (orderedQuoteIds: number[], companyId:
  * @returns {Promise<Run[]>} A list of run objects.
  */
 export const getRuns = async (companyId: string): Promise<Run[]> => {
-  // Use apiCallGet for GET requests with a path parameter
   const data = await apiCallGet(`runs/company/${companyId}`);
   return data;
 };
@@ -33,5 +31,15 @@ export const getRuns = async (companyId: string): Promise<Run[]> => {
  */
 export const updateRunStatus = async (runId: string, status: 'pending' | 'checking' | 'finalised'): Promise<Run> => {
   const data = await apiCallPut(`runs/${runId}/status`, { status });
+  return data;
+};
+
+export const updateRunQuotes  = async (runId: string, orderedQuoteIds: number[]): Promise<Run> => {
+  const data = await apiCallPost(`runs/${runId}`, { orderedQuoteIds });
+  return data;
+};
+
+export const deleteRun  = async (runId: string): Promise<void> => {
+  const data = await apiCallDelete(`runs/${runId}`);
   return data;
 };

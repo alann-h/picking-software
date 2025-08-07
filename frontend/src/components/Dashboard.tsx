@@ -85,7 +85,6 @@ const Dashboard: React.FC = () => {
     setQuotes([]);
     getCustomerQuotes(customerId)
       .then(data => {setQuotes(data)
-        console.log(data)
       })
       .catch(err => handleOpenSnackbar(err.message, 'error'))
       .finally(() => setIsQuotesLoading(false));

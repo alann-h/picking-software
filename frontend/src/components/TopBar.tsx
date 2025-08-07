@@ -133,7 +133,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                 ) : (
                   <Button
                     startIcon={<DirectionsRunIcon />}
-                    onClick={() => navigate('/runs')}
+                    onClick={() => navigate('/run')}
                     variant="text"
                   >
                     Manage Runs

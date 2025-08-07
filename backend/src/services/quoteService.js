@@ -502,3 +502,71 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
   }
 }
+
+/**
+ * Ensures all quotes in a list exist in the local database.
+ * Fetches any missing quotes from QuickBooks and saves them.
+ * This is a key step to provide a seamless user experience.
+ * @param {number[]} quoteIds - An array of quote IDs to check and potentially fetch.
+ * @param {string} companyId - The ID of the company.
+ */
+export async function ensureQuotesExistInDB(quoteIds, companyId) {
+    const quotesCheckResult = await query(
+        'SELECT quoteid FROM quotes WHERE quoteid = ANY($1::int[])',
+        [quoteIds]
+    );
+    const existingIds = new Set(quotesCheckResult.map(r => r.quoteid));
+
+    const missingIds = quoteIds.filter(id => !existingIds.has(id));
+
+    if (missingIds.length === 0) {
+        console.log('All quotes already exist locally.');
+        return;
+    }
+
+    console.log(`Fetching ${missingIds.length} missing quotes from QuickBooks...`);
+
+    const newQuotesData = await getQbEstimatesBulk(missingIds, companyId);
+    
+    if (newQuotesData.length !== missingIds.length) {
+        throw new InputError(`Could not find all quotes in QuickBooks. Please check IDs.`);
+    }
+
+    for (const quote of newQuotesData) {
+        await estimateToDB(quote);
+    }
+
+    console.log(`Successfully saved ${newQuotesData.length} new quotes to the database.`);
+}
+
+
+/**
+ * A new bulk version of getQbEstimate for efficiency.
+ * @param {number[]} quoteIds - An array of quote IDs to fetch.
+ * @param {string} companyId - The ID of the company.
+ */
+export async function getQbEstimatesBulk(quoteIds, companyId) {
+    try {
+        const oauthClient = await getOAuthClient(companyId);
+        if (!oauthClient) throw new AccessError('OAuth client could not be initialised');
+
+        const baseURL = getBaseURL(oauthClient);
+        
+        const idList = quoteIds.map(id => `'${id}'`).join(',');
+        const queryStr = `SELECT * FROM estimate WHERE Id IN (${idList})`;
+
+        const estimateResponse = await oauthClient.makeApiCall({
+            url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+        });
+
+        const responseData = estimateResponse.json;
+        if (!responseData.QueryResponse.Estimate) {
+            return [];
+        }
+
+        const filteredQuotes = await filterEstimates(responseData, companyId);
+        return filteredQuotes;
+    } catch (e) {
+        throw new InputError(e.message);
+    }
+}

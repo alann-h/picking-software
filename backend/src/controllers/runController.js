@@ -2,6 +2,8 @@ import {
     createBulkRun,
     getRunsByCompanyId,
     updateRunStatus,
+    updateRunQuotes as updateRunQuotesService,
+    deleteRunById as deleteRunByIdService,
 } from '../services/runService.js'; // New service file for runs
 
 /**
@@ -9,10 +11,10 @@ import {
  * Accessible by Admins only.
  */
 export async function createBulkRunController(req, res, next) {
-    const { quoteId, companyId } = req.body; 
+    const { orderedQuoteIds, companyId } = req.body;
 
     try {
-        const newRun = await createBulkRun(quoteId, companyId);
+        const newRun = await createBulkRun(orderedQuoteIds, companyId);
         res.status(201).json(newRun);
     } catch (error) {
         next(error);
@@ -41,7 +43,7 @@ export async function updateRunStatusController(req, res, next) {
     const { runId } = req.params;
     const { status } = req.body;
     
-    // You might want to get companyId from the runId to ensure the admin is authorized for this run
+    // might want to get companyId from the runId to ensure the admin is authorized for this run
     // const run = await getRunById(runId);
     // if (run && req.user.companyId !== run.companyId) {
     //     throw new AccessError('Unauthorized: You cannot update runs for another company.');
@@ -50,6 +52,31 @@ export async function updateRunStatusController(req, res, next) {
     try {
         const updatedRun = await updateRunStatus(runId, status);
         res.status(200).json(updatedRun);
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateRunQuotesController(req, res, next) {
+    try {
+        const { runId } = req.params;
+        const { orderedQuoteIds } = req.body;
+
+        if (!orderedQuoteIds) {
+            return res.status(400).json({ message: 'Missing orderedQuoteIds in request body.' });
+        }
+        const result = await updateRunQuotesService(runId, orderedQuoteIds);
+        res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function deleteRunController(req, res, next) {
+    try {
+        const { runId } = req.params;
+        await deleteRunByIdService(runId);
+        res.status(204).send();
     } catch (error) {
         next(error);
     }

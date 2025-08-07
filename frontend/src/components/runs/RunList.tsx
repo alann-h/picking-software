@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Paper, Typography, Stack, Skeleton } from '@mui/material';
 import { AllInboxOutlined } from '@mui/icons-material';
 import { Run } from '../../utils/types';
-import { getRuns, updateRunStatus } from '../../api/runs';
+import { deleteRun, getRuns, updateRunStatus } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import { RunItem } from './RunItem';
+import { ConfirmationDialog } from '../ConfirmationDialog';
+
 
 // Internal Hook for managing the list of runs
 const useRunList = (userCompanyId: string | null, refreshTrigger: number) => {
@@ -36,15 +38,24 @@ const useRunList = (userCompanyId: string | null, refreshTrigger: number) => {
     const handleChangeRunStatus = useCallback(async (runId: string, newStatus: Run['status']) => {
         try {
             await updateRunStatus(runId, newStatus);
+            
+            setRuns(prevRuns =>
+              prevRuns.map(run =>
+                run.id === runId
+                  ? { ...run, status: newStatus }
+                  : run
+              )
+          );
+
             handleOpenSnackbar(`Run status updated to ${newStatus}.`, 'success');
-            await fetchAllRuns();
+
         } catch (error) {
             console.error(error);
             handleOpenSnackbar('Failed to update run status.', 'error');
         }
-    }, [handleOpenSnackbar, fetchAllRuns]);
+    }, [handleOpenSnackbar]);
 
-    return { runs, isLoading, handleChangeRunStatus };
+    return { runs, setRuns, isLoading, handleChangeRunStatus };
 };
 
 // Internal UI for empty state
@@ -60,7 +71,37 @@ const EmptyRunsState = () => (
 
 // Main Exported Component
 export const RunList: React.FC<{ userCompanyId: string | null; isAdmin: boolean; refreshTrigger: number }> = ({ userCompanyId, isAdmin, refreshTrigger }) => {
-    const { runs, isLoading, handleChangeRunStatus } = useRunList(userCompanyId, refreshTrigger);
+    const { runs, setRuns, isLoading, handleChangeRunStatus } = useRunList(userCompanyId, refreshTrigger);
+
+    const { handleOpenSnackbar } = useSnackbarContext();
+
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [runIdToDelete, setRunIdToDelete] = useState<string | null>(null);
+
+    const handleOpenDeleteDialog = (runId: string) => {
+      setRunIdToDelete(runId);
+      setDialogOpen(true);
+    };
+
+    const handleCloseDeleteDialog = () => {
+      setRunIdToDelete(null);
+      setDialogOpen(false);
+    };
+
+    const handleConfirmDelete = async () => {
+      if (!runIdToDelete) return;
+
+      try {
+        await deleteRun(runIdToDelete);
+        setRuns(prevRuns => prevRuns.filter(run => run.id !== runIdToDelete));
+        handleOpenSnackbar('Run deleted successfully.', 'success');
+      } catch (error) {
+          console.error(error);
+          handleOpenSnackbar('Failed to delete run.', 'error');
+      } finally {
+          handleCloseDeleteDialog();
+      }
+    };
 
     if (isLoading) {
         return (
@@ -75,15 +116,26 @@ export const RunList: React.FC<{ userCompanyId: string | null; isAdmin: boolean;
     }
 
     return (
-        <Stack spacing={2} sx={{ mt: 2 }}>
-            {runs.map((run) => (
-                <RunItem
-                    key={run.id}
-                    run={run}
-                    onStatusChange={handleChangeRunStatus}
-                    isAdmin={isAdmin}
-                />
-            ))}
-        </Stack>
+        <>
+            <Stack spacing={2} sx={{ mt: 2 }}>
+                {runs.map((run) => (
+                    <RunItem
+                        key={run.id}
+                        run={run}
+                        onStatusChange={handleChangeRunStatus}
+                        onDeleteRun={handleOpenDeleteDialog}
+                        isAdmin={isAdmin}
+                    />
+                ))}
+            </Stack>
+            
+            <ConfirmationDialog
+                open={dialogOpen}
+                onClose={handleCloseDeleteDialog}
+                onConfirm={handleConfirmDelete}
+                title="Delete Run"
+                message={`Are you sure you want to permanently delete this run? The quotes within it will be released. This action cannot be undone.`}
+            />
+        </>
     );
 };

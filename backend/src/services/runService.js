@@ -1,5 +1,7 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query, transaction } from '../helpers.js'; // Assuming you have these helpers
+import { query, transaction } from '../helpers.js';
+import { ensureQuotesExistInDB } from './quoteService.js';
+
 
 /**
  * Fetches the next available run number for a given company.
@@ -16,7 +18,7 @@ async function getNextRunNumber(companyId) {
 
 /**
  * Creates a new run entry in the database.
- * @param {number} quoteId The ID of the quote to associate with the run.
+ * @param {number[]} orderedQuoteIds The ID of the quote to associate with the run.
  * @param {string} companyId The ID of the company creating the run.
  * @returns {Promise<object>} The newly created run object.
  * @throws {InputError} If the quote does not exist or is not in a valid status.
@@ -24,16 +26,15 @@ async function getNextRunNumber(companyId) {
  */
 export async function createBulkRun(orderedQuoteIds, companyId) {
     try {
+        await ensureQuotesExistInDB(orderedQuoteIds, companyId);
         return await transaction(async (client) => {
             const quotesResult = await client.query(
-                'SELECT quoteid, orderstatus FROM quotes WHERE quoteid = ANY($1::int[])',
+                'SELECT quoteid, orderstatus FROM quotes WHERE quoteid = ANY($1::int[]) FOR UPDATE',
                 [orderedQuoteIds]
             );
 
             if (quotesResult.rows.length !== orderedQuoteIds.length) {
-                const foundIds = new Set(quotesResult.rows.map(r => r.quoteid));
-                const missingIds = orderedQuoteIds.filter(id => !foundIds.has(id));
-                throw new InputError(`The following quotes were not found: ${missingIds.join(', ')}`);
+                throw new Error('Internal Server Error: Could not retrieve all quotes for run creation.');
             }
             
             for (const quote of quotesResult.rows) {
@@ -54,12 +55,21 @@ export async function createBulkRun(orderedQuoteIds, companyId) {
             const newRun = newRunResult.rows[0];
             const runId = newRun.id;
 
-            const runItemsValues = orderedQuoteIds.map((quoteId, index) => {
-                return `(${runId}, ${quoteId}, ${index})`;
+            const values = [];
+            const placeholders = orderedQuoteIds.map((quoteId, index) => {
+                const offset = index * 3;
+                values.push(runId, quoteId, index);
+                return `($${offset + 1}, $${offset + 2}, $${offset + 3})`;
             }).join(',');
 
             await client.query(
-                `INSERT INTO run_items (run_id, quote_id, priority) VALUES ${runItemsValues}`
+                `INSERT INTO run_items (run_id, quoteid, priority) VALUES ${placeholders}`,
+                values
+            );
+
+            await client.query(
+                `UPDATE quotes SET orderstatus = 'assigned' WHERE quoteid = ANY($1::int[])`,
+                [orderedQuoteIds]
             );
 
             return newRun;
@@ -91,8 +101,7 @@ export async function getRunsByCompanyId(companyId) {
         if (runsResult.length === 0) {
             return [];
         }
-
-        const runs = runsResult.rows;
+        const runs = runsResult;
         const runIds = runs.map(run => run.id);
 
         // --- Step 2: Fetch all related items for those runs in a single batch ---
@@ -104,12 +113,12 @@ export async function getRunsByCompanyId(companyId) {
                 q.customername, 
                 q.totalamount
             FROM run_items ri
-            JOIN quotes q ON ri.quote_id = q.quoteid
+            JOIN quotes q ON ri.quoteid = q.quoteid
             WHERE ri.run_id = ANY($1) -- Use ANY($1) to match all IDs in the runIds array
             ORDER BY ri.priority ASC
         `;
         const itemsResult = await query(itemsSql, [runIds]);
-        const items = itemsResult.rows;
+        const items = itemsResult;
 
         const itemsByRunId = new Map();
         for (const item of items) {
@@ -153,15 +162,89 @@ export async function updateRunStatus(runId, newStatus) {
 
     try {
         const result = await query(
-            'UPDATE runs SET status = $1 WHERE id = $2 RETURNING id, companyid, created_at, quoteid, run_number, status',
+            'UPDATE runs SET status = $1 WHERE id = $2 RETURNING id, companyid, created_at, run_number, status',
             [newStatus, runId]
         );
-        if (result.rows.length === 0) {
+        if (result[0].length === 0) {
             throw new InputError(`Run with ID ${runId} not found.`);
         }
-        return result.rows[0];
+        return result[0];
     } catch (error) {
         console.error('Error in updateRunStatus service:', error);
         throw error; // Re-throw specific errors like InputError
+    }
+}
+
+/**
+ * Updates the quotes and their priorities for a specific run.
+ * This is done by replacing the existing run items with a new set.
+ * @param {string} runId The ID of the run to update.
+ * @param {number[]} orderedQuoteIds An array of quote IDs in the new desired order.
+ * @returns {Promise<{message: string}>} A success message.
+ */
+export async function updateRunQuotes(runId, orderedQuoteIds) {
+    // Ensure there are quotes to update. If the array is empty, it means the user wants to clear the run.
+    if (!Array.isArray(orderedQuoteIds)) {
+        throw new InputError('Invalid data format: orderedQuoteIds must be an array.');
+    }
+
+    try {
+        await transaction(async (client) => {
+            await client.query('DELETE FROM run_items WHERE run_id = $1', [runId]);
+
+            if (orderedQuoteIds.length > 0) {
+                const values = [];
+                const placeholders = orderedQuoteIds.map((quoteId, index) => {
+                    const offset = index * 3;
+                    values.push(runId, quoteId, index);
+                    return `($${offset + 1}, $${offset + 2}, $${offset + 3})`;
+                }).join(',');
+
+                await client.query(
+                    `INSERT INTO run_items (run_id, quoteid, priority) VALUES ${placeholders}`,
+                    values
+                );
+            }
+        });
+
+        return { message: `Run ${runId} was updated successfully.` };
+
+    } catch (error) {
+        console.error(`Error updating quotes for run ${runId}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Deletes a run and its associated items from the database.
+ * It also resets the status of the quotes within that run to 'pending'.
+ * @param {string} runId The ID of the run to delete.
+ * @returns {Promise<{message: string}>} A success message.
+ */
+export async function deleteRunById(runId) {
+    try {
+        await transaction(async (client) => {
+            const itemsResult = await client.query(
+                'SELECT quoteid FROM run_items WHERE run_id = $1',
+                [runId]
+            );
+            const quoteIdsToRelease = itemsResult.rows.map(item => item.quoteid);
+
+            await client.query('DELETE FROM run_items WHERE run_id = $1', [runId]);
+
+            await client.query('DELETE FROM runs WHERE id = $1', [runId]);
+
+            if (quoteIdsToRelease.length > 0) {
+                await client.query(
+                    `UPDATE quotes SET orderstatus = 'pending' WHERE quoteid = ANY($1::int[])`,
+                    [quoteIdsToRelease]
+                );
+            }
+        });
+
+        return { message: `Run ${runId} was successfully deleted.` };
+    } catch (error) {
+        console.error(`Error deleting run ${runId}:`, error);
+        throw error;
     }
 }
