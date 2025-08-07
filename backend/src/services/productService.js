@@ -162,7 +162,7 @@ export async function updateProductDb(productId, updateFields) {
   const processedUpdateFields = {};
 
   for (const key in updateFields) {
-    if (updateFields.hasOwnProperty(key)) {
+    if (Object.hasOwn(updateFields, key)) {
       const dbColumnName = fieldToDbColumnMap[key];
       let value = updateFields[key];
 

@@ -99,7 +99,6 @@ export async function deleteUser(req, res, next) {
 export async function updateUser(req, res, next) {
   try {
     const { userId } = req.params;
-    console.log(req.body);
     const updated = await authService.updateUser(userId, req.body);
     res.json(updated);
   } catch (err) {

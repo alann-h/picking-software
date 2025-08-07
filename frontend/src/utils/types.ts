@@ -95,9 +95,16 @@ export interface Run {
   id: string;
   companyid: string;
   created_at: string;
-  quoteid: number;
   run_number: number;
   status: 'pending' | 'checking' | 'finalised';
   customername?: string;
   totalamt?: number; 
+  quotes: RunQuote[];
+}
+
+export interface RunQuote {
+  quoteId: number;
+  customerName: string;
+  totalAmount: number;
+  priority: number;
 }
