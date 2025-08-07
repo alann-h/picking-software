@@ -31,7 +31,7 @@ import asyncHandler from './middlewares/asyncHandler.js';
 import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
 import { transaction } from './helpers.js';
-import { insertProductsBulk } from './services/productService.js';
+import { insertProductsTempTable } from './services/productService.js';
 import { getOAuthClient } from './services/authService.js';
 import pool from './db.js';
 
@@ -138,7 +138,7 @@ app.post('/internal/process-s3-job', verifyInternalRequest, asyncHandler(async (
   const client = await pool.connect();
   try {
     await transaction(async (transactionClient) => {
-      await insertProductsBulk(products, companyId, transactionClient);
+      await insertProductsTempTable(products, companyId, transactionClient);
     });
     res.status(200).json({ message: `Successfully processed and saved products from S3 key: ${processedDataS3Key}` });
   } finally {

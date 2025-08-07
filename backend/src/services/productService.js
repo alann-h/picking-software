@@ -55,7 +55,7 @@ export async function enrichWithQBOData(products, companyId) {
   return enriched;
 }
 
-export async function insertProductsBulk(products, companyId, client) {
+export async function insertProductsTempTable(products, companyId, client) {
   if (products.length === 0) {
     return;
   }
@@ -63,6 +63,22 @@ export async function insertProductsBulk(products, companyId, client) {
   await client.query('BEGIN');
 
   try {
+    // 1. Create a temporary table to hold the incoming data
+    await client.query(`
+      CREATE TEMP TABLE temp_products (
+        category VARCHAR,
+        productname VARCHAR,
+        barcode VARCHAR,
+        sku VARCHAR,
+        price NUMERIC,
+        quantity_on_hand INTEGER,
+        qbo_item_id VARCHAR,
+        companyid INTEGER,
+        tax_code_ref VARCHAR
+      ) ON COMMIT DROP;
+    `);
+
+    // 2. Insert all products into the temporary table
     const values = products.map((p, index) => {
       const start = index * 9;
       return `$${start + 1},$${start + 2},$${start + 3},$${start + 4},$${start + 5},$${start + 6},$${start + 7},$${start + 8},$${start + 9}`;
@@ -80,35 +96,61 @@ export async function insertProductsBulk(products, companyId, client) {
       p.tax_code_ref,
     ]);
 
-    const bulkQuery = `
+    await client.query(`INSERT INTO temp_products VALUES (${values})`, params);
+
+    // 3. Update existing products based on qbo_item_id
+    await client.query(`
+      UPDATE products AS p
+      SET 
+        productname     = tp.productname,
+        category         = tp.category,
+        barcode          = tp.barcode,
+        sku              = tp.sku,
+        price            = tp.price,
+        quantity_on_hand = tp.quantity_on_hand,
+        tax_code_ref     = tp.tax_code_ref
+      FROM temp_products AS tp
+      WHERE p.qbo_item_id = tp.qbo_item_id AND p.companyid = tp.companyid;
+    `);
+
+    // 4. Update existing products based on barcode
+    // This handles the case where the barcode changes but qbo_item_id doesn't
+    await client.query(`
+      UPDATE products AS p
+      SET 
+        productname     = tp.productname,
+        category         = tp.category,
+        sku              = tp.sku,
+        price            = tp.price,
+        quantity_on_hand = tp.quantity_on_hand,
+        tax_code_ref     = tp.tax_code_ref,
+        qbo_item_id      = tp.qbo_item_id
+      FROM temp_products AS tp
+      WHERE p.barcode = tp.barcode AND p.companyid = tp.companyid AND p.qbo_item_id IS NULL;
+    `);
+
+    // 5. Insert new products
+    await client.query(`
       INSERT INTO products (
         category, productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid, tax_code_ref
-      ) VALUES (${values})
-      ON CONFLICT (qbo_item_id) DO UPDATE
-        SET productname     = EXCLUDED.productname,
-            category         = EXCLUDED.category,
-            barcode          = EXCLUDED.barcode,
-            price            = EXCLUDED.price,
-            quantity_on_hand = EXCLUDED.quantity_on_hand,
-            tax_code_ref     = EXCLUDED.tax_code_ref,
-            sku              = EXCLUDED.sku;
-    `;
+      )
+      SELECT 
+        tp.category, tp.productname, tp.barcode, tp.sku, tp.price, tp.quantity_on_hand, tp.qbo_item_id, tp.companyid, tp.tax_code_ref
+      FROM temp_products AS tp
+      LEFT JOIN products AS p
+        ON tp.qbo_item_id = p.qbo_item_id AND tp.companyid = p.companyid
+      WHERE p.qbo_item_id IS NULL;
+    `);
 
-    // 2. Execute the single bulk upsert query
-    await client.query(bulkQuery, params);
-
-    // 3. Commit the transaction if successful
     await client.query('COMMIT');
-    console.log(`✅ Successfully upserted ${products.length} products.`);
+    console.log(`✅ Successfully processed ${products.length} products using a temporary table.`);
 
   } catch (err) {
-    // 4. Rollback the entire transaction on error
     await client.query('ROLLBACK');
-    console.error('❌ Bulk upsert failed. Rolling back transaction.', err);
+    console.error('❌ Temporary table upsert failed. Rolling back.', err);
     throw err;
   }
 }
-
 export async function getProductName(barcode) {
   try {
     const result = await query('SELECT productname FROM products WHERE barcode = $1', [barcode]);
