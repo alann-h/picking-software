@@ -73,7 +73,7 @@ export async function insertProductsTempTable(products, companyId, client) {
         price NUMERIC,
         quantity_on_hand INTEGER,
         qbo_item_id VARCHAR,
-        companyid INTEGER,
+        companyid VARCHAR,
         tax_code_ref VARCHAR
       ) ON COMMIT DROP;
     `);
