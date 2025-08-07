@@ -60,6 +60,8 @@ export async function insertProductsTempTable(products, companyId, client) {
     return;
   }
 
+  console.log('Products to be inserted:', JSON.stringify(products, null, 2));
+
   await client.query('BEGIN');
 
   try {
@@ -151,6 +153,7 @@ export async function insertProductsTempTable(products, companyId, client) {
     throw err;
   }
 }
+
 export async function getProductName(barcode) {
   try {
     const result = await query('SELECT productname FROM products WHERE barcode = $1', [barcode]);
