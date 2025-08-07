@@ -71,7 +71,7 @@ export async function insertProductsTempTable(products, companyId, client) {
         barcode VARCHAR,
         sku VARCHAR,
         price NUMERIC,
-        quantity_on_hand INTEGER,
+        quantity_on_hand NUMERIC,
         qbo_item_id VARCHAR,
         companyid VARCHAR,
         tax_code_ref VARCHAR
