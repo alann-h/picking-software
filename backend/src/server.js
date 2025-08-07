@@ -17,7 +17,7 @@ import { dirname, join } from 'path';
 import { promisify } from 'util';
 
 // --- AWS SDK Imports
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 // --- Local Imports
@@ -112,14 +112,35 @@ const verifyInternalRequest = (req, res, next) => {
 // --- ROUTES ---
 
 // --- INTERNAL ROUTES (NO CSRF) ---
-app.post('/internal/save-products', verifyInternalRequest, asyncHandler(async (req, res) => {
-  const { products, companyId } = req.body;
+const streamToString = (stream) =>
+  new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+  });
+
+app.post('/internal/process-s3-job', verifyInternalRequest, asyncHandler(async (req, res) => {
+  const { companyId, processedDataS3Key, jobId } = req.body;
+
+  // 1. Download the processed JSON file from S3
+  const getCommand = new GetObjectCommand({
+    Bucket: S3_BUCKET_NAME,
+    Key: processedDataS3Key,
+  });
+  const s3Response = await s3Client.send(getCommand);
+
+  // 2. Parse the file content
+  const bodyContents = await streamToString(s3Response.Body);
+  const { products } = JSON.parse(bodyContents);
+
+  // 3. Insert products into the database using your existing logic
   const client = await pool.connect();
   try {
     await transaction(async (transactionClient) => {
       await insertProducts(products, companyId, transactionClient);
     });
-    res.status(200).json({ message: 'Products saved successfully.' });
+    res.status(200).json({ message: `Successfully processed and saved products from S3 key: ${processedDataS3Key}` });
   } finally {
     client.release();
   }
