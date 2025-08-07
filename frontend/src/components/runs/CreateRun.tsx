@@ -80,33 +80,44 @@ const useRunPlanner = (onRunsCreated: () => void) => {
         fetchCustomers();
     }, [handleOpenSnackbar]);
 
-    const handleCustomerChange = useCallback(async (_: React.SyntheticEvent | null, customer: Customer | null) => {
-        setSelectedCustomer(customer);
-
+    const handleCustomerChange = useCallback((_: React.SyntheticEvent | null, customer: Customer | null) => {
         if (customer) {
             setSearchParams({ customerId: String(customer.customerId) }, { replace: true });
         } else {
             setSearchParams({}, { replace: true });
         }
+    }, [setSearchParams]);
 
-        if (!customer) { setAvailableQuotes([]); return; }
-        setIsQuotesLoading(true);
-        setAvailableQuotes([]);
-        try {
-            const data: QuoteSummary[] = await getCustomerQuotes(customer.customerId);
-            const quotesWithId = data.map(quote => ({
-                ...quote,
-                customerId: customer.customerId
-            }));
-            const allUsedQuoteIds = new Set([...stagedQuotes.map(q => q.id), ...runsToCreate.flatMap(r => r.quotes.map(q => q.id))]);
-            setAvailableQuotes(quotesWithId.filter(q => !allUsedQuoteIds.has(q.id)));
-        } catch (error) {
-            console.error(error);
-            handleOpenSnackbar('Failed to fetch quotes.', 'error');
-        } finally {
-            setIsQuotesLoading(false);
-        }
-    }, [handleOpenSnackbar, stagedQuotes, runsToCreate, setSearchParams]);
+    useEffect(() => {
+        const customerIdFromUrl = searchParams.get('customerId');
+        const customerFromUrl = customerIdFromUrl && customers.length > 0
+            ? customers.find(c => String(c.customerId) === customerIdFromUrl) || null
+            : null;
+
+        setSelectedCustomer(customerFromUrl);
+
+        const fetchOrClearQuotes = async () => {
+            if (customerFromUrl) {
+                setIsQuotesLoading(true);
+                setAvailableQuotes([]);
+                try {
+                    const data: QuoteSummary[] = await getCustomerQuotes(customerFromUrl.customerId);
+                    const quotesWithCustomerId = data.map(quote => ({ ...quote, customerId: customerFromUrl.customerId }));
+                    const allUsedQuoteIds = new Set([...stagedQuotes.map(q => q.id), ...runsToCreate.flatMap(r => r.quotes.map(q => q.id))]);
+                    setAvailableQuotes(quotesWithCustomerId.filter(q => !allUsedQuoteIds.has(q.id)));
+                } catch (error) {
+                    console.error(error);
+                    handleOpenSnackbar('Failed to fetch quotes.', 'error');
+                } finally {
+                    setIsQuotesLoading(false);
+                }
+            } else {
+                setAvailableQuotes([]);
+            }
+        };
+
+        fetchOrClearQuotes();
+    }, [searchParams, customers, stagedQuotes, runsToCreate, handleOpenSnackbar]);
 
     useEffect(() => {
         const customerIdFromUrl = searchParams.get('customerId');

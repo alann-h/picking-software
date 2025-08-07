@@ -14,6 +14,7 @@ import { getRuns } from '../api/runs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useUserStatus } from '../utils/useUserStatus';
+import { useSearchParams } from 'react-router-dom';
 
 // ====================================================================================
 // Reusable AnimatedComponent (from your original code)
@@ -154,22 +155,11 @@ const Dashboard: React.FC = () => {
   const [quotes, setQuotes] = useState<QuoteSummary[]>([]);
   const [isQuotesLoading, setIsQuotesLoading] = useState<boolean>(false);
   const [isCustomerLoading, setIsCustomerLoading] = useState<boolean>(true);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
-  const location = useLocation();
-  const theme = useTheme();
 
-  const listAvailableQuotes = useCallback((customerId: number) => {
-    setIsQuotesLoading(true);
-    setQuotes([]);
-    getCustomerQuotes(customerId)
-      .then(data => {setQuotes(data)
-      })
-      .catch(err => handleOpenSnackbar(err.message, 'error'))
-      .finally(() => setIsQuotesLoading(false));
-  }, [handleOpenSnackbar]);
-  
   const fetchCustomers = useCallback(() => {
     getCustomers()
       .then(data => {
@@ -185,29 +175,31 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (customers.length === 0) return;
 
-    const params = new URLSearchParams(location.search);
-    const customerIdFromUrl = params.get('customer');
-    if (customerIdFromUrl) {
-      const customerFromUrl = customers.find(c => String(c.customerId) === customerIdFromUrl);
-      if (customerFromUrl && customerFromUrl.customerId !== selectedCustomer?.customerId) {
-        setSelectedCustomer(customerFromUrl);
-        listAvailableQuotes(customerFromUrl.customerId);
-      }
-    }
-  }, [customers, location.search, listAvailableQuotes, selectedCustomer]);
-  
-  const handleCustomerChange = (_: React.SyntheticEvent, customer: Customer | null) => {
-    setSelectedCustomer(customer);
-    const searchParams = new URLSearchParams(location.search);
+    const customerIdFromUrl = searchParams.get('customer');
+    const customerFromUrl = customerIdFromUrl
+      ? customers.find(c => String(c.customerId) === customerIdFromUrl) || null
+      : null;
+      
+    setSelectedCustomer(customerFromUrl);
 
-    if (customer) {
-      listAvailableQuotes(customer.customerId);
-      searchParams.set('customer', String(customer.customerId));
+    if (customerFromUrl) {
+      setIsQuotesLoading(true);
+      setQuotes([]);
+      getCustomerQuotes(customerFromUrl.customerId)
+        .then(data => setQuotes(data))
+        .catch(err => handleOpenSnackbar(err.message, 'error'))
+        .finally(() => setIsQuotesLoading(false));
     } else {
       setQuotes([]);
-      searchParams.delete('customer');
     }
-    navigate({ pathname: location.pathname, search: searchParams.toString() }, { replace: true });
+  }, [customers, searchParams, handleOpenSnackbar]);
+  
+  const handleCustomerChange = (_: React.SyntheticEvent, customer: Customer | null) => {
+    if (customer) {
+      setSearchParams({ customer: String(customer.customerId) });
+    } else {
+      setSearchParams({});
+    }
   };
   
   return (
