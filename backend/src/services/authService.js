@@ -293,6 +293,7 @@ export async function getAllUsers(companyId) {
 
 export async function updateUser(userId, userData) {
   const fields = Object.keys(userData);
+  console.log(userData);
   const saltRounds = 10;
 
   if (fields.length === 0) {
