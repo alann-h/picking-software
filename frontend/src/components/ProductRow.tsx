@@ -14,7 +14,6 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { ProductDetail } from '../utils/types';
 import { getStatusColor } from '../utils/other';
-import { getUserStatus } from '../api/user';
 
 interface ProductRowProps {
   product: ProductDetail;
@@ -35,7 +34,6 @@ const ProductRow: React.FC<ProductRowProps> = ({
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const open = Boolean(anchorEl);
@@ -75,15 +73,6 @@ const ProductRow: React.FC<ProductRowProps> = ({
       handleClose();
     }
   };
-
-  useEffect(() => {
-    const fetchUserStatus = async () => {
-      const userStatus = await getUserStatus();
-      setIsAdmin(userStatus.isAdmin);
-    };
-
-    fetchUserStatus();
-  }, []);
 
   const getActionContent = (action: string, defaultLabel: string) => {
     return loadingAction === action ? <CircularProgress size={20} color="inherit" /> : defaultLabel;

@@ -227,14 +227,16 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
 
 // File upload route
 const upload = multer({ dest: '/tmp/' });
-app.post('/upload',
-  isAuthenticated,
-  upload.single('input'),
-  asyncHandler(async (req, res) => {
+app.post('/upload', isAuthenticated, upload.single('input'), asyncHandler(async (req, res) => {
     if (!req.file?.path) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    if (req.file.mimetype !== 'text/csv') {
+      await unlinkAsync(req.file.path);
+      return res.status(400).json({ error: 'Invalid file format. Please upload a CSV file.' });
+    }
+    
     const localFilePath = req.file.path;
     const originalFileName = req.file.originalname;
     const s3Key = `uploads/${Date.now()}-${originalFileName}`;

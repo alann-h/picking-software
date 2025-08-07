@@ -32,6 +32,7 @@ const Login: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>(null);
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     verifyUser()
@@ -48,6 +49,7 @@ const Login: React.FC = () => {
   }, [handleOpenSnackbar, navigate]);
 
   const handleQuickBooksLogin = () => {
+    setIsSubmitting(true);
     window.location.href = AUTH_URI;
   };
 
@@ -96,6 +98,8 @@ const Login: React.FC = () => {
     }
 
     setErrors(null);
+    setIsSubmitting(true);
+
     try {
       const user = await loginWithCredentials(validationResult.data.email, validationResult.data.password);
 
@@ -111,6 +115,8 @@ const Login: React.FC = () => {
       }
     } catch (err) {
       handleOpenSnackbar((err as Error).message, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -150,6 +156,7 @@ const Login: React.FC = () => {
               error={!!errors?.properties?.email?.errors.length}
               helperText={errors?.properties?.email?.errors[0]}
               variant="outlined"
+              disabled={isSubmitting}
             />
             <TextField
               margin="normal"
@@ -164,7 +171,8 @@ const Login: React.FC = () => {
               onChange={handleInputChange}
               error={!!errors?.properties?.password?.errors.length}
               helperText={errors?.properties?.password?.errors[0]}
-              variant="outlined" // Modern input style
+              variant="outlined"
+              disabled={isSubmitting} 
               slotProps={{ 
                   input: {
                     endAdornment: (
@@ -188,6 +196,7 @@ const Login: React.FC = () => {
               variant="contained"
               color="primary"
               sx={{ mt: 3, mb: 2, py: 1.5 }}
+              disabled={isSubmitting} 
             >
               Sign In
             </Button>
@@ -201,6 +210,7 @@ const Login: React.FC = () => {
             onClick={handleQuickBooksLogin}
             sx={{ py: 1.5 }}
             color='success'
+            disabled={isSubmitting} 
           >
             Sign in with QuickBooks
           </Button>
