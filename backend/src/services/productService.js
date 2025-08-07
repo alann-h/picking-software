@@ -60,8 +60,6 @@ export async function insertProductsTempTable(products, companyId, client) {
     return;
   }
 
-  console.log('Products to be inserted:', JSON.stringify(products, null, 2));
-
   await client.query('BEGIN');
 
   try {
