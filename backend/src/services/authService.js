@@ -319,7 +319,7 @@ export async function updateUser(userId, userData) {
         value = await bcrypt.hash(value, saltRounds);
       }
       
-      if (field === 'email') {
+      if (field === 'display_email') {
         const normalisedEmail = validator.normalizeEmail(value);
         setClauses.push(`${fieldToColumnMap[field]} = $${paramIndex}`);
         values.push(value);
