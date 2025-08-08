@@ -244,13 +244,13 @@ async function updateQuotePreparerNames(quoteId, userName) {
       [quoteId]
     );
 
-    let currentNames = [];
-    if (result.rows.length > 0 && result.rows[0].preparer_names) {
-      currentNames = result.rows[0].preparer_names.split(',').map(name => name.trim());
-    }
+   const currentNames = (result.length > 0 && result[0].preparer_names)
+      ? result[0].preparer_names.split(',').map(name => name.trim().toLowerCase())
+      : [];
 
-    const normalizedNewName = userName.trim();
-    if (!currentNames.some(name => name.toLowerCase() === normalizedNewName.toLowerCase())) {
+    const normalizedNewName = userName.trim().toLowerCase();
+
+    if (!currentNames.includes(normalizedNewName)) {
       currentNames.push(normalizedNewName);
       currentNames.sort();
 

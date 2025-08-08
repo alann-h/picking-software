@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, ChangeEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Paper, Typography, Table, TableBody, TableCell, 
@@ -15,7 +15,8 @@ import ProductDetails from './ProductDetailsQuote';
 import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
-import ProductFilter from './ProductFilter';
+import ProductFilter, { SortField } from './ProductFilter';
+import { SelectChangeEvent } from '@mui/material';
 
 import CameraScannerModal from './CameraScannerModal';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
@@ -46,7 +47,10 @@ const Quote: React.FC = () => {
   const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, setFinished, addProduct, 
     openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, savePickerNote, handleFinaliseInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
 
-  const [filteredProducts, setFilteredProducts] = useState<ProductDetail[]>([]);
+    // --- LIFTED STATE ---
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [sortField, setSortField] = useState<SortField | ''>('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const { handleOpenSnackbar } = useSnackbarContext();
   const { isAdmin } = useUserStatus(false);
@@ -75,6 +79,49 @@ const Quote: React.FC = () => {
   const productArray = useMemo(() => {
     return quoteData ? Object.values(quoteData.productInfo) : [];
   }, [quoteData]);
+
+    // --- FILTERING AND SORTING LOGIC ---
+  // Use useMemo to create the displayedProducts list.
+  // This will automatically re-run whenever its dependencies change.
+  const displayedProducts = useMemo(() => {
+    let productsToDisplay = [...productArray];
+
+    // 1. Filter based on search term
+    if (searchTerm) {
+      productsToDisplay = productsToDisplay.filter((product) =>
+        product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.pickingStatus.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // 2. Sort the filtered products
+    if (sortField) {
+      productsToDisplay.sort((a, b) => {
+        const valA = a[sortField];
+        const valB = b[sortField];
+        
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return productsToDisplay;
+  }, [productArray, searchTerm, sortField, sortOrder]); // Dependencies array
+
+  // --- HANDLERS FOR THE CONTROLLED COMPONENT ---
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleSortFieldChange = (event: SelectChangeEvent<SortField | ''>) => {
+    setSortField(event.target.value as SortField | '');
+  };
+
+  const handleSortOrderChange = () => {
+    setSortOrder(prevOrder => (prevOrder === 'asc' ? 'desc' : 'asc'));
+  };
 
     const { hasPendingProducts, backorderProducts } = useMemo(() => {
     const pending = productArray.some(p => p.pickingStatus === 'pending');
@@ -129,10 +176,6 @@ const Quote: React.FC = () => {
       </Container>
     );
   }
-  const handleFilterChange = (newFilteredProducts: ProductDetail[]) => {
-    setFilteredProducts(newFilteredProducts);
-  };
-
     const handleMainActionClick = () => {
     if (quoteData.orderStatus === 'checking') {
       if (hasPendingProducts) {
@@ -157,7 +200,6 @@ const Quote: React.FC = () => {
     }
   };
 
-  const displayProducts = filteredProducts.length > 0 ? filteredProducts : productArray;
   const barcodeDisabled = modalState.type === 'barcode' && modalState.isOpen;
 
   return (
@@ -259,7 +301,14 @@ const Quote: React.FC = () => {
         </Box>
       </Box>
 
-      <ProductFilter products={productArray} onFilterChange={handleFilterChange} />
+      <ProductFilter
+        searchTerm={searchTerm}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSearchChange={handleSearchChange}
+        onSortFieldChange={handleSortFieldChange}
+        onSortOrderChange={handleSortOrderChange}
+      />
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -272,7 +321,7 @@ const Quote: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {displayProducts.map((product) => (
+            {displayedProducts.map((product) => (
               <ProductRow
                 key={product.productId}
                 product={product}
