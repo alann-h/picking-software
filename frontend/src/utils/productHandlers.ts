@@ -129,7 +129,7 @@ export const handleAddProduct = async (productId: number, quoteId: number, qty: 
           ...prev.productInfo,
           [detail.barcode]: detail
         },
-        totalAmount: response.totalAmt
+        totalAmount: response.totalAmount
       }));
 
     } else {
@@ -148,7 +148,7 @@ export const handleAddProduct = async (productId: number, quoteId: number, qty: 
 
         return {
           productInfo: updatedProductInfo,
-          totalAmount: response.totalAmt
+          totalAmount: response.totalAmount
         };
       });
     }

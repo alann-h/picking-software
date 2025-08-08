@@ -85,10 +85,10 @@ export interface UserUpdateData {
 
 export interface QuoteSummary {
     id: number;
-    totalAmt: number;
+    totalAmount: number;
     customerName: string;
     customerId?: number;
-    lastUpdatedTime: string;
+    lastModified: string;
     preparerNames?: string;
 }
 
@@ -99,7 +99,7 @@ export interface Run {
   run_number: number;
   status: 'pending' | 'checking' | 'finalised';
   customername?: string;
-  totalamt?: number; 
+  totalamount?: number; 
   quotes: RunQuote[];
 }
 

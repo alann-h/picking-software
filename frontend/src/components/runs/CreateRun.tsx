@@ -271,8 +271,8 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
         <Stack spacing={1}>
             <Typography variant="subtitle2" fontWeight="bold">Quote #{quote.id}</Typography>
             <Stack direction="row" spacing={2} color="text.secondary">
-                <Chip size="small" label={`$${(quote.totalAmt || 0).toFixed(2)}`} color="success" variant="outlined" />
-                <Stack direction="row" alignItems="center" spacing={0.5}><CalendarTodayOutlined sx={{fontSize: 14}}/> <Typography variant="caption">{quote.lastUpdatedTime ? new Date(quote.lastUpdatedTime).toLocaleDateString() : 'N/A'}</Typography></Stack>
+                <Chip size="small" label={`$${(quote.totalAmount || 0).toFixed(2)}`} color="success" variant="outlined" />
+                <Stack direction="row" alignItems="center" spacing={0.5}><CalendarTodayOutlined sx={{fontSize: 14}}/> <Typography variant="caption">{quote.lastModified ? new Date(quote.lastModified).toLocaleDateString() : 'N/A'}</Typography></Stack>
             </Stack>
         </Stack>
         <Tooltip title="Add to Staging Pool"><IconButton onClick={onStage} size="small" color="primary"><PlaylistAdd /></IconButton></Tooltip>

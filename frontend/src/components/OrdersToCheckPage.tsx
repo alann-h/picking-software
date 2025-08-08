@@ -121,7 +121,7 @@ const QuoteCard: React.FC<{ quote: QuoteSummary }> = ({ quote }) => {
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <MonetizationOnOutlinedIcon color="action" />
-              <Typography variant="body2">${quote.totalAmt.toFixed(2)}</Typography>
+              <Typography variant="body2">${quote.totalAmount.toFixed(2)}</Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <AssignmentIndOutlinedIcon color="action" />
@@ -132,7 +132,7 @@ const QuoteCard: React.FC<{ quote: QuoteSummary }> = ({ quote }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <UpdateOutlinedIcon color="action" />
               <Typography variant="body2" color="text.secondary">
-                {quote.lastUpdatedTime}
+                {quote.lastModified}
               </Typography>
             </Box>
           </Stack>

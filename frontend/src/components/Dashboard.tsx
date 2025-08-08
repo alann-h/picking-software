@@ -129,7 +129,7 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
           Quote #{quote.id}
         </Typography>
         <Typography variant="h6" fontWeight="bold">
-          ${quote.totalAmt.toFixed(2)}
+          ${quote.totalAmount.toFixed(2)}
         </Typography>
       </Stack>
       <Stack direction="row" justifyContent="space-between" color="text.secondary">
@@ -140,7 +140,7 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
         <Stack direction="row" alignItems="center" spacing={1}>
           <CalendarTodayOutlined fontSize="small" />
           <Typography variant="body2">
-            {new Date(quote.lastUpdatedTime).toLocaleDateString()}
+            {new Date(quote.lastModified).toLocaleDateString()}
           </Typography>
         </Stack>
       </Stack>

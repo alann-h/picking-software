@@ -23,9 +23,9 @@ export async function getCustomerQuotes(customerId, companyId) {
       .filter(quote => quote.TxnStatus !== 'Closed')
       .map(quote => ({
         id: Number(quote.Id),
-        totalAmt: quote.TotalAmt,
+        totalAmount: quote.TotalAmt,
         customerName: quote.CustomerRef.name,
-        lastUpdatedTime: quote.MetaData.LastUpdatedTime,
+        lastModified: quote.MetaData.LastUpdatedTime,
       }));
     return customerQuotes;
   } catch {
@@ -344,9 +344,9 @@ export async function addProductToQuote(productId, quoteId, qty, companyId) {
       totalAmount = await client.query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
     });
     if (addNewProduct) {
-      return {status: 'new', productInfo: addNewProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount, lastModified: totalAmount.rows[0].lastmodified};
+      return {status: 'new', productInfo: addNewProduct.rows[0], totalAmount: totalAmount.rows[0].totalamount, lastModified: totalAmount.rows[0].lastmodified};
     } else {
-      return {status: 'exists', productInfo: addExisitingProduct.rows[0], totalAmt: totalAmount.rows[0].totalamount };
+      return {status: 'exists', productInfo: addExisitingProduct.rows[0], totalAmount: totalAmount.rows[0].totalamount };
     }
   } catch (e) {
     throw new AccessError(e.message);
