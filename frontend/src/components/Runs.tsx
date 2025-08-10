@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { Container, Typography, Stack, Skeleton, Paper } from '@mui/material';
-import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { useUserStatus } from '../utils/useUserStatus';
 import { useNavigate } from 'react-router-dom';
@@ -36,9 +35,7 @@ const Runs: React.FC = () => {
 
     return (
         <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
-            <Helmet>
-                <title>Smart Picker | Manage Runs</title>
-            </Helmet>
+            <title>Smart Picker | Manage Runs</title>
             <Stack spacing={{ xs: 3, sm: 4 }}>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                     <Typography variant="h4" component="h1" fontWeight="bold" color='primary'>

@@ -4,7 +4,6 @@ import { Product } from '../../utils/types';
 import SearchBar from '../SearchBarSettings';
 import ProductList from '../ProductListSettings';
 import { updateProductDb, setProductArchiveStatus, addProductDb } from '../../api/products'; 
-import { Helmet } from 'react-helmet-async';
 
 interface ProductsTabProps {
   searchTerm: string;
@@ -24,9 +23,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   isAdmin
 }) => (
   <Box>
-    <Helmet>
-      <title>Smart Picker | Current Products</title>
-    </Helmet>
+    <title>Smart Picker | Current Products</title>
     <Typography variant="h6" gutterBottom>
       Current Products in System
     </Typography>

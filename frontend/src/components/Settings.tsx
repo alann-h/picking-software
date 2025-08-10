@@ -9,7 +9,6 @@ import { useUserStatus } from '../utils/useUserStatus';
 import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
 import UsersTab from './tabs/UsersTab';
-import { Helmet } from 'react-helmet-async';
 
 const Settings: React.FC = () => {
   const theme = useTheme();
@@ -61,9 +60,7 @@ const Settings: React.FC = () => {
 
   return (
     <Box sx={{ padding: 3, maxWidth: 1200, margin: 'auto' }}>
-      <Helmet>
-        <title>Smart Picker | Settings</title>
-      </Helmet>
+      <title>Smart Picker | Settings</title>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

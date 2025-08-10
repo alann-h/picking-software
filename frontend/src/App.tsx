@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { CssBaseline, Box, ThemeProvider } from '@mui/material';
 import InitalPage from './components/InitalPage';
 import Login from './components/Login';
@@ -53,11 +52,8 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <SnackbarProvider>
-        <HelmetProvider>
-          <Helmet>
             <title>Smart Picker</title>
             <link rel="icon" type="image/png" href="/SP.png" />          
-          </Helmet>
           <CssBaseline />
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
             <TopBar disableTopBar={disableTopBar} />
@@ -104,7 +100,6 @@ const App: React.FC = () => {
           </Box>
           <SnackbarComponent />
           <Footer />
-        </HelmetProvider>
       </SnackbarProvider>
     </ThemeProvider>
   );

@@ -2,7 +2,6 @@ import React, { useRef, DragEvent, ChangeEvent, useState, useEffect } from 'reac
 import { Box, Typography, Button, Paper, useTheme, LinearProgress } from '@mui/material';
 import { CloudUpload as CloudUploadIcon, CheckCircleOutline as CheckCircleOutlineIcon, ErrorOutline as ErrorOutlineIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { Helmet } from 'react-helmet-async';
 import { getJobProgress } from '../api/products';
 
 interface FileUploadProps {
@@ -25,7 +24,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const theme = useTheme();
-  const pollIntervalRef = useRef<NodeJS.Timeout>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // This effect runs once on mount to check for an existing job
   useEffect(() => {
@@ -150,9 +149,7 @@ useEffect(() => {
       transition={{ duration: 0.5, delay: 0.2 }}
     >
       <Paper elevation={3} sx={{ padding: 3, backgroundColor: theme.palette.background.paper, minHeight: '350px' }}>
-        <Helmet>
-          <title>Smart Picker | Upload Data</title>
-        </Helmet>
+        <title>Smart Picker | Upload Data</title>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
           Upload Product Data
         </Typography>

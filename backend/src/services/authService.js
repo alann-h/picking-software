@@ -299,40 +299,34 @@ export async function updateUser(userId, userData) {
     throw new AccessError('No update data provided.');
   }
 
-  const fieldToColumnMap = {
-    given_name: 'given_name',
-    family_name: 'family_name',
-    is_admin: 'is_admin',
-    display_email: 'display_email',
-    password: 'password',
-  };
-
   const setClauses = [];
   const values = [];
   let paramIndex = 1;
 
   for (const field of fields) {
-    if (fieldToColumnMap[field]) {
-      let value = userData[field];
-
-      if (field === 'password') {
-        value = await bcrypt.hash(value, saltRounds);
-      }
+    let value = userData[field];
       
-      if (field === 'display_email') {
-        const normalisedEmail = validator.normalizeEmail(value);
-        setClauses.push(`${fieldToColumnMap[field]} = $${paramIndex}`);
-        values.push(value);
-        paramIndex++;
-        setClauses.push(`normalised_email = $${paramIndex}`);
-        values.push(normalisedEmail);
-        paramIndex++;
-      } else {
-        setClauses.push(`${fieldToColumnMap[field]} = $${paramIndex}`);
-        values.push(value);
-        paramIndex++;
-      }
+    if (field === 'password') {
+      value = await bcrypt.hash(value, saltRounds);
     }
+    
+    if (field === 'display_email') {
+      const normalisedEmail = validator.normalizeEmail(value);
+      setClauses.push(`${field} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+      setClauses.push(`normalised_email = $${paramIndex}`);
+      values.push(normalisedEmail);
+      paramIndex++;
+    } else {
+      setClauses.push(`${field} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+    }
+  }
+
+  if (setClauses.length === 0) {
+      throw new AccessError('The provided update data does not contain any valid fields for update.');
   }
 
   values.push(userId);

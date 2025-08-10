@@ -1,5 +1,4 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 
 const PrivacyPolicy = () => {
     const styles = {
@@ -20,9 +19,7 @@ const PrivacyPolicy = () => {
       };
   return (
     <div style={styles.container}>
-        <Helmet>
-          <title>Smart Picker | Privacy Policy</title>
-        </Helmet>
+        <title>Smart Picker | Privacy Policy</title>
         <div style={styles.content}>
         <h1>Privacy Policy</h1>
             <p>Last updated: February 03, 2025</p>

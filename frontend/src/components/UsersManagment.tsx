@@ -13,7 +13,6 @@ import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from
 import { UserData } from '../utils/types';
 import { useNavigate } from 'react-router-dom';
 import { disconnectQB } from '../api/auth';
-import { Helmet } from 'react-helmet-async';
 
 // Import the new components
 import UserTable from './userManagement/UserTable';
@@ -124,10 +123,7 @@ const UsersManagement = () => {
     
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}>
-            <Helmet>
                 <title>Smart Picker | User Management</title>
-            </Helmet>
-
             <Stack spacing={4}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" spacing={2}>
                     <Box>

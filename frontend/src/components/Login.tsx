@@ -5,7 +5,6 @@ import { loginWithCredentials, verifyUser } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
-import { Helmet } from 'react-helmet-async';
 import { z } from 'zod';
 
 import { AUTH_URI } from '../api/config';
@@ -135,9 +134,7 @@ const Login: React.FC = () => {
             backgroundColor: 'background.paper',
           }}
         >
-          <Helmet>
-            <title>Smart Picker | Login</title>
-          </Helmet>
+          <title>Smart Picker | Login</title>
           <Typography component="h1" variant="h5" color="primary" fontWeight="bold" sx={{ mb: 3 }}>
             Welcome to Smart Picker
           </Typography>

@@ -18,7 +18,6 @@ import UpdateOutlinedIcon from '@mui/icons-material/UpdateOutlined';
 import AllInboxOutlinedIcon from '@mui/icons-material/AllInboxOutlined';
 import AssignmentIndOutlinedIcon from '@mui/icons-material/AssignmentIndOutlined'; // Import new icon
 
-import { Helmet } from 'react-helmet-async';
 
 // Context and API Imports
 import { useSnackbarContext } from './SnackbarContext';
@@ -94,7 +93,7 @@ const QuoteCard: React.FC<{ quote: QuoteSummary }> = ({ quote }) => {
   const navigate = useNavigate();
   const handleQuoteClick = () => navigate(`/quote?id=${quote.id}`);
 
-    const preparers = quote.preparerNames && quote.preparerNames.length > 0
+  const preparers = quote.preparerNames && quote.preparerNames.length > 0
     ? quote.preparerNames
     : 'Not started';
   return (
@@ -126,7 +125,7 @@ const QuoteCard: React.FC<{ quote: QuoteSummary }> = ({ quote }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <AssignmentIndOutlinedIcon color="action" />
               <Typography variant="body2">
-                Prepared by: <span style={{ fontWeight: 600 }}>{quote.preparerNames}</span>
+                Prepared by: <span style={{ fontWeight: 600 }}>{preparers}</span>
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -174,9 +173,7 @@ const OrdersToCheckPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Helmet>
-        <title>Smart Picker | Orders To Check</title>
-      </Helmet>
+      <title>Smart Picker | Orders To Check</title>
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
         Orders Pending Review
       </Typography>

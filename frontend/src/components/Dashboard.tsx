@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  Container, Autocomplete, TextField, Paper, Typography, Box, Grid, useTheme, Stack, Skeleton, Divider, Chip, IconButton, Collapse 
+  Container, Autocomplete, TextField, Paper, Typography, Box, Grid, Stack, Skeleton, Divider, Chip, IconButton, Collapse 
 } from '@mui/material';
 import { 
   PersonOutline, CalendarTodayOutlined, ReceiptLongOutlined, Search, DirectionsRunOutlined, KeyboardArrowDown, KeyboardArrowUp
@@ -11,8 +11,7 @@ import { getCustomers, saveCustomers } from '../api/customers';
 import { useSnackbarContext } from './SnackbarContext';
 import { getCustomerQuotes } from '../api/quote';
 import { getRuns } from '../api/runs';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import { useUserStatus } from '../utils/useUserStatus';
 import { useSearchParams } from 'react-router-dom';
 
@@ -204,9 +203,7 @@ const Dashboard: React.FC = () => {
   
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: { xs: 2, sm: 4 } }}>
-      <Helmet>
-        <title>Smart Picker | Dashboard</title>
-      </Helmet>
+      <title>Smart Picker | Dashboard</title>
       <Container maxWidth="xl">
         <Stack spacing={{ xs: 4, sm: 5 }}>
           <AnimatedComponent>
