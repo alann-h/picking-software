@@ -15,8 +15,8 @@ import { getCustomerQuotes } from '../api/quote';
 import { getRuns } from '../api/runs';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
-import { useAuth } from './authProvider';
 import { AvailableQuotesSkeleton, RunListSkeleton } from './Skeletons'
+import { useAuth } from './hooks/useAuth';
 
 
 // ====================================================================================

@@ -12,8 +12,8 @@ import { getCustomerQuotes } from '../../api/quote';
 import { createRunFromQuotes } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import { useSearchParams } from 'react-router-dom';
-import { useAuth } from '../authProvider';
 import { AvailableQuotesSkeleton } from '../Skeletons'
+import { useAuth } from '../hooks/useAuth';
 
 // --- UI COMPONENTS --- (These remain the same and are omitted for brevity)
 const EmptyState = ({ text, sx = {} }: { text: string, sx?: object }) => (

@@ -1,4 +1,4 @@
-import { Grid, Paper, Skeleton, Stack } from "@mui/material";
+import { Grid, Paper, Skeleton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 
 export const RunListSkeleton = () => (
     <Stack spacing={2} sx={{ mt: 2 }}>
@@ -39,4 +39,25 @@ export const AvailableQuotesSkeleton = () => (
     <Paper variant="outlined" sx={{ flexGrow: 1, p: 1, overflowY: 'hidden', bgcolor: 'grey.50' }}>
         {[...Array(3)].map((_, i) => <QuoteItemSkeleton key={i} />)}
     </Paper>
+);
+
+export const UserTableSkeleton = () => (
+    <TableContainer component={Paper} variant="outlined">
+        <Table>
+            <TableHead sx={{ bgcolor: 'grey.50' }}>
+                <TableRow>
+                    {[...Array(6)].map((_, i) => <TableCell key={i}><Skeleton variant="text" width="80%" /></TableCell>)}
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                {[...Array(3)].map((_, rowIndex) => (
+                    <TableRow key={rowIndex}>
+                        {[...Array(6)].map((_, cellIndex) => (
+                            <TableCell key={cellIndex}><Skeleton variant="text" /></TableCell>
+                        ))}
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    </TableContainer>
 );

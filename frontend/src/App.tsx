@@ -14,14 +14,13 @@ import theme from './theme';
 import Footer from './components/Footer';
 import OrdersToCheckPage from './components/OrdersToCheckPage';
 import Runs from './components/Runs';
+import AuthLayout from './components/AuthLayout';
 
-import ProtectedRoute from './components/ProtectedRoute';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import EULA from './components/Eula';
 
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
-import LogoLoader from './components/LogoLoader';
-import { AuthProvider } from './components/authProvider';
+import { AuthProvider } from './components/AuthProvider';
 
 
 const App: React.FC = () => {
@@ -29,25 +28,11 @@ const App: React.FC = () => {
   const disableTopBarLocations = ['/', '/login', '/oauth/callback', '/privacy-policy', '/eula'];
   const disableTopBar = disableTopBarLocations.includes(location.pathname);
 
-  const [isCsrfTokenLoading, setIsCsrfTokenLoading] = useState(true);
-    
   useEffect(() => {
-    const loadCsrfToken = async () => {
-        try {
-            await fetchAndCacheCsrfToken();
-            console.log("CSRF token fetched and cached successfully on app startup.");
-        } catch (error) {
-            console.error("Failed to fetch initial CSRF token:", error);
-        } finally {
-            setIsCsrfTokenLoading(false);
-        }
-    };
-    loadCsrfToken();
+    fetchAndCacheCsrfToken().catch(error => {
+        console.error("Initial background CSRF fetch failed:", error);
+    });
   }, []);
-
-    if (isCsrfTokenLoading) {
-        return <LogoLoader />;
-    }
     
   return (
     <ThemeProvider theme={theme}>
@@ -68,32 +53,13 @@ const App: React.FC = () => {
                 <Route path="/eula" element={<EULA />} />
 
                 {/* Protected Routes */}
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings/*" element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } />
-                <Route path="/quote" element={
-                  <ProtectedRoute>
-                    <Quote />
-                  </ProtectedRoute>
-                } />
-                <Route path="/orders-to-check" element={
-                  <ProtectedRoute>
-                    <OrdersToCheckPage />
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/run" element={
-                  <ProtectedRoute>
-                    <Runs />
-                  </ProtectedRoute>
-                } />
+                <Route element={<AuthLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/settings/*" element={<Settings />} />
+                  <Route path="/quote" element={<Quote />} />
+                  <Route path="/orders-to-check" element={<OrdersToCheckPage />} />
+                  <Route path="/run" element={<Runs />} />
+                </Route>
                 {/* Catch-all route - redirects any unknown path to home */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

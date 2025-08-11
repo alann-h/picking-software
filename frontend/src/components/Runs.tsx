@@ -5,8 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from '../components/SnackbarContext';
 import { CreateRun } from '../components/runs/CreateRun';
 import { RunList } from '../components/runs/RunList';
-import { useAuth } from './authProvider';
 import { CreateRunSkeleton, RunListSkeleton } from './Skeletons'
+import { useAuth } from './hooks/useAuth';
 
 const Runs: React.FC = () => {
     const { isAdmin, userCompanyId } = useAuth();

@@ -28,7 +28,7 @@ import { useModalState } from '../utils/modalState';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
 import FinalConfirmationModal from './FinalConfirmationModal';
-import { useAuth } from './authProvider';
+import { useAuth } from './hooks/useAuth';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);

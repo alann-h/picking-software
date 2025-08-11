@@ -17,11 +17,11 @@ import {
 import SettingsIcon from '@mui/icons-material/Settings';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
-import InventoryIcon from '@mui/icons-material/Inventory'; // New icon for products
-import UploadFileIcon from '@mui/icons-material/UploadFile'; // New icon for upload
-import GroupIcon from '@mui/icons-material/Group'; // New icon for users
+import InventoryIcon from '@mui/icons-material/Inventory';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import GroupIcon from '@mui/icons-material/Group';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './authProvider';
+import { useAuth } from './hooks/useAuth';
 
 interface TopBarProps {
   disableTopBar: boolean;

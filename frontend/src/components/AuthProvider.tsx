@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useUserStatus } from '../utils/useUserStatus';
-import LogoLoader from './LogoLoader';
 
 interface AuthContextType {
   isAdmin: boolean;
@@ -11,7 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { isAdmin, userCompanyId, isLoadingStatus } = useUserStatus();
@@ -23,22 +22,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading: isLoadingStatus,
   };
 
-  if (value.isLoading) {
-    return <LogoLoader />;
-  }
-
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-// Create the custom hook that components will use to access the context
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };
