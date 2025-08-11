@@ -1,11 +1,12 @@
 import React, { Suspense } from 'react';
-import { Container, Typography, Stack, Skeleton, Paper, Grid } from '@mui/material';
+import { Container, Typography, Stack, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from '../components/SnackbarContext';
 import { CreateRun } from '../components/runs/CreateRun';
 import { RunList } from '../components/runs/RunList';
-import { useAuth } from './authProvider';
+import { CreateRunSkeleton, RunListSkeleton } from './Skeletons'
+import { useAuth } from './hooks/useAuth';
 
 const Runs: React.FC = () => {
     const { isAdmin, userCompanyId } = useAuth();
@@ -17,27 +18,6 @@ const Runs: React.FC = () => {
         navigate('/dashboard');
         return null;
     }
-
-    const RunListSkeleton = () => (
-        <Stack spacing={2} sx={{ mt: 2 }}>
-            {[...Array(3)].map((_, i) => <Skeleton key={i} variant="rounded" height={120} />)}
-        </Stack>
-    );
-    const CreateRunSkeleton = () => (
-        <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
-            <Skeleton variant="text" width="40%" height={40} />
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-                <Grid size={{ xs: 12, md: 5 }}>
-                    <Skeleton variant="text" width="60%" height={30} />
-                    <Skeleton variant="rounded" height={56} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 7 }}>
-                    <Skeleton variant="text" width="60%" height={30} />
-                    <Skeleton variant="rounded" height={250} />
-                </Grid>
-            </Grid>
-        </Paper>
-    );
 
     return (
         <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>

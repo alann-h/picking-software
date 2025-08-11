@@ -8,7 +8,7 @@ import { useAllProducts } from './useAllProducts';
 import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
 import UsersTab from './tabs/UsersTab';
-import { useAuth } from './authProvider';
+import { useAuth } from './hooks/useAuth';
 
 const Settings: React.FC = () => {
   const theme = useTheme();

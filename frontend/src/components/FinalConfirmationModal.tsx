@@ -1,73 +1,35 @@
 import React from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Alert,
-  AlertTitle,
-  CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, Table,
+  TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Alert, AlertTitle, CircularProgress,
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { ProductDetail } from '../utils/types';
-import { useSnackbarContext } from '../components/SnackbarContext';
 
-/**
- * Props for the FinalConfirmationModal component.
- */
 interface FinalConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => Promise<void>;
+  onConfirm: () => void;
+  isLoading: boolean;
   backorderProducts: ProductDetail[];
 }
 
-/**
- * A modal that provides a final confirmation before sending an invoice to QuickBooks.
- * It warns the user if any items are on backorder.
- */
 const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
+  isLoading,
   backorderProducts,
 }) => {
-  const [isLoading, setIsLoading] = React.useState(false);
-  const { handleOpenSnackbar } = useSnackbarContext();
   const hasBackorder = backorderProducts.length > 0;
 
-  /**
-   * Handles the confirmation action, showing loading and error states.
-   */
-  const handleConfirm = async () => {
-    setIsLoading(true);
-    try {
-      await onConfirm();
-      onClose();
-    } catch (err) {
-      console.error('Failed to finalise invoice:', err);
-      handleOpenSnackbar('Failed to finalise invoice', 'error');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleConfirm = () => {
+    onConfirm();
+    onClose();
   };
-
-  // Reset local state when the modal is closed
-  React.useEffect(() => {
-    if (!isOpen) {
-      setIsLoading(false);
-    }
-  }, [isOpen]);
-
+  
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -120,7 +82,7 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
           disabled={isLoading}
           startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
         >
-          {isLoading ? 'Processing...' : 'Yes, Proceed to Finalise'}
+          {isLoading ? 'Processing...' : 'Yes, Proceed'}
         </Button>
       </DialogActions>
     </Dialog>

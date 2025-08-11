@@ -1,41 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  TableRow,
-  TableCell,
-  Chip,
-  useTheme,
-  Tooltip,
-  Box,
-  Menu,
-  MenuItem,
-  IconButton,
-  CircularProgress
+  TableRow, TableCell, Chip, useTheme, Tooltip,
+  Box, Menu, MenuItem, IconButton, CircularProgress
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { ProductDetail } from '../utils/types';
 import { getStatusColor } from '../utils/other';
+import { useQuoteManager } from './useQuote';
+
+type QuoteManagerActions = ReturnType<typeof useQuoteManager>['actions'];
+type QuoteManagerPendingStates = ReturnType<typeof useQuoteManager>['pendingStates'];
 
 interface ProductRowProps {
   product: ProductDetail;
-  onProductDetails: (_productId: number, _product: ProductDetail) => Promise<void>;
-  onAdjustQuantityModal: (_productId: number, _pickingQty: number, _productName: string) => Promise<void>;
-  onSaveForLater: (_productId: number) => Promise<{ newStatus: string }>;
-  onSetUnavailable: (_productId: number) => Promise<{ newStatus: string }>;
-  onSetFinished: (_productId: number) => Promise<{ newPickingQty: number }>;
+  actions: QuoteManagerActions;
+  pendingStates: QuoteManagerPendingStates;
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({
   product,
-  onProductDetails,
-  onAdjustQuantityModal,
-  onSaveForLater,
-  onSetUnavailable,
-  onSetFinished,
+  actions,
+  pendingStates,
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const open = Boolean(anchorEl);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -46,40 +34,15 @@ const ProductRow: React.FC<ProductRowProps> = ({
     setAnchorEl(null);
   };
 
-  const handleAction = async (action: string) => {
-    setLoadingAction(action);
-    try {
-      switch (action) {
-        case 'details':
-          await onProductDetails(product.productId, product);
-          break;
-        case 'adjust':
-          await onAdjustQuantityModal(product.productId, product.pickingQty, product.productName);
-          break;
-        case 'saveForLater':
-          await onSaveForLater(product.productId);
-          break;
-        case 'setUnavailable':
-          await onSetUnavailable(product.productId);
-          break;
-        case 'setFinished':
-          await onSetFinished(product.productId);
-          break;
-      }
-    } catch (error) {
-        console.error(`Failed to perform action: ${action}`, error);
-    } finally {
-      setLoadingAction(null);
-      handleClose();
-    }
-  };
+  const isAnyActionLoading = Object.values(pendingStates).some(status => status);
 
-  const getActionContent = (action: string, defaultLabel: string) => {
-    return loadingAction === action ? <CircularProgress size={20} color="inherit" /> : defaultLabel;
+  const handleAction = (action: () => void) => {
+    action();
+    handleClose();
   };
 
   return (
-    <TableRow>
+    <TableRow hover>
       <TableCell>{product.sku}</TableCell>
       <TableCell sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
         {product.productName}
@@ -94,6 +57,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
             sx={{
               backgroundColor: getStatusColor(product.pickingStatus),
               color: theme.palette.common.white,
+              textTransform: 'capitalize'
             }}
           />
         </Tooltip>
@@ -102,31 +66,38 @@ const ProductRow: React.FC<ProductRowProps> = ({
         <Box>
           <IconButton
             aria-label="more options"
-            id={`more-button-${product.productId}`}
-            aria-controls={open ? `actions-menu-${product.productId}` : undefined}
-            aria-expanded={open ? 'true' : undefined}
-            aria-haspopup="true"
             onClick={handleClick}
-            disabled={!!loadingAction}
+            disabled={isAnyActionLoading}
           >
-            <MoreVertIcon />
+            {isAnyActionLoading ? <CircularProgress size={24} /> : <MoreVertIcon />}
           </IconButton>
-          <Menu
-            id={`actions-menu-${product.productId}`}
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleClose}
-          >
-            <MenuItem onClick={() => handleAction('details')} disabled={!!loadingAction}>{getActionContent('details', 'Details')}</MenuItem>
-            <MenuItem onClick={() => handleAction('adjust')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>{getActionContent('adjust', 'Adjust Quantity')}</MenuItem>
-            <MenuItem onClick={() => handleAction('saveForLater')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
-              {getActionContent('saveForLater', product.pickingStatus === 'backorder' ? 'Set to pending' : 'Save for Later')}
+          <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
+            <MenuItem onClick={() => handleAction(() => actions.openProductDetailsModal(product.productId, product))}>
+              Details
             </MenuItem>
-            <MenuItem onClick={() => handleAction('setUnavailable')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
-              {getActionContent('setUnavailable', product.pickingStatus === 'unavailable' ? 'Set to available' : 'Set Unavailable')}
+            <MenuItem 
+              onClick={() => handleAction(() => actions.openAdjustQuantityModal(product.productId, product.pickingQty, product.productName))}
+              disabled={product.pickingStatus === 'completed'}
+            >
+              Adjust Quantity
             </MenuItem>
-            <MenuItem onClick={() => handleAction('setFinished')} disabled={product.pickingStatus === 'completed' || !!loadingAction}>
-              {getActionContent('setFinished', 'Set as completed')}
+            <MenuItem 
+              onClick={() => handleAction(() => actions.saveForLater(product.productId))} 
+              disabled={product.pickingStatus === 'completed'}
+            >
+              {product.pickingStatus === 'backorder' ? 'Set to Pending' : 'Save for Later'}
+            </MenuItem>
+            <MenuItem 
+              onClick={() => handleAction(() => actions.setUnavailable(product.productId))}
+              disabled={product.pickingStatus === 'completed'}
+            >
+              {product.pickingStatus === 'unavailable' ? 'Set as Available' : 'Set Unavailable'}
+            </MenuItem>
+             <MenuItem 
+              onClick={() => handleAction(() => actions.setFinished(product.productId))}
+              disabled={product.pickingStatus === 'completed'}
+            >
+              Set as Finished
             </MenuItem>
           </Menu>
         </Box>

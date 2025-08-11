@@ -7,16 +7,22 @@ import {
   Button,
   TextField,
   Typography,
+  CircularProgress, // Import CircularProgress
 } from '@mui/material';
 
+// highlight-start
+// 1. Update the props interface to receive the loading state
+// and a simplified onConfirm function.
 interface AdjustQuantityModalProps {
   isOpen: boolean;
   onClose: () => void;
   productName: string;
   currentQty: number;
   productId: number;
-  onConfirm: (_productId: number, _newQty: number) => Promise<void>;
+  onConfirm: (variables: { productId: number; newQty: number }) => void;
+  isLoading: boolean;
 }
+// highlight-end
 
 const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
   isOpen,
@@ -25,21 +31,14 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
   currentQty,
   productId,
   onConfirm,
+  isLoading,
 }) => {
-  // Mode toggle: false = decimal entry, true = fraction entry
   const [isFractionMode, setIsFractionMode] = useState<boolean>(false);
-
-  // Decimal input as string (e.g. "1.5")
   const [decimalInput, setDecimalInput] = useState<string>(currentQty.toString());
-
-  // Fraction inputs as strings ("numerator" and "denominator")
   const [numeratorInput, setNumeratorInput] = useState<string>('1');
   const [denominatorInput, setDenominatorInput] = useState<string>('1');
-
-  // Parsed numeric value, derived from either decimalInput or fraction inputs
   const [parsedQty, setParsedQty] = useState<number>(currentQty);
 
-  // When the modal opens or currentQty changes, reset everything
   useEffect(() => {
     if (isOpen) {
       setIsFractionMode(false);
@@ -50,47 +49,19 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
     }
   }, [isOpen, currentQty]);
 
-  // Parse the decimal input whenever it changes (and we're in decimal mode)
-  useEffect(() => {
-    if (!isFractionMode) {
-      const num = parseFloat(decimalInput);
-      setParsedQty(isNaN(num) ? 0 : num);
-    }
-  }, [decimalInput, isFractionMode]);
 
-  // Parse fraction inputs whenever they change (and we're in fraction mode)
-  useEffect(() => {
-    if (isFractionMode) {
-      const num = parseFloat(numeratorInput);
-      const den = parseFloat(denominatorInput);
-      if (!isNaN(num) && !isNaN(den) && den !== 0) {
-        setParsedQty(num / den);
-      } else {
-        setParsedQty(0);
-      }
-    }
-  }, [numeratorInput, denominatorInput, isFractionMode]);
+  useEffect(() => { if (!isFractionMode) { const num = parseFloat(decimalInput); setParsedQty(isNaN(num) ? 0 : num); } }, [decimalInput, isFractionMode]);
+  useEffect(() => { if (isFractionMode) { const num = parseFloat(numeratorInput); const den = parseFloat(denominatorInput); if (!isNaN(num) && !isNaN(den) && den !== 0) { setParsedQty(num / den); } else { setParsedQty(0); } } }, [numeratorInput, denominatorInput, isFractionMode]);
+  const handleDecimalChange = (e: ChangeEvent<HTMLInputElement>) => setDecimalInput(e.target.value);
+  const handleNumeratorChange = (e: ChangeEvent<HTMLInputElement>) => setNumeratorInput(e.target.value);
+  const handleDenominatorChange = (e: ChangeEvent<HTMLInputElement>) => setDenominatorInput(e.target.value);
 
-  const handleDecimalChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setDecimalInput(e.target.value);
-  };
-
-  const handleNumeratorChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setNumeratorInput(e.target.value);
-  };
-
-  const handleDenominatorChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setDenominatorInput(e.target.value);
-  };
-
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (parsedQty > 0) {
-      await onConfirm(productId, parsedQty);
+      onConfirm({ productId, newQty: parsedQty });
       onClose();
     }
   };
-
-  // Validation flags
   const isInvalidFraction = isFractionMode && parseFloat(denominatorInput) === 0;
   const isTooLow = parsedQty <= 0;
 
@@ -106,65 +77,34 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
           size="small"
           onClick={() => setIsFractionMode((prev) => !prev)}
           sx={{ mb: 2 }}
+          disabled={isLoading}
         >
           {isFractionMode ? 'Switch to Decimal' : 'Switch to Fraction'}
         </Button>
 
         {isFractionMode ? (
           <>
-            <TextField
-              label="Units"
-              type="number"
-              value={numeratorInput}
-              onChange={handleNumeratorChange}
-              slotProps={{ htmlInput: { min: 0 }}}
-              fullWidth
-              margin="dense"
-            />
-            <TextField
-              label="Units in Box"
-              type="number"
-              value={denominatorInput}
-              onChange={handleDenominatorChange}
-              slotProps={{ htmlInput: { min: 1 }}}
-              fullWidth
-              margin="dense"
-              helperText={isInvalidFraction ? 'Denominator must be > 0' : ''}
-              error={isInvalidFraction}
-            />
+            <TextField label="Units" type="number" value={numeratorInput} onChange={handleNumeratorChange} fullWidth margin="dense" disabled={isLoading} />
+            <TextField label="Units in Box" type="number" value={denominatorInput} onChange={handleDenominatorChange} fullWidth margin="dense" disabled={isLoading} helperText={isInvalidFraction ? 'Denominator must be > 0' : ''} error={isInvalidFraction} />
           </>
         ) : (
-          <TextField
-            label="Quantity"
-            type="number"
-            value={decimalInput}
-            onChange={handleDecimalChange}
-            slotProps={{ htmlInput: { min: 0, step: 'any' }}}
-            fullWidth
-            margin="dense"
-            helperText={
-              isTooLow
-                ? 'Enter a number greater than zero'
-                : ''
-            }
-            error={isTooLow}
-          />
+          <TextField label="Quantity" type="number" value={decimalInput} onChange={handleDecimalChange} fullWidth margin="dense" disabled={isLoading} helperText={isTooLow ? 'Enter a number greater than zero' : ''} error={isTooLow} />
         )}
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose} color="secondary">
+        <Button onClick={onClose} color="secondary" disabled={isLoading}>
           Cancel
         </Button>
         <Button
           onClick={handleConfirm}
           color="primary"
           variant="contained"
-          disabled={
-            isTooLow || (isFractionMode && isInvalidFraction)
-          }
+          disabled={isTooLow || isInvalidFraction || isLoading}
+          startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
         >
-          Confirm
+          {isLoading ? 'Confirming...' : 'Confirm'}
+          // highlight-end
         </Button>
       </DialogActions>
     </Dialog>

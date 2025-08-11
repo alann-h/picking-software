@@ -1,19 +1,19 @@
 import React, { useState, useMemo, Suspense, useTransition } from 'react';
-import { Paper, Typography, Grid, Autocomplete, TextField, Box, Stack, Skeleton, Button, CircularProgress, IconButton, Tooltip, useTheme, Chip } from '@mui/material';
+import { Paper, Typography, Grid, Autocomplete, TextField, Box, Stack, Button, CircularProgress, IconButton, Tooltip, useTheme, Chip } from '@mui/material';
 import { AddCircleOutline, PlaylistAdd, Delete, DragIndicator, InboxOutlined, CalendarTodayOutlined } from '@mui/icons-material';
 import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Customer, QuoteSummary, Run } from '../../utils/types';
+import { Customer, QuoteSummary } from '../../utils/types';
 import { getCustomers } from '../../api/customers';
 import { getCustomerQuotes } from '../../api/quote';
 import { createRunFromQuotes } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import { useSearchParams } from 'react-router-dom';
-import { useAuth } from '../authProvider';
-
+import { AvailableQuotesSkeleton } from '../Skeletons'
+import { useAuth } from '../hooks/useAuth';
 
 // --- UI COMPONENTS --- (These remain the same and are omitted for brevity)
 const EmptyState = ({ text, sx = {} }: { text: string, sx?: object }) => (
@@ -21,28 +21,6 @@ const EmptyState = ({ text, sx = {} }: { text: string, sx?: object }) => (
         <InboxOutlined sx={{ fontSize: 48, mb: 1.5, color: 'grey.400' }} />
         <Typography variant="body2">{text}</Typography>
     </Stack>
-);
-
-// A skeleton that mimics a single quote item
-const QuoteItemSkeleton = () => (
-    <Paper variant='outlined' sx={{ p: 1.5, mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Stack spacing={1} flexGrow={1}>
-            <Skeleton variant="text" width="45%" height={24} />
-            <Stack direction="row" spacing={2}>
-                <Skeleton variant="rounded" width={60} height={22} />
-                <Skeleton variant="text" width={80} height={20} />
-            </Stack>
-        </Stack>
-        <Skeleton variant="circular" width={32} height={32} sx={{ ml: 1 }} />
-    </Paper>
-);
-
-// A container for the quote skeletons that matches the real component's structure.
-const AvailableQuotesSkeleton = () => (
-    <Paper variant="outlined" sx={{ flexGrow: 1, p: 1, overflowY: 'hidden', bgcolor: 'grey.50' }}>
-        {/* Render a few skeleton items to fill the space */}
-        {[...Array(3)].map((_, i) => <QuoteItemSkeleton key={i} />)}
-    </Paper>
 );
 
 const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = ({ quote, onStage }) => (

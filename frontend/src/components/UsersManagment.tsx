@@ -18,7 +18,7 @@ import { disconnectQB } from '../api/auth';
 import UserTable from './userManagement/UserTable';
 import AddUserDialog from './userManagement/AddUserDialog';
 import ConfirmationDialog from './userManagement/ConfirmationDialog';
-import UserTableSkeleton from './userManagement/UserTableSkeleton';
+import { UserTableSkeleton } from './Skeletons';
 
 const UsersManagement = () => {
     const [users, setUsers] = useState<UserData[]>([]);

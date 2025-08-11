@@ -3,7 +3,7 @@ import { Paper, Typography, Stack } from '@mui/material';
 import { AllInboxOutlined } from '@mui/icons-material';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Run } from '../../utils/types';
-import { deleteRun, getRuns, updateRunStatus } from '../../api/runs';
+import { deleteRun, getRuns } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import { RunItem } from './RunItem';
 import { ConfirmationDialog } from '../ConfirmationDialog';
@@ -34,22 +34,6 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
             return currentRuns.filter(run => run.id !== runIdToDelete);
         }
     );
-
-    const updateStatusMutation = useMutation({
-        mutationFn: ({ runId, newStatus }: { runId: string; newStatus: Run['status'] }) => updateRunStatus(runId, newStatus),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['runs'] });
-            handleOpenSnackbar('Run status updated.', 'success');
-        },
-        onError: () => {
-            handleOpenSnackbar('Failed to update run status.', 'error');
-        }
-    });    
-
-
-    const handleChangeRunStatus = (runId: string, newStatus: Run['status']) => {
-        updateStatusMutation.mutate({ runId, newStatus });
-    };
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [runIdToDelete, setRunIdToDelete] = useState<string | null>(null);
@@ -97,9 +81,9 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
                     <RunItem
                         key={run.id}
                         run={run}
-                        onStatusChange={handleChangeRunStatus}
-                        onDeleteRun={handleOpenDeleteDialog}
                         isAdmin={isAdmin}
+                        userCompanyId={userCompanyId}
+                        onDeleteRun={handleOpenDeleteDialog}
                     />
                 ))}
             </Stack>
