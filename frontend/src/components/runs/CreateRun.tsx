@@ -13,7 +13,7 @@ import { createRunFromQuotes } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../authProvider';
-
+import { AvailableQuotesSkeleton } from '../Skeletons'
 
 // --- UI COMPONENTS --- (These remain the same and are omitted for brevity)
 const EmptyState = ({ text, sx = {} }: { text: string, sx?: object }) => (
@@ -21,28 +21,6 @@ const EmptyState = ({ text, sx = {} }: { text: string, sx?: object }) => (
         <InboxOutlined sx={{ fontSize: 48, mb: 1.5, color: 'grey.400' }} />
         <Typography variant="body2">{text}</Typography>
     </Stack>
-);
-
-// A skeleton that mimics a single quote item
-const QuoteItemSkeleton = () => (
-    <Paper variant='outlined' sx={{ p: 1.5, mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Stack spacing={1} flexGrow={1}>
-            <Skeleton variant="text" width="45%" height={24} />
-            <Stack direction="row" spacing={2}>
-                <Skeleton variant="rounded" width={60} height={22} />
-                <Skeleton variant="text" width={80} height={20} />
-            </Stack>
-        </Stack>
-        <Skeleton variant="circular" width={32} height={32} sx={{ ml: 1 }} />
-    </Paper>
-);
-
-// A container for the quote skeletons that matches the real component's structure.
-const AvailableQuotesSkeleton = () => (
-    <Paper variant="outlined" sx={{ flexGrow: 1, p: 1, overflowY: 'hidden', bgcolor: 'grey.50' }}>
-        {/* Render a few skeleton items to fill the space */}
-        {[...Array(3)].map((_, i) => <QuoteItemSkeleton key={i} />)}
-    </Paper>
 );
 
 const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = ({ quote, onStage }) => (

@@ -1,33 +1,28 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { Suspense, useMemo, useState, useTransition } from 'react';
 import {
-  Container, Autocomplete, TextField, Paper, Typography, Box, Grid, Stack, Skeleton, Divider, Chip, IconButton, Collapse
+  Container, Autocomplete, TextField, Paper, Typography, Box, Grid, Stack, Divider, Chip, IconButton, Collapse
 } from '@mui/material';
 import {
   PersonOutline, CalendarTodayOutlined, ReceiptLongOutlined, Search, DirectionsRunOutlined, KeyboardArrowDown, KeyboardArrowUp
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 // highlight-start
-import { useQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 // highlight-end
 import { Customer, QuoteSummary, Run, RunQuote } from '../utils/types';
-import { getCustomers, saveCustomers } from '../api/customers';
-import { useSnackbarContext } from './SnackbarContext';
+import { getCustomers } from '../api/customers';
 import { getCustomerQuotes } from '../api/quote';
 import { getRuns } from '../api/runs';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from './authProvider';
+import { AvailableQuotesSkeleton, RunListSkeleton } from './Skeletons'
 
 
 // ====================================================================================
-// Reusable Components (These remain the same, so they are collapsed for brevity)
+// Reusable & Child Components (No changes needed in these)
 // ====================================================================================
-const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number; }> = ({ children, delay = 0 }) => (
-  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay }}>
-    {children}
-  </motion.div>
-);
-
+const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number; }> = ({ children, delay = 0 }) => ( <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay }}> {children} </motion.div> );
 const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const navigate = useNavigate();
@@ -40,6 +35,7 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
             default: return 'default';
         }
     };
+
     return (
         <Paper variant="outlined" sx={{ p: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -71,6 +67,7 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
         </Paper>
     );
 };
+
 const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quote, onClick }) => (
   <Paper
     variant="outlined"
@@ -89,36 +86,22 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
     </Stack>
   </Paper>
 );
-// ====================================================================================
-// REFACTORED ActiveRunsList Component
-// ====================================================================================
-const ActiveRunsList: React.FC = () => {
-    const { handleOpenSnackbar } = useSnackbarContext();
-    const { userCompanyId } = useAuth();
 
-    // highlight-start
-    // 1. Fetch all runs using useQuery. The 'runs' query key ensures this component
-    // automatically updates when a run is created or changed elsewhere.
-    const { data: allRuns, isLoading, isError } = useQuery<Run[]>({
+// ====================================================================================
+// 1. ISOLATED DATA-FETCHING COMPONENTS
+// These components now fetch their own data and handle their own loading via Suspense.
+// ====================================================================================
+
+const ActiveRunsList: React.FC = () => {
+    const { userCompanyId } = useAuth();
+    const { data: allRuns } = useSuspenseQuery<Run[]>({
         queryKey: ['runs', userCompanyId],
         queryFn: () => getRuns(userCompanyId!),
-        enabled: !!userCompanyId,
     });
 
-    // Handle fetch errors with a side effect
-    useEffect(() => {
-        if (isError) {
-            handleOpenSnackbar('Failed to fetch active runs.', 'error');
-        }
-    }, [isError, handleOpenSnackbar]);
-
-    // 2. Filter the runs after fetching to only show the active ones.
     const activeRuns = useMemo(() => {
         return (allRuns || []).filter(run => run.status !== 'finalised');
     }, [allRuns]);
-    // highlight-end
-
-    if (isLoading) return <Skeleton variant="rounded" height={100} />;
 
     if (activeRuns.length === 0) return (
         <Box textAlign="center" p={3} sx={{ border: '2px dashed', borderColor: 'divider', borderRadius: 2 }}>
@@ -127,130 +110,120 @@ const ActiveRunsList: React.FC = () => {
         </Box>
     );
 
+    return <Stack spacing={2}>{activeRuns.map(run => <DashboardRunItem key={run.id} run={run} />)}</Stack>;
+};
+
+const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
+    const navigate = useNavigate();
+    const { data: quotes } = useSuspenseQuery<QuoteSummary[]>({
+        queryKey: ['quotes', customer.customerId],
+        queryFn: () => getCustomerQuotes(customer.customerId),
+    });
+
+     if (quotes.length === 0) {
+        return <Box textAlign="center" p={{ xs: 3, sm: 5 }}><ReceiptLongOutlined sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} /><Typography variant="h6" color="text.secondary">No quotes found for this customer.</Typography></Box>
+    }
+
     return (
         <Stack spacing={2}>
-            {activeRuns.map(run => <DashboardRunItem key={run.id} run={run} />)}
+            {quotes.map((quote, index) => (
+                <AnimatedComponent key={quote.id} delay={index * 0.05}>
+                    <QuoteItem quote={quote} onClick={() => navigate(`/quote?id=${quote.id}`)} />
+                </AnimatedComponent>
+            ))}
         </Stack>
     );
 };
 
+
 // ====================================================================================
-// REFACTORED Main Dashboard Component
+// 2. REFACTORED Main Dashboard Component
+// This component now orchestrates the UI, but doesn't manage loading states.
 // ====================================================================================
 const Dashboard: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { handleOpenSnackbar } = useSnackbarContext();
-  const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [isPending, startTransition] = useTransition();
 
-  // highlight-start
-  // 3. Fetch customers with useQuery.
-  const { data: customers = [], isLoading: isCustomerLoading } = useQuery<Customer[]>({
-    queryKey: ['customers'],
-    queryFn: getCustomers,
-    initialData: [],
-  });
-  
-  useEffect(() => {
-  if (customers && customers.length > 0) {
-      saveCustomers(customers);
-  }
-}, [customers]);
-  const selectedCustomer = useMemo(() => {
-    const customerId = searchParams.get('customer');
-    if (!customerId || !customers) return null;
-    return customers.find(c => String(c.customerId) === customerId) || null;
-  }, [customers, searchParams]);
+    const { data: customers } = useSuspenseQuery<Customer[]>({
+        queryKey: ['customers'],
+        queryFn: getCustomers,
+    });
+    // highlight-end
 
-  // 4. Fetch quotes with a "dependent" query.
-  const { data: quotes = [], isLoading: isQuotesLoading } = useQuery<QuoteSummary[]>({
-    queryKey: ['quotes', selectedCustomer?.customerId],
-    queryFn: () => getCustomerQuotes(selectedCustomer!.customerId),
-    enabled: !!selectedCustomer,
-  });
-  // highlight-end
+    const selectedCustomer = useMemo(() => {
+        const customerId = searchParams.get('customer');
+        if (!customerId) return null;
+        return customers.find(c => String(c.customerId) === customerId) || null;
+    }, [customers, searchParams]);
 
-  const handleCustomerChange = (_: React.SyntheticEvent, customer: Customer | null) => {
-    setSearchParams(customer ? { customer: String(customer.customerId) } : {});
-  };
+    const handleCustomerChange = (_: React.SyntheticEvent, customer: Customer | null) => {
+        startTransition(() => {
+            setSearchParams(customer ? { customer: String(customer.customerId) } : {});
+        });
+    };
 
-  return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: { xs: 2, sm: 4 } }}>
-      <title>Smart Picker | Dashboard</title>
-      <Container maxWidth="xl">
-        <Stack spacing={{ xs: 4, sm: 5 }}>
-          <AnimatedComponent>
-            <Typography variant="h4" component="h1" fontWeight="bold" color='primary'>Dashboard</Typography>
-          </AnimatedComponent>
+    return (
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: { xs: 2, sm: 4 } }}>
+            <title>Smart Picker | Dashboard</title>
+            <Container maxWidth="xl">
+                <Stack spacing={{ xs: 4, sm: 5 }}>
+                    <AnimatedComponent>
+                        <Typography variant="h4" component="h1" fontWeight="bold" color='primary'>Dashboard</Typography>
+                    </AnimatedComponent>
 
-          <AnimatedComponent delay={0.1}>
-            <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
-              <Typography variant="h6" fontWeight={600} gutterBottom>Active Picking Runs</Typography>
-              {/* This component will now update automatically */}
-              <ActiveRunsList />
-            </Paper>
-          </AnimatedComponent>
+                    <AnimatedComponent delay={0.1}>
+                        <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+                            <Typography variant="h6" fontWeight={600} gutterBottom>Active Picking Runs</Typography>
+                            <Suspense fallback={<RunListSkeleton />}>
+                                <ActiveRunsList />
+                            </Suspense>
+                        </Paper>
+                    </AnimatedComponent>
 
-          <Divider />
+                    <Divider />
 
-          <AnimatedComponent delay={0.2}>
-            <Typography variant="h5" component="h2" fontWeight={600} sx={{ mb: 3 }}>Quote Finder</Typography>
-            <Grid container spacing={{ xs: 2, md: 4 }}>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
-                  <Stack spacing={2}>
-                    <Typography variant="h6" fontWeight={600}>Select Customer</Typography>
-                    <Autocomplete
-                      options={customers}
-                      getOptionLabel={(option) => option.customerName}
-                      value={selectedCustomer}
-                      onChange={handleCustomerChange}
-                      isOptionEqualToValue={(option, value) => option.customerId === value.customerId}
-                      loading={isCustomerLoading}
-                      renderInput={(params) => <TextField {...params} label="Search customers..." />}
-                    />
-                  </Stack>
-                </Paper>
-              </Grid>
+                    <AnimatedComponent delay={0.2}>
+                        <Typography variant="h5" component="h2" fontWeight={600} sx={{ mb: 3 }}>Quote Finder</Typography>
+                        <Grid container spacing={{ xs: 2, md: 4 }}>
+                            <Grid size={{ xs: 12, md: 4 }}>
+                                <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+                                    <Stack spacing={2}>
+                                        <Typography variant="h6" fontWeight={600}>Select Customer</Typography>
+                                        <Autocomplete
+                                            options={customers}
+                                            getOptionLabel={(option) => option.customerName}
+                                            value={selectedCustomer}
+                                            onChange={handleCustomerChange}
+                                            isOptionEqualToValue={(option, value) => option.customerId === value.customerId}
+                                            renderInput={(params) => <TextField {...params} label="Search customers..." />}
+                                        />
+                                    </Stack>
+                                </Paper>
+                            </Grid>
 
-              <Grid size={{ xs: 12, md: 8 }}>
-                <AnimatedComponent delay={0.2}>
-                <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, minHeight: 400 }}>
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
-                    {selectedCustomer ? `Quotes for ${selectedCustomer.customerName}` : 'Select a Customer to View Quotes'}
-                  </Typography>
-
-                  {isQuotesLoading && (
-                    <Stack spacing={2}>
-                      {[...Array(3)].map((_, i) => <Skeleton key={i} variant="rounded" height={95} />)}
-                    </Stack>
-                  )}
-
-                  {!isQuotesLoading && quotes.length > 0 && (
-                    <Stack spacing={2}>
-                      {quotes.map((quote, index) => (
-                        <AnimatedComponent key={quote.id} delay={index * 0.05}>
-                          <QuoteItem quote={quote} onClick={() => navigate(`/quote?id=${quote.id}`)} />
-                        </AnimatedComponent>
-                      ))}
-                    </Stack>
-                  )}
-
-                  {!isQuotesLoading && quotes.length === 0 && selectedCustomer && (
-                    <Box textAlign="center" p={{ xs: 3, sm: 5 }}><ReceiptLongOutlined sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} /><Typography variant="h6" color="text.secondary">No quotes found for this customer.</Typography></Box>
-                  )}
-
-                  {!selectedCustomer && !isQuotesLoading && (
-                     <Box textAlign="center" p={{ xs: 3, sm: 5 }}><Search sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} /><Typography variant="h6" color="text.secondary">Quotes will appear here.</Typography></Box>
-                  )}
-                </Paper>
-              </AnimatedComponent>
-              </Grid>
-            </Grid>
-          </AnimatedComponent>
-        </Stack>
-      </Container>
-    </Box>
-  );
+                            <Grid size={{ xs: 12, md: 8 }}>
+                                <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, minHeight: 400 }}>
+                                    <Typography variant="h6" fontWeight={600} gutterBottom>
+                                        {selectedCustomer ? `Quotes for ${selectedCustomer.customerName}` : 'Select a Customer to View Quotes'}
+                                    </Typography>
+                                    
+                                    {isPending ? (
+                                        <AvailableQuotesSkeleton/>
+                                    ) : selectedCustomer ? (
+                                        <Suspense fallback={<AvailableQuotesSkeleton/>}>
+                                            <QuoteList customer={selectedCustomer} />
+                                        </Suspense>
+                                    ) : (
+                                        <Box textAlign="center" p={{ xs: 3, sm: 5 }}><Search sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} /><Typography variant="h6" color="text.secondary">Quotes will appear here.</Typography></Box>
+                                    )}
+                                </Paper>
+                            </Grid>
+                        </Grid>
+                    </AnimatedComponent>
+                </Stack>
+            </Container>
+        </Box>
+    );
 };
 
 export default Dashboard;
