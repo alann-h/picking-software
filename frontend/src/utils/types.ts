@@ -114,3 +114,11 @@ export interface UserStatusResponse {
   isAdmin: boolean;
   companyId: string | null;
 }
+
+export interface ApiError {
+  error: boolean;
+  message: string;
+  productName?: string;
+  quoteId?: number;
+  customerName?: string;
+}

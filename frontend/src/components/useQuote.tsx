@@ -2,7 +2,7 @@ import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from './SnackbarContext';
 import { OpenModalFunction } from '../utils/modalState';
-import { QuoteData, ProductDetail } from '../utils/types';
+import { QuoteData, ProductDetail, ApiError } from '../utils/types';
 
 import {
     extractQuote,
@@ -27,10 +27,13 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
     const navigate = useNavigate();
     const { handleOpenSnackbar } = useSnackbarContext();
 
-    const { data: quoteData } = useSuspenseQuery<QuoteData>({
+    const { data: quoteData } = useSuspenseQuery<QuoteData, ApiError>({
         queryKey: ['quote', quoteId],
         queryFn: async () => {
             const response = await extractQuote(quoteId);
+            if (response.data.error) {
+                throw response.data;
+            }
             return response.data;
         },
     });

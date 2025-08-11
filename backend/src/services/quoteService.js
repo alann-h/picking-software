@@ -36,6 +36,7 @@ export async function getCustomerQuotes(customerId, companyId) {
 async function filterEstimates(responseData, companyId) {
   const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
     const productInfo = {};
+    let productNameForError = ''; 
 
     for (const line of estimate.Line) {
       if (line.DetailType === 'SubTotalLineDetail') {
@@ -44,6 +45,7 @@ async function filterEstimates(responseData, companyId) {
 
       const itemId = line.SalesItemLineDetail.ItemRef.value;
       let productName = line.SalesItemLineDetail.ItemRef.name;
+      productNameForError = productName;
 
       const colonIndex = productName.indexOf(':');
       if (colonIndex !== -1) {
@@ -69,8 +71,15 @@ async function filterEstimates(responseData, companyId) {
         };
       } catch (error) {
         if (error.message.includes('does not exist within the database')) {
-          throw new AccessError(`Product from QuickBooks: ${productName} not found in database`);
+          return {
+            error: true,
+            quoteId: estimate.Id,
+            customerName: customerRef.name,
+            message: `Product from QuickBooks not found in our database.`,
+            productName: productNameForError
+          };        
         }
+        throw error;
       }
     }
 
