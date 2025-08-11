@@ -1,12 +1,12 @@
 import React, { useState, useMemo, Suspense, useTransition } from 'react';
-import { Paper, Typography, Grid, Autocomplete, TextField, Box, Stack, Skeleton, Button, CircularProgress, IconButton, Tooltip, useTheme, Chip } from '@mui/material';
+import { Paper, Typography, Grid, Autocomplete, TextField, Box, Stack, Button, CircularProgress, IconButton, Tooltip, useTheme, Chip } from '@mui/material';
 import { AddCircleOutline, PlaylistAdd, Delete, DragIndicator, InboxOutlined, CalendarTodayOutlined } from '@mui/icons-material';
 import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Customer, QuoteSummary, Run } from '../../utils/types';
+import { Customer, QuoteSummary } from '../../utils/types';
 import { getCustomers } from '../../api/customers';
 import { getCustomerQuotes } from '../../api/quote';
 import { createRunFromQuotes } from '../../api/runs';

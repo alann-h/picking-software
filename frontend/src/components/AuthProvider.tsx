@@ -1,6 +1,6 @@
 // src/api/auth.ts
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, ReactNode } from 'react';
 import { useUserStatus } from '../utils/useUserStatus';
 
 interface AuthContextType {

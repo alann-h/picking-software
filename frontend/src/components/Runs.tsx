@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Container, Typography, Stack, Skeleton, Paper, Grid } from '@mui/material';
+import { Container, Typography, Stack, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from '../components/SnackbarContext';

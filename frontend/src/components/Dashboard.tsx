@@ -6,9 +6,7 @@ import {
   PersonOutline, CalendarTodayOutlined, ReceiptLongOutlined, Search, DirectionsRunOutlined, KeyboardArrowDown, KeyboardArrowUp
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-// highlight-start
 import { useSuspenseQuery } from '@tanstack/react-query';
-// highlight-end
 import { Customer, QuoteSummary, Run, RunQuote } from '../utils/types';
 import { getCustomers } from '../api/customers';
 import { getCustomerQuotes } from '../api/quote';

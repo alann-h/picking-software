@@ -1,11 +1,14 @@
+// src/components/runs/RunItem.tsx
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Paper, Typography, Stack, Divider, IconButton, Chip, Collapse, Box, Table, TableBody, TableCell, TableHead, TableRow, Button } from '@mui/material';
-import { KeyboardArrowDown, KeyboardArrowUp, CheckCircleOutline, PendingActionsOutlined, HourglassEmptyOutlined, Edit, Delete, DragIndicator, Save, Cancel } from '@mui/icons-material';
+import { KeyboardArrowDown, KeyboardArrowUp, Edit, Delete, DragIndicator, Save, Cancel } from '@mui/icons-material';
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Run, RunQuote } from '../../utils/types';
-import { updateRunQuotes } from '../../api/runs';
+import { updateRunQuotes, updateRunStatus } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 
 
@@ -46,12 +49,14 @@ const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: number) 
 export const RunItem: React.FC<{
     run: Run;
     isAdmin: boolean;
-    onStatusChange: (runId: string, newStatus: Run['status']) => void;
+    userCompanyId: string;
     onDeleteRun: (runId: string) => void;
-}> = ({ run, isAdmin, onStatusChange, onDeleteRun }) => {
+}> = ({ run, isAdmin, userCompanyId, onDeleteRun }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableQuotes, setEditableQuotes] = useState<RunQuote[]>([]);
+    
+    const queryClient = useQueryClient();
     const { handleOpenSnackbar } = useSnackbarContext();
 
     useEffect(() => {
@@ -59,6 +64,30 @@ export const RunItem: React.FC<{
             setEditableQuotes(run.quotes || []);
         }
     }, [isEditing, run.quotes]);
+
+    const updateRunQuotesMutation = useMutation({
+        mutationFn: ({ runId, orderedQuoteIds }: { runId: string, orderedQuoteIds: number[] }) => updateRunQuotes(runId, orderedQuoteIds),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
+            handleOpenSnackbar('Run updated successfully!', 'success');
+            setIsEditing(false);
+        },
+        onError: (error) => {
+            handleOpenSnackbar('Failed to update run.', 'error');
+            console.error(error);
+        }
+    });
+    
+    const updateStatusMutation = useMutation({
+        mutationFn: ({ runId, newStatus }: { runId: string; newStatus: Run['status'] }) => updateRunStatus(runId, newStatus),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
+            handleOpenSnackbar('Run status updated.', 'success');
+        },
+        onError: () => {
+            handleOpenSnackbar('Failed to update run status.', 'error');
+        }
+    });
 
     const { quoteCount, totalValue } = useMemo(() => {
         const quotes = run.quotes || [];
@@ -80,10 +109,7 @@ export const RunItem: React.FC<{
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
     const handleEditToggle = () => setIsEditing(!isEditing);
-
-    const handleCancelEdit = () => {
-        setIsEditing(false);
-    };
+    const handleCancelEdit = () => setIsEditing(false);
 
     const handleRemoveQuote = (quoteIdToRemove: number) => {
         setEditableQuotes(prev => prev.filter(q => q.quoteId !== quoteIdToRemove));
@@ -100,17 +126,13 @@ export const RunItem: React.FC<{
         }
     };
 
-    const handleSaveChanges = async () => {
-        try {
-            const orderedQuoteIds = editableQuotes.map(q => q.quoteId);
-            await updateRunQuotes(run.id, orderedQuoteIds);
-            handleOpenSnackbar('Run updated successfully!', 'success');
-            onStatusChange(run.id, run.status);
-            setIsEditing(false);
-        } catch (error) {
-            handleOpenSnackbar('Failed to update run.', 'error');
-            console.error(error);
-        }
+    const handleSaveChanges = () => {
+        const orderedQuoteIds = editableQuotes.map(q => q.quoteId);
+        updateRunQuotesMutation.mutate({ runId: run.id, orderedQuoteIds });
+    };
+
+    const handleChangeRunStatus = (newStatus: Run['status']) => {
+        updateStatusMutation.mutate({ runId: run.id, newStatus });
     };
 
     return (
@@ -148,7 +170,6 @@ export const RunItem: React.FC<{
 
                     {/* --- CONDITIONAL RENDER: EDIT OR VIEW MODE --- */}
                     {isEditing ? (
-                        // --- EDIT MODE ---
                         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                             <SortableContext items={editableQuotes.map(q => q.quoteId)} strategy={verticalListSortingStrategy}>
                                 {editableQuotes.map(quote => (
@@ -157,11 +178,18 @@ export const RunItem: React.FC<{
                             </SortableContext>
                             <Stack direction="row" spacing={1} sx={{ mt: 2, justifyContent: 'flex-end' }}>
                                 <Button size="small" startIcon={<Cancel />} onClick={handleCancelEdit} color="inherit">Cancel</Button>
-                                <Button size="small" variant="contained" startIcon={<Save />} onClick={handleSaveChanges}>Save Changes</Button>
+                                <Button 
+                                    size="small" 
+                                    variant="contained" 
+                                    startIcon={<Save />} 
+                                    onClick={handleSaveChanges}
+                                    disabled={updateRunQuotesMutation.isPending}
+                                >
+                                    {updateRunQuotesMutation.isPending ? 'Saving...' : 'Save Changes'}
+                                </Button>
                             </Stack>
                         </DndContext>
                     ) : (
-                        // --- VIEW MODE ---
                         <>
                             <Table size="small" sx={{ mb: 2 }}>
                                 <TableHead>
@@ -175,9 +203,9 @@ export const RunItem: React.FC<{
                             </Table>
                             {isAdmin && (
                                 <Stack direction="row" spacing={1} sx={{ mt: 2, justifyContent: 'flex-end' }}>
-                                    <Button size="small" variant="outlined" onClick={() => onStatusChange(run.id, 'pending')} disabled={run.status === 'pending'}>Mark Pending</Button>
-                                    <Button size="small" variant="outlined" onClick={() => onStatusChange(run.id, 'checking')} disabled={run.status === 'checking'}>Mark Checking</Button>
-                                    <Button size="small" variant="outlined" color="success" onClick={() => onStatusChange(run.id, 'finalised')} disabled={run.status === 'finalised'}>Mark Completed</Button>
+                                    <Button size="small" variant="outlined" onClick={() => handleChangeRunStatus('pending')} disabled={run.status === 'pending' || updateStatusMutation.isPending}>Mark Pending</Button>
+                                    <Button size="small" variant="outlined" onClick={() => handleChangeRunStatus('checking')} disabled={run.status === 'checking' || updateStatusMutation.isPending}>Mark Checking</Button>
+                                    <Button size="small" variant="outlined" color="success" onClick={() => handleChangeRunStatus('finalised')} disabled={run.status === 'finalised' || updateStatusMutation.isPending}>Mark Completed</Button>
                                 </Stack>
                             )}
                         </>

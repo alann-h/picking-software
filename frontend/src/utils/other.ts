@@ -10,6 +10,10 @@ export const getStatusColor = (status: string) => {
         return theme.palette.warning.main;
       case 'unavailable':
         return theme.palette.error.main;
+      case 'checking':
+        return theme.palette.secondary.main
+      case 'finalised':
+        return theme.palette.success.main;
       default:
         return theme.palette.info.main;
     }

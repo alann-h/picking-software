@@ -1,22 +1,23 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider } from './AuthProvider';
-import LogoLoader from './LogoLoader';
 import { useAuth } from './hooks/useAuth';
+import TopBar from './TopBar';
 
 const ProtectedLayout = () => {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated } = useAuth();
     const location = useLocation();
-
-    if (isLoading) {
-        return <LogoLoader />;
-    }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    return <Outlet />;
+    return (
+        <>
+            <TopBar disableTopBar={false} />
+            <Outlet />
+        </>
+    );
 };
 
 const AuthLayout = () => {

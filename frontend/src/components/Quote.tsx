@@ -1,319 +1,146 @@
-import React, { useState, useMemo, useCallback, useEffect, ChangeEvent } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Paper, Typography, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Box, useTheme, 
-  Tooltip, CircularProgress, useMediaQuery, Button,
-  TextField,
-  Container,
+  useMediaQuery, Button, TextField
 } 
 from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+
 import BarcodeListener from './BarcodeListener';
-import BarcodeModal from './BarcodeModal';
-import ProductDetails from './ProductDetailsQuote';
+import CameraScannerModal from './CameraScannerModal';
+import ProductDetailsQuote from './ProductDetailsQuote';
 import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
 import ProductFilter, { SortField } from './ProductFilter';
-import { SelectChangeEvent } from '@mui/material';
-
-import CameraScannerModal from './CameraScannerModal';
-import CameraAltIcon from '@mui/icons-material/CameraAlt';
-import { DescriptionOutlined as QuoteIcon } from '@mui/icons-material';
-
-import { useSnackbarContext } from './SnackbarContext';
-import { useQuoteData, useBarcodeHandling, useProductActions } from './useQuote';
-import { useModalState } from '../utils/modalState';
-import ReceiptIcon from '@mui/icons-material/Receipt';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
 import FinalConfirmationModal from './FinalConfirmationModal';
+import { useModalState } from '../utils/modalState';
 import { useAuth } from './hooks/useAuth';
+import { useQuoteManager } from './useQuote';
+import { getStatusColor } from '../utils/other';
 
-const useQuery = () => {
-  return new URLSearchParams(useLocation().search);
-};
+const useQuery = () => new URLSearchParams(useLocation().search);
 
 const Quote: React.FC = () => {
   const query = useQuery();
-  const quoteId = Number(query.get('id') || '');
+  const quoteId = Number(query.get('id'));
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { modalState, closeModal, openModal } = useModalState();
-  const { quoteData, isLoading, updateQuoteData} = useQuoteData(quoteId);
-  const { availableQty, scannedProductName, handleBarcodeScan, handleBarcodeModal } = useBarcodeHandling(quoteId, quoteData, updateQuoteData, openModal);
-  const { productDetails, adjustQuantity, openAdjustQuantityModal, saveForLater, setUnavailable, setFinished, addProduct, 
-    openAddProductModal, openQuoteInvoiceModal, setQuoteChecking, savePickerNote, handleFinaliseInvoice } = useProductActions(quoteId, updateQuoteData, openModal);
-
-    // --- LIFTED STATE ---
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [sortField, setSortField] = useState<SortField | ''>('');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-
-  const { handleOpenSnackbar } = useSnackbarContext();
   const { isAdmin } = useAuth();
+  
+  const { quoteData, actions, pendingStates } = useQuoteManager(quoteId, openModal);
 
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [sortField, setSortField] = useState<SortField | ''>('sku');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  
   const [pickerNote, setPickerNote] = useState(quoteData?.pickerNote || '');
-  const [isSavingNote, setIsSavingNote] = useState(false);
 
-  const handleScannedWithSnackbar = useCallback(async (barcode: string) => {
-    handleOpenSnackbar('Fetching product…', 'info');
-    const normalised = barcode.length === 13 ? '0' + barcode : barcode;
+  const productArray = useMemo(() => Object.values(quoteData.productInfo), [quoteData.productInfo]);
 
-    await handleBarcodeScan(normalised);
-  }, [handleBarcodeScan, handleOpenSnackbar])
-
-  const handleCameraScanSuccess = useCallback((barcode: string) => {
-    closeModal();
-    handleScannedWithSnackbar(barcode);
-  }, [closeModal, handleScannedWithSnackbar]); 
-
-  useEffect(() => {
-    if (quoteData?.pickerNote !== undefined) {
-      setPickerNote(quoteData.pickerNote);
-    }
-  }, [quoteData?.pickerNote]);
-
-  const productArray = useMemo(() => {
-    return quoteData ? Object.values(quoteData.productInfo) : [];
-  }, [quoteData]);
-
-    // --- FILTERING AND SORTING LOGIC ---
-  // Use useMemo to create the displayedProducts list.
-  // This will automatically re-run whenever its dependencies change.
   const displayedProducts = useMemo(() => {
-    let productsToDisplay = [...productArray];
-
-    // 1. Filter based on search term
+    let products = [...productArray];
     if (searchTerm) {
-      productsToDisplay = productsToDisplay.filter((product) =>
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.pickingStatus.toLowerCase().includes(searchTerm.toLowerCase())
+      products = products.filter(p => 
+        p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.pickingStatus.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
-    // 2. Sort the filtered products
     if (sortField) {
-      productsToDisplay.sort((a, b) => {
+      products.sort((a, b) => {
         const valA = a[sortField];
         const valB = b[sortField];
-        
         if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
         if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
         return 0;
       });
     }
+    return products;
+  }, [productArray, searchTerm, sortField, sortOrder]);
 
-    return productsToDisplay;
-  }, [productArray, searchTerm, sortField, sortOrder]); // Dependencies array
-
-  // --- HANDLERS FOR THE CONTROLLED COMPONENT ---
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
-
-  const handleSortFieldChange = (event: SelectChangeEvent<SortField | ''>) => {
-    setSortField(event.target.value as SortField | '');
-  };
-
-  const handleSortOrderChange = () => {
-    setSortOrder(prevOrder => (prevOrder === 'asc' ? 'desc' : 'asc'));
-  };
-
-    const { hasPendingProducts, backorderProducts } = useMemo(() => {
+  const { hasPendingProducts, backorderProducts } = useMemo(() => {
     const pending = productArray.some(p => p.pickingStatus === 'pending');
     const backorder = productArray.filter(p => p.pickingStatus === 'backorder');
     return { hasPendingProducts: pending, backorderProducts: backorder };
   }, [productArray]);
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress size={60} thickness={4} />
-      </Box>
-    );
-  }
-
-  // --- BEGIN: No Quote Data Empty State ---
-  if (!quoteData) {
-    return (
-      <Container maxWidth="md" sx={{ mt: 8, mb: 8 }}>
-        <Paper
-          elevation={3}
-          sx={{
-            p: { xs: 3, md: 6 },
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            textAlign: 'center',
-            minHeight: '400px',
-            justifyContent: 'center',
-            backgroundColor: theme.palette.background.paper,
-            borderRadius: (theme.shape.borderRadius as number) * 2,
-          }}
-        >
-          <QuoteIcon sx={{ fontSize: 80, color: theme.palette.text.secondary, mb: 3 }} /> {/* Large, relevant icon */}
-          <Typography variant="h5" component="h2" gutterBottom color="text.primary">
-            Quote Not Found
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4, maxWidth: 450 }}>
-            There was an issue with loading quote no. {quoteId}. Check if quote exists on quickbooks and that all products on 
-            quote are in the database.
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={() => window.history.back()}
-            sx={{ borderRadius: '30px', px: 4, py: 1.5 }}
-          >
-            Go Back
-          </Button>
-        </Paper>
-      </Container>
-    );
-  }
-    const handleMainActionClick = () => {
+  const handleMainActionClick = () => {
     if (quoteData.orderStatus === 'checking') {
       if (hasPendingProducts) {
-        handleOpenSnackbar('Please resolve all "pending" items before finalising the invoice.', 'error');
+        alert('Please resolve all "pending" items before finalising the invoice.');
       } else {
         openModal('finalConfirmation');
       }
     } else {
-      openQuoteInvoiceModal();
+      actions.openQuoteInvoiceModal();
     }
   };
-
-  const handleSaveNote = async () => {
-    setIsSavingNote(true);
-    try {
-      await savePickerNote(pickerNote);
-    } catch (error) {
-      console.error("Failed to save picker's note:", error);
-      handleOpenSnackbar("Failed to save picker's note:", 'error');
-    } finally {
-      setIsSavingNote(false);
-    }
+  
+  const handleSaveNote = () => {
+    actions.saveNote(pickerNote);
   };
 
-  const barcodeDisabled = modalState.type === 'barcode' && modalState.isOpen;
+  const handleCameraScanSuccess = useCallback((barcode: string) => {
+    closeModal();
+    actions.handleBarcodeScan(barcode);
+  }, [closeModal, actions]); 
 
   return (
     <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
       <title>{`Smart Picker | Quote: ${quoteId}`}</title>
-       <BarcodeListener onBarcodeScanned={handleScannedWithSnackbar} disabled={barcodeDisabled} />
-        {modalState.type === 'barcode' && <BarcodeModal isOpen={modalState.isOpen} onClose={closeModal} onConfirm={handleBarcodeModal} availableQty={availableQty} productName={scannedProductName} />}
-        {modalState.type === 'cameraScanner' && <CameraScannerModal isOpen={modalState.isOpen} onClose={closeModal} onScanSuccess={handleCameraScanSuccess} />}
-        {modalState.type === 'productDetails' && modalState.data && <ProductDetails open={modalState.isOpen} onClose={closeModal} productName={modalState.data.name} productDetails={modalState.data.details} />}
-        {modalState.type === 'adjustQuantity' && modalState.data && <AdjustQuantityModal isOpen={modalState.isOpen} onClose={closeModal} productName={modalState.data.productName} currentQty={modalState.data.pickingQty} productId={modalState.data.productId} onConfirm={adjustQuantity} />}
-        {modalState.type === 'addProduct' && <AddProductModal open={modalState.isOpen} onClose={closeModal} onSubmit={addProduct} />}
-        {modalState.type === 'quoteInvoice' && <QuoteInvoiceModal isOpen={modalState.isOpen} onClose={closeModal} quoteData={quoteData} onProceed={setQuoteChecking} />}
-        
-      {modalState.type === 'finalConfirmation' && (
-        <FinalConfirmationModal
-          isOpen={modalState.isOpen}
-          onClose={closeModal}
-          onConfirm={handleFinaliseInvoice}
-          backorderProducts={backorderProducts}
-        />
-      )}
+      
+      {/* Modals now receive actions directly from the hook */}
+      <BarcodeListener onBarcodeScanned={actions.handleBarcodeScan} disabled={modalState.isOpen} />
+      {modalState.type === 'cameraScanner' && <CameraScannerModal isOpen={modalState.isOpen} onClose={closeModal} onScanSuccess={handleCameraScanSuccess} />}
+      {modalState.type === 'productDetails' && modalState.data && <ProductDetailsQuote open={modalState.isOpen} onClose={closeModal} productName={modalState.data.name} productDetails={modalState.data.details} />}
+      {modalState.type === 'adjustQuantity' && modalState.data && <AdjustQuantityModal isOpen={modalState.isOpen} onClose={closeModal} productName={modalState.data.productName} currentQty={modalState.data.pickingQty} productId={modalState.data.productId} onConfirm={actions.adjustQuantity} isLoading={pendingStates.isAdjustingQuantity} />}
+      {modalState.type === 'addProduct' && <AddProductModal open={modalState.isOpen} onClose={closeModal} onSubmit={actions.addProduct} isSubmitting={pendingStates.isAddingProduct}/>}
+      {modalState.type === 'quoteInvoice' && <QuoteInvoiceModal isOpen={modalState.isOpen} onClose={closeModal} quoteData={quoteData} onProceed={() => actions.setQuoteChecking('checking')} isLoading={pendingStates.isQuoteChecking} />}
+      {modalState.type === 'finalConfirmation' && <FinalConfirmationModal isOpen={modalState.isOpen} onClose={closeModal} onConfirm={actions.finaliseInvoice} backorderProducts={backorderProducts} isLoading={pendingStates.isFinalising} />}
+      
+      {/* UI Rendering remains largely the same */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-        <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold', fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' } }}>
+        <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
           Quote no.{quoteId}
         </Typography>
       </Box>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          justifyContent: 'space-between',
-          alignItems: isMobile ? 'flex-start' : 'center',
-          marginBottom: 2,
-          backgroundColor: theme.palette.background.paper,
-          py: 2,
-          borderRadius: 1,
-        }}
-      >
 
-        <Tooltip title="Name of the customer for this quote">
-          <Typography variant="h5" sx={{ color: theme.palette.text.primary, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
-            Customer: {quoteData.customerName}
-          </Typography>
-        </Tooltip>
-        <Tooltip title="Total amount for all items in this quote">
-          <Typography variant="h5" sx={{ color: theme.palette.secondary.main, fontWeight: 'bold', fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, mb: isMobile ? 1 : 0 }}>
-            Total Amount: ${quoteData.totalAmount}
-          </Typography>
-        </Tooltip>
-        <Tooltip title="Current status of this quote">
-          <Typography variant="h5" sx={{ 
-            color: theme.palette.info.main, 
-            fontWeight: 'bold', 
-            fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' }, 
-            mb: isMobile ? 1 : 0,
-            textTransform: 'capitalize'
-          }}>
-            Status: {quoteData.orderStatus}
-          </Typography>
-        </Tooltip>
-        <Tooltip title="Time when this picking session started">
-          <Typography sx={{ color: theme.palette.text.secondary, fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }, mb: isMobile ? 1 : 0 }}>
-            Last Modified: {quoteData.lastModified}
-          </Typography>
-        </Tooltip>
+      {/* Header Info */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, flexWrap: 'wrap' }}>
+        <Typography variant="h5">Customer: {quoteData.customerName}</Typography>
+        <Typography variant="h5" color='success'>Total Amount: ${quoteData.totalAmount}</Typography>
+        <Typography variant="h5" sx={{ textTransform: 'capitalize', color: getStatusColor(quoteData.orderStatus) }}>Status: {quoteData.orderStatus}</Typography>
+        <Typography>Last Modified: {quoteData.lastModified}</Typography>
       </Box>
+      
+      {/* Actions and Filters */}
       <Box sx={{ mb: 2 }}>
-        <TextField
-          label="Customer/Sales Note"
-          variant="outlined"
-          multiline
-          rows={3}
-          value={quoteData.orderNote || 'No note provided.'}
-          slotProps={{input: { readOnly: true }}}
-          sx={{width: '100%', '& .MuiInputBase-input': { cursor: 'default' }}}
-        />
-
+        <TextField label="Customer/Sales Note" variant="outlined" multiline rows={3} value={quoteData.orderNote || 'No note provided.'} fullWidth InputProps={{ readOnly: true }} />
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => openModal('cameraScanner')}
-            disabled={quoteData.orderStatus === 'finalised'}
-          >
-            <CameraAltIcon />
-            {!isMobile && "Scan"}
+          <Button variant="outlined" color="secondary" onClick={() => openModal('cameraScanner')} disabled={quoteData.orderStatus === 'finalised'}>
+            <CameraAltIcon /> {!isMobile && "Scan"}
           </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={openAddProductModal}
-            disabled={quoteData.orderStatus === 'finalised'}
-          >
-            <AddIcon />
-            {!isMobile && "Add Product"}
+          <Button variant="contained" color="primary" onClick={actions.openAddProductModal} disabled={quoteData.orderStatus === 'finalised'}>
+            <AddIcon /> {!isMobile && "Add Product"}
           </Button>
         </Box>
       </Box>
-
-      <ProductFilter
-        searchTerm={searchTerm}
-        sortField={sortField}
-        sortOrder={sortOrder}
-        onSearchChange={handleSearchChange}
-        onSortFieldChange={handleSortFieldChange}
-        onSortOrderChange={handleSortOrderChange}
-      />
+      
+      <ProductFilter searchTerm={searchTerm} sortField={sortField} sortOrder={sortOrder} onSearchChange={(e) => setSearchTerm(e.target.value)} onSortFieldChange={(e) => setSortField(e.target.value as SortField)} onSortOrderChange={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} />
+      
+      {/* Product Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>SKU</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Quantity</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Picking Status</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+            <TableRow>
+              <TableCell>SKU</TableCell><TableCell>Name</TableCell><TableCell>Quantity</TableCell><TableCell>Picking Status</TableCell><TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -321,52 +148,30 @@ const Quote: React.FC = () => {
               <ProductRow
                 key={product.productId}
                 product={product}
-                onProductDetails={productDetails}
-                onAdjustQuantityModal={openAdjustQuantityModal}
-                onSaveForLater={saveForLater}
-                onSetUnavailable={setUnavailable}
-                onSetFinished = {setFinished}
+                actions={actions}
+                pendingStates={pendingStates}
               />
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-        <Box sx={{ mt: 4, borderTop: 1, borderColor: 'divider', pt: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Picker&apos;s Note
-          </Typography>
-          <TextField
-            label="Add any notes about preparing this order..."
-            multiline
-            rows={4}
-            fullWidth
-            variant="outlined"
-            value={pickerNote}
-            onChange={(e) => setPickerNote(e.target.value)}
-            disabled={quoteData.orderStatus === 'finalised'}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-            <Button
-              variant="outlined"
-              onClick={handleSaveNote}
-              disabled={isSavingNote || pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'finalised'}
-              startIcon={isSavingNote ? <CircularProgress size={20} /> : null}
-            >
-              {isSavingNote ? 'Saving...' : "Save Picker's Note"}
-            </Button>
+
+      {/* Picker's Note */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom>Picker&apos;s Note</Typography>
+        <TextField label="Add any notes about preparing this order..." multiline rows={4} fullWidth variant="outlined" value={pickerNote} onChange={(e) => setPickerNote(e.target.value)} disabled={quoteData.orderStatus === 'finalised'} />
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+          <Button variant="outlined" onClick={handleSaveNote} disabled={pendingStates.isSavingNote || pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'finalised'}>
+            {pendingStates.isSavingNote ? 'Saving...' : "Save Picker's Note"}
+          </Button>
         </Box>
       </Box>
+
       {/* Final Action Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, borderTop: 1, borderColor: 'divider', pt: 2 }}>
-        <Button
-          variant="contained"
-          size="large"
-          onClick={handleMainActionClick}
-          disabled={quoteData.orderStatus === 'finalised' || !isAdmin}
-          sx={{ backgroundColor: theme.palette.warning.main, color: theme.palette.warning.contrastText, '&:hover': { backgroundColor: theme.palette.warning.dark, } }}
-        >
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+        <Button variant="contained" size="large" onClick={handleMainActionClick} disabled={quoteData.orderStatus === 'finalised' || !isAdmin || pendingStates.isFinalising} color='warning'>
           <ReceiptIcon sx={{ mr: 1 }} />
-          {quoteData.orderStatus === 'checking' ? "Send To Quickbooks" : "Send To Admin"}
+          {pendingStates.isFinalising ? 'Processing...' : (quoteData.orderStatus === 'checking' ? "Send To Quickbooks" : "Send To Admin")}
         </Button>
       </Box>
     </Paper>
