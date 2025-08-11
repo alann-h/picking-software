@@ -120,5 +120,4 @@ export interface ApiError {
   message: string;
   productName?: string;
   quoteId?: number;
-  customerName?: string;
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Typography, Box, Alert, AlertTitle } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { ApiError } from '../utils/types'; // Import the error type
+import { ApiError } from '../utils/types';
 
 interface Props {
   error: ApiError;

@@ -74,7 +74,6 @@ async function filterEstimates(responseData, companyId) {
           return {
             error: true,
             quoteId: estimate.Id,
-            customerName: customerRef.name,
             message: `Product from QuickBooks not found in our database.`,
             productName: productNameForError
           };        
