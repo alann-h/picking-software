@@ -175,7 +175,7 @@ export const RunItem: React.FC<{
                             </Table>
                             {isAdmin && (
                                 <Stack direction="row" spacing={1} sx={{ mt: 2, justifyContent: 'flex-end' }}>
-                                    <Button size="small" variant="outlined" onClick={() => onStatusChange(run.id, 'pending')} disabled={run.status === 'pending'}>Mark Checking</Button>
+                                    <Button size="small" variant="outlined" onClick={() => onStatusChange(run.id, 'pending')} disabled={run.status === 'pending'}>Mark Pending</Button>
                                     <Button size="small" variant="outlined" onClick={() => onStatusChange(run.id, 'checking')} disabled={run.status === 'checking'}>Mark Checking</Button>
                                     <Button size="small" variant="outlined" color="success" onClick={() => onStatusChange(run.id, 'finalised')} disabled={run.status === 'finalised'}>Mark Completed</Button>
                                 </Stack>

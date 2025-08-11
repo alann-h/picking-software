@@ -4,33 +4,30 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 
 import { useAllProducts } from './useAllProducts';
-import { useUserStatus } from '../utils/useUserStatus';
 
 import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
 import UsersTab from './tabs/UsersTab';
+import { useAuth } from './authProvider';
 
 const Settings: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, isLoadingStatus } = useUserStatus(false);
+  const { isAdmin } = useAuth();
 
   const { allProducts, isLoading, refetch } = useAllProducts();
 
   const [searchTerm, setSearchTerm] = useState('');
 
   const tabValue = useMemo(() => {
-    if (isLoadingStatus) {
-      return false;
-    }
     const path = location.pathname;
     if (isAdmin) {
       if (path.includes('/settings/upload')) return 1;
       if (path.includes('/settings/users')) return 2;
     }
     return 0;
-  }, [location.pathname, isAdmin, isLoadingStatus]);
+  }, [location.pathname, isAdmin]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     switch (newValue) {
@@ -81,11 +78,6 @@ const Settings: React.FC = () => {
         </Tabs>
 
         <Box sx={{ p: 3 }}>
-          {isLoadingStatus ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%'}}>
-              <CircularProgress />
-            </Box>
-          ) : (
             <Routes>
               <Route
                 path="products"
@@ -110,7 +102,6 @@ const Settings: React.FC = () => {
               />
               <Route path="*" element={<Navigate to="products" replace />} />
             </Routes>
-          )}
         </Box>
       </Paper>
     </Box>

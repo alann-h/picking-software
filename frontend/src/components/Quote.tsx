@@ -28,7 +28,7 @@ import { useModalState } from '../utils/modalState';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
 import FinalConfirmationModal from './FinalConfirmationModal';
-import { useUserStatus } from '../utils/useUserStatus';
+import { useAuth } from './authProvider';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -51,7 +51,7 @@ const Quote: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const { handleOpenSnackbar } = useSnackbarContext();
-  const { isAdmin } = useUserStatus(false);
+  const { isAdmin } = useAuth();
 
   const [pickerNote, setPickerNote] = useState(quoteData?.pickerNote || '');
   const [isSavingNote, setIsSavingNote] = useState(false);

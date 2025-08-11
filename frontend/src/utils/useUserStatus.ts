@@ -1,43 +1,25 @@
 // src/utils/useUserStatus.ts
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getUserStatus } from '../api/user';
-import { useSnackbarContext } from '../components/SnackbarContext';
+import { UserStatusResponse } from './types';
 
-interface UserStatus {
-  isAdmin: boolean;
-  userCompanyId: string | null;
-  isLoadingStatus: boolean;
-}
-
-export const useUserStatus = (skipFetch: boolean): UserStatus => {
-  const [status, setStatus] = useState<UserStatus>({
-    isAdmin: false,
-    userCompanyId: null,
-    isLoadingStatus: true,
+export const useUserStatus = () => {
+  const { 
+    data, 
+    isLoading: isLoadingStatus, 
+    isError,
+  } = useQuery<UserStatusResponse>({
+    queryKey: ['userStatus'], 
+    
+    queryFn: getUserStatus,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: true,
   });
-  const { handleOpenSnackbar } = useSnackbarContext();
 
-  useEffect(() => {
-    const fetchUserStatus = async () => {
-      try {
-        if (!skipFetch) {
-          const userStatus = await getUserStatus();
-          setStatus({
-            isAdmin: userStatus.isAdmin,
-            userCompanyId: userStatus.companyId || null,
-            isLoadingStatus: false,
-          });
-        } else {
-          setStatus(prev => ({ ...prev, isLoadingStatus: false }));
-        }
-      } catch (err) {
-        handleOpenSnackbar((err as Error).message, 'error');
-        setStatus({ isAdmin: false, userCompanyId: null, isLoadingStatus: false });
-      }
-    };
-
-    fetchUserStatus();
-  }, [skipFetch, handleOpenSnackbar]);
-
-  return status;
+  return {
+    isAdmin: data?.isAdmin ?? false,
+    userCompanyId: data?.companyId ?? null,
+    isLoadingStatus,
+    isError,
+  };
 };

@@ -21,7 +21,7 @@ import InventoryIcon from '@mui/icons-material/Inventory'; // New icon for produ
 import UploadFileIcon from '@mui/icons-material/UploadFile'; // New icon for upload
 import GroupIcon from '@mui/icons-material/Group'; // New icon for users
 import { useNavigate } from 'react-router-dom';
-import { useUserStatus } from '../utils/useUserStatus';
+import { useAuth } from './authProvider';
 
 interface TopBarProps {
   disableTopBar: boolean;
@@ -31,7 +31,8 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { isAdmin } = useUserStatus(disableTopBar);
+  
+  const { isAdmin } = !disableTopBar ? useAuth() : { isAdmin: false };
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);

@@ -109,3 +109,8 @@ export interface RunQuote {
   totalAmount: number;
   priority: number;
 }
+
+export interface UserStatusResponse {
+  isAdmin: boolean;
+  companyId: string | null;
+}

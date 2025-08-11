@@ -1,64 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Paper, Typography, Stack, Skeleton } from '@mui/material';
+import React, { useState, useOptimistic } from 'react';
+import { Paper, Typography, Stack } from '@mui/material';
 import { AllInboxOutlined } from '@mui/icons-material';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Run } from '../../utils/types';
 import { deleteRun, getRuns, updateRunStatus } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import { RunItem } from './RunItem';
 import { ConfirmationDialog } from '../ConfirmationDialog';
 
-
-// Internal Hook for managing the list of runs
-const useRunList = (userCompanyId: string | null, refreshTrigger: number) => {
-    const [runs, setRuns] = useState<Run[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const { handleOpenSnackbar } = useSnackbarContext();
-    
-    const fetchAllRuns = useCallback(async () => {
-        if (!userCompanyId) return;
-        setIsLoading(true);
-        try {
-            const data = await getRuns(userCompanyId);
-            setRuns(data);
-        } catch (error) {
-            console.error(error);
-            handleOpenSnackbar('Failed to fetch runs.', 'error');
-            setRuns([]);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [userCompanyId, handleOpenSnackbar]);
-
-    useEffect(() => {
-        if (userCompanyId) {
-            fetchAllRuns();
-        }
-    }, [userCompanyId, fetchAllRuns, refreshTrigger]);
-
-    const handleChangeRunStatus = useCallback(async (runId: string, newStatus: Run['status']) => {
-        try {
-            await updateRunStatus(runId, newStatus);
-            
-            setRuns(prevRuns =>
-              prevRuns.map(run =>
-                run.id === runId
-                  ? { ...run, status: newStatus }
-                  : run
-              )
-          );
-
-            handleOpenSnackbar(`Run status updated to ${newStatus}.`, 'success');
-
-        } catch (error) {
-            console.error(error);
-            handleOpenSnackbar('Failed to update run status.', 'error');
-        }
-    }, [handleOpenSnackbar]);
-
-    return { runs, setRuns, isLoading, handleChangeRunStatus };
-};
-
-// Internal UI for empty state
 const EmptyRunsState = () => (
     <Paper variant="outlined" sx={{ mt: 4, p: { xs: 3, sm: 6 }, textAlign: 'center', backgroundColor: (theme) => theme.palette.grey[50] }}>
         <Stack spacing={2} alignItems="center">
@@ -69,14 +18,63 @@ const EmptyRunsState = () => (
     </Paper>
 );
 
-// Main Exported Component
-export const RunList: React.FC<{ userCompanyId: string | null; isAdmin: boolean; refreshTrigger: number }> = ({ userCompanyId, isAdmin, refreshTrigger }) => {
-    const { runs, setRuns, isLoading, handleChangeRunStatus } = useRunList(userCompanyId, refreshTrigger);
 
+export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = ({ userCompanyId, isAdmin }) => {
+    const queryClient = useQueryClient();
     const { handleOpenSnackbar } = useSnackbarContext();
+
+    const { data: runs } = useSuspenseQuery<Run[]>({
+        queryKey: ['runs', userCompanyId],
+        queryFn: () => getRuns(userCompanyId),
+    });
+
+    const [optimisticRuns, deleteOptimisticRun] = useOptimistic(
+        runs,
+        (currentRuns, runIdToDelete: string) => {
+            return currentRuns.filter(run => run.id !== runIdToDelete);
+        }
+    );
+
+    const updateStatusMutation = useMutation({
+        mutationFn: ({ runId, newStatus }: { runId: string; newStatus: Run['status'] }) => updateRunStatus(runId, newStatus),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['runs'] });
+            handleOpenSnackbar('Run status updated.', 'success');
+        },
+        onError: () => {
+            handleOpenSnackbar('Failed to update run status.', 'error');
+        }
+    });    
+
+
+    const handleChangeRunStatus = (runId: string, newStatus: Run['status']) => {
+        updateStatusMutation.mutate({ runId, newStatus });
+    };
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [runIdToDelete, setRunIdToDelete] = useState<string | null>(null);
+
+    const deleteRunMutation = useMutation({
+        mutationFn: (runId: string) => deleteRun(runId),
+        onMutate: async (runIdToDelete) => {
+            await queryClient.cancelQueries({ queryKey: ['runs', userCompanyId] });
+            deleteOptimisticRun(runIdToDelete);
+            handleOpenSnackbar('Run deleted successfully.', 'success');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
+            handleCloseDeleteDialog();
+        },
+        onError: () => {
+            handleOpenSnackbar('Failed to delete run. Restoring.', 'error');
+        }
+    });
+
+    const handleConfirmDelete = () => {
+        if (!runIdToDelete) return;
+        deleteRunMutation.mutate(runIdToDelete);
+    };
+
 
     const handleOpenDeleteDialog = (runId: string) => {
       setRunIdToDelete(runId);
@@ -88,37 +86,14 @@ export const RunList: React.FC<{ userCompanyId: string | null; isAdmin: boolean;
       setDialogOpen(false);
     };
 
-    const handleConfirmDelete = async () => {
-      if (!runIdToDelete) return;
-
-      try {
-        await deleteRun(runIdToDelete);
-        setRuns(prevRuns => prevRuns.filter(run => run.id !== runIdToDelete));
-        handleOpenSnackbar('Run deleted successfully.', 'success');
-      } catch (error) {
-          console.error(error);
-          handleOpenSnackbar('Failed to delete run.', 'error');
-      } finally {
-          handleCloseDeleteDialog();
-      }
-    };
-
-    if (isLoading) {
-        return (
-            <Stack spacing={2} sx={{ mt: 2 }}>
-                {[...Array(3)].map((_, i) => <Skeleton key={i} variant="rounded" height={120} />)}
-            </Stack>
-        );
-    }
-
-    if (runs.length === 0) {
+    if (optimisticRuns.length === 0) {
         return <EmptyRunsState />;
     }
 
     return (
         <>
             <Stack spacing={2} sx={{ mt: 2 }}>
-                {runs.map((run) => (
+                {optimisticRuns.map((run) => (
                     <RunItem
                         key={run.id}
                         run={run}

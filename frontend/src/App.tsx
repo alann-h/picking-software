@@ -21,6 +21,7 @@ import EULA from './components/Eula';
 
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
 import LogoLoader from './components/LogoLoader';
+import { AuthProvider } from './components/authProvider';
 
 
 const App: React.FC = () => {
@@ -45,13 +46,13 @@ const App: React.FC = () => {
   }, []);
 
     if (isCsrfTokenLoading) {
-        // Use your new LogoLoader component here
         return <LogoLoader />;
     }
     
   return (
     <ThemeProvider theme={theme}>
       <SnackbarProvider>
+        <AuthProvider>
             <title>Smart Picker</title>
             <link rel="icon" type="image/png" href="/SP.png" />          
           <CssBaseline />
@@ -100,6 +101,7 @@ const App: React.FC = () => {
           </Box>
           <SnackbarComponent />
           <Footer />
+          </AuthProvider>
       </SnackbarProvider>
     </ThemeProvider>
   );

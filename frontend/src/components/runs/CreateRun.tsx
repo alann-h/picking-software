@@ -1,269 +1,48 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, Suspense, useTransition } from 'react';
 import { Paper, Typography, Grid, Autocomplete, TextField, Box, Stack, Skeleton, Button, CircularProgress, IconButton, Tooltip, useTheme, Chip } from '@mui/material';
 import { AddCircleOutline, PlaylistAdd, Delete, DragIndicator, InboxOutlined, CalendarTodayOutlined } from '@mui/icons-material';
 import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { createPortal } from 'react-dom';
-import { Customer, QuoteSummary } from '../../utils/types';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { Customer, QuoteSummary, Run } from '../../utils/types';
 import { getCustomers } from '../../api/customers';
 import { getCustomerQuotes } from '../../api/quote';
 import { createRunFromQuotes } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
-import { useUserStatus } from '../../utils/useUserStatus';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../authProvider';
 
-// --- TYPES ---
 
-interface RunBuilder {
-  id: string; // A unique string id like 'run-builder-1'
-  quotes: QuoteSummary[];
-}
-
-// --- CUSTOM HOOK ---
-
-const RUN_BUILDER_STORAGE_KEY = 'runBuilderState';
-
-const useRunPlanner = (onRunsCreated: () => void) => {
-    const [searchParams, setSearchParams] = useSearchParams();
-    const [customers, setCustomers] = useState<Customer[]>([]);
-    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-    const [availableQuotes, setAvailableQuotes] = useState<QuoteSummary[]>([]);
-    const [isCustomerLoading, setIsCustomerLoading] = useState(true);
-    const [isQuotesLoading, setIsQuotesLoading] = useState(false);
-
-    // Load Initial State from localStorage
-    const [stagedQuotes, setStagedQuotes] = useState<QuoteSummary[]>(() => {
-        try {
-            const savedState = window.localStorage.getItem(RUN_BUILDER_STORAGE_KEY);
-            return savedState ? JSON.parse(savedState).stagedQuotes : [];
-        } catch (error) {
-            return [];
-        }
-    });
-
-    const [runsToCreate, setRunsToCreate] = useState<RunBuilder[]>(() => {
-        try {
-            const savedState = window.localStorage.getItem(RUN_BUILDER_STORAGE_KEY);
-            return savedState ? JSON.parse(savedState).runsToCreate : [];
-        } catch (error) {
-            return [];
-        }
-    });
-
-    const [activeDraggedItem, setActiveDraggedItem] = useState<QuoteSummary | null>(null);
-    const [isFinalizing, setIsFinalizing] = useState(false);
-
-    const { handleOpenSnackbar } = useSnackbarContext();
-    const { userCompanyId } = useUserStatus(false);
-
-    // Save State to localStorage whenever it changes
-    useEffect(() => {
-        const stateToSave = { stagedQuotes, runsToCreate };
-        window.localStorage.setItem(RUN_BUILDER_STORAGE_KEY, JSON.stringify(stateToSave));
-    }, [stagedQuotes, runsToCreate]);
-
-    // Data Fetching
-    useEffect(() => {
-        const fetchCustomers = async () => {
-            setIsCustomerLoading(true);
-            try {
-                const data = await getCustomers();
-                setCustomers(data);
-            } catch (error) {
-                console.error(error);
-                handleOpenSnackbar('Failed to fetch customers.', 'error');
-            } finally {
-                setIsCustomerLoading(false);
-            }
-        };
-        fetchCustomers();
-    }, [handleOpenSnackbar]);
-
-    const handleCustomerChange = useCallback((_: React.SyntheticEvent | null, customer: Customer | null) => {
-        if (customer) {
-            setSearchParams({ customerId: String(customer.customerId) }, { replace: true });
-        } else {
-            setSearchParams({}, { replace: true });
-        }
-    }, [setSearchParams]);
-
-    useEffect(() => {
-        const customerIdFromUrl = searchParams.get('customerId');
-        const customerFromUrl = customerIdFromUrl && customers.length > 0
-            ? customers.find(c => String(c.customerId) === customerIdFromUrl) || null
-            : null;
-
-        setSelectedCustomer(customerFromUrl);
-
-        const fetchOrClearQuotes = async () => {
-            if (customerFromUrl) {
-                setIsQuotesLoading(true);
-                setAvailableQuotes([]);
-                try {
-                    const data: QuoteSummary[] = await getCustomerQuotes(customerFromUrl.customerId);
-                    const quotesWithCustomerId = data.map(quote => ({ ...quote, customerId: customerFromUrl.customerId }));
-                    const allUsedQuoteIds = new Set([...stagedQuotes.map(q => q.id), ...runsToCreate.flatMap(r => r.quotes.map(q => q.id))]);
-                    setAvailableQuotes(quotesWithCustomerId.filter(q => !allUsedQuoteIds.has(q.id)));
-                } catch (error) {
-                    console.error(error);
-                    handleOpenSnackbar('Failed to fetch quotes.', 'error');
-                } finally {
-                    setIsQuotesLoading(false);
-                }
-            } else {
-                setAvailableQuotes([]);
-            }
-        };
-
-        fetchOrClearQuotes();
-    }, [searchParams, customers, stagedQuotes, runsToCreate, handleOpenSnackbar]);
-
-    useEffect(() => {
-        const customerIdFromUrl = searchParams.get('customerId');
-        if (customerIdFromUrl && customers.length > 0) {
-            const customerFromUrl = customers.find(c => String(c.customerId) === customerIdFromUrl);
-            if (customerFromUrl && customerFromUrl.customerId !== selectedCustomer?.customerId) {
-                handleCustomerChange(null, customerFromUrl);
-            }
-        }
-    }, [customers, searchParams, selectedCustomer, handleCustomerChange]);
-
-    // UI Actions
-    const handleStageQuote = (quote: QuoteSummary) => {
-        setStagedQuotes(prev => [quote, ...prev]);
-        setAvailableQuotes(prev => prev.filter(q => q.id !== quote.id));
-    };
-    
-    const handleUnstageQuote = (quoteId: number) => {
-        const quoteToUnstage = stagedQuotes.find(q => q.id === quoteId);
-        if (!quoteToUnstage) return;
-
-        setStagedQuotes(prev => prev.filter(q => q.id !== quoteId));
-
-        if (selectedCustomer && quoteToUnstage.customerId === selectedCustomer.customerId) {
-            setAvailableQuotes(prev => [quoteToUnstage, ...prev]);
-        }
-    };
-
-    const handleAddNewRun = () => setRunsToCreate(prev => [...prev, { id: `run-builder-${Date.now()}`, quotes: [] }]);
-
-    const handleRemoveRun = (runId: string) => {
-        const runToRemove = runsToCreate.find(r => r.id === runId);
-        if (!runToRemove) return;
-        setStagedQuotes(prev => [...runToRemove.quotes, ...prev]);
-        setRunsToCreate(prev => prev.filter(r => r.id !== runId));
-    };
-
-    // Drag and Drop Handlers
-    const handleDragStart = (event: any) => {
-      const { active } = event;
-      const allQuotes = [...stagedQuotes, ...runsToCreate.flatMap(r => r.quotes)];
-      const currentItem = allQuotes.find(q => q.id === active.id);
-      if (currentItem) {
-          setActiveDraggedItem(currentItem);
-      }
-    };
-
-    const handleDragEnd = (event: DragEndEvent) => {
-      setActiveDraggedItem(null);
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const sourceContainerId = active.data.current?.sortable.containerId;
-      const destContainerId = over.data.current?.sortable.containerId || over.id;
-      if (!sourceContainerId || !destContainerId) return;
-
-      if (sourceContainerId === destContainerId) {
-          const overIndex = over.data.current?.sortable.index;
-          if (overIndex === undefined) return;
-          if (sourceContainerId === 'staged-quotes') {
-            setStagedQuotes(items => {
-              const oldIndex = items.findIndex(item => item.id === active.id);
-              return arrayMove(items, oldIndex, overIndex);
-          });
-          } else {
-              setRunsToCreate(runs => runs.map(run => {
-                  if (run.id === sourceContainerId) {
-                      const oldIndex = run.quotes.findIndex(item => item.id === active.id);
-                      return { ...run, quotes: arrayMove(run.quotes, oldIndex, overIndex) };
-                  }
-                  return run;
-              }));
-          }
-      } else {
-          let draggedItem: QuoteSummary | undefined;
-          let nextStagedQuotes = [...stagedQuotes];
-          let nextRunsToCreate = runsToCreate.map(r => ({ ...r, quotes: [...r.quotes] }));
-
-          if (sourceContainerId === 'staged-quotes') {
-              const itemIndex = nextStagedQuotes.findIndex(q => q.id === active.id);
-              if (itemIndex > -1) [draggedItem] = nextStagedQuotes.splice(itemIndex, 1);
-          } else {
-              const sourceRun = nextRunsToCreate.find(r => r.id === sourceContainerId);
-              if (sourceRun) {
-                  const itemIndex = sourceRun.quotes.findIndex(q => q.id === active.id);
-                  if (itemIndex > -1) [draggedItem] = sourceRun.quotes.splice(itemIndex, 1);
-              }
-          }
-          
-          if (!draggedItem) return;
-
-          if (destContainerId === 'staged-quotes') {
-              nextStagedQuotes.push(draggedItem);
-          } else {
-              const destRun = nextRunsToCreate.find(r => r.id === destContainerId);
-              if (destRun) {
-                  const overIndex = over.data.current?.sortable?.index ?? destRun.quotes.length;
-                  destRun.quotes.splice(overIndex, 0, draggedItem);
-              }
-          }
-
-          setStagedQuotes(nextStagedQuotes);
-          setRunsToCreate(nextRunsToCreate);
-    }
-  };
-    
-    // Finalize Logic
-    const handleFinalizeRuns = async () => {
-        if (!userCompanyId) return;
-        const validRuns = runsToCreate.filter(r => r.quotes.length > 0);
-        if (validRuns.length === 0) {
-            handleOpenSnackbar('No runs to create.', 'warning');
-            return;
-        }
-        setIsFinalizing(true);
-        try {
-            const creationPromises = validRuns.map(run => createRunFromQuotes(run.quotes.map(q => q.id), userCompanyId));
-            await Promise.all(creationPromises);
-            handleOpenSnackbar(`${validRuns.length} run(s) created successfully!`, 'success');
-            
-            window.localStorage.removeItem(RUN_BUILDER_STORAGE_KEY);
-            setRunsToCreate([]);
-            setStagedQuotes([]);
-            onRunsCreated();
-        } catch (error: any) {
-            handleOpenSnackbar(error.message || 'Failed to create one or more runs.', 'error');
-        } finally {
-            setIsFinalizing(false);
-        }
-    };
-
-    return {
-        customers, selectedCustomer, availableQuotes, isCustomerLoading, isQuotesLoading,
-        stagedQuotes, runsToCreate, activeDraggedItem, isFinalizing,
-        handleCustomerChange, handleStageQuote, handleAddNewRun, handleRemoveRun, handleDragStart, handleDragEnd, handleFinalizeRuns,
-        handleUnstageQuote
-    };
-};
-
-// --- UI COMPONENTS ---
-
+// --- UI COMPONENTS --- (These remain the same and are omitted for brevity)
 const EmptyState = ({ text, sx = {} }: { text: string, sx?: object }) => (
     <Stack justifyContent="center" alignItems="center" sx={{ height: '100%', p: 2, color: 'text.secondary', textAlign: 'center', ...sx }}>
         <InboxOutlined sx={{ fontSize: 48, mb: 1.5, color: 'grey.400' }} />
         <Typography variant="body2">{text}</Typography>
     </Stack>
+);
+
+// A skeleton that mimics a single quote item
+const QuoteItemSkeleton = () => (
+    <Paper variant='outlined' sx={{ p: 1.5, mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Stack spacing={1} flexGrow={1}>
+            <Skeleton variant="text" width="45%" height={24} />
+            <Stack direction="row" spacing={2}>
+                <Skeleton variant="rounded" width={60} height={22} />
+                <Skeleton variant="text" width={80} height={20} />
+            </Stack>
+        </Stack>
+        <Skeleton variant="circular" width={32} height={32} sx={{ ml: 1 }} />
+    </Paper>
+);
+
+// A container for the quote skeletons that matches the real component's structure.
+const AvailableQuotesSkeleton = () => (
+    <Paper variant="outlined" sx={{ flexGrow: 1, p: 1, overflowY: 'hidden', bgcolor: 'grey.50' }}>
+        {/* Render a few skeleton items to fill the space */}
+        {[...Array(3)].map((_, i) => <QuoteItemSkeleton key={i} />)}
+    </Paper>
 );
 
 const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = ({ quote, onStage }) => (
@@ -282,8 +61,8 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
 const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: number) => void }> = ({ quote, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.id });
     const theme = useTheme();
-    const style = { 
-        transform: CSS.Transform.toString(transform), 
+    const style = {
+        transform: CSS.Transform.toString(transform),
         transition: isDragging ? 'none' : transition,
         boxShadow: isDragging ? theme.shadows[8] : theme.shadows[1],
         opacity: isDragging ? 0.5 : 1,
@@ -327,12 +106,159 @@ const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: strin
         </Paper>
     );
 };
+interface RunBuilder {
+  id: string;
+  quotes: QuoteSummary[];
+}
 
+
+const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<number>, onStageQuote: (quote: QuoteSummary) => void }> = ({ customer, stagedQuoteIds, onStageQuote }) => {
+
+    const { data: quotesData } = useSuspenseQuery<QuoteSummary[]>({
+        queryKey: ['quotes', customer.customerId],
+        queryFn: () => getCustomerQuotes(customer.customerId),
+    });
+
+    const availableQuotes = quotesData
+        .filter(q => !stagedQuoteIds.has(q.id))
+        .map(quote => ({ ...quote, customerId: customer.customerId }));
+
+    return (
+        <Paper variant="outlined" sx={{ flexGrow: 1, p: 1, overflowY: 'auto', bgcolor: 'grey.50' }}>
+            {availableQuotes.length > 0 ? (
+                availableQuotes.map(q => <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />)
+            ) : (
+                <EmptyState text="No available quotes found for this customer." />
+            )}
+        </Paper>
+    );
+};
 // --- MAIN COMPONENT ---
+export const CreateRun: React.FC<{}> = () => {
+    const queryClient = useQueryClient();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { handleOpenSnackbar } = useSnackbarContext();
+    const { userCompanyId } = useAuth();
 
-export const CreateRun: React.FC<{ onRunCreated: () => void }> = ({ onRunCreated }) => {
-    const planner = useRunPlanner(onRunCreated);
+    const [isPending, startTransition] = useTransition();
+
+    const [stagedQuotes, setStagedQuotes] = useState<QuoteSummary[]>([]);
+    const [runsToCreate, setRunsToCreate] = useState<RunBuilder[]>([]);
+    const [activeDraggedItem, setActiveDraggedItem] = useState<QuoteSummary | null>(null);
+
+    const { data: customers } = useSuspenseQuery<Customer[]>({
+        queryKey: ['customers'],
+        queryFn: getCustomers,
+    });
+
+    const selectedCustomer = useMemo(() => {
+        const customerId = searchParams.get('customerId');
+        return customers?.find(c => String(c.customerId) === customerId) || null;
+    }, [customers, searchParams]);
+
+    const handleCustomerChange = (_: React.SyntheticEvent | null, customer: Customer | null) => {
+        startTransition(() => {
+            setSearchParams(customer ? { customerId: String(customer.customerId) } : {});
+        });
+    };
+
+    const stagedQuoteIds = useMemo(() => new Set(stagedQuotes.map(q => q.id)), [stagedQuotes]);
+    const createRunMutation = useMutation({
+        mutationFn: (quoteIds: number[]) => createRunFromQuotes(quoteIds, userCompanyId!),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['runs'] });
+            setRunsToCreate([]);
+            setStagedQuotes([]);
+            handleOpenSnackbar(`${createRunMutation.variables?.length} run(s) created successfully!`, 'success');
+        },
+        onError: (error: any) => {
+            handleOpenSnackbar(error.message || 'Failed to create one or more runs.', 'error');
+        }
+    });
+
+    const handleFinalizeRuns = async () => {
+        if (!userCompanyId) return;
+        const validRuns = runsToCreate.filter(r => r.quotes.length > 0);
+        if (validRuns.length === 0) {
+            handleOpenSnackbar('No runs to create.', 'warning');
+            return;
+        }
+        const creationPromises = validRuns.map(run =>
+            createRunMutation.mutateAsync(run.quotes.map(q => q.id))
+        );
+        try {
+            await Promise.all(creationPromises);
+        } catch {
+            // Errors are handled by the mutation's onError callback
+        }
+    };
+    
+    const handleStageQuote = (quote: QuoteSummary) => {
+        setStagedQuotes(prev => [quote, ...prev]);
+    };
+    const handleUnstageQuote = (quoteId: number) => {
+        const quoteToUnstage = stagedQuotes.find(q => q.id === quoteId);
+        if (!quoteToUnstage) return;
+        setStagedQuotes(prev => prev.filter(q => q.id !== quoteId));
+    };
+    const handleAddNewRun = () => setRunsToCreate(prev => [...prev, { id: `run-builder-${Date.now()}`, quotes: [] }]);
+    const handleRemoveRun = (runId: string) => {
+        const runToRemove = runsToCreate.find(r => r.id === runId);
+        if (!runToRemove) return;
+        setStagedQuotes(prev => [...runToRemove.quotes, ...prev]);
+        setRunsToCreate(prev => prev.filter(r => r.id !== runId));
+    };
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+    const handleDragStart = (event: any) => {
+      const { active } = event;
+      const allQuotes = [...stagedQuotes, ...runsToCreate.flatMap(r => r.quotes)];
+      const currentItem = allQuotes.find(q => q.id === active.id);
+      if (currentItem) setActiveDraggedItem(currentItem);
+    };
+    const handleDragEnd = (event: DragEndEvent) => {
+      setActiveDraggedItem(null);
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const sourceContainerId = active.data.current?.sortable.containerId;
+      const destContainerId = over.data.current?.sortable.containerId || over.id;
+      if (!sourceContainerId || !destContainerId) return;
+      if (sourceContainerId === destContainerId) {
+          const overIndex = over.data.current?.sortable.index;
+          if (overIndex === undefined) return;
+          if (sourceContainerId === 'staged-quotes') {
+            setStagedQuotes(items => arrayMove(items, items.findIndex(i => i.id === active.id), overIndex));
+          } else {
+              setRunsToCreate(runs => runs.map(run => (run.id === sourceContainerId)
+                  ? { ...run, quotes: arrayMove(run.quotes, run.quotes.findIndex(i => i.id === active.id), overIndex) }
+                  : run
+              ));
+          }
+      } else {
+          let draggedItem: QuoteSummary | undefined;
+          let nextStagedQuotes = [...stagedQuotes];
+          let nextRunsToCreate = runsToCreate.map(r => ({ ...r, quotes: [...r.quotes] }));
+
+          if (sourceContainerId === 'staged-quotes') {
+              [draggedItem] = nextStagedQuotes.splice(nextStagedQuotes.findIndex(q => q.id === active.id), 1);
+          } else {
+              const sourceRun = nextRunsToCreate.find(r => r.id === sourceContainerId);
+              if (sourceRun) [draggedItem] = sourceRun.quotes.splice(sourceRun.quotes.findIndex(q => q.id === active.id), 1);
+          }
+
+          if (!draggedItem) return;
+
+          if (destContainerId === 'staged-quotes') {
+              nextStagedQuotes.push(draggedItem);
+          } else {
+              const destRun = nextRunsToCreate.find(r => r.id === destContainerId);
+              if (destRun) {
+                  destRun.quotes.splice(over.data.current?.sortable?.index ?? destRun.quotes.length, 0, draggedItem);
+              }
+          }
+          setStagedQuotes(nextStagedQuotes);
+          setRunsToCreate(nextRunsToCreate);
+      }
+    };
 
     return (
         <Stack spacing={4}>
@@ -341,21 +267,33 @@ export const CreateRun: React.FC<{ onRunCreated: () => void }> = ({ onRunCreated
                 <Grid container spacing={3} alignItems="flex-start">
                     <Grid size={{ xs: 12, md: 5 }}>
                         <Typography variant="subtitle1" fontWeight={500} gutterBottom>Select a Customer</Typography>
-                        <Autocomplete options={planner.customers} getOptionLabel={(o) => o.customerName || ''} value={planner.selectedCustomer} onChange={planner.handleCustomerChange} loading={planner.isCustomerLoading} renderInput={(params) => <TextField {...params} placeholder="Search by customer name..." />} />
+                        <Autocomplete
+                            options={customers}
+                            getOptionLabel={(o) => o.customerName || ''}
+                            value={selectedCustomer}
+                            onChange={handleCustomerChange}
+                            isOptionEqualToValue={(option, value) => option.customerId === value.customerId}
+                            renderInput={(params) => <TextField {...params} placeholder="Search by customer name..." />}
+                        />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 7 }}>
+                    <Grid  size={{ xs: 12, md: 7 }}>
                         <Typography variant="subtitle1" fontWeight={500} gutterBottom>Available Quotes</Typography>
                         <Box sx={{ height: 250, display: 'flex', flexDirection: 'column' }}>
-                            {planner.isQuotesLoading ? (
-                                <Skeleton variant="rectangular" width="100%" height="100%" sx={{borderRadius: 1}} />
+                            {isPending ? (
+                                <AvailableQuotesSkeleton />
                             ) : (
-                                <Paper variant="outlined" sx={{ flexGrow: 1, p: 1, overflowY: 'auto', bgcolor: 'grey.50' }}>
-                                    {planner.availableQuotes.length > 0 ? (
-                                        planner.availableQuotes.map(q => <QuoteFinderItem key={q.id} quote={q} onStage={() => planner.handleStageQuote(q)} />)
+                                <Suspense fallback={<AvailableQuotesSkeleton />}>
+                                    {selectedCustomer ? (
+                                        <AvailableQuotes
+                                            key={selectedCustomer.customerId}
+                                            customer={selectedCustomer}
+                                            stagedQuoteIds={stagedQuoteIds}
+                                            onStageQuote={handleStageQuote}
+                                        />
                                     ) : (
-                                        <EmptyState text={planner.selectedCustomer ? "No available quotes found for this customer." : "Select a customer to see their quotes."} />
+                                        <EmptyState text="Select a customer to see their quotes." />
                                     )}
-                                </Paper>
+                                </Suspense>
                             )}
                         </Box>
                     </Grid>
@@ -363,30 +301,37 @@ export const CreateRun: React.FC<{ onRunCreated: () => void }> = ({ onRunCreated
             </Paper>
 
             <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
-                 <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
                     <Typography variant="h6" component="h2" fontWeight={600}>Step 2: Build Picking Runs</Typography>
-                    <Button variant="contained" onClick={planner.handleFinalizeRuns} disabled={planner.isFinalizing || planner.runsToCreate.filter(r => r.quotes.length > 0).length === 0} startIcon={planner.isFinalizing ? <CircularProgress size={20} color="inherit" /> : <AddCircleOutline />}>Create Runs</Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleFinalizeRuns}
+                        disabled={createRunMutation.isPending}
+                        startIcon={createRunMutation.isPending ? <CircularProgress size={20} color="inherit" /> : <AddCircleOutline />}
+                    >
+                        Create Runs
+                    </Button>
                 </Stack>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={planner.handleDragStart} onDragEnd={planner.handleDragEnd}>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                     <Grid container spacing={3}>
                         <Grid size={{ xs: 12, md: 4 }}>
-                            <Typography variant="subtitle1" fontWeight={600} gutterBottom color="text.secondary">Staging Pool ({planner.stagedQuotes.length})</Typography>
+                            <Typography variant="subtitle1" fontWeight={600} gutterBottom color="text.secondary">Staging Pool ({stagedQuotes.length})</Typography>
                             <Paper sx={{ height: 450, p: 1, bgcolor: 'grey.100', overflowY: 'auto' }}>
-                                <SortableContext id="staged-quotes" items={planner.stagedQuotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                                    {planner.stagedQuotes.length > 0 ? planner.stagedQuotes.map(q => <DraggableQuoteCard key={q.id} quote={q} onRemove={planner.handleUnstageQuote} />) : <EmptyState text="Add quotes from the list above to stage them for a run." />}
+                                <SortableContext id="staged-quotes" items={stagedQuotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                                    {stagedQuotes.length > 0 ? stagedQuotes.map(q => <DraggableQuoteCard key={q.id} quote={q} onRemove={handleUnstageQuote} />) : <EmptyState text="Add quotes from the list above to stage them for a run." />}
                                 </SortableContext>
                             </Paper>
                         </Grid>
                         <Grid size={{ xs: 12, md: 8 }}>
                              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
                                 <Typography variant="subtitle1" fontWeight={600} gutterBottom color="text.secondary">Run Columns</Typography>
-                                <Button onClick={planner.handleAddNewRun} startIcon={<AddCircleOutline />}>Add New Run</Button>
+                                <Button onClick={handleAddNewRun} startIcon={<AddCircleOutline />}>Add New Run</Button>
                             </Stack>
                             <Paper variant="outlined" sx={{ display: 'flex', overflowX: 'auto', p: 2, minHeight: 442, bgcolor: 'grey.100'}}>
-                                {planner.runsToCreate.length > 0 ? (
+                                {runsToCreate.length > 0 ? (
                                     <Stack direction="row" spacing={2} sx={{minHeight: 410}}>
-                                        {planner.runsToCreate.map((run, index) => (
-                                            <RunColumn key={run.id} run={run} index={index} onRemove={planner.handleRemoveRun} />
+                                        {runsToCreate.map((run, index) => (
+                                            <RunColumn key={run.id} run={run} index={index} onRemove={handleRemoveRun} />
                                         ))}
                                     </Stack>
                                 ) : (
@@ -397,7 +342,7 @@ export const CreateRun: React.FC<{ onRunCreated: () => void }> = ({ onRunCreated
                     </Grid>
                     {createPortal(
                         <DragOverlay>
-                            {planner.activeDraggedItem ? <DraggableQuoteCard quote={planner.activeDraggedItem} /> : null}
+                            {activeDraggedItem ? <DraggableQuoteCard quote={activeDraggedItem} /> : null}
                         </DragOverlay>,
                         document.body
                     )}
