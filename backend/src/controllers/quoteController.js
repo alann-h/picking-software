@@ -35,6 +35,10 @@ export async function getEstimateById(req, res, next) {
       return res.json({ source: 'database', data: quote });
     }
     const [apiQuote] = await getQbEstimate(quoteId, req.session.companyId, false);
+    if (apiQuote && apiQuote.error) {
+      return res.json({ source: 'api', data: apiQuote });
+    }
+    
     await estimateToDB(apiQuote);
     res.json({ source: 'api', data: apiQuote });
   } catch (err) {

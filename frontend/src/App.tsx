@@ -21,6 +21,7 @@ import EULA from './components/Eula';
 
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
 import PublicLayout from './components/PublicLayout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 
 const App: React.FC = () => {
@@ -51,7 +52,13 @@ const App: React.FC = () => {
               <Route element={<AuthLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/settings/*" element={<Settings />} />
-                <Route path="/quote" element={<Suspense fallback={<QuoteSkeleton />}> <Quote /> </Suspense>} />
+                <Route path="/quote" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<QuoteSkeleton />}> 
+                      <Quote /> 
+                    </Suspense>
+                  </ErrorBoundary>
+                  } />
                 <Route path="/orders-to-check" element={<OrdersToCheckPage />} />
                 <Route path="/run" element={<Runs />} />
               </Route>
