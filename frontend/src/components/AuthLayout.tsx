@@ -9,22 +9,20 @@ const ProtectedLayout = () => {
     const { isAuthenticated, isLoading } = useAuth();
     const location = useLocation();
 
-   if (isLoading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     return (
         <>
             <TopBar disableTopBar={false} />
-            <Outlet />
+            {isLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
+                    <CircularProgress />
+                </Box>
+            ) : (
+                <Outlet />
+            )}
         </>
     );
 };

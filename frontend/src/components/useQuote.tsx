@@ -20,6 +20,7 @@ import {
     setProductUnavailable,
     barcodeToName
 } from '../api/products';
+import { useCallback, useMemo } from 'react';
 
 
 export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) => {
@@ -35,6 +36,12 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
                 throw response.data;
             }
             return response.data;
+        },
+        select: (data) => {
+            return {
+                ...data,
+                productInfo: data.productInfo || {},
+            };
         },
     });
 
@@ -98,41 +105,84 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
     const finaliseInvoice = useMutation({ mutationFn: () => updateQuoteInQuickBooks(quoteId), onSuccess: () => { const qbWindow = window.open('https://qbo.intuit.com/', '_blank'); setTimeout(() => { if (qbWindow) qbWindow.location.href = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`; }, 3000); handleOpenSnackbar('Quote finalized and opened in QuickBooks!', 'success'); navigate('/dashboard'); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
     const confirmBarcodeScan = useMutation({ mutationFn: (variables: { barcode: string, quantity: number }) => barcodeScan(variables.barcode, quoteId, variables.quantity), onSuccess: () => { handleOpenSnackbar('Product scanned successfully!', 'success'); invalidateAndRefetch(); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
 
-    const handleBarcodeScan = async (barcode: string) => { try { const { productName } = await barcodeToName(barcode); const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode); if (!product) throw new Error('Product not found in this quote.'); if (product.pickingQty === 0) throw new Error('This product has already been fully picked.'); openModal('barcode', { productName, availableQty: product.pickingQty, onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }), }); } catch (error: any) { handleOpenSnackbar(error.message, 'error'); } };
-    const openProductDetailsModal = async (productId: number, details: ProductDetail) => { try { const data = await getProductInfo(productId); openModal('productDetails', { name: data.productname, details: { ...details, qtyOnHand: data.quantity_on_hand } }); } catch (error: any) { handleOpenSnackbar(error.message, 'error'); } };
+    const handleBarcodeScan = useCallback(async (barcode: string) => {
+        try {
+            const { productName } = await barcodeToName(barcode);
+            const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
+            
+            if (!product) {
+                throw new Error('Product not found in this quote.');
+            }
+            if (product.pickingQty === 0) {
+                throw new Error('This product has already been fully picked.');
+            }
 
+            openModal('barcode', {
+                productName,
+                availableQty: product.pickingQty,
+                onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
+            });
+        } catch (error: any) {
+            handleOpenSnackbar(error.message, 'error');
+        }
+    }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar, barcodeToName]);
+
+    const openProductDetailsModal = useCallback(async (productId: number, details: ProductDetail) => {
+        try {
+            const data = await getProductInfo(productId);
+            openModal('productDetails', {
+                name: data.productname,
+                details: { ...details, qtyOnHand: data.quantity_on_hand }
+            });
+        } catch (error: any) {
+            handleOpenSnackbar(error.message, 'error');
+        }
+    }, [openModal, handleOpenSnackbar, getProductInfo]);
 
     // ====================================================================================
     // 4. RETURN VALUE
     // ====================================================================================
+    
+    const actions = useMemo(() => ({
+        adjustQuantity: adjustQuantity.mutate,
+        saveForLater: saveForLater.mutate,
+        setUnavailable: setUnavailable.mutate,
+        setFinished: setFinished.mutate,
+        addProduct: addProduct.mutate,
+        saveNote: saveNote.mutate,
+        setQuoteChecking: setQuoteChecking.mutate,
+        finaliseInvoice: finaliseInvoice.mutate,
+        handleBarcodeScan,
+        openProductDetailsModal,
+        openAdjustQuantityModal: (productId: number, pickingQty: number, productName: string) => {
+            openModal('adjustQuantity', { productId, pickingQty, productName });
+        },
+        openAddProductModal: () => openModal('addProduct', null),
+        openQuoteInvoiceModal: () => openModal('quoteInvoice', null),
+    }), [
+        adjustQuantity.mutate, saveForLater.mutate, setUnavailable.mutate, setFinished.mutate,
+        addProduct.mutate, saveNote.mutate, setQuoteChecking.mutate, finaliseInvoice.mutate,
+        handleBarcodeScan, openProductDetailsModal, openModal
+    ]);
+
+    const pendingStates = useMemo(() => ({
+        isAdjustingQuantity: adjustQuantity.isPending,
+        isSavingForLater: saveForLater.isPending,
+        isSettingUnavailable: setUnavailable.isPending,
+        isSettingFinished: setFinished.isPending,
+        isAddingProduct: addProduct.isPending,
+        isSavingNote: saveNote.isPending,
+        isFinalising: finaliseInvoice.isPending,
+        isQuoteChecking: setQuoteChecking.isPending
+    }), [
+        adjustQuantity.isPending, saveForLater.isPending, setUnavailable.isPending,
+        setFinished.isPending, addProduct.isPending, saveNote.isPending,
+        finaliseInvoice.isPending, setQuoteChecking.isPending
+    ]);
+
     return {
         quoteData,
-        actions: {
-            adjustQuantity: adjustQuantity.mutate,
-            saveForLater: saveForLater.mutate,
-            setUnavailable: setUnavailable.mutate,
-            setFinished: setFinished.mutate,
-            addProduct: addProduct.mutate,
-            saveNote: saveNote.mutate,
-            setQuoteChecking: setQuoteChecking.mutate,
-            finaliseInvoice: finaliseInvoice.mutate,
-            handleBarcodeScan,
-            openProductDetailsModal,
-            openAdjustQuantityModal: (productId: number, pickingQty: number, productName: string) => {
-                openModal('adjustQuantity', { productId, pickingQty, productName });
-            },
-            openAddProductModal: () => openModal('addProduct', null),
-            openQuoteInvoiceModal: () => openModal('quoteInvoice', null),
-        },
-        pendingStates: {
-            isAdjustingQuantity: adjustQuantity.isPending,
-            isSavingForLater: saveForLater.isPending,
-            isSettingUnavailable: setUnavailable.isPending,
-            isSettingFinished: setFinished.isPending,
-            isAddingProduct: addProduct.isPending,
-            isSavingNote: saveNote.isPending,
-            isFinalising: finaliseInvoice.isPending,
-            isQuoteChecking: setQuoteChecking.isPending
-        },
+        actions,
+        pendingStates,
     };
 };

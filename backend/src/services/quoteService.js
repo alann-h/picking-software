@@ -1,7 +1,7 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query, transaction, makeCustomApiCall, roundQuantity, formatTimestampForSydney } from '../helpers.js';
 import { getOAuthClient, getBaseURL } from './authService.js';
-import { getProductFromDB, productIdToQboId } from './productService.js';
+import { productIdToQboId, getProductsFromDBByIds } from './productService.js';
 
 export async function getCustomerQuotes(customerId, companyId) {
   try {
@@ -34,70 +34,59 @@ export async function getCustomerQuotes(customerId, companyId) {
 }
 
 async function filterEstimates(responseData, companyId) {
-  const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
-    const productInfo = {};
-    let productNameForError = ''; 
+    const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
+        const itemIds = estimate.Line
+            .filter(line => line.DetailType !== 'SubTotalLineDetail')
+            .map(line => line.SalesItemLineDetail.ItemRef.value);
 
-    for (const line of estimate.Line) {
-      if (line.DetailType === 'SubTotalLineDetail') {
-        continue;
-      }
+        const productsFromDB = await getProductsFromDBByIds(itemIds); 
 
-      const itemId = line.SalesItemLineDetail.ItemRef.value;
-      let productName = line.SalesItemLineDetail.ItemRef.name;
-      productNameForError = productName;
+        const productMap = new Map(productsFromDB.map(p => [p.productid, p]));
 
-      const colonIndex = productName.indexOf(':');
-      if (colonIndex !== -1) {
-        productName = productName.substring(colonIndex + 1).trim();
-      } else {
-        productName = productName.trim();
-      }
+        const productInfo = {};
+        
+        for (const line of estimate.Line) {
+            if (line.DetailType === 'SubTotalLineDetail') continue;
 
-      try {
-        const itemLocal = await getProductFromDB(itemId);
+            const itemId = line.SalesItemLineDetail.ItemRef.value;
+            const itemLocal = productMap.get(itemId);
 
-        productInfo[itemLocal.productid] = {
-          productName: itemLocal.productname,
-          productId: itemLocal.productid,
-          sku: itemLocal.sku,
-          price: itemLocal.price,
-          pickingQty: line.SalesItemLineDetail?.Qty || 0,
-          originalQty: line.SalesItemLineDetail?.Qty || 0,
-          pickingStatus: 'pending',
-          companyId,
-          barcode: itemLocal.barcode,
-          tax_code_ref: itemLocal.tax_code_ref
-        };
-      } catch (error) {
-        if (error.message.includes('does not exist within the database')) {
-          return {
-            error: true,
-            quoteId: estimate.Id,
-            message: `Product from QuickBooks not found in our database.`,
-            productName: productNameForError
-          };        
+            if (!itemLocal) {
+                return {
+                    error: true,
+                    quoteId: estimate.Id,
+                    message: `Product from QuickBooks not found in our database.`,
+                    productName: line.SalesItemLineDetail.ItemRef.name.split(':').pop().trim(),
+                };
+            }
+            
+            productInfo[itemLocal.productid] = {
+                productName: itemLocal.productname,
+                productId: itemLocal.productid,
+                sku: itemLocal.sku,
+                pickingQty: line.SalesItemLineDetail?.Qty || 0,
+                originalQty: line.SalesItemLineDetail?.Qty || 0,
+                pickingStatus: 'pending',
+                companyId,
+                barcode: itemLocal.barcode,
+                tax_code_ref: itemLocal.tax_code_ref
+            };
         }
-        throw error;
-      }
-    }
 
-    const customerRef = estimate.CustomerRef;
-    const orderNote = estimate.CustomerMemo;
+        return {
+            quoteId: estimate.Id,
+            customerId: estimate.CustomerRef.value,
+            customerName: estimate.CustomerRef.name,
+            productInfo,
+            totalAmount: estimate.TotalAmt,
+            orderStatus: 'pending',
+            lastModified: estimate.MetaData.LastUpdatedTime,
+            companyId,
+            orderNote: estimate.CustomerMemo?.value || null
+        };
+    });
 
-    return {
-      quoteId: estimate.Id,
-      customerId: customerRef.value,
-      customerName: customerRef.name,
-      productInfo,
-      totalAmount: estimate.TotalAmt,
-      orderStatus: 'pending',
-      lastModified: estimate.MetaData.LastUpdatedTime,
-      companyId,
-      orderNote: orderNote?.value || null
-    };
-  });
-  return Promise.all(filteredEstimatesPromises);
+    return Promise.all(filteredEstimatesPromises);
 }
 
 export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
@@ -109,12 +98,17 @@ export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
 
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
+
+
     const estimateResponse = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
+
+
     const responseData = estimateResponse.json;
     if (rawDataNeeded) return responseData;
+
     
     const filteredQuote = await filterEstimates(responseData, companyId);
     return filteredQuote;

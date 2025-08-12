@@ -1,7 +1,7 @@
 // src/controllers/productController.js
 import {
     productIdToQboId,
-    getProductFromDB,
+    getProductsFromDBByIds,
     getAllProducts,
     saveForLater,
     setUnavailable,
@@ -27,7 +27,7 @@ export async function getProduct(req, res, next) {
   try {
     const { productId } = req.params;
     const qboItemId = await productIdToQboId(parseInt(productId, 10));
-    const productData = await getProductFromDB(qboItemId);
+    const productData = await getProductsFromDBByIds([qboItemId]);
     res.json(productData);
   } catch (err) {
     next(err);

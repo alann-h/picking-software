@@ -164,22 +164,29 @@ export async function getProductName(barcode) {
   }
 }
 
-export async function getProductFromDB(QboProductId) {
-  let result;
-  try {
-    result = await query(
-      'SELECT * FROM products WHERE qbo_item_id = $1 AND is_archived = FALSE',
-      [QboProductId]
-    );
-  } catch (err) {
-    console.error(err);
-    throw new AccessError('Error accessing the database');
+/**
+ * Fetches multiple products from the database based on an array of QuickBooks Item IDs.
+ * @param {string[]} itemIds - An array of QBO item IDs to fetch.
+ * @returns {Promise<object[]>} A promise that resolves to an array of any product objects found.
+ */
+export async function getProductsFromDBByIds(itemIds) {
+  if (!itemIds || itemIds.length === 0) {
+    return [];
   }
 
-  if (result.length === 0) {
-    throw new AccessError('This product does not exist within the database');
+  const placeholders = itemIds.map((_, index) => `$${index + 1}`).join(', ');
+
+  const sqlQuery = `SELECT * FROM products WHERE qbo_item_id IN (${placeholders}) AND is_archived = FALSE`;
+
+  let results;
+  try {
+    results = await query(sqlQuery, itemIds);
+  } catch (err) {
+    console.error('Database error in getProductsFromDBByIds:', err);
+    throw new AccessError('Error accessing the database while fetching products');
   }
-  return result[0];
+
+  return results;
 }
 
 export async function getAllProducts(companyId) {

@@ -106,4 +106,4 @@ const ProductRow: React.FC<ProductRowProps> = ({
   );
 };
 
-export default ProductRow;
+export default React.memo(ProductRow);
