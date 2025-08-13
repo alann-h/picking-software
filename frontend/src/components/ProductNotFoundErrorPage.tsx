@@ -1,23 +1,25 @@
 import React from 'react';
 import { Typography, Box, Alert, AlertTitle } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { ApiError } from '../utils/types';
+import { ApiErrorWrapper } from '../utils/types';
 
 interface Props {
-  error: ApiError;
+  errorData: ApiErrorWrapper;
 }
 
-const ProductNotFoundErrorPage: React.FC<Props> = ({ error }) => {
+const ProductNotFoundErrorPage: React.FC<Props> = ({ errorData }) => {
+  const { message, productName } = errorData.data;
+
   return (
     <Box sx={{ p: 3 }}>
       <Alert severity="error" icon={<ErrorOutlineIcon fontSize="inherit" />} sx={{ width: '100%' }}>
         <AlertTitle sx={{ fontWeight: 'bold' }}>Failed to Load Quote Content</AlertTitle>
         <Typography variant="body1" gutterBottom>
-          {error.message}
+          {message}
         </Typography>
-        {error.productName && (
+        {productName && (
           <Typography variant="body2" sx={{ mt: 1 }}>
-            <strong>Problematic Product:</strong> {error.productName}
+            <strong>Problematic Product:</strong> {productName}
           </Typography>
         )}
         <Typography variant="caption" display="block" sx={{ mt: 2 }}>

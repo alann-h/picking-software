@@ -115,9 +115,14 @@ export interface UserStatusResponse {
   companyId: string | null;
 }
 
-export interface ApiError {
-  error: boolean;
+export interface ApiErrorPayload {
   message: string;
   productName?: string;
-  quoteId?: number;
+  quoteId?: string;
+  error?: boolean;
+}
+
+export interface ApiErrorWrapper {
+  source: string;
+  data: ApiErrorPayload;
 }
