@@ -1,4 +1,5 @@
 import React from 'react';
+import SEO from './SEO';
 
 const PrivacyPolicy = () => {
     const styles = {
@@ -18,8 +19,13 @@ const PrivacyPolicy = () => {
         },
       };
   return (
-    <div style={styles.container}>
-        <title>Smart Picker | Privacy Policy</title>
+    <>
+      <SEO 
+        title="Privacy Policy | Smart Picker"
+        description="Smart Picker Privacy Policy - Learn how we collect, use, and protect your personal information when using our order picking software."
+        keywords="privacy policy, data protection, personal information, Smart Picker, order picking software"
+      />
+      <div style={styles.container}>
         <div style={styles.content}>
         <h1>Privacy Policy</h1>
             <p>Last updated: February 03, 2025</p>
@@ -201,7 +207,8 @@ const PrivacyPolicy = () => {
             <li>By email: alan.hattom@gmail.com</li>
             </ul>
         </div>
-    </div>
+      </div>
+    </>
   );
 };
 

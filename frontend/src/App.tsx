@@ -23,6 +23,7 @@ import AboutUs from './components/AboutUs';
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
 import PublicLayout from './components/PublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
+import { getPageStructuredData } from './utils/structuredData';
 
 
 const App: React.FC = () => {
@@ -30,6 +31,21 @@ const App: React.FC = () => {
     fetchAndCacheCsrfToken().catch(error => {
         console.error("Initial background CSRF fetch failed:", error);
     });
+  }, []);
+
+  // Add organization structured data
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.setAttribute('type', 'application/ld+json');
+    script.textContent = JSON.stringify(getPageStructuredData('organization'));
+    document.head.appendChild(script);
+
+    return () => {
+      const existingScript = document.querySelector('script[type="application/ld+json"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
   }, []);
     
   return (

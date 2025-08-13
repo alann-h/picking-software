@@ -8,6 +8,7 @@ import LoadingWrapper from './LoadingWrapper';
 import { z } from 'zod';
 
 import { AUTH_URI } from '../api/config';
+import SEO from './SEO';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -120,21 +121,26 @@ const Login: React.FC = () => {
   };
 
   return (
-    <LoadingWrapper isLoading={loading} height="100vh">
-      <Container component="main" maxWidth="xs">
-        <Box
-          sx={{
-            marginTop: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: 4,
-            borderRadius: 2,
-            boxShadow: 3,
-            backgroundColor: 'background.paper',
-          }}
-        >
-          <title>Smart Picker | Login</title>
+    <>
+      <SEO 
+        title="Login | Smart Picker - Order Picking Software"
+        description="Sign in to Smart Picker - the smart order picking app with barcode scanning and digital lists. Access your dashboard and manage warehouse operations."
+        keywords="login, sign in, Smart Picker, order picking software, warehouse management"
+      />
+      <LoadingWrapper isLoading={loading} height="100vh">
+        <Container component="main" maxWidth="xs">
+          <Box
+            sx={{
+              marginTop: 8,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: 4,
+              borderRadius: 2,
+              boxShadow: 3,
+              backgroundColor: 'background.paper',
+            }}
+          >
           <Typography component="h1" variant="h5" color="primary" fontWeight="bold" sx={{ mb: 3 }}>
             Welcome to Smart Picker
           </Typography>
@@ -214,6 +220,7 @@ const Login: React.FC = () => {
         </Box>
       </Container>
     </LoadingWrapper>
+    </>
   );
 };
 

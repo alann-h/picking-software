@@ -24,6 +24,8 @@ import {
   CheckCircle
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import SEO from './SEO';
+import { getPageStructuredData } from '../utils/structuredData';
 
 const AboutUs: React.FC = () => {
   const theme = useTheme();
@@ -79,11 +81,18 @@ const AboutUs: React.FC = () => {
   );
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-      py: 6
-    }}>
+    <>
+      <SEO 
+        title="About Smart Picker | Warehouse Management & QuickBooks Integration"
+        description="Learn how Smart Picker transforms warehouse operations with barcode scanning, digital workflows, and seamless QuickBooks integration. Discover our features and solutions."
+        keywords="warehouse management, QuickBooks integration, barcode scanning, digital workflows, order fulfillment, inventory management, Smart Picker features"
+        structuredData={getPageStructuredData('faq')}
+      />
+      <Box sx={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        py: 6
+      }}>
       <Container maxWidth="lg">
         {/* Hero Section */}
         <AnimatedComponent>
@@ -356,6 +365,7 @@ const AboutUs: React.FC = () => {
         </AnimatedComponent>
       </Container>
     </Box>
+    </>
   );
 };
 

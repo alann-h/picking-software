@@ -14,6 +14,8 @@ import {
 import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward, Smartphone, CloudSync, TrendingUp, CheckCircle } from '@mui/icons-material';
+import SEO from './SEO';
+import { getPageStructuredData } from '../utils/structuredData';
 
 const AnimatedSection: React.FC<{ children: ReactNode; delay?: number }> = ({ children, delay = 0 }) => {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -87,9 +89,17 @@ const InitalPage: React.FC = () => {
   const theme = useTheme();
 
   return (
-    <Box sx={{ backgroundColor: theme.palette.background.default }}>
+    <>
+      <SEO 
+        title="Smart Picker - Efficient Order Preparation | Barcode Scanning App"
+        description="Boost efficiency with Smart Picker. The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately. Perfect for warehouses and distribution centers."
+        keywords="order picking, barcode scanning, warehouse management, inventory management, QuickBooks integration, mobile app, efficiency, digital lists"
+        structuredData={getPageStructuredData('webPage')}
+      />
+      <Box sx={{ backgroundColor: theme.palette.background.default }}>
       {/* Hero Section */}
       <Box
+        component="main"
         sx={{
           minHeight: '100vh',
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -124,6 +134,7 @@ const InitalPage: React.FC = () => {
 
             <AnimatedSection delay={0.2}>
               <Typography
+                component="h1"
                 variant="h1"
                 fontWeight="bold"
                 sx={{
@@ -447,6 +458,7 @@ const InitalPage: React.FC = () => {
         </Container>
       </Box> */}
     </Box>
+    </>
   );
 };
 
