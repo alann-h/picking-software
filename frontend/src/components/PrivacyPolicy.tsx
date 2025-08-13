@@ -204,7 +204,7 @@ const PrivacyPolicy = () => {
             <h2>Contact Us</h2>
             <p>If you have any questions about this Privacy Policy, You can contact us:</p>
             <ul>
-            <li>By email: alan.hattom@gmail.com</li>
+            <li>By email: support@smartpicker.au</li>
             </ul>
         </div>
       </div>

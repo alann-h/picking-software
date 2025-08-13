@@ -103,7 +103,7 @@ const EULA = () => {
             <h2>Contact Us</h2>
             <p>If you have any questions about this Agreement, You can contact Us:</p>
             <ul>
-            <li>By email: alan.hattom@gmail.com</li>
+            <li>By email: support@smartpicker.au</li>
             </ul>
         </div>
     </div>
