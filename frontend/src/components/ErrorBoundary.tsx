@@ -5,7 +5,8 @@ import { Box, Typography, Button } from '@mui/material';
 import { ErrorOutline } from '@mui/icons-material';
 
 import ProductNotFoundErrorPage from './ProductNotFoundErrorPage';
-import { ApiError } from '../utils/types';
+import { HttpError } from '../utils/apiHelpers';
+import { ApiErrorWrapper } from '../utils/types';
 
 interface Props {
   children: ReactNode;
@@ -13,7 +14,7 @@ interface Props {
 
 interface State {
   hasError: boolean;
-  error: Error | ApiError | null;
+  error: Error | HttpError | null; 
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -22,29 +23,32 @@ class ErrorBoundary extends Component<Props, State> {
     error: null,
   };
 
-  public static getDerivedStateFromError(error: Error | ApiError): State {
+  public static getDerivedStateFromError(error: Error | HttpError): State {
     return { hasError: true, error: error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
-  }
-
-  private isApiError(error: any): error is ApiError {
-    return error && typeof error === 'object' && 'error' in error && error.error === true;
+    console.error("Uncaught error in ErrorBoundary:", error, errorInfo);
   }
 
   public render() {
-    if (this.state.hasError && this.state.error) {
-      if (this.isApiError(this.state.error)) {
-        return <ProductNotFoundErrorPage error={this.state.error} />;
+    const { hasError, error } = this.state;
+
+    if (hasError && error) {
+      if (error instanceof HttpError && error.response) {
+        const status = error.response.status;
+        const errorData = error.response.data as ApiErrorWrapper;
+
+        if (status === 404 || status === 409) {
+          return <ProductNotFoundErrorPage errorData={errorData} />;
+        }
       }
 
       return (
         <Box textAlign="center" p={3} sx={{ border: '2px dashed', borderColor: 'error.main', borderRadius: 2 }}>
             <ErrorOutline sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
-            <Typography color="error.main" variant="h6">Something went wrong.</Typography>
-            <Typography color="text.secondary">An unexpected error occurred.</Typography>
+            <Typography color="error.main" variant="h6">Something Went Wrong</Typography>
+            <Typography color="text.secondary">{error.message}</Typography>
             <Button variant="outlined" sx={{ mt: 2 }} onClick={() => window.location.reload()}>
               Reload Page
             </Button>

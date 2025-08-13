@@ -7,12 +7,9 @@ import {
   Button,
   TextField,
   Typography,
-  CircularProgress, // Import CircularProgress
+  CircularProgress,
 } from '@mui/material';
 
-// highlight-start
-// 1. Update the props interface to receive the loading state
-// and a simplified onConfirm function.
 interface AdjustQuantityModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,7 +19,6 @@ interface AdjustQuantityModalProps {
   onConfirm: (variables: { productId: number; newQty: number }) => void;
   isLoading: boolean;
 }
-// highlight-end
 
 const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
   isOpen,

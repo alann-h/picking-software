@@ -29,6 +29,24 @@ export const fetchAndCacheCsrfToken = async (): Promise<string> => {
     }
 };
 
+export class HttpError extends Error {
+  response: {
+    data: any;
+    status: number;
+  };
+
+  constructor(response: Response, data: any) {
+    const message = data?.message || data?.error || `HTTP error! status: ${response.status}`;
+    super(message);
+    
+    this.name = 'HttpError';
+    this.response = {
+      data,
+      status: response.status,
+    };
+  }
+}
+
 /**
  * Returns common headers for API requests, including the CSRF token if available
  * and the method requires it.
@@ -62,23 +80,31 @@ const getCommonHeaders = async (method: string): Promise<Record<string, string>>
  * @returns The parsed JSON data from the response.
  * @throws Error if the response is not OK or if a specific CSRF error occurs.
  */
-const handleResponse = async (response: Response): Promise<any> => {
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-        if (response.status === 403 && data.error && data.error.includes('CSRF token mismatch')) {
-            console.warn("CSRF token mismatch detected. Invalidating cached token and prompting refresh.");
-            cachedCsrfToken = null;
-            throw new Error("CSRF_TOKEN_EXPIRED_OR_INVALID");
-        }
-
-        const errorMsg =
-            (typeof data.error === "string" && data.error) ||
-            `HTTP error! status: ${response.status} - ${response.statusText}`;
-        throw new Error(errorMsg);
+export const handleResponse = async (response: Response): Promise<any> => {
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = { message: response.statusText };
     }
 
-    return data;
+    if (response.status === 403 && errorData.error?.includes('CSRF token mismatch')) {
+      console.warn("CSRF token mismatch. Invalidating token and prompting refresh.");
+      const csrfError = new HttpError(response, errorData);
+      csrfError.name = 'CsrfError';
+      throw csrfError;
+    }
+
+    // For all other errors, throw the generic HttpError
+    throw new HttpError(response, errorData);
+  }
+  
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.indexOf("application/json") !== -1) {
+    return response.json();
+  }
+  return {}; // Return empty object for non-json responses or no content
 };
 
 // --- API Call Functions ---
