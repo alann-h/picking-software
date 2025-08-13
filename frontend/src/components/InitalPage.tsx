@@ -1,88 +1,309 @@
 import React, { ReactNode } from 'react';
-import { Button, Box, Typography, Container, Grid, useTheme, useMediaQuery } from '@mui/material';
+import { 
+  Button, 
+  Box, 
+  Typography, 
+  Container, 
+  Grid, 
+  useTheme, 
+  Card,
+  CardContent,
+  Stack,
+  Chip
+} from '@mui/material';
 import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { ArrowForward, Smartphone, CloudSync, TrendingUp } from '@mui/icons-material';
 
-const AnimatedSection: React.FC<{ children: ReactNode }> = ({ children }) => {
+const AnimatedSection: React.FC<{ children: ReactNode; delay?: number }> = ({ children, delay = 0 }) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 50 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-      transition={{ duration: 0.8 }}
+      initial={{ opacity: 0, y: 60 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 60 }}
+      transition={{ duration: 0.8, delay }}
     >
       {children}
     </motion.div>
   );
 };
 
+const FeatureCard: React.FC<{
+  icon: ReactNode;
+  title: string;
+  description: string;
+  delay?: number;
+}> = ({ icon, title, description, delay = 0 }) => (
+  <AnimatedSection delay={delay}>
+    <Card
+      elevation={0}
+      sx={{
+        height: '100%',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        borderRadius: 3,
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-8px)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+        }
+      }}
+    >
+      <CardContent sx={{ p: 4, textAlign: 'center' }}>
+        <Box
+          sx={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 3,
+            color: 'white',
+            fontSize: '2rem'
+          }}
+        >
+          {icon}
+        </Box>
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          {title}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+          {description}
+        </Typography>
+      </CardContent>
+    </Card>
+  </AnimatedSection>
+);
+
 const InitalPage: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
-    <Box sx={{ backgroundColor: theme.palette.background.default}}>
-      {/* Fullscreen Hero Section */}
+    <Box sx={{ backgroundColor: theme.palette.background.default }}>
+      {/* Hero Section */}
       <Box
         sx={{
           minHeight: '100vh',
-          minWidth: '100vw', 
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          px: 2,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+            opacity: 0.3,
+          }
         }}
       >
-        <Container maxWidth={false} sx={{ width: '100%', maxWidth: { xs: '100%', sm: 'lg' }, px: { xs: 2, sm: 3 } }}>
-          <AnimatedSection>
-            <Typography variant="h1" fontWeight="bold" color="primary" sx={{ fontSize: { xs: '2.5rem', sm: '4rem', md: '5rem' }, mb: 4 }}>
-              Goodbye spreadsheets,<br />hello Smart Picker
-            </Typography>
-          </AnimatedSection>
-          <AnimatedSection>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-              Manage your stock and orders from any device
-            </Typography>
-          </AnimatedSection>
-          <AnimatedSection>
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth={isMobile}
-              onClick={() => navigate("/login")}
-              sx={{ fontSize: { xs: '1rem', sm: '1.2rem' }, px: { xs: 3, sm: 4 }, py: { xs: 1.5, sm: 2 }, borderRadius: '30px' }}
-            >
-              Try SmartPicker here
-            </Button>
-          </AnimatedSection>
+        <Container maxWidth="lg" sx={{ height: '100vh', display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ textAlign: 'center', color: 'white', width: '100%' }}>
+            <AnimatedSection>
+              <Chip
+                label="✨ Smart Inventory Management"
+                sx={{
+                  mb: 3,
+                  background: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  fontSize: '0.9rem',
+                  fontWeight: 500
+                }}
+              />
+            </AnimatedSection>
+
+            <AnimatedSection delay={0.2}>
+              <Typography
+                variant="h1"
+                fontWeight="bold"
+                sx={{
+                  fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem' },
+                  mb: 3,
+                  lineHeight: 1.1,
+                  textShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                }}
+              >
+                Goodbye spreadsheets,<br />
+                <Box component="span" sx={{ background: 'linear-gradient(45deg, #FFD700, #FFA500)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  hello Smart Picker
+                </Box>
+              </Typography>
+            </AnimatedSection>
+
+            <AnimatedSection delay={0.4}>
+              <Typography
+                variant="h5"
+                sx={{
+                  mb: 4,
+                  opacity: 0.9,
+                  fontWeight: 400,
+                  maxWidth: '600px',
+                  mx: 'auto',
+                  lineHeight: 1.4
+                }}
+              >
+                Streamline your inventory management with our intelligent picking system.
+                Manage stock and orders from any device, anywhere.
+              </Typography>
+            </AnimatedSection>
+
+            <AnimatedSection delay={0.6}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+                justifyContent="center"
+                alignItems="center"
+              >
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => navigate("/login")}
+                  endIcon={<ArrowForward />}
+                  sx={{
+                    background: 'linear-gradient(45deg, #FFD700, #FFA500)',
+                    color: '#333',
+                    px: 4,
+                    py: 1.5,
+                    borderRadius: '50px',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    boxShadow: '0 8px 25px rgba(255,215,0,0.3)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #FFA500, #FFD700)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 12px 35px rgba(255,215,0,0.4)',
+                    }
+                  }}
+                >
+                  Get Started Free
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  sx={{
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    color: 'white',
+                    px: 4,
+                    py: 1.5,
+                    borderRadius: '50px',
+                    fontSize: '1.1rem',
+                    fontWeight: 500,
+                    '&:hover': {
+                      borderColor: 'white',
+                      background: 'rgba(255,255,255,0.1)',
+                    }
+                  }}
+                >
+                  Watch Demo
+                </Button>
+              </Stack>
+            </AnimatedSection>
+          </Box>
         </Container>
       </Box>
 
       {/* Features Section */}
-      <Box sx={{ backgroundColor: theme.palette.background.paper, py: { xs: 10, md: 14 }, px: { xs: 2, sm: 4 } }}>
-        <Container maxWidth={false} sx={{ width: '100%', maxWidth: { xs: '100%', sm: 'lg' }, px: { xs: 2, sm: 3 } }}>
-          <Grid container spacing={6} alignItems="center">
+      <Box sx={{ py: { xs: 8, md: 12 }, px: { xs: 2, sm: 4 } }}>
+        <Container maxWidth="lg">
+          <AnimatedSection>
+            <Box sx={{ textAlign: 'center', mb: 8 }}>
+              <Typography variant="h2" fontWeight="bold" gutterBottom>
+                Why Choose Smart Picker?
+              </Typography>
+              <Typography variant="h6" color="text.secondary" sx={{ maxWidth: '600px', mx: 'auto' }}>
+                Built for modern businesses that need efficiency, accuracy, and simplicity
+              </Typography>
+            </Box>
+          </AnimatedSection>
+
+          <Grid container spacing={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <FeatureCard
+                icon={<Smartphone />}
+                title="Mobile-First Design"
+                description="Scan barcodes and manage inventory directly from your smartphone or tablet. No more paper-based processes."
+                delay={0.2}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <FeatureCard
+                icon={<CloudSync />}
+                title="Real-Time Sync"
+                description="All your data syncs instantly across devices and integrates seamlessly with QuickBooks Online."
+                delay={0.4}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <FeatureCard
+                icon={<TrendingUp />}
+                title="Smart Analytics"
+                description="Get insights into your inventory performance with intelligent reporting and forecasting tools."
+                delay={0.6}
+              />
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* Integration Section */}
+      <Box sx={{
+        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        py: { xs: 8, md: 12 },
+        color: 'white'
+      }}>
+        <Container maxWidth="lg">
+                    <Grid container spacing={6} alignItems="center">
             <Grid size={{ xs: 12, md: 6 }}>
               <AnimatedSection>
-                <Box component="img" src="https://t3.ftcdn.net/jpg/04/18/86/92/360_F_418869208_hK7u41kiZti2GiF9Z9ARujhlhM7pOAiv.jpg" alt="Barcode Scanner"
-                  sx={{ width: '100%', maxWidth: 400, height: 'auto', borderRadius: 2, boxShadow: 3, display: 'block', mx: 'auto' }}
+                <Box
+                  component="img"
+                  src="https://quickbooks.intuit.com/cas/dam/IMAGE/A732uaqi3/standardlogo.png"
+                  alt="QuickBooks Integration"
+                  sx={{
+                    width: '100%',
+                    maxWidth: 300,
+                    height: 'auto',
+                    filter: 'brightness(0) invert(1)',
+                    opacity: 0.9
+                  }}
                 />
               </AnimatedSection>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <AnimatedSection>
-                <Typography variant="h4" fontWeight="bold" gutterBottom>
-                  Fulfill from your phone
+              <AnimatedSection delay={0.2}>
+                <Typography variant="h3" fontWeight="bold" gutterBottom>
+                  Seamless QuickBooks Integration
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  Scan to receive or fulfill orders from your iPhone or Android device.
+                <Typography variant="h6" sx={{ mb: 3, opacity: 0.9, lineHeight: 1.6 }}>
+                  SmartPicker automatically syncs with QuickBooks Online, keeping your inventory,
+                  orders, and financial data perfectly aligned. No more manual data entry or reconciliation.
                 </Typography>
-                <Button variant="outlined" color="primary" size="large" sx={{ mt: 2, borderRadius: '30px' }}>
+                <Button 
+                  variant="outlined" 
+                  size="large" 
+                  sx={{ 
+                    borderColor: 'rgba(255,255,255,0.5)',
+                    color: 'white',
+                    borderRadius: '50px',
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    '&:hover': {
+                      borderColor: 'white',
+                      background: 'rgba(255,255,255,0.1)',
+                    }
+                  }}
+                >
                   Learn More
                 </Button>
               </AnimatedSection>
@@ -91,31 +312,40 @@ const InitalPage: React.FC = () => {
         </Container>
       </Box>
 
-      {/* QuickBooks Section */}
-      <Box sx={{ backgroundColor: theme.palette.background.default, py: { xs: 10, md: 14 }, px: { xs: 2, sm: 4 } }}>
-        <Container maxWidth={false} sx={{ width: '100%', maxWidth: { xs: '100%', sm: 'lg' }, px: { xs: 2, sm: 3 } }}>
-          <Grid container spacing={6} alignItems="center">
-            <Grid size={{ xs: 12, md: 6 }}>
-              <AnimatedSection>
-                <Box component="img" src="https://quickbooks.intuit.com/cas/dam/IMAGE/A732uaqi3/standardlogo.png" alt="QuickBooks Logo"
-                  sx={{ width: '100%', maxWidth: 300, height: 'auto', display: 'block', mx: 'auto' }}
-                />
-              </AnimatedSection>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <AnimatedSection>
-                <Typography variant="h4" fontWeight="bold" gutterBottom>
-                  Connects to QuickBooks Online
-                </Typography>
-                <Typography variant="body1" color="text.secondary" paragraph>
-                  SmartPicker seamlessly integrates with QuickBooks Online accounting software to sync inventory and orders.
-                </Typography>
-                <Button variant="outlined" color="primary" size="large" sx={{ mt: 2, borderRadius: '30px' }}>
-                  Learn More
-                </Button>
-              </AnimatedSection>
-            </Grid>
-          </Grid>
+      {/* CTA Section */}
+      <Box sx={{ py: { xs: 8, md: 12 }, textAlign: 'center' }}>
+        <Container maxWidth="md">
+          <AnimatedSection>
+            <Typography variant="h2" fontWeight="bold" gutterBottom>
+              Ready to Transform Your Business?
+            </Typography>
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 4, lineHeight: 1.6 }}>
+              Join thousands of businesses that have already streamlined their inventory management
+              with Smart Picker. Start your free trial today.
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => navigate("/login")}
+              endIcon={<ArrowForward />}
+              sx={{
+                background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                px: 6,
+                py: 2,
+                borderRadius: '50px',
+                fontSize: '1.2rem',
+                fontWeight: 600,
+                boxShadow: '0 10px 30px rgba(102,126,234,0.3)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #764ba2, #667eea)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 15px 40px rgba(102,126,234,0.4)',
+                }
+              }}
+            >
+              Start Free Trial
+            </Button>
+          </AnimatedSection>
         </Container>
       </Box>
     </Box>
