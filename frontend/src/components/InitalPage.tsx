@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowForward, Smartphone, CloudSync, TrendingUp } from '@mui/icons-material';
+import { ArrowForward, Smartphone, CloudSync, TrendingUp, CheckCircle } from '@mui/icons-material';
 
 const AnimatedSection: React.FC<{ children: ReactNode; delay?: number }> = ({ children, delay = 0 }) => {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -291,6 +291,7 @@ const InitalPage: React.FC = () => {
                 <Button 
                   variant="outlined" 
                   size="large" 
+                  onClick={() => navigate("/about")}
                   sx={{ 
                     borderColor: 'rgba(255,255,255,0.5)',
                     color: 'white',
@@ -312,7 +313,104 @@ const InitalPage: React.FC = () => {
         </Container>
       </Box>
 
-      {/* CTA Section */}
+      {/* Learn More Section */}
+      <Box sx={{ py: { xs: 8, md: 12 }, backgroundColor: '#f8fafc' }}>
+        <Container maxWidth="lg">
+          <Grid container spacing={6} alignItems="center">
+            <Grid size={{ xs: 12, md: 6 }}>
+              <AnimatedSection>
+                <Typography variant="h3" fontWeight="bold" gutterBottom>
+                  Discover Smart Picker's Full Potential
+                </Typography>
+                <Typography variant="h6" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+                  Learn how our comprehensive warehouse management platform combines advanced customer search, 
+                  intelligent run systems, barcode validation, and seamless QuickBooks integration to 
+                  revolutionize your order fulfillment process.
+                </Typography>
+                <Stack spacing={2}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                    <Typography variant="body1">Advanced customer search and quote management</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                    <Typography variant="body1">Smart run system for optimized warehouse operations</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                    <Typography variant="body1">Barcode scanning with 100% accuracy guarantee</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                    <Typography variant="body1">Comprehensive user management and security</Typography>
+                  </Box>
+                </Stack>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => navigate("/about")}
+                  endIcon={<ArrowForward />}
+                  sx={{
+                    mt: 3,
+                    background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                    px: 6,
+                    py: 2,
+                    borderRadius: '50px',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    boxShadow: '0 10px 30px rgba(102,126,234,0.3)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #764ba2, #667eea)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 15px 40px rgba(102,126,234,0.4)',
+                    }
+                  }}
+                >
+                  Learn More About Smart Picker
+                </Button>
+              </AnimatedSection>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <AnimatedSection delay={0.2}>
+                <Box
+                  sx={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: 4,
+                    p: 4,
+                    color: 'white',
+                    textAlign: 'center'
+                  }}
+                >
+                  <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>
+                    Why Choose Smart Picker?
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
+                      <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
+                      <Typography variant="body1">Eliminate picking errors completely</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
+                      <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
+                      <Typography variant="body1">Streamline warehouse operations</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
+                      <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
+                      <Typography variant="body1">Seamless QuickBooks integration</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
+                      <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
+                      <Typography sx={{ color: 'white', fontSize: 24 }} />
+                      <Typography variant="body1">Mobile-first design for warehouse staff</Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+              </AnimatedSection>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+
+      {/* CTA Section
       <Box sx={{ py: { xs: 8, md: 12 }, textAlign: 'center' }}>
         <Container maxWidth="md">
           <AnimatedSection>
@@ -335,19 +433,19 @@ const InitalPage: React.FC = () => {
                 borderRadius: '50px',
                 fontSize: '1.2rem',
                 fontWeight: 600,
-                boxShadow: '0 10px 30px rgba(102,126,234,0.3)',
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #764ba2, #667eea)',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 15px 40px rgba(102,126,234,0.4)',
-                }
+                  boxShadow: '0 10px 30px rgba(102,126,234,0.3)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #764ba2, #667eea)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 15px 40px rgba(102,126,234,0.4)',
+                    }
               }}
             >
               Start Free Trial
             </Button>
           </AnimatedSection>
         </Container>
-      </Box>
+      </Box> */}
     </Box>
   );
 };

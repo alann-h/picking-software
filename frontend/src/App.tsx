@@ -18,6 +18,7 @@ import { QuoteSkeleton } from './components/Skeletons';
 
 import PrivacyPolicy from './components/PrivacyPolicy';
 import EULA from './components/Eula';
+import AboutUs from './components/AboutUs';
 
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
 import PublicLayout from './components/PublicLayout';
@@ -47,6 +48,7 @@ const App: React.FC = () => {
                 <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/eula" element={<EULA />} />
+                <Route path="/about" element={<AboutUs />} />
               </Route>
               {/* Protected Routes */}
               <Route element={<AuthLayout />}>

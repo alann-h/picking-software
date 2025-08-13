@@ -82,24 +82,55 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
           Smart Picker
         </Typography>
 
-        {/* This entire section is only rendered on protected pages */}
-        {!disableTopBar && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* 3. Conditionally render the child component. */}
-            <AuthenticatedNavItems />
+        {/* Navigation items - different for public vs protected routes */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {disableTopBar ? (
+            // Public navigation items
+            <>
+              <Button 
+                color="primary" 
+                onClick={() => navigate('/about')}
+                sx={{ 
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.08)' }
+                }}
+              >
+                About
+              </Button>
+              <Button 
+                variant="outlined" 
+                color="primary" 
+                onClick={() => navigate('/login')}
+                sx={{ 
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  borderRadius: '20px',
+                  px: 3
+                }}
+              >
+                Login
+              </Button>
+            </>
+          ) : (
+            // Protected route navigation items
+            <>
+              {/* 3. Conditionally render the child component. */}
+              <AuthenticatedNavItems />
 
-            <Tooltip title="Settings">
-              <IconButton onClick={handleMenuClick}>
-                <SettingsIcon />
-              </IconButton>
-            </Tooltip>
+              <Tooltip title="Settings">
+                <IconButton onClick={handleMenuClick}>
+                  <SettingsIcon />
+                </IconButton>
+              </Tooltip>
 
-            {/* The menu needs its own AuthProvider to safely check for isAdmin */}
-            <Menu id="settings-menu" anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
-                <SettingsMenuContent onMenuItemClick={handleMenuItemClick} />
-            </Menu>
-          </Box>
-        )}
+              {/* The menu needs its own AuthProvider to safely check for isAdmin */}
+              <Menu id="settings-menu" anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
+                  <SettingsMenuContent onMenuItemClick={handleMenuItemClick} />
+              </Menu>
+            </>
+          )}
+        </Box>
       </Toolbar>
     </AppBar>
   );
