@@ -15,9 +15,6 @@ import {
   ListItemText,
   Avatar,
   Divider,
-  Badge,
-  Chip,
-  Stack
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -28,8 +25,6 @@ import {
   Group as GroupIcon,
   Dashboard as DashboardIcon,
   Logout as LogoutIcon,
-  Person as PersonIcon,
-  Notifications as NotificationsIcon,
   Menu as MenuIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -136,8 +131,6 @@ const AuthenticatedNavItems: React.FC = () => {
 // ====================================================================================
 const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -322,12 +315,14 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                 anchorEl={anchorEl} 
                 open={open} 
                 onClose={handleMenuClose}
-                PaperProps={{
-                  sx: {
-                    borderRadius: 2,
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                    border: '1px solid rgba(59,130,246,0.1)',
-                    minWidth: 200
+                slotProps={{
+                  paper: {
+                    sx: {
+                      borderRadius: 2,
+                      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                      border: '1px solid rgba(59,130,246,0.1)',
+                      minWidth: 200
+                    }
                   }
                 }}
               >
@@ -340,12 +335,14 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                 anchorEl={mobileMenuAnchor} 
                 open={mobileMenuOpen} 
                 onClose={handleMobileMenuClose}
-                PaperProps={{
-                  sx: {
-                    borderRadius: 2,
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                    border: '1px solid rgba(59,130,246,0.1)',
-                    minWidth: 250
+                slotProps={{
+                  paper: {
+                    sx: {
+                      borderRadius: 2,
+                      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                      border: '1px solid rgba(59,130,246,0.1)',
+                      minWidth: 250
+                    }
                   }
                 }}
               >

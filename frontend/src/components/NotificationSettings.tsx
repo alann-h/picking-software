@@ -12,15 +12,12 @@ import {
   Divider,
   Box,
   Alert,
-  useTheme,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
   VolumeUp as VolumeUpIcon,
-  VolumeOff as VolumeOffIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
-import { useNotificationContext } from './NotificationContext';
 
 interface NotificationSettingsProps {
   open: boolean;
@@ -28,7 +25,6 @@ interface NotificationSettingsProps {
 }
 
 const NotificationSettings: React.FC<NotificationSettingsProps> = ({ open, onClose }) => {
-  const theme = useTheme();
   const [settings, setSettings] = useState({
     soundEnabled: true,
     orderNotifications: true,
@@ -128,7 +124,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ open, onClo
               label="Order completion notifications"
             />
             <Typography variant="body2" color="text.secondary" sx={{ ml: 4, mt: 1 }}>
-              Get notified when quotes are finalized and sent to QuickBooks
+              Get notified when quotes are finalised and sent to QuickBooks
             </Typography>
           </Box>
 

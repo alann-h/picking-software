@@ -4,14 +4,14 @@ import { Notification, NotificationContextType } from '../utils/types';
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 // Notification sounds (you can add actual audio files later)
-const NOTIFICATION_SOUNDS = {
-  order_completed: '/sounds/order-complete.mp3',
-  run_completed: '/sounds/run-complete.mp3',
-  success: '/sounds/success.mp3',
-  error: '/sounds/error.mp3',
-  info: '/sounds/info.mp3',
-  warning: '/sounds/warning.mp3',
-};
+// const NOTIFICATION_SOUNDS = {
+//   order_completed: '/sounds/order-complete.mp3',
+//   run_completed: '/sounds/run-complete.mp3',
+//   success: '/sounds/success.mp3',
+//   error: '/sounds/error.mp3',
+//   info: '/sounds/info.mp3',
+//   warning: '/sounds/warning.mp3',
+// };
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -115,6 +115,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.5);
     } catch (error) {
+      console.error(error);
       console.log('Audio playback not supported or failed');
     }
   }, []);
@@ -123,7 +124,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const notifyOrderCompleted = useCallback((quoteId: number, customerName: string, totalAmount: number) => {
     addNotification({
       title: 'Order Completed! 🎉',
-      message: `Quote #${quoteId} for ${customerName} has been finalized and sent to QuickBooks.`,
+      message: `Quote #${quoteId} for ${customerName} has been finalised and sent to QuickBooks.`,
       type: 'order_completed',
       severity: 'success',
       actionUrl: `/quote?id=${quoteId}`,
@@ -138,7 +139,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const notifyRunCompleted = useCallback((runId: string, runNumber: number, customerNames: string[]) => {
     addNotification({
       title: 'Run Completed! 🚀',
-      message: `Run #${runNumber} has been finalized with ${customerNames.length} customer(s): ${customerNames.join(', ')}`,
+      message: `Run #${runNumber} has been finalised with ${customerNames.length} customer(s): ${customerNames.join(', ')}`,
       type: 'run_completed',
       severity: 'success',
       actionUrl: `/run`,

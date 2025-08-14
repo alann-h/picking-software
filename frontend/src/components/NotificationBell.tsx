@@ -113,7 +113,7 @@ const NotificationBell: React.FC = () => {
           aria-label="notifications"
         >
           <Badge badgeContent={unreadCount} color="error" max={99}>
-            <NotificationsIcon />
+            <NotificationsIcon color="action" />
           </Badge>
         </IconButton>
 
@@ -121,12 +121,14 @@ const NotificationBell: React.FC = () => {
           anchorEl={anchorEl}
           open={open}
           onClose={handleClose}
-          PaperProps={{
-            sx: {
-              width: isMobile ? '90vw' : 400,
-              maxHeight: '70vh',
-              mt: 1,
-            },
+          slotProps={{
+            paper: {
+              sx: {
+                width: isMobile ? '90vw' : 400,
+                maxHeight: '70vh',
+                mt: 1,
+              },
+            }
           }}
           transformOrigin={{ horizontal: 'right', vertical: 'top' }}
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}

@@ -41,7 +41,7 @@ async function filterEstimates(responseData, companyId) {
 
         const productsFromDB = await getProductsFromDBByIds(itemIds); 
 
-        const productMap = new Map(productsFromDB.map(p => [p.productid, p]));
+        const productMap = new Map(productsFromDB.map(p => [p.qbo_item_id, p]));
 
         const productInfo = {};
         

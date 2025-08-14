@@ -129,7 +129,7 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
                 quoteData.totalAmount
             );
             
-            handleOpenSnackbar('Quote finalized and opened in QuickBooks!', 'success'); 
+            handleOpenSnackbar('Quote finalised and opened in QuickBooks!', 'success'); 
             navigate('/dashboard'); 
         }, 
         onError: (error) => handleOpenSnackbar(error.message, 'error'), 

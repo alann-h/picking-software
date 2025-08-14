@@ -5,7 +5,6 @@ import {
   Typography, 
   Container, 
   Grid, 
-  useTheme, 
   Card,
   CardContent,
   Stack,
@@ -88,7 +87,6 @@ const FeatureCard: React.FC<{
 
 const InitalPage: React.FC = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
 
   return (
     <>
@@ -351,15 +349,15 @@ const InitalPage: React.FC = () => {
       </Box>
 
       {/* Learn More Section */}
-      <Box sx={{ py: { xs: 8, md: 12 }, backgroundColor: '#FFFFFF' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, px: { xs: 2, sm: 4 }, backgroundColor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center">
             <Grid size={{ xs: 12, md: 6 }}>
               <AnimatedSection>
-                <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ color: '#1F2937' }}>
+                <Typography variant="h3" fontWeight="bold" sx={{ color: '#1F2937', mb: 1 }}>
                   Discover Smart Picker's Full Potential
                 </Typography>
-                <Typography variant="h6" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, color: '#6B7280' }}>
+                <Typography variant="h6" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6, color: '#6B7280' }}>
                   Learn how our comprehensive warehouse management platform combines advanced customer search, 
                   intelligent run systems, barcode validation, and seamless QuickBooks integration to 
                   revolutionize your order fulfillment process.
