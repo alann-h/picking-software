@@ -44,14 +44,15 @@ const FeatureCard: React.FC<{
       elevation={0}
       sx={{
         height: '100%',
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.9) 100%)',
         backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.2)',
+        border: '1px solid rgba(59,130,246,0.1)',
         borderRadius: 3,
         transition: 'all 0.3s ease',
         '&:hover': {
           transform: 'translateY(-8px)',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          boxShadow: '0 20px 40px rgba(59,130,246,0.15)',
+          border: '1px solid rgba(59,130,246,0.2)',
         }
       }}
     >
@@ -61,7 +62,7 @@ const FeatureCard: React.FC<{
             width: 80,
             height: 80,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -73,10 +74,10 @@ const FeatureCard: React.FC<{
         >
           {icon}
         </Box>
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
+        <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: '#1F2937' }}>
           {title}
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+        <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6, color: '#6B7280' }}>
           {description}
         </Typography>
       </CardContent>
@@ -96,13 +97,13 @@ const InitalPage: React.FC = () => {
         keywords="order picking, barcode scanning, warehouse management, inventory management, QuickBooks integration, mobile app, efficiency, digital lists"
         structuredData={getPageStructuredData('webPage')}
       />
-      <Box sx={{ backgroundColor: theme.palette.background.default }}>
+      <Box sx={{ backgroundColor: '#FFFFFF' }}>
       {/* Hero Section */}
       <Box
         component="main"
         sx={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
           position: 'relative',
           overflow: 'hidden',
           '&::before': {
@@ -121,13 +122,14 @@ const InitalPage: React.FC = () => {
           <Box sx={{ textAlign: 'center', color: 'white', width: '100%' }}>
             <AnimatedSection>
               <Chip
-                label="✨ Smart Inventory Management"
+                label="✨ Professional Inventory Management"
                 sx={{
                   mb: 3,
-                  background: 'rgba(255,255,255,0.2)',
+                  background: 'rgba(255,255,255,0.15)',
                   color: 'white',
                   fontSize: '0.9rem',
-                  fontWeight: 500
+                  fontWeight: 500,
+                  border: '1px solid rgba(255,255,255,0.2)'
                 }}
               />
             </AnimatedSection>
@@ -156,7 +158,7 @@ const InitalPage: React.FC = () => {
                 variant="h5"
                 sx={{
                   mb: 4,
-                  opacity: 0.9,
+                  opacity: 0.95,
                   fontWeight: 400,
                   maxWidth: '600px',
                   mx: 'auto',
@@ -181,18 +183,19 @@ const InitalPage: React.FC = () => {
                   onClick={() => navigate("/login")}
                   endIcon={<ArrowForward />}
                   sx={{
-                    background: 'linear-gradient(45deg, #FFD700, #FFA500)',
-                    color: '#333',
+                    background: 'linear-gradient(45deg, #FFFFFF, #F3F4F6)',
+                    color: '#1E40AF',
                     px: 4,
                     py: 1.5,
-                    borderRadius: '50px',
+                    borderRadius: '8px',
                     fontSize: '1.1rem',
                     fontWeight: 600,
-                    boxShadow: '0 8px 25px rgba(255,215,0,0.3)',
+                    boxShadow: '0 8px 25px rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': {
-                      background: 'linear-gradient(45deg, #FFA500, #FFD700)',
+                      background: 'linear-gradient(45deg, #F3F4F6, #FFFFFF)',
                       transform: 'translateY(-2px)',
-                      boxShadow: '0 12px 35px rgba(255,215,0,0.4)',
+                      boxShadow: '0 12px 35px rgba(255,255,255,0.3)',
                     }
                   }}
                 >
@@ -202,11 +205,11 @@ const InitalPage: React.FC = () => {
                   variant="outlined"
                   size="large"
                   sx={{
-                    borderColor: 'rgba(255,255,255,0.3)',
+                    borderColor: 'rgba(255,255,255,0.4)',
                     color: 'white',
                     px: 4,
                     py: 1.5,
-                    borderRadius: '50px',
+                    borderRadius: '8px',
                     fontSize: '1.1rem',
                     fontWeight: 500,
                     '&:hover': {
@@ -224,14 +227,14 @@ const InitalPage: React.FC = () => {
       </Box>
 
       {/* Features Section */}
-      <Box sx={{ py: { xs: 8, md: 12 }, px: { xs: 2, sm: 4 } }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, px: { xs: 2, sm: 4 }, backgroundColor: '#F8FAFC' }}>
         <Container maxWidth="lg">
           <AnimatedSection>
             <Box sx={{ textAlign: 'center', mb: 8 }}>
-              <Typography variant="h2" fontWeight="bold" gutterBottom>
+              <Typography variant="h2" fontWeight="bold" gutterBottom sx={{ color: '#1F2937' }}>
                 Why Choose Smart Picker?
               </Typography>
-              <Typography variant="h6" color="text.secondary" sx={{ maxWidth: '600px', mx: 'auto' }}>
+              <Typography variant="h6" color="text.secondary" sx={{ maxWidth: '600px', mx: 'auto', color: '#6B7280' }}>
                 Built for modern businesses that need efficiency, accuracy, and simplicity
               </Typography>
             </Box>
@@ -268,7 +271,7 @@ const InitalPage: React.FC = () => {
 
       {/* Integration Section */}
       <Box sx={{
-        background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
         py: { xs: 8, md: 12 },
         color: 'white'
       }}>
@@ -295,7 +298,7 @@ const InitalPage: React.FC = () => {
                 <Typography variant="h3" fontWeight="bold" gutterBottom>
                   Seamless QuickBooks Integration
                 </Typography>
-                <Typography variant="h6" sx={{ mb: 3, opacity: 0.9, lineHeight: 1.6 }}>
+                <Typography variant="h6" sx={{ mb: 3, opacity: 0.95, lineHeight: 1.6 }}>
                   SmartPicker automatically syncs with QuickBooks Online, keeping your inventory,
                   orders, and financial data perfectly aligned. No more manual data entry or reconciliation.
                 </Typography>
@@ -304,9 +307,9 @@ const InitalPage: React.FC = () => {
                   size="large" 
                   onClick={() => navigate("/about")}
                   sx={{ 
-                    borderColor: 'rgba(255,255,255,0.5)',
+                    borderColor: 'rgba(255,255,255,0.4)',
                     color: 'white',
-                    borderRadius: '50px',
+                    borderRadius: '8px',
                     px: 4,
                     py: 1.5,
                     fontSize: '1.1rem',
@@ -325,35 +328,35 @@ const InitalPage: React.FC = () => {
       </Box>
 
       {/* Learn More Section */}
-      <Box sx={{ py: { xs: 8, md: 12 }, backgroundColor: '#f8fafc' }}>
+      <Box sx={{ py: { xs: 8, md: 12 }, backgroundColor: '#FFFFFF' }}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center">
             <Grid size={{ xs: 12, md: 6 }}>
               <AnimatedSection>
-                <Typography variant="h3" fontWeight="bold" gutterBottom>
+                <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ color: '#1F2937' }}>
                   Discover Smart Picker's Full Potential
                 </Typography>
-                <Typography variant="h6" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+                <Typography variant="h6" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6, color: '#6B7280' }}>
                   Learn how our comprehensive warehouse management platform combines advanced customer search, 
                   intelligent run systems, barcode validation, and seamless QuickBooks integration to 
                   revolutionize your order fulfillment process.
                 </Typography>
                 <Stack spacing={2}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
-                    <Typography variant="body1">Advanced customer search and quote management</Typography>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3B82F6' }} />
+                    <Typography variant="body1" sx={{ color: '#374151' }}>Advanced customer search and quote management</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
-                    <Typography variant="body1">Smart run system for optimized warehouse operations</Typography>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3B82F6' }} />
+                    <Typography variant="body1" sx={{ color: '#374151' }}>Smart run system for optimized warehouse operations</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
-                    <Typography variant="body1">Barcode scanning with 100% accuracy guarantee</Typography>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3B82F6' }} />
+                    <Typography variant="body1" sx={{ color: '#374151' }}>Barcode scanning with 100% accuracy guarantee</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'primary.main' }} />
-                    <Typography variant="body1">Comprehensive user management and security</Typography>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3B82F6' }} />
+                    <Typography variant="body1" sx={{ color: '#374151' }}>Comprehensive user management and security</Typography>
                   </Box>
                 </Stack>
                 <Button
@@ -363,17 +366,17 @@ const InitalPage: React.FC = () => {
                   endIcon={<ArrowForward />}
                   sx={{
                     mt: 3,
-                    background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                    background: 'linear-gradient(45deg, #1E40AF, #3B82F6)',
                     px: 6,
                     py: 2,
-                    borderRadius: '50px',
+                    borderRadius: '8px',
                     fontSize: '1.1rem',
                     fontWeight: 600,
-                    boxShadow: '0 10px 30px rgba(102,126,234,0.3)',
+                    boxShadow: '0 10px 30px rgba(30,64,175,0.3)',
                     '&:hover': {
-                      background: 'linear-gradient(45deg, #764ba2, #667eea)',
+                      background: 'linear-gradient(45deg, #3B82F6, #1E40AF)',
                       transform: 'translateY(-2px)',
-                      boxShadow: '0 15px 40px rgba(102,126,234,0.4)',
+                      boxShadow: '0 15px 40px rgba(30,64,175,0.4)',
                     }
                   }}
                 >
@@ -385,7 +388,7 @@ const InitalPage: React.FC = () => {
               <AnimatedSection delay={0.2}>
                 <Box
                   sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
                     borderRadius: 4,
                     p: 4,
                     color: 'white',
@@ -410,7 +413,6 @@ const InitalPage: React.FC = () => {
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
                       <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
-                      <Typography sx={{ color: 'white', fontSize: 24 }} />
                       <Typography variant="body1">Mobile-first design for warehouse staff</Typography>
                     </Box>
                   </Stack>
