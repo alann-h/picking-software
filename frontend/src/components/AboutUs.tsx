@@ -96,7 +96,7 @@ const AboutUs: React.FC = () => {
       <Container maxWidth="lg">
         {/* Hero Section */}
         <AnimatedComponent>
-          <Box textAlign="center" mb={8}>
+          <Box textAlign="center" mb={8} sx={{ px: { xs: 2, sm: 4 } }}>
             <Typography
               variant="h1"
               sx={{
@@ -116,7 +116,8 @@ const AboutUs: React.FC = () => {
                 color: 'text.secondary',
                 mb: 3,
                 maxWidth: '800px',
-                mx: 'auto'
+                mx: 'auto',
+                px: { xs: 1, sm: 0 }
               }}
             >
               Warehouse Accuracy Platform for QuickBooks
@@ -128,7 +129,8 @@ const AboutUs: React.FC = () => {
                 color: 'text.secondary',
                 maxWidth: '600px',
                 mx: 'auto',
-                lineHeight: 1.6
+                lineHeight: 1.6,
+                px: { xs: 1, sm: 0 }
               }}
             >
               Bridge the gap between sales quotes and physical order fulfillment with our 
@@ -140,37 +142,37 @@ const AboutUs: React.FC = () => {
         {/* Problem & Solution Section */}
         <AnimatedComponent delay={0.2}>
           <Paper elevation={3} sx={{ p: 4, mb: 6, borderRadius: 3 }}>
-            <Grid container spacing={4} alignItems="center">
+            <Grid container spacing={4} alignItems="flex-start">
               <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="h4" sx={{ color: 'error.main', mb: 2, fontWeight: 600 }}>
+                <Typography variant="h4" sx={{ color: 'error.main', mb: 2, fontWeight: 600, textAlign: { xs: 'center', md: 'left' } }}>
                   The Problem We Solve
                 </Typography>
-                <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7 }}>
+                <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, textAlign: { xs: 'center', md: 'left' } }}>
                   For businesses using QuickBooks, the gap between creating sales quotes and 
                   physically preparing orders is often manual, inefficient, and prone to costly errors.
                 </Typography>
-                <Stack spacing={1}>
+                <Stack spacing={1} sx={{ alignItems: { xs: 'center', md: 'flex-start' } }}>
                   {['Manual paper-based processes', 'Picking errors and inconsistencies', 'No real-time validation', 'Security concerns with warehouse access'].map((item, index) => (
-                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main' }} />
-                      <Typography variant="body2" color="text.secondary">{item}</Typography>
+                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', justifyContent: { xs: 'center', md: 'flex-start' } }}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'error.main', flexShrink: 0 }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: 'center', md: 'left' } }}>{item}</Typography>
                     </Box>
                   ))}
                 </Stack>
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="h4" sx={{ color: 'success.main', mb: 2, fontWeight: 600 }}>
+                <Typography variant="h4" sx={{ color: 'success.main', mb: 2, fontWeight: 600, textAlign: { xs: 'center', md: 'left' } }}>
                   Our Solution
                 </Typography>
-                <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7 }}>
+                <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, textAlign: { xs: 'center', md: 'left' } }}>
                   Smart Picker transforms this workflow with digital processes, barcode validation, 
                   and seamless QuickBooks integration.
                 </Typography>
-                <Stack spacing={1}>
+                <Stack spacing={1} sx={{ alignItems: { xs: 'center', md: 'flex-start' } }}>
                   {['100% picking accuracy', 'Digital audit trails', 'Real-time validation', 'Secure role-based access'].map((item, index) => (
-                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <CheckCircle sx={{ color: 'success.main', fontSize: 20 }} />
-                      <Typography variant="body2" color="text.secondary">{item}</Typography>
+                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', justifyContent: { xs: 'center', md: 'flex-start' } }}>
+                      <CheckCircle sx={{ color: 'success.main', fontSize: 20, flexShrink: 0 }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: 'center', md: 'left' } }}>{item}</Typography>
                     </Box>
                   ))}
                 </Stack>
@@ -330,23 +332,29 @@ const AboutUs: React.FC = () => {
 
         {/* Call to Action */}
         <AnimatedComponent delay={1.0}>
-          <Box sx={{ mt: 8, textAlign: 'center' }}>
+          <Box sx={{ mt: 8, textAlign: 'center', px: { xs: 2, sm: 4 } }}>
             <Paper 
               elevation={4}
               sx={{ 
-                p: 6, 
+                p: { xs: 4, sm: 6 }, 
                 borderRadius: 3,
                 background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
                 color: 'white'
               }}
             >
-              <Typography variant="h3" sx={{ mb: 3, fontWeight: 700 }}>
+              <Typography variant="h3" sx={{ mb: 3, fontWeight: 700, fontSize: { xs: '1.75rem', sm: '3rem' } }}>
                 Ready to Transform Your Warehouse Operations?
               </Typography>
-              <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
+              <Typography variant="h5" sx={{ mb: 4, opacity: 0.9, fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
                 Join businesses that have eliminated picking errors and streamlined their order fulfillment process.
               </Typography>
-              <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap">
+              <Stack 
+                direction={{ xs: 'column', sm: 'row' }} 
+                spacing={2} 
+                justifyContent="center" 
+                alignItems="center"
+                sx={{ px: { xs: 1, sm: 0 } }}
+              >
                 <Chip
                   label="100% Accuracy Guarantee"
                   sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '1rem' }}
