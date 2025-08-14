@@ -7,6 +7,7 @@ import OAuthCallbackHandler from './components/OAuthCallbackHandler';
 import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
 import { SnackbarProvider } from './components/SnackbarContext';
+import { NotificationProvider } from './components/NotificationContext';
 import SnackbarComponent from './components/SnackbarComponent';
 import Quote from './components/Quote';
 import theme from './theme';
@@ -17,7 +18,7 @@ import AuthLayout from './components/AuthLayout';
 import { QuoteSkeleton } from './components/Skeletons';
 
 import PrivacyPolicy from './components/PrivacyPolicy';
-import EULA from './components/Eula';
+import TermsOfService from './components/TermsOfService';
 import AboutUs from './components/AboutUs';
 
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
@@ -50,44 +51,46 @@ const App: React.FC = () => {
     
   return (
     <ThemeProvider theme={theme}>
-      <SnackbarProvider>
-          <title>Smart Picker</title>
-          <link rel="icon" type="image/png" href="/SP.png" />          
-        <CssBaseline />
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
-          <Box sx={{ flexGrow: 1, width: '100%' }}>
-            <Routes>
-              {/* Public Routes */}
-              <Route element={<PublicLayout />}>
-                <Route path="/" element={<InitalPage />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/eula" element={<EULA />} />
-                <Route path="/about" element={<AboutUs />} />
-              </Route>
-              {/* Protected Routes */}
-              <Route element={<AuthLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/settings/*" element={<Settings />} />
-                <Route path="/quote" element={
-                  <ErrorBoundary>
-                    <Suspense fallback={<QuoteSkeleton />}> 
-                      <Quote /> 
-                    </Suspense>
-                  </ErrorBoundary>
-                  } />
-                <Route path="/orders-to-check" element={<OrdersToCheckPage />} />
-                <Route path="/run" element={<Runs />} />
-              </Route>
-              {/* Catch-all route - redirects any unknown path to home */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+      <NotificationProvider>
+        <SnackbarProvider>
+            <title>Smart Picker</title>
+            <link rel="icon" type="image/png" href="/SP.png" />          
+          <CssBaseline />
+          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
+            <Box sx={{ flexGrow: 1, width: '100%' }}>
+              <Routes>
+                {/* Public Routes */}
+                <Route element={<PublicLayout />}>
+                  <Route path="/" element={<InitalPage />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/about" element={<AboutUs />} />
+                </Route>
+                {/* Protected Routes */}
+                <Route element={<AuthLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/settings/*" element={<Settings />} />
+                  <Route path="/quote" element={
+                    <ErrorBoundary>
+                      <Suspense fallback={<QuoteSkeleton />}> 
+                        <Quote /> 
+                      </Suspense>
+                    </ErrorBoundary>
+                    } />
+                  <Route path="/orders-to-check" element={<OrdersToCheckPage />} />
+                  <Route path="/run" element={<Runs />} />
+                </Route>
+                {/* Catch-all route - redirects any unknown path to home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Box>
           </Box>
-        </Box>
-        <SnackbarComponent />
-        <Footer />
-      </SnackbarProvider>
+          <SnackbarComponent />
+          <Footer />
+        </SnackbarProvider>
+      </NotificationProvider>
     </ThemeProvider>
   );
 };

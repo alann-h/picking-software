@@ -1,18 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { Button, TextField, Box, Typography, Container, InputAdornment, IconButton } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { 
+  Button, 
+  TextField, 
+  Box, 
+  Typography, 
+  Container, 
+  InputAdornment, 
+  IconButton,
+  Paper,
+  Stack,
+  Divider,
+  Alert,
+  useTheme
+} from '@mui/material';
+import { 
+  Visibility, 
+  VisibilityOff, 
+  Email, 
+  Lock, 
+  Business,
+  ArrowForward
+} from '@mui/icons-material';
 import { loginWithCredentials, verifyUser } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
 import { z } from 'zod';
+import { motion } from 'framer-motion';
 
 import { AUTH_URI } from '../api/config';
 import SEO from './SEO';
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password cannot be empty." }),
+  email: z.email({ message: "Please enter a valid email address." }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters." }),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -27,12 +48,14 @@ type FormErrors = ErrorTree | null;
 const Login: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const [formData, setFormData] = useState<LoginForm>({ email: '', password: '' });
   const [errors, setErrors] = useState<FormErrors>(null);
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     verifyUser()
@@ -53,12 +76,38 @@ const Login: React.FC = () => {
     window.location.href = AUTH_URI;
   };
 
+  const validateField = (name: string, value: string) => {
+    try {
+      if (name === 'email') {
+        z.email().parse(value);
+        return '';
+      } else if (name === 'password') {
+        z.string().min(8, { message: "Password must be at least 8 characters." }).parse(value);
+        return '';
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return error.issues[0].message;
+      }
+    }
+    return '';
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
+
+    // Real-time validation
+    const error = validateField(name, value);
+    setValidationErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+
+    // Clear server errors if they exist
     if (errors?.properties?.[name]) {
       setErrors(prev => {
         if (!prev?.properties) {
@@ -66,7 +115,6 @@ const Login: React.FC = () => {
         }
 
         const newProperties = { ...prev.properties };
-
         delete newProperties[name];
 
         const newState: ErrorTree = {
@@ -89,6 +137,12 @@ const Login: React.FC = () => {
 
   const handleCredentialLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check if there are any validation errors
+    const hasValidationErrors = Object.values(validationErrors).some(error => error !== '');
+    if (hasValidationErrors) {
+      return;
+    }
 
     const validationResult = loginSchema.safeParse(formData);
 
@@ -120,6 +174,8 @@ const Login: React.FC = () => {
     }
   };
 
+  const isFormValid = formData.email && formData.password && !Object.values(validationErrors).some(error => error !== '');
+
   return (
     <>
       <SEO 
@@ -128,98 +184,235 @@ const Login: React.FC = () => {
         keywords="login, sign in, Smart Picker, order picking software, warehouse management"
       />
       <LoadingWrapper isLoading={loading} height="100vh">
-        <Container component="main" maxWidth="xs">
-          <Box
-            sx={{
-              marginTop: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: 4,
-              borderRadius: 2,
-              boxShadow: 3,
-              backgroundColor: 'background.paper',
-            }}
-          >
-          <Typography component="h1" variant="h5" color="primary" fontWeight="bold" sx={{ mb: 3 }}>
-            Welcome to Smart Picker
-          </Typography>
-          <Box component="form" onSubmit={handleCredentialLogin} noValidate sx={{ width: '100%' }}> {/* Adjusted width */}
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={formData.email}
-              onChange={handleInputChange}
-              error={!!errors?.properties?.email?.errors.length}
-              helperText={errors?.properties?.email?.errors[0]}
-              variant="outlined"
-              disabled={isSubmitting}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              autoComplete="current-password"
-              value={formData.password}
-              onChange={handleInputChange}
-              error={!!errors?.properties?.password?.errors.length}
-              helperText={errors?.properties?.password?.errors[0]}
-              variant="outlined"
-              disabled={isSubmitting} 
-              slotProps={{ 
-                  input: {
-                    endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle password visibility"
-                            onClick={handleClickShowPassword}
-                            onMouseDown={handleMouseDownPassword}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      )
-                  }
-              }}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={isSubmitting} 
+        <Box
+          sx={{
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            py: 4,
+            px: 2
+          }}
+        >
+          <Container component="main" maxWidth="sm">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
             >
-              Sign In
-            </Button>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 2 }}>
-            — Or sign in with —
-          </Typography>
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={handleQuickBooksLogin}
-            sx={{ py: 1.5 }}
-            color='success'
-            disabled={isSubmitting} 
-          >
-            Sign in with QuickBooks
-          </Button>
+              <Paper
+                elevation={8}
+                sx={{
+                  p: { xs: 3, sm: 4 },
+                  borderRadius: 3,
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0 20px 40px rgba(30, 64, 175, 0.15)'
+                }}
+              >
+                {/* Header */}
+                <Box sx={{ textAlign: 'center', mb: 4 }}>
+                  <Typography 
+                    component="h1" 
+                    variant="h4" 
+                    sx={{ 
+                      fontWeight: 700,
+                      background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      mb: 1
+                    }}
+                  >
+                    Welcome Back
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
+                    Sign in to Smart Picker
+                  </Typography>
+                </Box>
+
+                {/* Form */}
+                <Box component="form" onSubmit={handleCredentialLogin} noValidate>
+                  <Stack spacing={3}>
+                    <TextField
+                      required
+                      fullWidth
+                      id="email"
+                      label="Email Address"
+                      name="email"
+                      autoComplete="email"
+                      autoFocus
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      error={!!validationErrors.email || !!errors?.properties?.email?.errors.length}
+                      helperText={validationErrors.email || errors?.properties?.email?.errors[0]}
+                      variant="outlined"
+                      disabled={isSubmitting}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Email sx={{ color: 'text.secondary' }} />
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#3B82F6',
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#1E40AF',
+                          },
+                        },
+                      }}
+                    />
+                    
+                    <TextField
+                      required
+                      fullWidth
+                      name="password"
+                      label="Password"
+                      type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      autoComplete="current-password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      error={!!validationErrors.password || !!errors?.properties?.password?.errors.length}
+                      helperText={validationErrors.password || errors?.properties?.password?.errors[0]}
+                      variant="outlined"
+                      disabled={isSubmitting} 
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Lock sx={{ color: 'text.secondary' }} />
+                            </InputAdornment>
+                          ),
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                aria-label="toggle password visibility"
+                                onClick={handleClickShowPassword}
+                                onMouseDown={handleMouseDownPassword}
+                                edge="end"
+                                sx={{ color: 'text.secondary' }}
+                              >
+                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        },
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#3B82F6',
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#1E40AF',
+                          },
+                        },
+                      }}
+                    />
+
+                    <Button
+                      type="submit"
+                      fullWidth
+                      variant="contained"
+                      disabled={!isFormValid || isSubmitting}
+                      sx={{
+                        py: 1.5,
+                        borderRadius: 2,
+                        background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        boxShadow: '0 8px 25px rgba(30, 64, 175, 0.3)',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #3B82F6, #1E40AF)',
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 12px 35px rgba(30, 64, 175, 0.4)',
+                        },
+                        '&:disabled': {
+                          background: '#E5E7EB',
+                          color: '#9CA3AF',
+                          transform: 'none',
+                          boxShadow: 'none',
+                        }
+                      }}
+                    >
+                      {isSubmitting ? 'Signing In...' : 'Sign In'}
+                    </Button>
+                  </Stack>
+                </Box>
+
+                {/* Divider */}
+                <Box sx={{ my: 3, display: 'flex', alignItems: 'center' }}>
+                  <Divider sx={{ flex: 1 }} />
+                  <Typography variant="body2" color="text.secondary" sx={{ px: 2 }}>
+                    or continue with
+                  </Typography>
+                  <Divider sx={{ flex: 1 }} />
+                </Box>
+
+                {/* QuickBooks Login */}
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={handleQuickBooksLogin}
+                  disabled={isSubmitting}
+                  startIcon={<Business />}
+                  endIcon={<ArrowForward />}
+                  sx={{
+                    py: 1.5,
+                    borderRadius: 2,
+                    borderColor: '#10B981',
+                    color: '#10B981',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    '&:hover': {
+                      borderColor: '#059669',
+                      backgroundColor: 'rgba(16, 185, 129, 0.04)',
+                      transform: 'translateY(-1px)',
+                    },
+                    '&:disabled': {
+                      borderColor: '#E5E7EB',
+                      color: '#9CA3AF',
+                      transform: 'none',
+                    }
+                  }}
+                >
+                  Sign in with QuickBooks
+                </Button>
+
+                {/* Password Requirements */}
+                <Alert 
+                  severity="info" 
+                  sx={{ 
+                    mt: 3,
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    '& .MuiAlert-icon': {
+                      color: '#3B82F6'
+                    }
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                    Password must be at least 8 characters long
+                  </Typography>
+                </Alert>
+              </Paper>
+            </motion.div>
+          </Container>
         </Box>
-      </Container>
-    </LoadingWrapper>
+      </LoadingWrapper>
     </>
   );
 };

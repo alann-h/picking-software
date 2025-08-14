@@ -32,9 +32,9 @@
     <priority>0.4</priority>
   </url>
   
-  <!-- EULA -->
+  <!-- Terms of Service -->
   <url>
-    <loc>https://smartpicker.au/eula</loc>
+    <loc>https://smartpicker.au/terms-of-service</loc>
     <lastmod>2025-01-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>

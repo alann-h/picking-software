@@ -1,6 +1,34 @@
 import React, { useRef, DragEvent, ChangeEvent, useState, useEffect } from 'react';
-import { Box, Typography, Button, Paper, useTheme, LinearProgress } from '@mui/material';
-import { CloudUpload as CloudUploadIcon, CheckCircleOutline as CheckCircleOutlineIcon, ErrorOutline as ErrorOutlineIcon } from '@mui/icons-material';
+import { 
+  Box, 
+  Typography, 
+  Button, 
+  Paper, 
+  useTheme, 
+  LinearProgress,
+  Grid,
+  Stack,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Card,
+  CardContent,
+  Alert,
+  AlertTitle,
+  Divider
+} from '@mui/material';
+import { 
+  CloudUpload as CloudUploadIcon, 
+  CheckCircleOutline as CheckCircleOutlineIcon, 
+  ErrorOutline as ErrorOutlineIcon,
+  DescriptionOutlined as DescriptionOutlinedIcon,
+  FileUploadOutlined as FileUploadOutlinedIcon,
+  LabelOutlined as LabelOutlinedIcon,
+  QrCode2Outlined as QrCode2OutlinedIcon,
+  PinOutlined as PinOutlinedIcon,
+  InfoOutlined as InfoOutlinedIcon
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { getJobProgress } from '../api/products';
 
@@ -141,6 +169,12 @@ useEffect(() => {
   };
 }, [uploadState, jobId, onSuccess]);
 
+  const steps = [
+    'Go to Reports > List Reports > Item Listing',
+    'Customize the report to include the Name and SKU fields.',
+    'Export the report as an CSV file.',
+    'Add a new "Barcode" column and fill in the unique barcodes.',
+  ];
 
   return (
     <motion.div
@@ -148,16 +182,26 @@ useEffect(() => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
-      <Paper elevation={3} sx={{ padding: 3, backgroundColor: theme.palette.background.paper, minHeight: '350px' }}>
+      <Paper elevation={0} sx={{ 
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 3,
+        backgroundColor: theme.palette.background.paper, 
+        minHeight: 'auto',
+        overflow: 'hidden'
+      }}>
         <title>Smart Picker | Upload Data</title>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-          Upload Product Data
-        </Typography>
+        
+        {/* Upload Section */}
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+            Upload Product Data
+          </Typography>
 
-        {uploadState === 'idle' && (
+          {uploadState === 'idle' && (
             <>
-              <Typography variant="body1" component="p" gutterBottom>
-                Upload your file (.csv) containing product data:
+              <Typography variant="body1" component="p" gutterBottom sx={{ mb: 3 }}>
+                Upload your CSV file containing product data. Ensure it follows the format guide below.
               </Typography>
               <Box
                 sx={{
@@ -167,7 +211,11 @@ useEffect(() => {
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  backgroundColor: isDragging ? 'rgba(0, 123, 255, 0.05)' : 'transparent',
+                  backgroundColor: isDragging ? 'rgba(59,130,246,0.05)' : 'transparent',
+                  '&:hover': {
+                    borderColor: theme.palette.primary.main,
+                    backgroundColor: 'rgba(59,130,246,0.02)'
+                  }
                 }}
                 onDragEnter={handleDragEnter}
                 onDragOver={handleDragEnter}
@@ -184,11 +232,11 @@ useEffect(() => {
                 />
                 <CloudUploadIcon sx={{ fontSize: 48, color: theme.palette.primary.main, mb: 2 }} />
                 {selectedFile ? (
-                    <Typography variant="body2" sx={{ mt: 2, color: theme.palette.text.secondary }}>
-                      Selected file: <strong>{selectedFile.name}</strong>
-                    </Typography>
+                  <Typography variant="body2" sx={{ mt: 2, color: theme.palette.text.secondary }}>
+                    Selected file: <strong>{selectedFile.name}</strong>
+                  </Typography>
                 ) : (
-                    <Typography>Drag & drop a file here or click to select</Typography>
+                  <Typography>Drag & drop a CSV file here or click to select</Typography>
                 )}
               </Box>
               <Button
@@ -196,40 +244,216 @@ useEffect(() => {
                 color="primary"
                 onClick={handleUploadClick}
                 disabled={!selectedFile}
-                sx={{ mt: 3 }}
+                sx={{ 
+                  mt: 3,
+                  background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+                  }
+                }}
                 fullWidth
+                size="large"
               >
                 Upload File
               </Button>
             </>
-        )}
+          )}
 
-        {(uploadState === 'uploading' || uploadState === 'processing') && (
-          <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
-            <Typography variant="h6" sx={{mb: 2}}>{progressMessage}</Typography>
-            <Box sx={{ width: '100%', mr: 1 }}>
-              <LinearProgress variant="determinate" value={progress} />
+          {(uploadState === 'uploading' || uploadState === 'processing') && (
+            <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
+              <Typography variant="h6" sx={{mb: 2}}>{progressMessage}</Typography>
+              <Box sx={{ width: '100%', mr: 1 }}>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={progress} 
+                  sx={{ 
+                    height: 8, 
+                    borderRadius: 4,
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 4,
+                      background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)'
+                    }
+                  }}
+                />
+              </Box>
+              <Typography sx={{mt: 1, fontWeight: 500}}>{`${Math.round(progress)}%`}</Typography>
             </Box>
-            <Typography sx={{mt: 1}}>{`${Math.round(progress)}%`}</Typography>
-          </Box>
-        )}
+          )}
 
-        {uploadState === 'success' && (
-          <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
-            <CheckCircleOutlineIcon sx={{ fontSize: 60, color: 'success.main' }} />
-            <Typography variant="h6" sx={{mt: 2}}>Upload and Processing Successful!</Typography>
-            <Button variant="outlined" onClick={resetState} sx={{mt: 3}}>Upload Another File</Button>
-          </Box>
-        )}
+          {uploadState === 'success' && (
+            <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
+              <CheckCircleOutlineIcon sx={{ fontSize: 60, color: 'success.main' }} />
+              <Typography variant="h6" sx={{mt: 2}}>Upload and Processing Successful!</Typography>
+              <Button 
+                variant="outlined" 
+                onClick={resetState} 
+                sx={{mt: 3}}
+                size="large"
+              >
+                Upload Another File
+              </Button>
+            </Box>
+          )}
 
-        {uploadState === 'error' && (
-          <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
-            <ErrorOutlineIcon sx={{ fontSize: 60, color: 'error.main' }} />
-            <Typography variant="h6" sx={{mt: 2}}>An Error Occurred</Typography>
-            <Typography variant="body1">{progressMessage}</Typography>
-            <Button variant="outlined" onClick={resetState} sx={{mt: 3}}>Try Again</Button>
-          </Box>
-        )}
+          {uploadState === 'error' && (
+            <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
+              <ErrorOutlineIcon sx={{ fontSize: 60, color: 'error.main' }} />
+              <Typography variant="h6" sx={{mt: 2}}>An Error Occurred</Typography>
+              <Typography variant="body1">{progressMessage}</Typography>
+              <Button 
+                variant="outlined" 
+                onClick={resetState} 
+                sx={{mt: 3}}
+                size="large"
+              >
+                Try Again
+              </Button>
+            </Box>
+          )}
+        </Box>
+
+        {/* Format Guide Section */}
+        <Divider />
+        <Box sx={{ p: 3, backgroundColor: 'grey.50' }}>
+          <Stack spacing={4}>
+            {/* CSV File Structure */}
+            <Stack spacing={3}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <DescriptionOutlinedIcon color="primary" sx={{ fontSize: '2rem' }} />
+                <Box>
+                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>
+                    CSV File Structure
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Your uploaded CSV file must follow this structure.
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Card 
+                    variant="outlined" 
+                    sx={{ 
+                      height: '100%',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        backgroundColor: 'rgba(59,130,246,0.02)'
+                      },
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, textAlign: 'center' }}>
+                      <Stack spacing={1} alignItems="center">
+                        <LabelOutlinedIcon color="primary" />
+                        <Typography variant="subtitle1" component="h4" sx={{ fontWeight: 600 }}>
+                          Product Name
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Must match the product names in QuickBooks exactly.
+                        </Typography>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Card 
+                    variant="outlined" 
+                    sx={{ 
+                      height: '100%',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        backgroundColor: 'rgba(59,130,246,0.02)'
+                      },
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, textAlign: 'center' }}>
+                      <Stack spacing={1} alignItems="center">
+                        <PinOutlinedIcon color="primary" />
+                        <Typography variant="subtitle1" component="h4" sx={{ fontWeight: 600 }}>
+                          SKU
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Must match the SKU values defined in QuickBooks.
+                        </Typography>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Card 
+                    variant="outlined" 
+                    sx={{ 
+                      height: '100%',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        backgroundColor: 'rgba(59,130,246,0.02)'
+                      },
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, textAlign: 'center' }}>
+                      <Stack spacing={1} alignItems="center">
+                        <QrCode2OutlinedIcon color="primary" />
+                        <Typography variant="subtitle1" component="h4" sx={{ fontWeight: 600 }}>
+                          Barcode
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Must contain a unique barcode for each product.
+                        </Typography>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </Stack>
+
+            {/* Exporting from QuickBooks */}
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <FileUploadOutlinedIcon color="primary" sx={{ fontSize: '2rem' }} />
+                <Box>
+                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>
+                    Exporting from QuickBooks
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Follow these steps to get your product list.
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <List sx={{ py: 0 }}>
+                {steps.map((text, index) => (
+                  <ListItem key={index} disablePadding sx={{ py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 'bold',
+                          color: 'primary.main',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        {index + 1}.
+                      </Typography>
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={text} 
+                      primaryTypographyProps={{ variant: 'body2' }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Stack>
+
+            {/* Final Note */}
+            <Alert severity="info" icon={<InfoOutlinedIcon />} sx={{ borderRadius: 2 }}>
+              <AlertTitle sx={{ fontWeight: 'bold' }}>Important</AlertTitle>
+              Ensure that the <strong>Product Name</strong> and <strong>SKU</strong> in your CSV file match exactly with those in QuickBooks to avoid data synchronization errors.
+            </Alert>
+          </Stack>
+        </Box>
       </Paper>
     </motion.div>
   );

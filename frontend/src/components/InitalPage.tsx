@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowForward, Smartphone, CloudSync, CheckCircle, Assignment } from '@mui/icons-material';
 import SEO from './SEO';
 import { getPageStructuredData } from '../utils/structuredData';
+import CookieConsent from './CookieConsent';
 
 const AnimatedSection: React.FC<{ children: ReactNode; delay?: number }> = ({ children, delay = 0 }) => {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -482,6 +483,16 @@ const InitalPage: React.FC = () => {
         </Container>
       </Box> */}
     </Box>
+    
+    {/* Cookie Consent Banner */}
+    <CookieConsent
+      onAccept={() => {
+        console.log('Cookies accepted');
+      }}
+      onDecline={() => {
+        console.log('Cookies declined');
+      }}
+    />
     </>
   );
 };

@@ -1,6 +1,7 @@
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from './SnackbarContext';
+import { useNotificationContext } from './NotificationContext';
 import { OpenModalFunction } from '../utils/modalState';
 import { QuoteData, ProductDetail } from '../utils/types';
 import { HttpError } from '../utils/apiHelpers';
@@ -29,6 +30,7 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { handleOpenSnackbar } = useSnackbarContext();
+    const { notifyOrderCompleted } = useNotificationContext();
 
     const { data: quoteData } = useSuspenseQuery<QuoteData, HttpError>({
         queryKey: ['quote', quoteId],
@@ -112,7 +114,26 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
     
     const saveNote = useMutation({ mutationFn: (note: string) => savePickerNote(quoteId, note), onSuccess: () => handleOpenSnackbar('Note saved!', 'success'), onError: (error) => handleOpenSnackbar(error.message, 'error'), });
     const setQuoteChecking = useMutation({ mutationFn: (newStatus: string) => updateQuoteStatus(quoteId, newStatus), onSuccess: () => { handleOpenSnackbar(`Quote status updated!`, 'success'); navigate('/dashboard'); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
-    const finaliseInvoice = useMutation({ mutationFn: () => updateQuoteInQuickBooks(quoteId), onSuccess: () => { const qbWindow = window.open('https://qbo.intuit.com/', '_blank'); setTimeout(() => { if (qbWindow) qbWindow.location.href = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`; }, 3000); handleOpenSnackbar('Quote finalized and opened in QuickBooks!', 'success'); navigate('/dashboard'); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
+    const finaliseInvoice = useMutation({ 
+        mutationFn: () => updateQuoteInQuickBooks(quoteId), 
+        onSuccess: () => { 
+            const qbWindow = window.open('https://qbo.intuit.com/', '_blank'); 
+            setTimeout(() => { 
+                if (qbWindow) qbWindow.location.href = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`; 
+            }, 3000); 
+            
+            // Trigger notification for order completion
+            notifyOrderCompleted(
+                quoteId, 
+                quoteData.customerName, 
+                quoteData.totalAmount
+            );
+            
+            handleOpenSnackbar('Quote finalized and opened in QuickBooks!', 'success'); 
+            navigate('/dashboard'); 
+        }, 
+        onError: (error) => handleOpenSnackbar(error.message, 'error'), 
+    });
     const confirmBarcodeScan = useMutation({ mutationFn: (variables: { barcode: string, quantity: number }) => barcodeScan(variables.barcode, quoteId, variables.quantity), onSuccess: () => { handleOpenSnackbar('Product scanned successfully!', 'success'); invalidateAndRefetch(); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
