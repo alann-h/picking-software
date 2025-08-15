@@ -73,10 +73,13 @@ const ProductRow: React.FC<ProductRowProps> = ({
       <TableCell>
         <Typography 
           variant="body2" 
+          className="product-sku"
           sx={{ 
             fontFamily: 'monospace',
             fontWeight: 500,
-            color: theme.palette.text.secondary
+            color: theme.palette.text.secondary,
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            wordBreak: 'break-all'
           }}
         >
           {product.sku}
@@ -86,12 +89,14 @@ const ProductRow: React.FC<ProductRowProps> = ({
       <TableCell>
         <Typography
           className="product-name"
-          variant="body1"
+          variant="body2"
           sx={{
             color: theme.palette.text.primary,
             fontWeight: 600,
             cursor: 'pointer',
             transition: 'all 0.2s ease-in-out',
+            fontSize: { xs: '0.875rem', sm: '1rem' },
+            lineHeight: 1.3,
             '&:hover': {
               color: theme.palette.primary.main,
               textDecoration: 'underline'
@@ -104,26 +109,40 @@ const ProductRow: React.FC<ProductRowProps> = ({
       </TableCell>
       
       <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: 0.5 
+        }}>
           <Typography
-            variant="body2"
-            sx={{
-              color: getQuantityColor(),
-              fontWeight: 600,
-              fontSize: '0.875rem'
-            }}
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: '0.7rem', fontWeight: 500 }}
           >
-            {product.pickingQty}
+            Qty:
           </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: theme.palette.text.secondary,
-              fontSize: '0.75rem'
-            }}
-          >
-            / {product.originalQty}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: getQuantityColor(),
+                fontWeight: 600,
+                fontSize: '0.875rem'
+              }}
+            >
+              {product.pickingQty}
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: theme.palette.text.secondary,
+                fontSize: '0.75rem'
+              }}
+            >
+              / {product.originalQty}
+            </Typography>
+          </Box>
         </Box>
       </TableCell>
       

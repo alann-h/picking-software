@@ -47,15 +47,26 @@ const Footer: React.FC = () => {
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr 1fr 1fr' },
             gap: { xs: 4, sm: 6 },
-            mb: 4
+            mb: 4,
+            minHeight: 'fit-content'
           }}
         >
           {/* Company Information */}
-          <Box>
+          <Box sx={{ minHeight: 'fit-content', overflow: 'visible' }}>
             <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'white' }}>
               Smart Picker
             </Typography>
-            <Typography variant="body2" color="grey.300" sx={{ mb: 2, lineHeight: 1.6 }}>
+            <Typography 
+              variant="body2" 
+              color="grey.300" 
+              sx={{ 
+                mb: 2, 
+                lineHeight: 1.6,
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word',
+                hyphens: 'auto'
+              }}
+            >
               Professional inventory management and order picking software.
               Streamline your warehouse operations with barcode scanning and
               seamless QuickBooks integration.

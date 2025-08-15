@@ -67,6 +67,78 @@ const theme = createTheme({
           maxWidth: '100vw',
           overflowX: 'hidden',
         },
+        /* Tablet and Mobile Optimizations */
+        '@media (max-width: 1024px)': {
+          '.MuiContainer-root': {
+            maxWidth: '100% !important',
+            paddingLeft: '16px !important',
+            paddingRight: '16px !important',
+          },
+          '.MuiTable-root': {
+            minWidth: 'auto !important',
+            width: '100% !important',
+          },
+          '.MuiTableCell-root': {
+            padding: '12px 8px !important',
+            wordBreak: 'break-word !important',
+            verticalAlign: 'top !important',
+          },
+          '.MuiTableHead-root .MuiTableCell-root': {
+            padding: '16px 8px !important',
+            fontWeight: '600 !important',
+            backgroundColor: 'rgba(0, 0, 0, 0.04) !important',
+          },
+        },
+        /* Quote page specific tablet optimizations */
+        '@media (min-width: 600px) and (max-width: 960px)': {
+          '.MuiTable-root': {
+            tableLayout: 'fixed !important',
+          },
+          '.MuiTableCell-root:first-child': {
+            width: '120px !important',
+            minWidth: '120px !important',
+            maxWidth: '120px !important',
+            padding: '12px 8px !important',
+          },
+          '.MuiTableCell-root:nth-child(2)': {
+            width: 'auto !important',
+            minWidth: '200px !important',
+            padding: '12px 8px !important',
+          },
+          '.MuiTableCell-root:nth-child(3)': {
+            width: '100px !important',
+            minWidth: '100px !important',
+            maxWidth: '100px !important',
+            padding: '12px 8px !important',
+            textAlign: 'center !important',
+          },
+          '.MuiTableCell-root:nth-child(4)': {
+            width: '120px !important',
+            minWidth: '120px !important',
+            maxWidth: '120px !important',
+            padding: '12px 8px !important',
+            textAlign: 'center !important',
+          },
+          '.MuiTableCell-root:last-child': {
+            width: '80px !important',
+            minWidth: '80px !important',
+            maxWidth: '80px !important',
+            padding: '12px 8px !important',
+            textAlign: 'center !important',
+          },
+        },
+        /* Footer fixes */
+        'footer': {
+          overflow: 'visible !important',
+          minHeight: 'fit-content !important',
+        },
+        'footer .MuiTypography-root': {
+          overflow: 'visible !important',
+          textOverflow: 'unset !important',
+          whiteSpace: 'normal !important',
+          wordBreak: 'break-word !important',
+          overflowWrap: 'break-word !important',
+        },
       },
     },
     MuiContainer: {
@@ -82,6 +154,26 @@ const theme = createTheme({
           '@media (min-width: 900px)': {
             paddingLeft: '24px',
             paddingRight: '24px',
+          },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          '@media (min-width: 768px) and (max-width: 1024px)': {
+            padding: '16px 12px',
+            fontSize: '14px',
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          '@media (min-width: 768px) and (max-width: 1024px)': {
+            minHeight: '32px',
+            fontSize: '13px',
           },
         },
       },
