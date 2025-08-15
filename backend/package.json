@@ -31,6 +31,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
     "express-session": "^1.17.3",
+    "he": "^1.2.0",
     "helmet": "^8.1.0",
     "intuit-oauth": "^4.0.0",
     "morgan": "^1.10.0",
