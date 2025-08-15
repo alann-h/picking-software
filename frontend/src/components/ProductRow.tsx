@@ -70,7 +70,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
         transition: 'all 0.2s ease-in-out'
       }}
     >
-      <TableCell>
+      <TableCell sx={{ width: '15%', minWidth: '100px' }}>
         <Typography 
           variant="body2" 
           className="product-sku"
@@ -86,7 +86,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </Typography>
       </TableCell>
       
-      <TableCell>
+      <TableCell sx={{ width: '40%', minWidth: '150px' }}>
         <Typography
           className="product-name"
           variant="body2"
@@ -108,10 +108,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </Typography>
       </TableCell>
       
-      <TableCell sx={{ 
-        minWidth: { xs: '100px', sm: '120px' },
-        width: { xs: '100px', sm: '120px' }
-      }}>
+      <TableCell  sx={{ width: '20%', minWidth: '110px', textAlign: 'center' }}>
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -123,7 +120,6 @@ const ProductRow: React.FC<ProductRowProps> = ({
             sx={{
               color: getQuantityColor(),
               fontWeight: 600,
-              fontSize: { xs: '1rem', sm: '1.125rem' }
             }}
           >
             {Number(product.pickingQty || 0).toFixed(1)}
@@ -132,7 +128,6 @@ const ProductRow: React.FC<ProductRowProps> = ({
             variant="body2"
             sx={{
               color: theme.palette.text.secondary,
-              fontSize: { xs: '0.875rem', sm: '1rem' }
             }}
           >
             / {Number(product.originalQty || 0).toFixed(1)}
@@ -140,7 +135,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </Box>
       </TableCell>
       
-      <TableCell>
+      <TableCell sx={{ width: '15%', minWidth: '90px', textAlign: 'center' }}>
         <Tooltip title={`Current picking status: ${product.pickingStatus}`}>
           <Chip
             label={product.pickingStatus}
@@ -160,7 +155,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </Tooltip>
       </TableCell>
       
-      <TableCell>
+      <TableCell sx={{ width: '10%', padding: '0 8px', textAlign: 'right' }}>
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <IconButton
             aria-label="more options"
@@ -186,11 +181,13 @@ const ProductRow: React.FC<ProductRowProps> = ({
             anchorEl={anchorEl} 
             open={open} 
             onClose={handleClose}
-            PaperProps={{
-              sx: {
-                minWidth: 180,
-                boxShadow: theme.shadows[8],
-                border: `1px solid ${theme.palette.divider}`
+            slotProps={{
+              paper: {
+                sx: {
+                  minWidth: 180,
+                  boxShadow: theme.shadows[8],
+                  border: `1px solid ${theme.palette.divider}`
+                }
               }
             }}
           >

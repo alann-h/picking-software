@@ -148,7 +148,6 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const userEmail = authData?.userEmail || null;
 
   const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
-  const handleMobileMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setMobileMenuAnchor(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
   const handleMobileMenuClose = () => setMobileMenuAnchor(null);
   const handleTitleClick = () => navigate(disableTopBar ? '/' : '/dashboard');
