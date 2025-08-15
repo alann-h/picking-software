@@ -95,8 +95,8 @@ const ProductRow: React.FC<ProductRowProps> = ({
             fontWeight: 600,
             cursor: 'pointer',
             transition: 'all 0.2s ease-in-out',
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-            lineHeight: 1.3,
+            fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+            lineHeight: 1.2,
             '&:hover': {
               color: theme.palette.primary.main,
               textDecoration: 'underline'

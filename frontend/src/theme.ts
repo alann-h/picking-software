@@ -139,8 +139,8 @@ const theme = createTheme({
             fontFamily: 'monospace !important',
           },
           '.dashboard-container .product-name, .products-container .product-name, .runs-container .product-name, .users-container .product-name': {
-            fontSize: '12px !important',
-            lineHeight: '1.3 !important',
+            fontSize: '11px !important',
+            lineHeight: '1.2 !important',
             maxWidth: '100% !important',
           },
           '.dashboard-container .MuiChip-root, .products-container .MuiChip-root, .runs-container .MuiChip-root, .users-container .MuiChip-root': {
