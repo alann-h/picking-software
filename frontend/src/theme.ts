@@ -52,6 +52,7 @@ const theme = createTheme({
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           '-webkit-tap-highlight-color': 'transparent',
+          lineHeight: 1.6,
         },
         html: {
           overflowX: 'hidden',
@@ -82,14 +83,6 @@ const theme = createTheme({
             paddingLeft: '24px',
             paddingRight: '24px',
           },
-        },
-      },
-    },
-    MuiBox: {
-      styleOverrides: {
-        root: {
-          maxWidth: '100%',
-          overflowX: 'hidden',
         },
       },
     },

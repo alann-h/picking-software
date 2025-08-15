@@ -35,7 +35,9 @@ const Footer: React.FC = () => {
         color: theme.palette.common.white,
         py: { xs: 4, sm: 6 },
         px: 2,
-        mt: 'auto'
+        mt: 'auto',
+        width: '100%',
+        overflowX: 'hidden'
       }}
     >
       <Container maxWidth="lg">

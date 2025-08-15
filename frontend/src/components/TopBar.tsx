@@ -22,7 +22,6 @@ import {
   DialogContentText
 } from '@mui/material';
 import {
-  Settings as SettingsIcon,
   Assignment as AssignmentIcon,
   DirectionsRun as DirectionsRunIcon,
   Inventory as InventoryIcon,
@@ -30,13 +29,12 @@ import {
   Group as GroupIcon,
   Dashboard as DashboardIcon,
   Logout as LogoutIcon,
-  Menu as MenuIcon,
   DevicesOther as DevicesOtherIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 
-import { logout, logoutAllDevices, getUserSessions } from '../api/auth';
+import { logoutAllDevices, getUserSessions } from '../api/auth';
 
 interface TopBarProps {
   disableTopBar: boolean;
@@ -49,7 +47,7 @@ interface TopBarProps {
 const AuthenticatedNavItems: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery(useTheme().breakpoints.down('sm'));
-  const { isAdmin, userName, userEmail } = useAuth();
+  const { isAdmin } = useAuth();
 
   return (
     <>
@@ -328,22 +326,6 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
               <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
                 <AuthenticatedNavItems />
               </Box>
-
-              {/* Mobile Menu Button */}
-              <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-                <IconButton 
-                  onClick={handleMobileMenuClick}
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: 'rgba(59,130,246,0.1)'
-                    }
-                  }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              </Box>
-
-
 
               {/* User Profile - Only show when we have auth data */}
               {authData && (

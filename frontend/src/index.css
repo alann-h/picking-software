@@ -32,8 +32,16 @@
   }
   
   .MuiTableCell-root {
-    padding: 8px 4px !important;
+    padding: 12px 8px !important;
     word-break: break-word !important;
+    vertical-align: top !important;
+  }
+  
+  /* Ensure table headers are readable */
+  .MuiTableHead-root .MuiTableCell-root {
+    padding: 16px 8px !important;
+    fontWeight: 600 !important;
+    backgroundColor: rgba(0, 0, 0, 0.04) !important;
   }
   
   /* Optimize card layouts */
@@ -45,6 +53,32 @@
   /* Optimize grid layouts */
   .MuiGrid-root {
     max-width: 100% !important;
+  }
+  
+  /* Ensure footer content is properly spaced */
+  footer {
+    margin-top: auto !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+  
+  /* Prevent content cutoff in containers */
+  .MuiContainer-root {
+    padding-bottom: 16px !important;
+  }
+  
+  /* Better spacing for product rows */
+  .MuiTableBody-root .MuiTableRow-root {
+    min-height: 60px !important;
+  }
+  
+  /* Ensure proper spacing between elements */
+  .MuiStack-root {
+    gap: 16px !important;
+  }
+  
+  /* Better spacing for cards and sections */
+  .MuiCard-root, .MuiPaper-root {
+    margin-bottom: 16px !important;
   }
 }
 
@@ -84,4 +118,36 @@
     min-height: 44px !important;
     min-width: 44px !important;
   }
+}
+
+/* Product row specific improvements */
+.MuiTableBody-root .MuiTableRow-root {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Better spacing for product information */
+.product-name {
+  line-height: 1.4 !important;
+  margin-bottom: 4px !important;
+}
+
+/* Improve chip readability */
+.MuiChip-root {
+  min-height: 28px !important;
+  font-weight: 500 !important;
+}
+
+/* Better footer spacing */
+footer .MuiContainer-root {
+  padding-top: 32px !important;
+  padding-bottom: 32px !important;
+}
+
+/* Ensure proper container spacing */
+.MuiContainer-root {
+  margin-bottom: 24px !important;
 }
