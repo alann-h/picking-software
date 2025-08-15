@@ -150,7 +150,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
               color: theme.palette.common.white,
               textTransform: 'capitalize',
               fontWeight: 600,
-              fontSize: '0.75rem',
+              fontSize: '0.65rem',
               height: '24px',
               '& .MuiChip-label': {
                 px: 1.5

@@ -97,7 +97,7 @@ const theme = createTheme({
           },
           '.dashboard-container .MuiTableHead-root .MuiTableCell-root, .products-container .MuiTableHead-root .MuiTableCell-root, .runs-container .MuiTableHead-root .MuiTableCell-root, .users-container .MuiTableHead-root .MuiTableCell-root': {
             padding: '12px 4px !important',
-            fontSize: '11px !important',
+            fontSize: '10px !important',
             fontWeight: '600 !important',
           },
           '.dashboard-container .MuiTable-root, .products-container .MuiTable-root, .runs-container .MuiTable-root, .users-container .MuiTable-root': {
