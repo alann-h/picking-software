@@ -15,7 +15,7 @@ import { createReadStream, unlink as fsUnlink } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { promisify } from 'util';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import helmet from 'helmet';
 
 // --- AWS SDK Imports
@@ -229,10 +229,7 @@ const loginLimiter = rateLimit({
     });
   },
   skipSuccessfulRequests: true,
-  keyGenerator: (req) => {
-    // Use IP address for rate limiting
-    return req.ip || req.connection.remoteAddress;
-  }
+  keyGenerator: ipKeyGenerator
 });
 
 const generalLimiter = rateLimit({
@@ -246,8 +243,7 @@ const generalLimiter = rateLimit({
 // Apply rate limiting to sensitive endpoints
 app.use('/auth/login', loginLimiter);
 app.use('/auth/register', generalLimiter);
-app.use('/auth/*', generalLimiter);
-app.use('/internal/*', generalLimiter);
+app.use('/auth', generalLimiter);
 
 // Public & CSRF-protected routes
 // src/server.js
