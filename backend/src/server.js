@@ -113,7 +113,7 @@ app.use(helmet({
 }));
 
 // — CSRF protection
-const { generateToken, doubleCsrfProtection } = doubleCsrf({
+const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.SESSION_SECRET,
   cookieName: 'x-csrf-token',
   cookieOptions: {
@@ -249,7 +249,7 @@ app.use('/auth', generalLimiter);
 // src/server.js
 app.get('/csrf-token', (req, res, next) => {
   try {
-    const csrfToken = generateToken(res, req);
+    const csrfToken = generateCsrfToken(req, res);
     req.session.csrfSessionEnsured = true;
 
     req.session.save(err => {
