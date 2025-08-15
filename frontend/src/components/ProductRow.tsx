@@ -108,7 +108,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </Typography>
       </TableCell>
       
-      <TableCell>
+      <TableCell sx={{ 
+        minWidth: { xs: '100px', sm: '120px' },
+        width: { xs: '100px', sm: '120px' }
+      }}>
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -120,7 +123,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
             sx={{
               color: getQuantityColor(),
               fontWeight: 600,
-              fontSize: '0.875rem'
+              fontSize: { xs: '1rem', sm: '1.125rem' }
             }}
           >
             {Number(product.pickingQty || 0).toFixed(1)}
@@ -129,7 +132,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
             variant="body2"
             sx={{
               color: theme.palette.text.secondary,
-              fontSize: '0.75rem'
+              fontSize: { xs: '0.875rem', sm: '1rem' }
             }}
           >
             / {Number(product.originalQty || 0).toFixed(1)}
