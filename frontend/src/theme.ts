@@ -32,6 +32,15 @@ const theme = createTheme({
       fontWeight: 400,
     },
   },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 900,
+      lg: 1200,
+      xl: 1536,
+    },
+  },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
@@ -39,7 +48,23 @@ const theme = createTheme({
           margin: 0,
           padding: 0,
           minHeight: '100vh',
-          width: '100%'
+          width: '100%',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          '-webkit-tap-highlight-color': 'transparent',
+        },
+        html: {
+          overflowX: 'hidden',
+          WebkitTextSizeAdjust: '100%',
+          msTextSizeAdjust: '100%',
+        },
+        '*': {
+          boxSizing: 'border-box',
+        },
+        '#root': {
+          width: '100%',
+          maxWidth: '100vw',
+          overflowX: 'hidden',
         },
       },
     },
@@ -48,6 +73,23 @@ const theme = createTheme({
         root: {
           paddingLeft: 0,
           paddingRight: 0,
+          maxWidth: '100% !important',
+          '@media (min-width: 600px)': {
+            paddingLeft: '16px',
+            paddingRight: '16px',
+          },
+          '@media (min-width: 900px)': {
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
+      },
+    },
+    MuiBox: {
+      styleOverrides: {
+        root: {
+          maxWidth: '100%',
+          overflowX: 'hidden',
         },
       },
     },

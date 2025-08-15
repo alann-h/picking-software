@@ -55,8 +55,20 @@ const App: React.FC = () => {
             <title>Smart Picker</title>
             <link rel="icon" type="image/png" href="/SP.png" />          
           <CssBaseline />
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
-            <Box sx={{ flexGrow: 1, width: '100%' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            minHeight: '100vh', 
+            width: '100%',
+            maxWidth: '100vw',
+            overflowX: 'hidden'
+          }}>
+            <Box sx={{ 
+              flexGrow: 1, 
+              width: '100%',
+              maxWidth: '100vw',
+              overflowX: 'hidden'
+            }}>
               <Routes>
                 {/* Public Routes */}
                 <Route element={<PublicLayout />}>
