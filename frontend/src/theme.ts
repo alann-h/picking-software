@@ -67,123 +67,123 @@ const theme = createTheme({
           maxWidth: '100vw',
           overflowX: 'hidden',
         },
-        /* Tablet and Mobile Optimizations */
+        /* Tablet and Mobile Optimizations - Only apply to specific components */
         '@media (max-width: 1024px)': {
-          '.MuiContainer-root': {
+          '.dashboard-container .MuiContainer-root, .products-container .MuiContainer-root, .runs-container .MuiContainer-root, .users-container .MuiContainer-root': {
             maxWidth: '100% !important',
             paddingLeft: '16px !important',
             paddingRight: '16px !important',
           },
-          '.MuiTable-root': {
+          '.dashboard-container .MuiTable-root, .products-container .MuiTable-root, .runs-container .MuiTable-root, .users-container .MuiTable-root': {
             minWidth: 'auto !important',
             width: '100% !important',
           },
-          '.MuiTableCell-root': {
+          '.dashboard-container .MuiTableCell-root, .products-container .MuiTableCell-root, .runs-container .MuiTableCell-root, .users-container .MuiTableCell-root': {
             padding: '12px 8px !important',
             wordBreak: 'break-word !important',
             verticalAlign: 'top !important',
           },
-          '.MuiTableHead-root .MuiTableCell-root': {
+          '.dashboard-container .MuiTableHead-root .MuiTableCell-root, .products-container .MuiTableHead-root .MuiTableCell-root, .runs-container .MuiTableHead-root .MuiTableCell-root, .users-container .MuiTableHead-root .MuiTableCell-root': {
             padding: '16px 8px !important',
             fontWeight: '600 !important',
             backgroundColor: 'rgba(0, 0, 0, 0.04) !important',
           },
         },
-        /* Mobile optimizations (xs - 600px) */
+        /* Mobile optimizations (xs - 600px) - Only apply to specific components */
         '@media (max-width: 600px)': {
-          '.MuiTableCell-root': {
+          '.dashboard-container .MuiTableCell-root, .products-container .MuiTableCell-root, .runs-container .MuiTableCell-root, .users-container .MuiTableCell-root': {
             padding: '8px 4px !important',
             fontSize: '12px !important',
           },
-          '.MuiTableHead-root .MuiTableCell-root': {
+          '.dashboard-container .MuiTableHead-root .MuiTableCell-root, .products-container .MuiTableHead-root .MuiTableCell-root, .runs-container .MuiTableHead-root .MuiTableCell-root, .users-container .MuiTableHead-root .MuiTableCell-root': {
             padding: '12px 4px !important',
             fontSize: '11px !important',
             fontWeight: '600 !important',
           },
-          '.MuiTable-root': {
+          '.dashboard-container .MuiTable-root, .products-container .MuiTable-root, .runs-container .MuiTable-root, .users-container .MuiTable-root': {
             minWidth: 'auto !important',
             width: '100% !important',
           },
-          /* Mobile table layout */
-          '.MuiTableCell-root:first-child': {
+          /* Mobile table layout - Only apply to specific components */
+          '.dashboard-container .MuiTableCell-root:first-child, .products-container .MuiTableCell-root:first-child, .runs-container .MuiTableCell-root:first-child, .users-container .MuiTableCell-root:first-child': {
             width: '80px !important',
             minWidth: '80px !important',
             maxWidth: '80px !important',
           },
-          '.MuiTableCell-root:nth-child(2)': {
+          '.dashboard-container .MuiTableCell-root:nth-child(2), .products-container .MuiTableCell-root:nth-child(2), .runs-container .MuiTableCell-root:nth-child(2), .users-container .MuiTableCell-root:nth-child(2)': {
             width: 'auto !important',
             minWidth: '120px !important',
           },
-          '.MuiTableCell-root:nth-child(3)': {
+          '.dashboard-container .MuiTableCell-root:nth-child(3), .products-container .MuiTableCell-root:nth-child(3), .runs-container .MuiTableCell-root:nth-child(3), .users-container .MuiTableCell-root:nth-child(3)': {
             width: '70px !important',
             minWidth: '70px !important',
             maxWidth: '70px !important',
             textAlign: 'center !important',
           },
-          '.MuiTableCell-root:nth-child(4)': {
+          '.dashboard-container .MuiTableCell-root:nth-child(4), .products-container .MuiTableCell-root:nth-child(4), .runs-container .MuiTableCell-root:nth-child(4), .users-container .MuiTableCell-root:nth-child(4)': {
             width: '80px !important',
             minWidth: '80px !important',
             maxWidth: '80px !important',
             textAlign: 'center !important',
           },
-          '.MuiTableCell-root:last-child': {
+          '.dashboard-container .MuiTableCell-root:last-child, .products-container .MuiTableCell-root:last-child, .runs-container .MuiTableCell-root:last-child, .users-container .MuiTableCell-root:last-child': {
             width: '50px !important',
             minWidth: '50px !important',
             maxWidth: '50px !important',
             textAlign: 'center !important',
           },
-          /* Mobile ProductRow optimizations */
-          '.product-sku': {
+          /* Mobile ProductRow optimizations - Only apply to specific components */
+          '.dashboard-container .product-sku, .products-container .product-sku, .runs-container .product-sku, .users-container .product-sku': {
             fontSize: '11px !important',
             fontWeight: '600 !important',
             fontFamily: 'monospace !important',
           },
-          '.product-name': {
+          '.dashboard-container .product-name, .products-container .product-name, .runs-container .product-name, .users-container .product-name': {
             fontSize: '12px !important',
             lineHeight: '1.3 !important',
             maxWidth: '100% !important',
           },
-          '.MuiChip-root': {
+          '.dashboard-container .MuiChip-root, .products-container .MuiChip-root, .runs-container .MuiChip-root, .users-container .MuiChip-root': {
             minHeight: '24px !important',
             fontSize: '10px !important',
           },
-          '.MuiIconButton-root': {
+          '.dashboard-container .MuiIconButton-root, .products-container .MuiIconButton-root, .runs-container .MuiIconButton-root, .users-container .MuiIconButton-root': {
             minHeight: '36px !important',
             minWidth: '36px !important',
           },
         },
         
-        /* Quote page specific tablet optimizations */
+        /* Quote page specific tablet optimizations - Only apply to quote components */
         '@media (min-width: 600px) and (max-width: 960px)': {
-          '.MuiTable-root': {
+          '.quote-container .MuiTable-root': {
             tableLayout: 'fixed !important',
           },
-          '.MuiTableCell-root:first-child': {
+          '.quote-container .MuiTableCell-root:first-child': {
             width: '120px !important',
             minWidth: '120px !important',
             maxWidth: '120px !important',
             padding: '12px 8px !important',
           },
-          '.MuiTableCell-root:nth-child(2)': {
+          '.quote-container .MuiTableCell-root:nth-child(2)': {
             width: 'auto !important',
             minWidth: '200px !important',
             padding: '12px 8px !important',
           },
-          '.MuiTableCell-root:nth-child(3)': {
+          '.quote-container .MuiTableCell-root:nth-child(3)': {
             width: '100px !important',
             minWidth: '100px !important',
             maxWidth: '100px !important',
             padding: '12px 8px !important',
             textAlign: 'center !important',
           },
-          '.MuiTableCell-root:nth-child(4)': {
+          '.quote-container .MuiTableCell-root:nth-child(4)': {
             width: '120px !important',
             minWidth: '120px !important',
             maxWidth: '120px !important',
             padding: '12px 8px !important',
             textAlign: 'center !important',
           },
-          '.MuiTableCell-root:last-child': {
+          '.quote-container .MuiTableCell-root:last-child': {
             width: '80px !important',
             minWidth: '80px !important',
             maxWidth: '80px !important',
@@ -209,17 +209,8 @@ const theme = createTheme({
     MuiContainer: {
       styleOverrides: {
         root: {
-          paddingLeft: 0,
-          paddingRight: 0,
-          maxWidth: '100% !important',
-          '@media (min-width: 600px)': {
-            paddingLeft: '16px',
-            paddingRight: '16px',
-          },
-          '@media (min-width: 900px)': {
-            paddingLeft: '24px',
-            paddingRight: '24px',
-          },
+          // Remove the aggressive overrides that were causing Login page stretching
+          // Only apply specific overrides where needed
         },
       },
     },
