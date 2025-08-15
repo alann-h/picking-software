@@ -15,6 +15,8 @@ import { createReadStream, unlink as fsUnlink } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { promisify } from 'util';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 
 // --- AWS SDK Imports
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
@@ -69,7 +71,7 @@ app.use(session({
     secure: process.env.VITE_APP_ENV === 'production',
     sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000, // Default: 24 hours
     domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
   },
 }));
@@ -84,8 +86,34 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(morgan(':method :url :status'));
 
+// Security headers with helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Material-UI
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'", "https:", "data:"],
+      connectSrc: ["'self'", "https:"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: []
+    },
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  noSniff: true,
+  xssFilter: true,
+  frameguard: { action: 'deny' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+}));
+
 // — CSRF protection
-const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
+const { generateToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.SESSION_SECRET,
   cookieName: 'x-csrf-token',
   cookieOptions: {
@@ -186,11 +214,46 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
 
 app.use(doubleCsrfProtection);
 
+// Rate limiting for security
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: 'Too many login attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many login attempts',
+      retryAfter: Math.ceil(15 * 60 / 1000),
+      message: 'Account temporarily locked due to too many failed attempts. Please try again later.'
+    });
+  },
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => {
+    // Use IP address for rate limiting
+    return req.ip || req.connection.remoteAddress;
+  }
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per window
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Apply rate limiting to sensitive endpoints
+app.use('/auth/login', loginLimiter);
+app.use('/auth/register', generalLimiter);
+app.use('/auth/*', generalLimiter);
+app.use('/internal/*', generalLimiter);
+
 // Public & CSRF-protected routes
 // src/server.js
 app.get('/csrf-token', (req, res, next) => {
   try {
-    const csrfToken = generateCsrfToken(req, res);
+    const csrfToken = generateToken(res, req);
     req.session.csrfSessionEnsured = true;
 
     req.session.save(err => {
@@ -214,14 +277,231 @@ app.use('/runs', runRoutes);
 
 // Utility routes
 app.get('/verifyUser', asyncHandler(async (req, res) => {
-  res.json({ isValid: !!req.session.userId });
+  // Check if session exists and has required user data
+  const hasValidSession = req.session && 
+                         req.session.userId && 
+                         req.session.companyId && 
+                         req.session.email;
+  
+  if (hasValidSession) {
+    res.json({ 
+      isValid: true, 
+      user: {
+        userId: req.session.userId,
+        companyId: req.session.companyId,
+        name: req.session.name,
+        email: req.session.email,
+        isAdmin: req.session.isAdmin
+      }
+    });
+  } else {
+    res.json({ isValid: false, user: null });
+  }
+}));
+
+// Debug endpoint to troubleshoot session issues
+app.get('/debug/session', asyncHandler(async (req, res) => {
+  res.json({
+    sessionExists: !!req.session,
+    sessionId: req.session?.id,
+    sessionData: req.session,
+    cookies: req.headers.cookie
+  });
+}));
+
+// Security monitoring endpoint (admin only)
+app.get('/security/monitoring', asyncHandler(async (req, res) => {
+  if (!req.session || !req.session.isAdmin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  try {
+    const { getSecurityStats } = await import('./services/securityService.js');
+    const stats = await getSecurityStats();
+    
+    res.json({
+      message: 'Security Monitoring Dashboard',
+      timestamp: new Date().toISOString(),
+      ...stats
+    });
+  } catch (error) {
+    console.error('Error getting security stats:', error);
+    res.status(500).json({ error: 'Failed to get security statistics' });
+  }
+}));
+
+// Global logout endpoint - logout from all devices
+app.post('/logout-all', asyncHandler(async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'No active session found' });
+  }
+
+  const userId = req.session.userId;
+  const companyId = req.session.companyId;
+  
+  console.log(`User ${userId} from company ${companyId} is logging out from all devices`);
+  
+  try {
+    // Delete all sessions for this user from the database using JSON operator
+    const client = await pool.connect();
+    try {
+      const result = await client.query(
+        'DELETE FROM sessions WHERE sess->>\'userId\' = $1 RETURNING sid',
+        [userId]
+      );
+      
+      console.log(`Deleted ${result.rowCount} sessions for user ${userId}`);
+    } finally {
+      client.release();
+    }
+    
+    // Destroy current session
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Error destroying session during global logout:', err);
+        return res.status(500).json({ error: 'Failed to destroy session' });
+      }
+      
+      // Clear the session cookie
+      res.clearCookie('connect.sid', {
+        httpOnly: true,
+        secure: process.env.VITE_APP_ENV === 'production',
+        sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
+        domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+        path: '/'
+      });
+      
+      console.log(`Successfully logged out user ${userId} from all devices`);
+      res.json({ 
+        message: 'Successfully logged out from all devices',
+        deletedSessions: result.rowCount,
+        timestamp: new Date().toISOString()
+      });
+    });
+  } catch (error) {
+    console.error('Error during global logout:', error);
+    res.status(500).json({ error: 'Failed to logout from all devices' });
+  }
+}));
+
+// Get active sessions for current user
+app.get('/sessions', asyncHandler(async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'No active session found' });
+  }
+
+  const userId = req.session.userId;
+  
+  try {
+    const client = await pool.connect();
+    try {
+      // Use JSONB operators for better performance with jsonb type column
+      // Consider adding an index: CREATE INDEX idx_sessions_userid ON sessions USING GIN ((sess->>'userId'))
+      const result = await client.query(
+        'SELECT sid, sess, expire FROM sessions WHERE sess->>\'userId\' = $1',
+        [userId]
+      );
+      
+      const userSessions = result.rows.map(row => ({
+        sessionId: row.sid,
+        userId: row.sess.userId,
+        companyId: row.sess.companyId,
+        email: row.sess.email,
+        name: row.sess.name,
+        isAdmin: row.sess.isAdmin,
+        expiresAt: row.expire,
+        isCurrentSession: row.sid === req.session.id
+      }));
+      
+      res.json({
+        userId,
+        activeSessions: userSessions,
+        totalSessions: userSessions.length
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error fetching user sessions:', error);
+    res.status(500).json({ error: 'Failed to fetch user sessions' });
+  }
+}));
+
+// Enhanced sessions endpoint with JSONB filtering capabilities
+app.get('/sessions/enhanced', asyncHandler(async (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'No active session found' });
+  }
+
+  const userId = req.session.userId;
+  const companyId = req.session.companyId;
+  const { includeExpired = false, adminOnly = false } = req.query;
+  
+  try {
+    const client = await pool.connect();
+    try {
+      let query = `
+        SELECT sid, sess, expire 
+        FROM sessions 
+        WHERE sess->>'userId' = $1 
+        AND sess->>'companyId' = $2
+      `;
+      
+      const params = [userId, companyId];
+      
+      // Add admin filter if requested
+      if (adminOnly === 'true') {
+        query += ` AND sess->>'isAdmin' = 'true'`;
+      }
+      
+      // Add expiration filter
+      if (includeExpired !== 'true') {
+        query += ` AND expire > NOW()`;
+      }
+      
+      // Add ordering
+      query += ` ORDER BY expire DESC`;
+      
+      const result = await client.query(query, params);
+      
+      const userSessions = result.rows.map(row => ({
+        sessionId: row.sid,
+        userId: row.sess.userId,
+        companyId: row.sess.companyId,
+        email: row.sess.email,
+        name: row.sess.name,
+        isAdmin: row.sess.isAdmin,
+        expiresAt: row.expire,
+        isExpired: row.expire < new Date(),
+        isCurrentSession: row.sid === req.session.id
+      }));
+      
+      res.json({
+        userId,
+        companyId,
+        activeSessions: userSessions,
+        totalSessions: userSessions.length,
+        filters: {
+          includeExpired: includeExpired === 'true',
+          adminOnly: adminOnly === 'true'
+        }
+      });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Error fetching enhanced sessions:', error);
+    res.status(500).json({ error: 'Failed to fetch enhanced sessions' });
+  }
 }));
 
 app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   res.json({
     isAdmin: req.session.isAdmin || false,
     userId: req.session.userId,
-    companyId: req.session.companyId
+    companyId: req.session.companyId,
+    name: req.session.name,
+    email: req.session.email
   });
 }));
 

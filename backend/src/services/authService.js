@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
 import crypto from 'crypto';
+import { isAccountLocked, incrementFailedAttempts, resetFailedAttempts } from './securityService.js';
 
 export function initializeOAuthClient() {
   const environment = process.env.VITE_APP_ENV;
@@ -24,8 +25,9 @@ export function initializeOAuthClient() {
   });
 }
 
-export function getAuthUri() {
+export function getAuthUri(rememberMe = false) {
   const oauthClient = initializeOAuthClient();
+  const state = rememberMe ? `rememberMe=true&${crypto.randomBytes(16).toString('hex')}` : crypto.randomBytes(16).toString('hex');
   const authUri = oauthClient.authorizeUri({ 
     scope: [
       OAuthClient.scopes.Accounting,
@@ -33,7 +35,7 @@ export function getAuthUri() {
       OAuthClient.scopes.Profile,
       OAuthClient.scopes.Email,
     ], 
-    state: crypto.randomBytes(16).toString('hex') 
+    state: state
   });
   return Promise.resolve(authUri);
 }
@@ -114,8 +116,15 @@ export async function getOAuthClient(companyId) {
   return oauthClient;
 }
 
-export async function login(email, password) {
+export async function login(email, password, ipAddress = null, userAgent = null) {
   try {
+    // Check if account is locked
+    const lockoutStatus = await isAccountLocked(email);
+    if (lockoutStatus.isLocked) {
+      const remainingTime = Math.ceil((new Date(lockoutStatus.lockedUntil) - new Date()) / 1000 / 60);
+      throw new AuthenticationError(`Account temporarily locked. Try again in ${remainingTime} minutes.`);
+    }
+
     const result = await query(`
       SELECT 
         u.*,
@@ -126,15 +135,22 @@ export async function login(email, password) {
     `, [email]);
 
     if (result.length === 0) {
-      throw new AuthenticationError('Invalid email');
+      // Increment failed attempts for non-existent user
+      await incrementFailedAttempts(email, ipAddress, userAgent);
+      throw new AuthenticationError('Invalid email or password');
     }
 
     const user = result[0];
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new AuthenticationError('Invalid password');
+      // Increment failed attempts for invalid password
+      await incrementFailedAttempts(email, ipAddress, userAgent);
+      throw new AuthenticationError('Invalid email or password');
     }
+
+    // Reset failed attempts on successful login
+    await resetFailedAttempts(email);
 
     const decryptedToken = decryptToken(user.token);
 

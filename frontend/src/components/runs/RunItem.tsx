@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Run, RunQuote } from '../../utils/types';
 import { updateRunQuotes, updateRunStatus } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
-import { useNotificationContext } from '../NotificationContext';
+
 
 
 // --- Helper Functions and Components ---
@@ -59,7 +59,7 @@ export const RunItem: React.FC<{
     
     const queryClient = useQueryClient();
     const { handleOpenSnackbar } = useSnackbarContext();
-    const { notifyRunCompleted } = useNotificationContext();
+
 
     useEffect(() => {
         if (isEditing) {
@@ -85,11 +85,7 @@ export const RunItem: React.FC<{
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
             
-            // Trigger notification for run completion
-            if (variables.newStatus === 'finalised') {
-                const customerNames = run.quotes?.map(q => q.customerName) || [];
-                notifyRunCompleted(run.id, run.run_number, customerNames);
-            }
+
             
             handleOpenSnackbar('Run status updated.', 'success');
         },

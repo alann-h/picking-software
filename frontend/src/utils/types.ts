@@ -104,6 +104,8 @@ export interface RunQuote {
 export interface UserStatusResponse {
   isAdmin: boolean;
   companyId: string | null;
+  name: string | null;
+  email: string | null;
 }
 
 export interface ApiErrorPayload {
@@ -118,32 +120,3 @@ export interface ApiErrorWrapper {
   data: ApiErrorPayload;
 }
 
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'order_completed' | 'run_completed' | 'success' | 'error' | 'info' | 'warning';
-  severity: SnackbarSeverity;
-  timestamp: Date;
-  isRead: boolean;
-  actionUrl?: string;
-  metadata?: {
-    quoteId?: number;
-    runId?: string;
-    customerName?: string;
-    totalAmount?: number;
-  };
-}
-
-export interface NotificationContextType {
-  notifications: Notification[];
-  unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  removeNotification: (id: string) => void;
-  clearAllNotifications: () => void;
-  playNotificationSound: (type: Notification['type']) => void;
-  notifyOrderCompleted: (quoteId: number, customerName: string, totalAmount: number) => void;
-  notifyRunCompleted: (runId: string, runNumber: number, customerNames: string[]) => void;
-}

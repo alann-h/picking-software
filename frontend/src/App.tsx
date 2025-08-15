@@ -7,7 +7,7 @@ import OAuthCallbackHandler from './components/OAuthCallbackHandler';
 import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
 import { SnackbarProvider } from './components/SnackbarContext';
-import { NotificationProvider } from './components/NotificationContext';
+
 import SnackbarComponent from './components/SnackbarComponent';
 import Quote from './components/Quote';
 import theme from './theme';
@@ -51,7 +51,6 @@ const App: React.FC = () => {
     
   return (
     <ThemeProvider theme={theme}>
-      <NotificationProvider>
         <SnackbarProvider>
             <title>Smart Picker</title>
             <link rel="icon" type="image/png" href="/SP.png" />          
@@ -90,7 +89,6 @@ const App: React.FC = () => {
           <SnackbarComponent />
           <Footer />
         </SnackbarProvider>
-      </NotificationProvider>
     </ThemeProvider>
   );
 };

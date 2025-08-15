@@ -11,7 +11,9 @@ import {
   Stack,
   Divider,
   Alert,
-  useTheme
+  useTheme,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { 
   Visibility, 
@@ -19,9 +21,11 @@ import {
   Email, 
   Lock, 
   Business,
-  ArrowForward
+  ArrowForward,
+  SwitchAccount,
+  Person
 } from '@mui/icons-material';
-import { loginWithCredentials, verifyUser } from '../api/auth';
+import { loginWithCredentials, verifyUser, logout } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
@@ -33,7 +37,7 @@ import SEO from './SEO';
 
 const loginSchema = z.object({
   email: z.email({ message: "Please enter a valid email address." }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters." }),
+  password: z.string().min(1, { message: "Password is required." }),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -48,7 +52,6 @@ type FormErrors = ErrorTree | null;
 const Login: React.FC = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const [formData, setFormData] = useState<LoginForm>({ email: '', password: '' });
   const [errors, setErrors] = useState<FormErrors>(null);
@@ -56,24 +59,67 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
+  const [currentUser, setCurrentUser] = useState<{ email: string; name?: string } | null>(null);
+  const [showSwitchAccount, setShowSwitchAccount] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
     verifyUser()
       .then((response) => {
-        if (response.isValid) {
-          navigate('/dashboard');
+        if (response.isValid && response.user && response.user.userId) {
+          const hasRememberMe = localStorage.getItem('rememberMe') === 'true';
+          
+          if (hasRememberMe) {
+            navigate('/dashboard');
+          } else {
+            setCurrentUser({
+              email: response.user.email || 'Unknown User',
+              name: response.user.name
+            });
+            setShowSwitchAccount(true);
+            setLoading(false);
+          }
         } else {
+          console.log('Session invalid or expired:', response);
           setLoading(false);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Error verifying user:', error);
         setLoading(false);
       });
-  }, [handleOpenSnackbar, navigate]);
+  }, [navigate]);
+
+  const handleSwitchAccount = () => {
+    setShowSwitchAccount(false);
+    setCurrentUser(null);
+    localStorage.removeItem('rememberMe');
+  };
+
+  const handleContinueAsCurrentUser = () => {
+    navigate('/dashboard');
+  };
+
+  const handleForceLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('rememberMe');
+      setShowSwitchAccount(false);
+      setCurrentUser(null);
+      setLoading(false);
+    }
+  };
 
   const handleQuickBooksLogin = () => {
     setIsSubmitting(true);
-    window.location.href = AUTH_URI;
+    if (rememberMe) {
+      localStorage.setItem('rememberMe', 'true');
+    }
+    const authUriWithRememberMe = rememberMe ? `${AUTH_URI}?rememberMe=true` : AUTH_URI;
+    window.location.href = authUriWithRememberMe;
   };
 
   const validateField = (name: string, value: string) => {
@@ -82,7 +128,7 @@ const Login: React.FC = () => {
         z.email().parse(value);
         return '';
       } else if (name === 'password') {
-        z.string().min(8, { message: "Password must be at least 8 characters." }).parse(value);
+        z.string().parse(value);
         return '';
       }
     } catch (error) {
@@ -100,14 +146,12 @@ const Login: React.FC = () => {
       [name]: value,
     }));
 
-    // Real-time validation
     const error = validateField(name, value);
     setValidationErrors(prev => ({
       ...prev,
       [name]: error
     }));
 
-    // Clear server errors if they exist
     if (errors?.properties?.[name]) {
       setErrors(prev => {
         if (!prev?.properties) {
@@ -155,7 +199,7 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const user = await loginWithCredentials(validationResult.data.email, validationResult.data.password);
+      const user = await loginWithCredentials(validationResult.data.email, validationResult.data.password, rememberMe);
 
       if (user.qboReAuthRequired) {
         handleOpenSnackbar('Your QuickBooks connection has expired. Redirecting to reconnect...', 'warning');
@@ -165,6 +209,12 @@ const Login: React.FC = () => {
         }, 3000);
 
       } else {
+        // Store remember me preference
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.removeItem('rememberMe');
+        }
         navigate('/dashboard');
       }
     } catch (err) {
@@ -212,6 +262,68 @@ const Login: React.FC = () => {
                   boxShadow: '0 20px 40px rgba(30, 64, 175, 0.15)'
                 }}
               >
+                {/* Current User Info - Show when user is authenticated but wants to switch */}
+                {showSwitchAccount && currentUser && (
+                  <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(59, 130, 246, 0.08)', borderRadius: 2, border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Person sx={{ color: '#3B82F6', mr: 1 }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E40AF' }}>
+                        Currently signed in as:
+                      </Typography>
+                    </Box>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {currentUser.name || 'User'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {currentUser.email}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button
+                        variant="contained"
+                        onClick={handleContinueAsCurrentUser}
+                        sx={{
+                          background: 'linear-gradient(135deg, #10B981, #059669)',
+                          color: 'white',
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #059669, #047857)',
+                          }
+                        }}
+                      >
+                        Continue as Current User
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<SwitchAccount />}
+                        onClick={handleSwitchAccount}
+                        sx={{
+                          borderColor: '#3B82F6',
+                          color: '#3B82F6',
+                          '&:hover': {
+                            borderColor: '#1E40AF',
+                            backgroundColor: 'rgba(59, 130, 246, 0.04)',
+                          }
+                        }}
+                      >
+                        Switch Account
+                      </Button>
+                      <Button
+                        variant="text"
+                        color="error"
+                        onClick={handleForceLogout}
+                        sx={{
+                          '&:hover': {
+                            backgroundColor: 'rgba(239, 68, 68, 0.04)',
+                          }
+                        }}
+                      >
+                        Force Logout
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+
                 {/* Header */}
                 <Box sx={{ textAlign: 'center', mb: 4 }}>
                   <Typography 
@@ -225,10 +337,10 @@ const Login: React.FC = () => {
                       mb: 1
                     }}
                   >
-                    Welcome Back
+                    {showSwitchAccount ? 'Switch Account' : 'Welcome Back'}
                   </Typography>
                   <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
-                    Sign in to Smart Picker
+                    {showSwitchAccount ? 'Sign in with different credentials' : 'Sign in to Smart Picker'}
                   </Typography>
                 </Box>
 
@@ -271,53 +383,49 @@ const Login: React.FC = () => {
                       }}
                     />
                     
+                    {/* Password field */}
                     <TextField
-                      required
                       fullWidth
-                      name="password"
                       label="Password"
                       type={showPassword ? 'text' : 'password'}
-                      id="password"
-                      autoComplete="current-password"
                       value={formData.password}
-                      onChange={handleInputChange}
-                      error={!!validationErrors.password || !!errors?.properties?.password?.errors.length}
-                      helperText={validationErrors.password || errors?.properties?.password?.errors[0]}
-                      variant="outlined"
-                      disabled={isSubmitting} 
-                      slotProps={{
-                        input: {
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Lock sx={{ color: 'text.secondary' }} />
-                            </InputAdornment>
-                          ),
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                aria-label="toggle password visibility"
-                                onClick={handleClickShowPassword}
-                                onMouseDown={handleMouseDownPassword}
-                                edge="end"
-                                sx={{ color: 'text.secondary' }}
-                              >
-                                {showPassword ? <VisibilityOff /> : <Visibility />}
-                              </IconButton>
-                            </InputAdornment>
-                          )
-                        },
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      error={!!validationErrors.password}
+                      helperText={validationErrors.password}
+                      sx={{ mt: 2 }}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() => setShowPassword(!showPassword)}
+                              edge="end"
+                            >
+                              {showPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
                       }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                          '&:hover .MuiOutlinedInput-notchedOutline': {
-                            borderColor: '#3B82F6',
-                          },
-                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                            borderColor: '#1E40AF',
-                          },
-                        },
-                      }}
+                    />
+
+                    {/* Remember Me Checkbox */}
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          sx={{
+                            color: '#3B82F6',
+                            '&.Mui-checked': {
+                              color: '#1E40AF',
+                            },
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+                          Remember me for 30 days
+                        </Typography>
+                      }
                     />
 
                     <Button
@@ -346,7 +454,7 @@ const Login: React.FC = () => {
                         }
                       }}
                     >
-                      {isSubmitting ? 'Signing In...' : 'Sign In'}
+                      {isSubmitting ? 'Signing In...' : (showSwitchAccount ? 'Switch Account' : 'Sign In')}
                     </Button>
                   </Stack>
                 </Box>
@@ -391,23 +499,7 @@ const Login: React.FC = () => {
                   Sign in with QuickBooks
                 </Button>
 
-                {/* Password Requirements */}
-                <Alert 
-                  severity="info" 
-                  sx={{ 
-                    mt: 3,
-                    borderRadius: 2,
-                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                    '& .MuiAlert-icon': {
-                      color: '#3B82F6'
-                    }
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                    Password must be at least 8 characters long
-                  </Typography>
-                </Alert>
+
               </Paper>
             </motion.div>
           </Container>

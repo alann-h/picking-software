@@ -442,10 +442,10 @@ const PrivacyPolicy: React.FC = () => {
                   <ListItemText primary="Posting the updated policy on our website" />
                 </ListItem>
                 <ListItem>
-                  <ListItemText primary="Sending email notifications to registered users" />
+                  <ListItemText primary="Sending emails to registered users" />
                 </ListItem>
                 <ListItem>
-                  <ListItemText primary="Displaying in-app notifications" />
+                  <ListItemText primary="Displaying updates in the application" />
                 </ListItem>
               </List>
               <Typography variant="body1" sx={{ mt: 2 }}>

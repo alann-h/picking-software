@@ -1,7 +1,7 @@
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from './SnackbarContext';
-import { useNotificationContext } from './NotificationContext';
+
 import { OpenModalFunction } from '../utils/modalState';
 import { QuoteData, ProductDetail } from '../utils/types';
 import { HttpError } from '../utils/apiHelpers';
@@ -30,7 +30,6 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { handleOpenSnackbar } = useSnackbarContext();
-    const { notifyOrderCompleted } = useNotificationContext();
 
     const { data: quoteData } = useSuspenseQuery<QuoteData, HttpError>({
         queryKey: ['quote', quoteId],
@@ -122,12 +121,7 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
                 if (qbWindow) qbWindow.location.href = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`; 
             }, 3000); 
             
-            // Trigger notification for order completion
-            notifyOrderCompleted(
-                quoteId, 
-                quoteData.customerName, 
-                quoteData.totalAmount
-            );
+
             
             handleOpenSnackbar('Quote finalised and opened in QuickBooks!', 'success'); 
             navigate('/dashboard'); 

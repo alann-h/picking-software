@@ -19,6 +19,8 @@ export const useUserStatus = () => {
   return {
     isAdmin: data?.isAdmin ?? false,
     userCompanyId: data?.companyId ?? null,
+    userName: data?.name ?? null,
+    userEmail: data?.email ?? null,
     isLoadingStatus,
     isError,
   };

@@ -139,7 +139,7 @@ const UploadTab: React.FC<UploadTabProps> = ({ refetch }) => {
                     • Large files may take several minutes to process
                   </Typography>
                   <Typography variant="body2" color="warning.dark">
-                    • You'll receive a notification when processing is complete
+                    • Processing status will be shown in the interface
                   </Typography>
                 </Stack>
               </Stack>

@@ -262,7 +262,7 @@ const TermsOfService: React.FC = () => {
                   <ListItemText primary="Posting the new Terms on our website" />
                 </ListItem>
                 <ListItem>
-                  <ListItemText primary="Sending you an email notification" />
+                  <ListItemText primary="Sending you an email" />
                 </ListItem>
                 <ListItem>
                   <ListItemText primary="Displaying a notice in the Service" />

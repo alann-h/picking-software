@@ -3,8 +3,8 @@ import { apiCallGet, apiCallPost, apiCallDelete } from '../utils/apiHelpers';
 /**
  * Login user with credentials (for non admin users)
  */
-export const loginWithCredentials = async (email: string, password: string) => {
-  const data = await apiCallPost('auth/login', { email, password });
+export const loginWithCredentials = async (email: string, password: string, rememberMe: boolean = false) => {
+  const data = await apiCallPost('auth/login', { email, password, rememberMe });
   return data;
 };
 
@@ -16,6 +16,59 @@ export const verifyUser = async () => {
   return response;
 };
 
+/**
+ * Logout user from current session
+ */
+export const logout = async () => {
+  const response = await apiCallPost('auth/logout', {});
+  return response;
+};
+
+/**
+ * Logout user from all devices/sessions
+ */
+export const logoutAllDevices = async () => {
+  const response = await apiCallPost('logout-all', {});
+  return response;
+};
+
+/**
+ * Get active sessions for current user
+ */
+export const getUserSessions = async () => {
+  const response = await apiCallGet('sessions');
+  return response;
+};
+
+/**
+ * Get enhanced sessions with JSONB filtering capabilities
+ */
+export const getEnhancedSessions = async (filters?: { 
+  includeExpired?: boolean; 
+  adminOnly?: boolean; 
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.includeExpired) params.append('includeExpired', 'true');
+  if (filters?.adminOnly) params.append('adminOnly', 'true');
+  
+  const queryString = params.toString();
+  const url = queryString ? `sessions/enhanced?${queryString}` : 'sessions/enhanced';
+  
+  const response = await apiCallGet(url);
+  return response;
+};
+
+/**
+ * Get security monitoring statistics (admin only)
+ */
+export const getSecurityStats = async () => {
+  const response = await apiCallGet('security/monitoring');
+  return response;
+};
+
+/**
+ * Disconnect from QuickBooks
+ */
 export const disconnectQB = async() => {
   const response = await apiCallDelete('auth/disconnect');
   return response;

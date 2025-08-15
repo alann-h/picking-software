@@ -15,6 +15,11 @@ import {
   ListItemText,
   Avatar,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -25,11 +30,13 @@ import {
   Group as GroupIcon,
   Dashboard as DashboardIcon,
   Logout as LogoutIcon,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  DevicesOther as DevicesOtherIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
-import NotificationBell from './NotificationBell';
+
+import { logout, logoutAllDevices, getUserSessions } from '../api/auth';
 
 interface TopBarProps {
   disableTopBar: boolean;
@@ -42,7 +49,7 @@ interface TopBarProps {
 const AuthenticatedNavItems: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery(useTheme().breakpoints.down('sm'));
-  const { isAdmin } = useAuth();
+  const { isAdmin, userName, userEmail } = useAuth();
 
   return (
     <>
@@ -133,8 +140,14 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
+  const [logoutAllDialogOpen, setLogoutAllDialogOpen] = useState(false);
+  
   const open = Boolean(anchorEl);
   const mobileMenuOpen = Boolean(mobileMenuAnchor);
+
+  const authData = disableTopBar ? null : useAuth();
+  const userName = authData?.userName || null;
+  const userEmail = authData?.userEmail || null;
 
   const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
   const handleMobileMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setMobileMenuAnchor(event.currentTarget);
@@ -142,9 +155,70 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const handleMobileMenuClose = () => setMobileMenuAnchor(null);
   const handleTitleClick = () => navigate(disableTopBar ? '/' : '/dashboard');
   const handleMenuItemClick = (path: string) => {
-    navigate(path);
+    if (path === '/logout') {
+      // Clear remember me preference and logout
+      localStorage.removeItem('rememberMe');
+      // You can add a logout API call here if needed
+      navigate('/login');
+    } else if (path === '/logout-all') {
+      // Show confirmation dialog for logout from all devices
+      setLogoutAllDialogOpen(true);
+    } else if (path === '/sessions') {
+      // Show active sessions information
+      showActiveSessions();
+    } else {
+      navigate(path);
+    }
     handleMenuClose();
     handleMobileMenuClose();
+  };
+
+  const handleLogoutAllDevices = async () => {
+    try {
+      // Call logout from all devices API
+      await logoutAllDevices();
+      // Clear remember me preference
+      localStorage.removeItem('rememberMe');
+      // Navigate to login
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out from all devices:', error);
+      // Even if API fails, clear local state and redirect
+      localStorage.removeItem('rememberMe');
+      navigate('/login');
+    } finally {
+      // Close the dialog
+      setLogoutAllDialogOpen(false);
+    }
+  };
+
+  const showActiveSessions = async () => {
+    try {
+      const sessions = await getUserSessions();
+      
+      if (sessions.totalSessions === 0) {
+        alert('You have no active sessions.');
+        return;
+      }
+      
+      // Show sessions info in an alert (you can enhance this with a proper dialog later)
+      const sessionDetails = sessions.activeSessions.map((s: any) => 
+        `${s.isCurrentSession ? '🟢' : '🔵'} ${s.name || 'Unknown'} - ${s.email}\n   Expires: ${new Date(s.expiresAt).toLocaleString()}`
+      ).join('\n\n');
+      
+      alert(`You have ${sessions.totalSessions} active session(s).\n\nSession details:\n${sessionDetails}`);
+    } catch (error: any) {
+      console.error('Error fetching sessions:', error);
+      
+      // Provide more specific error messages
+      if (error.response?.status === 401) {
+        alert('Your session has expired. Please log in again.');
+      } else if (error.response?.status === 500) {
+        alert('Server error while fetching sessions. Please try again later.');
+      } else {
+        alert('Could not fetch active sessions. Please try again.');
+      }
+    }
   };
   
   return (
@@ -269,89 +343,102 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                 </IconButton>
               </Box>
 
-              {/* Notifications Icon */}
-              <NotificationBell />
 
-              {/* Settings Menu */}
-              <Tooltip title="Settings">
-                <IconButton 
-                  onClick={handleMenuClick}
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: 'rgba(59,130,246,0.1)'
-                    }
-                  }}
-                >
-                  <SettingsIcon />
-                </IconButton>
-              </Tooltip>
 
-              {/* User Profile */}
-              <Box sx={{ ml: 1 }}>
-                <IconButton 
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: 'rgba(59,130,246,0.1)'
-                    }
-                  }}
-                >
-                  <Avatar 
-                    sx={{ 
-                      width: 32, 
-                      height: 32,
-                      background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                      fontSize: '0.875rem',
-                      fontWeight: 'bold'
+              {/* User Profile - Only show when we have auth data */}
+              {authData && (
+                <Box sx={{ ml: 1 }}>
+                  <IconButton 
+                    onClick={handleMenuClick}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(59,130,246,0.1)'
+                      }
                     }}
                   >
-                    U
-                  </Avatar>
-                </IconButton>
-              </Box>
+                    <Avatar 
+                      sx={{ 
+                        width: 32, 
+                        height: 32,
+                        background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
+                        fontSize: '0.875rem',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                    </Avatar>
+                  </IconButton>
+                </Box>
+              )}
 
               {/* Desktop Settings Menu */}
-              <Menu 
-                id="settings-menu" 
-                anchorEl={anchorEl} 
-                open={open} 
-                onClose={handleMenuClose}
-                slotProps={{
-                  paper: {
-                    sx: {
-                      borderRadius: 2,
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                      border: '1px solid rgba(59,130,246,0.1)',
-                      minWidth: 200
+              {authData && (
+                <Menu 
+                  id="settings-menu" 
+                  anchorEl={anchorEl} 
+                  open={open} 
+                  onClose={handleMenuClose}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        borderRadius: 2,
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                        border: '1px solid rgba(59,130,246,0.1)',
+                        minWidth: 200
+                      }
                     }
-                  }
-                }}
-              >
-                <SettingsMenuContent onMenuItemClick={handleMenuItemClick} />
-              </Menu>
+                  }}
+                >
+                  <SettingsMenuContent onMenuItemClick={handleMenuItemClick} userName={userName} userEmail={userEmail} />
+                </Menu>
+              )}
 
               {/* Mobile Menu */}
-              <Menu 
-                id="mobile-menu" 
-                anchorEl={mobileMenuAnchor} 
-                open={mobileMenuOpen} 
-                onClose={handleMobileMenuClose}
-                slotProps={{
-                  paper: {
-                    sx: {
-                      borderRadius: 2,
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                      border: '1px solid rgba(59,130,246,0.1)',
-                      minWidth: 250
+              {authData && (
+                <Menu 
+                  id="mobile-menu" 
+                  anchorEl={mobileMenuAnchor} 
+                  open={mobileMenuOpen} 
+                  onClose={handleMobileMenuClose}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        borderRadius: 2,
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                        border: '1px solid rgba(59,130,246,0.1)',
+                        minWidth: 250
+                      }
                     }
-                  }
-                }}
-              >
-                <MobileMenuContent onMenuItemClick={handleMenuItemClick} />
-              </Menu>
+                  }}
+                >
+                  <MobileMenuContent onMenuItemClick={handleMenuItemClick} userName={userName} userEmail={userEmail} />
+                </Menu>
+              )}
             </>
           )}
         </Box>
       </Toolbar>
+      
+      {/* Confirmation Dialog for Logout from All Devices */}
+      <Dialog
+        open={logoutAllDialogOpen}
+        onClose={() => setLogoutAllDialogOpen(false)}
+        aria-labelledby="logout-all-dialog-title"
+        aria-describedby="logout-all-dialog-description"
+      >
+        <DialogTitle id="logout-all-dialog-title">Confirm Logout from All Devices</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="logout-all-dialog-description">
+            Are you sure you want to log out from all devices? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutAllDialogOpen(false)} color="primary">Cancel</Button>
+          <Button onClick={handleLogoutAllDevices} color="error" variant="contained">
+            Logout from All Devices
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AppBar>
   );
 };
@@ -360,11 +447,21 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
 // 3. A new component for the Menu items
 // This ensures useAuth is only called for the menu when it's visible on a protected page.
 // ====================================================================================
-const SettingsMenuContent: React.FC<{ onMenuItemClick: (path: string) => void }> = ({ onMenuItemClick }) => {
+const SettingsMenuContent: React.FC<{ onMenuItemClick: (path: string) => void; userName: string | null; userEmail: string | null }> = ({ onMenuItemClick, userName, userEmail }) => {
     const { isAdmin } = useAuth();
 
     return (
         <div>
+            {/* User Info Section */}
+            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    {userName || 'User'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    {userEmail || 'user@example.com'}
+                </Typography>
+            </Box>
+            
             <MenuItem 
               onClick={() => onMenuItemClick('/dashboard')}
               sx={{
@@ -395,6 +492,15 @@ const SettingsMenuContent: React.FC<{ onMenuItemClick: (path: string) => void }>
             ]}
             <Divider sx={{ my: 1 }} />
             <MenuItem 
+              onClick={() => onMenuItemClick('/sessions')}
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+              }}
+            >
+                <ListItemIcon><DevicesOtherIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>View Active Sessions</ListItemText>
+            </MenuItem>
+            <MenuItem 
               onClick={() => onMenuItemClick('/logout')}
               sx={{
                 '&:hover': { backgroundColor: 'rgba(220,38,38,0.1)' },
@@ -404,6 +510,16 @@ const SettingsMenuContent: React.FC<{ onMenuItemClick: (path: string) => void }>
                 <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
                 <ListItemText>Logout</ListItemText>
             </MenuItem>
+            <MenuItem 
+              onClick={() => onMenuItemClick('/logout-all')}
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(220,38,38,0.1)' },
+                color: 'error.main'
+              }}
+            >
+                <ListItemIcon><DevicesOtherIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Logout from All Devices</ListItemText>
+            </MenuItem>
         </div>
     );
 }
@@ -411,11 +527,21 @@ const SettingsMenuContent: React.FC<{ onMenuItemClick: (path: string) => void }>
 // ====================================================================================
 // 4. Mobile Menu Content
 // ====================================================================================
-const MobileMenuContent: React.FC<{ onMenuItemClick: (path: string) => void }> = ({ onMenuItemClick }) => {
+const MobileMenuContent: React.FC<{ onMenuItemClick: (path: string) => void; userName: string | null; userEmail: string | null }> = ({ onMenuItemClick, userName, userEmail }) => {
     const { isAdmin } = useAuth();
 
     return (
         <div>
+            {/* User Info Section */}
+            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    {userName || 'User'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                    {userEmail || 'user@example.com'}
+                </Typography>
+            </Box>
+            
             <MenuItem 
               onClick={() => onMenuItemClick('/dashboard')}
               sx={{
@@ -472,6 +598,15 @@ const MobileMenuContent: React.FC<{ onMenuItemClick: (path: string) => void }> =
             
             <Divider sx={{ my: 1 }} />
             <MenuItem 
+              onClick={() => onMenuItemClick('/sessions')}
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+              }}
+            >
+                <ListItemIcon><DevicesOtherIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>View Active Sessions</ListItemText>
+            </MenuItem>
+            <MenuItem 
               onClick={() => onMenuItemClick('/logout')}
               sx={{
                 '&:hover': { backgroundColor: 'rgba(220,38,38,0.1)' },
@@ -480,6 +615,16 @@ const MobileMenuContent: React.FC<{ onMenuItemClick: (path: string) => void }> =
             >
                 <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
                 <ListItemText>Logout</ListItemText>
+            </MenuItem>
+            <MenuItem 
+              onClick={() => onMenuItemClick('/logout-all')}
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(220,38,38,0.1)' },
+                color: 'error.main'
+              }}
+            >
+                <ListItemIcon><DevicesOtherIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Logout from All Devices</ListItemText>
             </MenuItem>
         </div>
     );
