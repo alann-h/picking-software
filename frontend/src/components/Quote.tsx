@@ -132,7 +132,8 @@ const Quote: React.FC = () => {
                     bgcolor: 'grey.200', 
                     borderRadius: 3,
                     overflow: 'hidden',
-                    position: 'relative'
+                    position: 'relative',
+                    border: `1px solid ${theme.palette.divider}`
                   }}>
                     <Box 
                       sx={{ 

@@ -50,7 +50,7 @@ async function filterEstimates(responseData, companyId) {
 
             const itemId = line.SalesItemLineDetail.ItemRef.value;
             const itemLocal = productMap.get(itemId);
-            
+
             if (!itemLocal) {
                 return {
                     error: true,
@@ -413,7 +413,7 @@ export async function getQuotesWithStatus(status) {
       'SELECT * FROM quotes WHERE orderstatus = $1 ORDER BY lastmodified DESC',
       [status]
     );
-
+    console.log(result);
     return result.map(quote => {
       const formattedTimeStarted = formatTimestampForSydney(quote.timestarted);
       const formattedLastModified = formatTimestampForSydney(quote.lastmodified);
