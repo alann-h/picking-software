@@ -50,7 +50,7 @@ async function filterEstimates(responseData, companyId) {
 
             const itemId = line.SalesItemLineDetail.ItemRef.value;
             const itemLocal = productMap.get(itemId);
-
+            
             if (!itemLocal) {
                 return {
                     error: true,
@@ -67,6 +67,8 @@ async function filterEstimates(responseData, companyId) {
                 pickingQty: line.SalesItemLineDetail?.Qty || 0,
                 originalQty: line.SalesItemLineDetail?.Qty || 0,
                 pickingStatus: 'pending',
+                price: parseFloat(itemLocal.price),
+                quantityOnHand: parseFloat(itemLocal.quantity_on_hand),
                 companyId,
                 barcode: itemLocal.barcode,
                 tax_code_ref: itemLocal.tax_code_ref

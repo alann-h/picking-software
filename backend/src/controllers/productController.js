@@ -28,7 +28,7 @@ export async function getProduct(req, res, next) {
     const { productId } = req.params;
     const qboItemId = await productIdToQboId(parseInt(productId, 10));
     const productData = await getProductsFromDBByIds([qboItemId]);
-    res.json(productData);
+    res.json(productData[0]);
   } catch (err) {
     next(err);
   }

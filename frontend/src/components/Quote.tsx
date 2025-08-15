@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { 
   Paper, Typography, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Box, useTheme, 
-  useMediaQuery, Button, TextField
+  useMediaQuery, Button, TextField, Chip
 } 
 from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -107,23 +107,139 @@ const Quote: React.FC = () => {
       
       {/* UI Rendering remains largely the same */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-        <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
-          Quote no.{quoteId}
-        </Typography>
+        <Box>
+          <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
+            Quote no.{quoteId}
+          </Typography>
+          
+          {/* Progress Indicator */}
+          <Box sx={{ 
+            mt: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2
+          }}>
+            {(() => {
+              const totalPicked = productArray.reduce((sum, p) => sum + Number(p.pickingQty), 0);
+              const totalOriginal = productArray.reduce((sum, p) => sum + Number(p.originalQty), 0);
+              const progressPercentage = totalOriginal > 0 ? (totalPicked / totalOriginal) * 100 : 0;
+              
+              return (
+                <>
+                  <Box sx={{ 
+                    width: 120, 
+                    height: 6, 
+                    bgcolor: 'grey.200', 
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}>
+                    <Box 
+                      sx={{ 
+                        width: `${Math.min(progressPercentage, 100)}%`, 
+                        height: '100%', 
+                        bgcolor: 'primary.main',
+                        transition: 'width 0.3s ease-in-out',
+                        borderRadius: 3
+                      }} 
+                    />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                    {totalPicked}/{totalOriginal} boxes • {Math.round(progressPercentage)}%
+                  </Typography>
+                </>
+              );
+            })()}
+          </Box>
+        </Box>
       </Box>
 
       {/* Header Info */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2, flexWrap: 'wrap' }}>
-        <Typography variant="h5">Customer: {quoteData.customerName}</Typography>
-        <Typography variant="h5" color='success'>Total Amount: ${quoteData.totalAmount}</Typography>
-        <Typography variant="h5" sx={{ textTransform: 'capitalize', color: getStatusColor(quoteData.orderStatus) }}>Status: {quoteData.orderStatus}</Typography>
-        <Typography>Last Modified: {quoteData.lastModified}</Typography>
+      <Box sx={{ 
+        mb: 3, 
+        p: 3, 
+        bgcolor: 'grey.50', 
+        borderRadius: 3, 
+        border: '1px solid', 
+        borderColor: 'grey.200' 
+      }}>
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, 
+          gap: 3,
+          alignItems: 'center'
+        }}>
+          {/* Customer Name */}
+          <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Customer
+            </Typography>
+            <Typography variant="h6" fontWeight={600} color="primary">
+              {quoteData.customerName}
+            </Typography>
+          </Box>
+
+          {/* Total Amount */}
+          <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Total Amount
+            </Typography>
+            <Typography variant="h6" fontWeight={600} color="success.main">
+              ${quoteData.totalAmount}
+            </Typography>
+          </Box>
+
+          {/* Order Status */}
+          <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Status
+            </Typography>
+            <Chip
+              label={quoteData.orderStatus}
+              sx={{
+                backgroundColor: getStatusColor(quoteData.orderStatus),
+                color: 'white',
+                textTransform: 'capitalize',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                height: 32
+              }}
+            />
+          </Box>
+
+          {/* Last Modified */}
+          <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
+            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+              Last Modified
+            </Typography>
+            <Typography variant="body2" fontWeight={500} color="text.primary">
+              {quoteData.lastModified}
+            </Typography>
+          </Box>
+        </Box>
       </Box>
       
       {/* Actions and Filters */}
       <Box sx={{ mb: 2 }}>
-        <TextField label="Customer/Sales Note" variant="outlined" multiline rows={3} value={quoteData.orderNote || 'No note provided.'} fullWidth InputProps={{ readOnly: true }} />
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+        <Box sx={{ 
+          p: 2, 
+          bgcolor: 'grey.50', 
+          borderRadius: 2, 
+          border: '1px solid', 
+          borderColor: 'grey.200',
+          mb: 2
+        }}>
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 600, textTransform: 'uppercase' }}>
+            Customer/Sales Note
+          </Typography>
+          <Typography variant="body2" color="text.primary" sx={{ fontStyle: 'italic' }}>
+            {quoteData.orderNote || 'No note provided.'}
+          </Typography>
+        </Box>
+        
+
+        
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
           <Button variant="outlined" color="secondary" onClick={() => openModal('cameraScanner')} disabled={quoteData.orderStatus === 'finalised'}>
             <CameraAltIcon /> {!isMobile && "Scan"}
           </Button>

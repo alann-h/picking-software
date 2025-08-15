@@ -163,7 +163,10 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
             const data = await getProductInfo(productId);
             openModal('productDetails', {
                 name: data.productname,
-                details: { ...details, qtyOnHand: data.quantity_on_hand }
+                details: { 
+                    ...details,
+                    qtyOnHand: parseFloat(data.quantity_on_hand) || 0,
+                }
             });
         } catch (error: any) {
             handleOpenSnackbar(error.message, 'error');

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
   TableRow, TableCell, Chip, useTheme, Tooltip,
-  Box, Menu, MenuItem, IconButton, CircularProgress
+  Box, Menu, MenuItem, IconButton, CircularProgress,
+  Typography, Divider
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { ProductDetail } from '../utils/types';
@@ -34,6 +35,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
     setAnchorEl(null);
   };
 
+  const handleProductClick = () => {
+    actions.openProductDetailsModal(product.productId, product);
+  };
+
   const isAnyActionLoading = Object.values(pendingStates).some(status => status);
 
   const handleAction = (action: () => void) => {
@@ -41,63 +46,188 @@ const ProductRow: React.FC<ProductRowProps> = ({
     handleClose();
   };
 
+  const getQuantityColor = () => {
+    if (product.pickingQty === product.originalQty) {
+      return theme.palette.success.main;
+    } else if (product.pickingQty > 0) {
+      return theme.palette.warning.main;
+    }
+    return theme.palette.text.secondary;
+  };
+
   return (
-    <TableRow hover>
-      <TableCell>{product.sku}</TableCell>
-      <TableCell sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
-        {product.productName}
+    <TableRow 
+      hover 
+      sx={{
+        '&:hover': {
+          backgroundColor: theme.palette.action.hover,
+          '& .product-name': {
+            color: theme.palette.primary.main,
+            textDecoration: 'underline',
+            cursor: 'pointer'
+          }
+        },
+        transition: 'all 0.2s ease-in-out'
+      }}
+    >
+      <TableCell>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            fontFamily: 'monospace',
+            fontWeight: 500,
+            color: theme.palette.text.secondary
+          }}
+        >
+          {product.sku}
+        </Typography>
       </TableCell>
-      <TableCell sx={{ color: theme.palette.secondary.main, fontWeight: 'bold' }}>
-        {product.pickingQty}/{product.originalQty}
+      
+      <TableCell>
+        <Typography
+          className="product-name"
+          variant="body1"
+          sx={{
+            color: theme.palette.text.primary,
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              color: theme.palette.primary.main,
+              textDecoration: 'underline'
+            }
+          }}
+          onClick={handleProductClick}
+        >
+          {product.productName}
+        </Typography>
       </TableCell>
+      
+      <TableCell>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: getQuantityColor(),
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}
+          >
+            {product.pickingQty}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: theme.palette.text.secondary,
+              fontSize: '0.75rem'
+            }}
+          >
+            / {product.originalQty}
+          </Typography>
+        </Box>
+      </TableCell>
+      
       <TableCell>
         <Tooltip title={`Current picking status: ${product.pickingStatus}`}>
           <Chip
             label={product.pickingStatus}
+            size="small"
             sx={{
               backgroundColor: getStatusColor(product.pickingStatus),
               color: theme.palette.common.white,
-              textTransform: 'capitalize'
+              textTransform: 'capitalize',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              height: '24px',
+              '& .MuiChip-label': {
+                px: 1.5
+              }
             }}
           />
         </Tooltip>
       </TableCell>
+      
       <TableCell>
-        <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <IconButton
             aria-label="more options"
             onClick={handleClick}
             disabled={isAnyActionLoading}
+            size="small"
+            sx={{
+              color: theme.palette.action.active,
+              '&:hover': {
+                backgroundColor: theme.palette.action.hover,
+                color: theme.palette.primary.main
+              }
+            }}
           >
-            {isAnyActionLoading ? <CircularProgress size={24} /> : <MoreVertIcon />}
+            {isAnyActionLoading ? (
+              <CircularProgress size={20} />
+            ) : (
+              <MoreVertIcon fontSize="small" />
+            )}
           </IconButton>
-          <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-            <MenuItem onClick={() => handleAction(() => actions.openProductDetailsModal(product.productId, product))}>
-              Details
+          
+          <Menu 
+            anchorEl={anchorEl} 
+            open={open} 
+            onClose={handleClose}
+            PaperProps={{
+              sx: {
+                minWidth: 180,
+                boxShadow: theme.shadows[8],
+                border: `1px solid ${theme.palette.divider}`
+              }
+            }}
+          >
+            <MenuItem 
+              onClick={() => handleAction(() => actions.openProductDetailsModal(product.productId, product))}
+              sx={{ py: 1.5 }}
+            >
+              <Typography variant="body2">View Details</Typography>
             </MenuItem>
+            
+            <Divider />
+            
             <MenuItem 
               onClick={() => handleAction(() => actions.openAdjustQuantityModal(product.productId, product.pickingQty, product.productName))}
               disabled={product.pickingStatus === 'completed'}
+              sx={{ py: 1.5 }}
             >
-              Adjust Quantity
+              <Typography variant="body2">Adjust Quantity</Typography>
             </MenuItem>
+            
             <MenuItem 
               onClick={() => handleAction(() => actions.saveForLater(product.productId))} 
               disabled={product.pickingStatus === 'completed'}
+              sx={{ py: 1.5 }}
             >
-              {product.pickingStatus === 'backorder' ? 'Set to Pending' : 'Save for Later'}
+              <Typography variant="body2">
+                {product.pickingStatus === 'backorder' ? 'Set to Pending' : 'Save for Later'}
+              </Typography>
             </MenuItem>
+            
             <MenuItem 
               onClick={() => handleAction(() => actions.setUnavailable(product.productId))}
               disabled={product.pickingStatus === 'completed'}
+              sx={{ py: 1.5 }}
             >
-              {product.pickingStatus === 'unavailable' ? 'Set as Available' : 'Set Unavailable'}
+              <Typography variant="body2" sx={{ color: theme.palette.error.main }}>
+                {product.pickingStatus === 'unavailable' ? 'Set as Available' : 'Set Unavailable'}
+              </Typography>
             </MenuItem>
-             <MenuItem 
+            
+            <Divider />
+            
+            <MenuItem 
               onClick={() => handleAction(() => actions.setFinished(product.productId))}
               disabled={product.pickingStatus === 'completed'}
+              sx={{ py: 1.5 }}
             >
-              Set as Finished
+              <Typography variant="body2" sx={{ color: theme.palette.success.main }}>
+                Mark as Finished
+              </Typography>
             </MenuItem>
           </Menu>
         </Box>

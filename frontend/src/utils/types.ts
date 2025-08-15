@@ -6,6 +6,8 @@ export interface ProductDetail {
     productName: string;
     productId: number;
     barcode: string;
+    qtyOnHand: number;
+    price: number;
 }
   
 export interface ProductInfo {
@@ -41,17 +43,6 @@ export interface SnackbarContextType {
     snackbarSeverity: SnackbarSeverity;
     handleOpenSnackbar: (_message: string, _severity: 'error' | 'success' | 'info' | 'warning') => void;
     handleCloseSnackbar: () => void;
-}
-// need to clean up below type
-
-export interface ProductDetailsDB {
-    sku: string;
-    pickingQty: number;
-    originalQty: number;
-    qtyOnHand: number;
-    pickingStatus: string;
-    productId: number;
-    barcode: string
 }
 export interface Product {
     productId: number;
