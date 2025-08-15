@@ -89,6 +89,70 @@ const theme = createTheme({
             backgroundColor: 'rgba(0, 0, 0, 0.04) !important',
           },
         },
+        /* Mobile optimizations (xs - 600px) */
+        '@media (max-width: 600px)': {
+          '.MuiTableCell-root': {
+            padding: '8px 4px !important',
+            fontSize: '12px !important',
+          },
+          '.MuiTableHead-root .MuiTableCell-root': {
+            padding: '12px 4px !important',
+            fontSize: '11px !important',
+            fontWeight: '600 !important',
+          },
+          '.MuiTable-root': {
+            minWidth: 'auto !important',
+            width: '100% !important',
+          },
+          /* Mobile table layout */
+          '.MuiTableCell-root:first-child': {
+            width: '80px !important',
+            minWidth: '80px !important',
+            maxWidth: '80px !important',
+          },
+          '.MuiTableCell-root:nth-child(2)': {
+            width: 'auto !important',
+            minWidth: '120px !important',
+          },
+          '.MuiTableCell-root:nth-child(3)': {
+            width: '70px !important',
+            minWidth: '70px !important',
+            maxWidth: '70px !important',
+            textAlign: 'center !important',
+          },
+          '.MuiTableCell-root:nth-child(4)': {
+            width: '80px !important',
+            minWidth: '80px !important',
+            maxWidth: '80px !important',
+            textAlign: 'center !important',
+          },
+          '.MuiTableCell-root:last-child': {
+            width: '50px !important',
+            minWidth: '50px !important',
+            maxWidth: '50px !important',
+            textAlign: 'center !important',
+          },
+          /* Mobile ProductRow optimizations */
+          '.product-sku': {
+            fontSize: '11px !important',
+            fontWeight: '600 !important',
+            fontFamily: 'monospace !important',
+          },
+          '.product-name': {
+            fontSize: '12px !important',
+            lineHeight: '1.3 !important',
+            maxWidth: '100% !important',
+          },
+          '.MuiChip-root': {
+            minHeight: '24px !important',
+            fontSize: '10px !important',
+          },
+          '.MuiIconButton-root': {
+            minHeight: '36px !important',
+            minWidth: '36px !important',
+          },
+        },
+        
         /* Quote page specific tablet optimizations */
         '@media (min-width: 600px) and (max-width: 960px)': {
           '.MuiTable-root': {
@@ -127,6 +191,7 @@ const theme = createTheme({
             textAlign: 'center !important',
           },
         },
+        
         /* Footer fixes */
         'footer': {
           overflow: 'visible !important',
