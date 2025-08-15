@@ -111,7 +111,8 @@ export async function getRunsByCompanyId(companyId) {
                 ri.priority, 
                 q.quoteid, 
                 q.customername, 
-                q.totalamount
+                q.totalamount,
+                q.orderstatus
             FROM run_items ri
             JOIN quotes q ON ri.quoteid = q.quoteid
             WHERE ri.run_id = ANY($1) -- Use ANY($1) to match all IDs in the runIds array
@@ -129,7 +130,8 @@ export async function getRunsByCompanyId(companyId) {
                 quoteId: item.quoteid,
                 customerName: item.customername,
                 totalAmount: parseFloat(item.totalamount),
-                priority: item.priority
+                priority: item.priority,
+                orderStatus: item.orderstatus
             });
         }
 

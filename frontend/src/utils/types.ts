@@ -99,6 +99,7 @@ export interface RunQuote {
   customerName: string;
   totalAmount: number;
   priority: number;
+  orderStatus: string;
 }
 
 export interface UserStatusResponse {

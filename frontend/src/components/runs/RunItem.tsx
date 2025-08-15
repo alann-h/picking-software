@@ -149,8 +149,7 @@ export const RunItem: React.FC<{
                 </Stack>
                 <Stack direction="row" alignItems="center" spacing={2}>
                     <Stack alignItems="flex-end">
-                        <Typography variant="body1" fontWeight={500}>{formatCurrency(totalValue)}</Typography>
-                        <Typography variant="caption" color="text.secondary">{quoteCount} quotes</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 500 }}>{quoteCount} quotes</Typography>
                     </Stack>
                     <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" aria-label="expand run">
                         {isExpanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
@@ -198,11 +197,34 @@ export const RunItem: React.FC<{
                         <>
                             <Table size="small" sx={{ mb: 2 }}>
                                 <TableHead>
-                                    <TableRow><TableCell>Quote ID</TableCell><TableCell>Customer Name</TableCell><TableCell align="right">Amount</TableCell></TableRow>
+                                    <TableRow>
+                                        <TableCell>Quote ID</TableCell>
+                                        <TableCell>Customer Name</TableCell>
+                                        <TableCell>Status</TableCell>
+                                        <TableCell align="right">Amount</TableCell>
+                                    </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {run.quotes?.map((quote: RunQuote) => (
-                                        <TableRow key={quote.quoteId}><TableCell>#{quote.quoteId}</TableCell><TableCell>{quote.customerName}</TableCell><TableCell align="right">{formatCurrency(quote.totalAmount)}</TableCell></TableRow>
+                                        <TableRow key={quote.quoteId}>
+                                            <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>#{quote.quoteId}</TableCell>
+                                            <TableCell>{quote.customerName}</TableCell>
+                                            <TableCell>
+                                                <Chip 
+                                                  label={quote.orderStatus} 
+                                                  size="small" 
+                                                  color={quote.orderStatus === 'assigned' ? 'info' : 
+                                                         quote.orderStatus === 'checking' ? 'warning' : 
+                                                         quote.orderStatus === 'finalised' ? 'success' : 'default'}
+                                                  sx={{ 
+                                                    textTransform: 'capitalize',
+                                                    fontSize: '0.7rem',
+                                                    height: 20
+                                                  }} 
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right" sx={{ fontWeight: 600, color: 'success.main' }}>{formatCurrency(quote.totalAmount)}</TableCell>
+                                        </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>

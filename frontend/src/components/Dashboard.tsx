@@ -14,6 +14,11 @@ import {
   Collapse,
   Card,
   CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   useTheme,
   useMediaQuery,
   Button,
@@ -28,9 +33,6 @@ import {
   DirectionsRunOutlined, 
   KeyboardArrowDown, 
   KeyboardArrowUp,
-  TrendingUp,
-  Assignment,
-  Speed,
   Business,
   AttachMoney
 } from '@mui/icons-material';
@@ -66,135 +68,117 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     
     const getStatusChipColor = (status: Run['status']) => {
         switch (status) {
-            case 'pending': return 'warning';
-            case 'checking': return 'info';
+            case 'pending': return 'info';
+            case 'checking': return 'warning';
             case 'finalised': return 'success';
             default: return 'default';
         }
     };
 
-    const getStatusIcon = (status: Run['status']) => {
-        switch (status) {
-            case 'pending': return <Assignment fontSize="small" />;
-            case 'checking': return <Speed fontSize="small" />;
-            case 'finalised': return <TrendingUp fontSize="small" />;
-            default: return <DirectionsRunOutlined fontSize="small" />;
-        }
-    };
-
     return (
-        <Card 
-          elevation={0}
-          sx={{ 
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 2,
-            transition: 'all 0.3s ease',
-            '&:hover': {
-              borderColor: 'primary.main',
-              boxShadow: '0 4px 20px rgba(59,130,246,0.15)',
-              transform: 'translateY(-2px)'
-            }
-          }}
-        >
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                <Stack spacing={2}>
-                    <Stack 
-                      direction={{ xs: 'column', sm: 'row' }} 
-                      justifyContent="space-between" 
-                      alignItems={{ xs: 'flex-start', sm: 'center' }}
-                      spacing={1}
-                    >
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                            <Box
-                              sx={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: '8px',
-                                background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'white',
-                                fontWeight: 'bold',
-                                fontSize: '0.875rem'
-                              }}
-                            >
-                              R
-                            </Box>
-                            <Typography variant="h6" fontWeight={600}>
-                              Run #{run.run_number || run.id.substring(0, 8)}
-                            </Typography>
-                        </Stack>
-                        
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                            <Chip 
-                              icon={getStatusIcon(run.status)}
-                              label={run.status} 
-                              color={getStatusChipColor(run.status)} 
-                              size="small" 
-                              sx={{ 
-                                textTransform: 'capitalize',
-                                fontWeight: 500
-                              }} 
-                            />
-                            <Chip 
-                              label={`${quoteCount} quotes`} 
-                              variant="outlined" 
-                              size="small"
-                              sx={{ fontWeight: 500 }}
-                            />
-                        </Stack>
+        <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Stack direction="row" alignItems="center" spacing={3}>
+                    <Typography variant="h6" fontWeight={600}>
+                      Run #{run.run_number || run.id.substring(0, 8)}
+                    </Typography>
+                    <Chip 
+                      label={run.status} 
+                      color={getStatusChipColor(run.status)} 
+                      size="small" 
+                      sx={{ textTransform: 'capitalize' }} 
+                    />
+                </Stack>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                    <Stack alignItems="flex-end">
+                        <Typography variant="caption" sx={{ fontWeight: 500 }}>{quoteCount} quotes</Typography>
                     </Stack>
-
                     <IconButton 
                       onClick={() => setIsExpanded(!isExpanded)} 
-                      size="small"
-                      sx={{
-                        alignSelf: 'center',
-                        '&:hover': {
-                          backgroundColor: 'rgba(59,130,246,0.1)'
-                        }
-                      }}
+                      size="small" 
+                      aria-label="expand run"
                     >
                       {isExpanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                     </IconButton>
-
-                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                        <Divider sx={{ my: 1.5 }} />
-                        <Stack spacing={1.5}>
-                            {run.quotes?.map((quote: RunQuote) => (
-                                <Card
-                                    key={quote.quoteId}
-                                    variant="outlined"
-                                    onClick={() => navigate(`/quote?id=${quote.quoteId}`)}
-                                    sx={{ 
-                                      cursor: 'pointer', 
-                                      transition: 'all 0.2s ease',
-                                      '&:hover': { 
-                                        borderColor: 'primary.main',
-                                        backgroundColor: 'rgba(59,130,246,0.02)',
-                                        transform: 'translateX(4px)'
-                                      } 
-                                    }}
-                                >
-                                    <CardContent sx={{ p: 2 }}>
-                                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                            <Typography variant="body2" fontWeight={600} color="primary.main">
-                                              Quote #{quote.quoteId}
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                              {quote.customerName}
-                                            </Typography>
-                                        </Stack>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </Stack>
-                    </Collapse>
                 </Stack>
-            </CardContent>
-        </Card>
+            </Stack>
+
+            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                <Divider sx={{ my: 2 }} />
+                <Box>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
+                        <Typography variant="subtitle1" fontWeight={500}>Quotes in this Run</Typography>
+                    </Stack>
+                    
+                    <Table size="small" sx={{ mb: 2 }}>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Priority</TableCell>
+                                <TableCell>Quote ID</TableCell>
+                                <TableCell>Status</TableCell>
+                                <TableCell>Customer Name</TableCell>
+                                <TableCell align="right">Amount</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {run.quotes
+                              ?.sort((a, b) => a.priority - b.priority) // Sort by priority (0 = highest)
+                              .map((quote: RunQuote) => (
+                                <TableRow 
+                                  key={quote.quoteId}
+                                  onClick={() => navigate(`/quote?id=${quote.quoteId}`)}
+                                  sx={{ 
+                                    cursor: 'pointer',
+                                    '&:hover': { 
+                                      backgroundColor: 'rgba(59,130,246,0.02)',
+                                      '& .MuiTableCell-root': {
+                                        borderColor: 'primary.main'
+                                      }
+                                    },
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                    <TableCell>
+                                        <Chip 
+                                          label={`${quote.priority + 1}`}
+                                          size="small" 
+                                          color="primary"
+                                          variant="outlined"
+                                          sx={{ 
+                                            fontSize: '0.7rem',
+                                            height: 20,
+                                            fontWeight: 500
+                                          }} 
+                                        />
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                      #{quote.quoteId}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Chip 
+                                          label={quote.orderStatus} 
+                                          size="small" 
+                                          color={quote.orderStatus === 'assigned' ? 'info' : 
+                                                 quote.orderStatus === 'checking' ? 'warning' : 
+                                                 quote.orderStatus === 'finalised' ? 'success' : 'default'}
+                                          sx={{ 
+                                            textTransform: 'capitalize',
+                                            fontSize: '0.7rem',
+                                            height: 20
+                                          }} 
+                                        />
+                                    </TableCell>
+                                    <TableCell>{quote.customerName}</TableCell>
+                                    <TableCell align="right" sx={{ fontWeight: 600, color: 'success.main' }}>
+                                      ${quote.totalAmount.toFixed(2)}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </Box>
+            </Collapse>
+        </Paper>
     );
 };
 
@@ -219,22 +203,6 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
       <Stack spacing={2}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '6px',
-                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '0.75rem'
-              }}
-            >
-              Q
-            </Box>
             <Typography variant="h6" color="primary.main" fontWeight="bold">
               Quote #{quote.id}
             </Typography>
