@@ -11,7 +11,7 @@ import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
 import { getPageStructuredData } from './utils/structuredData';
 
 // Lazy load components
-const InitalPage = React.lazy(() => import('./components/InitalPage'));
+const LandingPage = React.lazy(() => import('./components/LandingPage'));
 const Login = React.lazy(() => import('./components/Login'));
 const OAuthCallbackHandler = React.lazy(() => import('./components/OAuthCallbackHandler'));
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
@@ -78,7 +78,7 @@ const App: React.FC = () => {
                 }>
                   <Route path="/" element={
                     <Suspense fallback={<LoadingSpinner />}>
-                      <InitalPage />
+                      <LandingPage />
                     </Suspense>
                   } />
                   <Route path="/login" element={
