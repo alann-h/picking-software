@@ -78,11 +78,11 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept, onDecline }) =>
             onClick={handleClose}
             sx={{
               position: 'absolute',
-              top: 8,
-              right: 8,
+              top: 0,
+              right: 1,
               color: 'white',
               minWidth: 'auto',
-              p: 0.5
+              p: 0.5,
             }}
           >
             <Close />

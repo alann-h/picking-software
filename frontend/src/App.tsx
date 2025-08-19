@@ -1,30 +1,30 @@
 import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { CssBaseline, Box, ThemeProvider } from '@mui/material';
-import InitalPage from './components/InitalPage';
-import Login from './components/Login';
-import OAuthCallbackHandler from './components/OAuthCallbackHandler';
-import Dashboard from './components/Dashboard';
-import Settings from './components/Settings';
 import { SnackbarProvider } from './components/SnackbarContext';
-
 import SnackbarComponent from './components/SnackbarComponent';
-import Quote from './components/Quote';
+import LoadingSpinner from './components/LoadingSpinner';
+import QuoteLoadingSpinner from './components/QuoteLoadingSpinner';
 import theme from './theme';
 import Footer from './components/Footer';
-import OrdersToCheckPage from './components/OrdersToCheckPage';
-import Runs from './components/Runs';
-import AuthLayout from './components/AuthLayout';
-import { QuoteSkeleton } from './components/Skeletons';
-
-import PrivacyPolicy from './components/PrivacyPolicy';
-import TermsOfService from './components/TermsOfService';
-import AboutUs from './components/AboutUs';
-
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
-import PublicLayout from './components/PublicLayout';
-import ErrorBoundary from './components/ErrorBoundary';
 import { getPageStructuredData } from './utils/structuredData';
+
+// Lazy load components
+const InitalPage = React.lazy(() => import('./components/InitalPage'));
+const Login = React.lazy(() => import('./components/Login'));
+const OAuthCallbackHandler = React.lazy(() => import('./components/OAuthCallbackHandler'));
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const Settings = React.lazy(() => import('./components/Settings'));
+const Quote = React.lazy(() => import('./components/Quote'));
+const OrdersToCheckPage = React.lazy(() => import('./components/OrdersToCheckPage'));
+const Runs = React.lazy(() => import('./components/Runs'));
+const AuthLayout = React.lazy(() => import('./components/AuthLayout'));
+const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
+const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
+const AboutUs = React.lazy(() => import('./components/AboutUs'));
+const PublicLayout = React.lazy(() => import('./components/PublicLayout'));
+const ErrorBoundary = React.lazy(() => import('./components/ErrorBoundary'));
 
 
 const App: React.FC = () => {
@@ -71,27 +71,73 @@ const App: React.FC = () => {
             }}>
               <Routes>
                 {/* Public Routes */}
-                <Route element={<PublicLayout />}>
-                  <Route path="/" element={<InitalPage />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route path="/terms-of-service" element={<TermsOfService />} />
-                  <Route path="/about" element={<AboutUs />} />
+                <Route element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <PublicLayout />
+                  </Suspense>
+                }>
+                  <Route path="/" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <InitalPage />
+                    </Suspense>
+                  } />
+                  <Route path="/login" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Login />
+                    </Suspense>
+                  } />
+                  <Route path="/oauth/callback" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <OAuthCallbackHandler />
+                    </Suspense>
+                  } />
+                  <Route path="/privacy-policy" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <PrivacyPolicy />
+                    </Suspense>
+                  } />
+                  <Route path="/terms-of-service" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <TermsOfService />
+                    </Suspense>
+                  } />
+                  <Route path="/about" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AboutUs />
+                    </Suspense>
+                  } />
                 </Route>
                 {/* Protected Routes */}
-                <Route element={<AuthLayout />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/settings/*" element={<Settings />} />
+                <Route element={
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AuthLayout />
+                  </Suspense>
+                }>
+                  <Route path="/dashboard" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Dashboard />
+                    </Suspense>
+                  } />
+                  <Route path="/settings/*" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Settings />
+                    </Suspense>
+                  } />
                   <Route path="/quote" element={
-                    <ErrorBoundary>
-                      <Suspense fallback={<QuoteSkeleton />}> 
-                        <Quote /> 
-                      </Suspense>
-                    </ErrorBoundary>
-                    } />
-                  <Route path="/orders-to-check" element={<OrdersToCheckPage />} />
-                  <Route path="/run" element={<Runs />} />
+                    <Suspense fallback={<QuoteLoadingSpinner />}> 
+                      <Quote /> 
+                    </Suspense>
+                  } />
+                  <Route path="/orders-to-check" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <OrdersToCheckPage />
+                    </Suspense>
+                  } />
+                  <Route path="/run" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Runs />
+                    </Suspense>
+                  } />
                 </Route>
                 {/* Catch-all route - redirects any unknown path to home */}
                 <Route path="*" element={<Navigate to="/" replace />} />
