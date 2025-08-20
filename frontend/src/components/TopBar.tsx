@@ -312,6 +312,27 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                 <AuthenticatedNavItems onAdminMenuClick={handleAdminMenuClick} />
               </Box>
 
+              {/* Mobile Admin Menu Button - Only show on mobile */}
+              {authData && (
+                <Box sx={{ display: { xs: 'flex', md: 'none' }, ml: 1 }}>
+                  <Tooltip title="Admin Operations">
+                    <IconButton 
+                      color="primary" 
+                      onClick={handleAdminMenuClick}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'rgba(59,130,246,0.1)',
+                          transform: 'translateY(-1px)'
+                        },
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <MenuIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              )}
+
               {/* User Profile - Only show when we have auth data */}
               {authData && (
                 <Box sx={{ ml: 1 }}>
