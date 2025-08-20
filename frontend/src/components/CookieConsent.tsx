@@ -99,7 +99,7 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept, onDecline }) =>
             <Box sx={{ flex: 1 }}>
                 <Typography variant="body2" sx={{ opacity: 0.9, lineHeight: 1.5 }}>
                   We use cookies to enhance your experience, provide personalized content, and analyze our traffic. 
-                  By clicking "Accept All", you consent to our use of cookies. 
+                  By clicking "Accept All", you consent to our use of cookies.{' '}
                   <Link 
                     href="/terms-of-service" 
                     sx={{ 
@@ -108,7 +108,7 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept, onDecline }) =>
                       '&:hover': { opacity: 0.8 }
                     }}
                   >
-                    Learn more
+                    Learn more about our cookie policy
                   </Link>
                 </Typography>
             </Box>

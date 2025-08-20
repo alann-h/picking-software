@@ -86,20 +86,35 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(morgan(':method :url :status'));
 
+// Additional security headers
+app.use((req, res, next) => {
+  // Permissions Policy (formerly Feature Policy)
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
+  
+  // Clear-Site-Data header for logout scenarios
+  if (req.path === '/auth/logout') {
+    res.setHeader('Clear-Site-Data', '"cache", "cookies", "storage"');
+  }
+  
+  next();
+});
+
 // Security headers with helmet
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Material-UI
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      scriptSrc: ["'self'", "https://www.googletagmanager.com", "https://www.google-analytics.com"],
+      imgSrc: ["'self'", "data:", "https:", "https://www.google-analytics.com"],
       fontSrc: ["'self'", "https:", "data:"],
-      connectSrc: ["'self'", "https:"],
+      connectSrc: ["'self'", "https:", "https://www.google-analytics.com"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
-      upgradeInsecureRequests: []
+      upgradeInsecureRequests: [],
+      requireTrustedTypesFor: ["'script'"] // Enable Trusted Types for DOM XSS protection
     },
+    reportOnly: false // Enforce CSP in production
   },
   hsts: {
     maxAge: 31536000, // 1 year
@@ -109,7 +124,10 @@ app.use(helmet({
   noSniff: true,
   xssFilter: true,
   frameguard: { action: 'deny' },
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  crossOriginEmbedderPolicy: { policy: "require-corp" },
+  crossOriginOpenerPolicy: { policy: "same-origin" },
+  crossOriginResourcePolicy: { policy: "same-origin" }
 }));
 
 // — CSRF protection
