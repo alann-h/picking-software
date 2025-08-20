@@ -82,7 +82,7 @@ async function filterEstimates(responseData, companyId) {
             productInfo,
             totalAmount: estimate.TotalAmt,
             orderStatus: 'pending',
-            lastModified: estimate.MetaData.LastUpdatedTime,
+            lastModified: formatTimestampForSydney(estimate.MetaData.LastUpdatedTime),
             companyId,
             orderNote: estimate.CustomerMemo?.value || null
         };
