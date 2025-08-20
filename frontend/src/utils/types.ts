@@ -84,6 +84,7 @@ export interface QuoteSummary {
     orderStatus: string;
     timeStarted: string;
     timeTaken: string;
+    pickerNote?: string;
 }
 
 export interface Run {

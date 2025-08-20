@@ -36,8 +36,7 @@ import { OrderHistorySkeleton } from './Skeletons';
 // =================================================================
 // 1. INTERFACE
 // =================================================================
-interface EnhancedQuoteSummary extends Omit<QuoteSummary, 'preparerNames'> {
-  preparerNames?: string | string[];
+interface EnhancedQuoteSummary extends QuoteSummary {
   priority?: 'high' | 'medium' | 'low';
 }
 
@@ -265,6 +264,41 @@ const QuoteCard: React.FC<{ quote: EnhancedQuoteSummary }> = ({ quote }) => {
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
                   {quote.timeTaken}
                 </Typography>
+              </Box>
+            </Box>
+
+            {/* Picker's Note */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+              <PreparerIcon color="action" sx={{ fontSize: 24, mt: 0.5 }} />
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Picker's Note
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontWeight: 500,
+                    fontStyle: quote.pickerNote ? 'normal' : 'italic',
+                    color: quote.pickerNote ? 'text.primary' : 'text.secondary',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.4
+                  }}
+                >
+                  {quote.pickerNote || 'No note provided'}
+                </Typography>
+                {quote.pickerNote && (
+                  <Typography 
+                    variant="caption" 
+                    color="text.secondary" 
+                    sx={{ 
+                      mt: 0.5, 
+                      display: 'block',
+                      fontStyle: 'italic'
+                    }}
+                  >
+                    {quote.pickerNote.length}/500 characters
+                  </Typography>
+                )}
               </Box>
             </Box>
 

@@ -459,7 +459,8 @@ export async function getQuotesWithStatus(status) {
         lastModified: formattedLastModified,
         timeTaken: timeTaken,
         companyId: quote.companyid,
-        preparerNames: quote.preparer_names
+        preparerNames: quote.preparer_names,
+        pickerNote: quote.pickernote
       };
     });
   } catch (error) {
