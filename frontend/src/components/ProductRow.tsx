@@ -35,7 +35,11 @@ const ProductRow: React.FC<ProductRowProps> = ({
     setAnchorEl(null);
   };
 
-  const handleProductClick = () => {
+  const handleProductClick = (event: React.MouseEvent | React.TouchEvent) => {
+    // Prevent default browser behavior (like search context menu on tablets)
+    event.preventDefault();
+    event.stopPropagation();
+    
     actions.openProductDetailsModal(product.productId, product);
   };
 
@@ -97,6 +101,9 @@ const ProductRow: React.FC<ProductRowProps> = ({
             transition: 'all 0.2s ease-in-out',
             fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
             lineHeight: 1.2,
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            WebkitTouchCallout: 'none',
             '&:hover': {
               color: theme.palette.primary.main,
               textDecoration: 'underline'
