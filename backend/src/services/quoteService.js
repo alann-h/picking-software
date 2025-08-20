@@ -93,27 +93,57 @@ async function filterEstimates(responseData, companyId) {
 
 export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
   try {
+    console.log('=== getQbEstimate Debug ===');
+    console.log('quoteId:', quoteId);
+    console.log('companyId:', companyId);
+    console.log('rawDataNeeded:', rawDataNeeded);
+
     const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
+    console.log('OAuth client initialized successfully');
 
     const baseURL = getBaseURL(oauthClient);
+    console.log('baseURL:', baseURL);
+    
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
+    console.log('queryStr:', queryStr);
+    
+    const fullUrl = `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
+    console.log('Full API URL:', fullUrl);
 
+    console.log('Making QuickBooks API call...');
     const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+      url: fullUrl
     });
+    console.log('API call completed');
+    console.log('estimateResponse type:', typeof estimateResponse);
+    console.log('estimateResponse keys:', Object.keys(estimateResponse));
+    console.log('Full estimateResponse:', JSON.stringify(estimateResponse, null, 2));
 
     const responseData = estimateResponse.json;
-    console.log(JSON.stringify(responseData, null, 2), 'responseData');
+    console.log('responseData type:', typeof responseData);
+    console.log('responseData:', JSON.stringify(responseData, null, 2));
+    
     if (rawDataNeeded) {
+      console.log('Returning raw data');
       return responseData;
     }
 
+    console.log('Processing filtered quote...');
     const filteredQuote = await filterEstimates(responseData, companyId);
+    console.log('filteredQuote:', JSON.stringify(filteredQuote, null, 2));
+    console.log('=== End getQbEstimate Debug ===');
+    
     return filteredQuote;
   } catch (e) {
+    console.error('=== getQbEstimate Error ===');
+    console.error('Error type:', typeof e);
+    console.error('Error message:', e.message);
+    console.error('Error stack:', e.stack);
+    console.error('Full error object:', JSON.stringify(e, null, 2));
+    console.error('=== End Error Debug ===');
     throw new InputError(e.message);
   }
 }
