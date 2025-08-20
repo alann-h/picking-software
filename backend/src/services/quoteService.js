@@ -44,7 +44,7 @@ async function filterEstimates(responseData, companyId) {
         const productMap = new Map(productsFromDB.map(p => [p.qbo_item_id, p]));
 
         const productInfo = {};
-        
+         
         for (const line of estimate.Line) {
             if (line.DetailType === 'SubTotalLineDetail') continue;
 
@@ -93,11 +93,6 @@ async function filterEstimates(responseData, companyId) {
 
 export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
   try {
-    console.log('=== getQbEstimate Debug ===');
-    console.log('Quote ID:', quoteId);
-    console.log('Company ID:', companyId);
-    console.log('Raw Data Needed:', rawDataNeeded);
-    
     const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
@@ -105,32 +100,20 @@ export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
 
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
-    
-    console.log('QuickBooks Query:', queryStr);
-    console.log('Base URL:', baseURL);
-    console.log('Full URL:', `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`);
 
     const estimateResponse = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
-    console.log('QuickBooks API Response Type:', typeof estimateResponse);
-    console.log('QuickBooks API Response Keys:', Object.keys(estimateResponse));
-    console.log('QuickBooks API Response:', JSON.stringify(estimateResponse, null, 2));
-
     const responseData = estimateResponse.json;
-    console.log('Response Data from .json:', responseData);
     
     if (rawDataNeeded) {
-      console.log('Returning raw data as requested');
       return responseData;
     }
 
-    console.log('Filtering quote data...');
     const filteredQuote = await filterEstimates(responseData, companyId);
     return filteredQuote;
   } catch (e) {
-    console.error('Error in getQbEstimate:', e);
     throw new InputError(e.message);
   }
 }
@@ -581,82 +564,19 @@ export async function deleteQuotesBulk(quoteIds) {
 
 export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, companyId) {
   try {
-    console.log('=== QuickBooks Update Debug ===');
-    console.log('Quote ID:', quoteId);
-    console.log('Company ID:', companyId);
-    console.log('Raw Quote Data Type:', typeof rawQuoteData);
-    console.log('Raw Quote Data Keys:', rawQuoteData ? Object.keys(rawQuoteData) : 'rawQuoteData is null/undefined');
-    console.log('Raw Quote Data:', JSON.stringify(rawQuoteData, null, 2));
-    
-    if (!rawQuoteData) {
-      throw new AccessError('Raw quote data is missing');
-    }
-    
-    if (!rawQuoteData.QueryResponse) {
-      console.error('Missing QueryResponse in rawQuoteData');
-      throw new AccessError('Invalid QuickBooks quote data: missing QueryResponse');
-    }
-    
-    console.log('QueryResponse keys found:', Object.keys(rawQuoteData.QueryResponse));
-    console.log('QueryResponse content:', JSON.stringify(rawQuoteData.QueryResponse, null, 2));
-    
-    if (!rawQuoteData.QueryResponse.Estimate) {
-      console.error('Missing Estimate in QueryResponse');
-      console.log('QueryResponse keys:', Object.keys(rawQuoteData.QueryResponse));
-      console.log('QueryResponse full content:', rawQuoteData.QueryResponse);
-      
-      // Check if this is an error response
-      if (rawQuoteData.QueryResponse.Fault) {
-        console.error('QuickBooks returned a Fault response:', rawQuoteData.QueryResponse.Fault);
-        throw new AccessError(`QuickBooks error: ${rawQuoteData.QueryResponse.Fault.Error?.[0]?.Message || 'Unknown QuickBooks error'}`);
-      }
-      
-      // Check if this is an empty response
-      if (Object.keys(rawQuoteData.QueryResponse).length === 0) {
-        console.error('QueryResponse is completely empty - this suggests an API failure');
-        throw new AccessError('QuickBooks API returned empty response - quote may not exist or API call failed');
-      }
-      
-      throw new AccessError('Invalid QuickBooks quote data: missing Estimate');
-    }
-    
-    if (!Array.isArray(rawQuoteData.QueryResponse.Estimate)) {
-      console.error('Estimate is not an array');
-      console.log('Estimate type:', typeof rawQuoteData.QueryResponse.Estimate);
-      console.log('Estimate value:', rawQuoteData.QueryResponse.Estimate);
-      throw new AccessError('Invalid QuickBooks quote data: Estimate is not an array');
-    }
-    
-    if (rawQuoteData.QueryResponse.Estimate.length === 0) {
-      console.error('Estimate array is empty');
-      console.log('This suggests the quote was not found in QuickBooks');
-      throw new AccessError('Quote not found in QuickBooks - it may have been deleted or the ID is incorrect');
-    }
-    
     const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
     
     const qbQuote = rawQuoteData.QueryResponse.Estimate[0];
-    console.log('QuickBooks Quote found:', {
-      hasId: !!qbQuote.Id,
-      hasSyncToken: !!qbQuote.SyncToken,
-      quoteKeys: qbQuote ? Object.keys(qbQuote) : 'qbQuote is null'
-    });
     
     // Validate QuickBooks data
     if (!qbQuote || !qbQuote.SyncToken) {
-      console.error('Invalid QuickBooks quote or missing SyncToken');
-      console.log('QB Quote:', qbQuote);
       throw new AccessError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
-    // Validate and clean product data
-    if (!quoteLocalDb.productInfo || typeof quoteLocalDb.productInfo !== 'object') {
-      throw new AccessError('Invalid product information structure');
-    }
-    
+    // Prepare the update payload
     const updatePayload = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
@@ -664,25 +584,9 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
       Line: []
     };
 
-    let processedProducts = 0;
-    let skippedProducts = 0;
-
-    for (const [productKey, localItem] of Object.entries(quoteLocalDb.productInfo)) {
-      if (!localItem || typeof localItem !== 'object') {
-        console.warn(`Skipping invalid product at key ${productKey}:`, localItem);
-        skippedProducts++;
-        continue;
-      }
-      
-      if (!localItem.productId || !localItem.productName || !localItem.price || !localItem.originalQty) {
-        console.warn(`Skipping incomplete product ${productKey}:`, localItem);
-        skippedProducts++;
-        continue;
-      }
-      
+    for (const localItem of Object.values(quoteLocalDb.productInfo)) {
+      // Skip items marked as unavailable
       if (localItem.pickingStatus === 'unavailable') {
-        console.log(`Skipping unavailable product: ${localItem.productName}`);
-        skippedProducts++;
         continue;
       }
       
@@ -690,87 +594,50 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
         throw new AccessError('Quote must not have any products pending!');
       }
       
-      try {
-        const amount = Number(localItem.price) * Number(localItem.originalQty);
-        
-        if (isNaN(amount)) {
-          console.warn(`Skipping product with invalid amount calculation: ${localItem.productName}`);
-          skippedProducts++;
-          continue;
-        }
-
-        const qboItemId = await productIdToQboId(localItem.productId);
-        
-        if (!qboItemId) {
-          console.warn(`Skipping product without QuickBooks ID: ${localItem.productName}`);
-          skippedProducts++;
-          continue;
-        }
-        
-        const lineItem = {
-          Description: localItem.productName,
-          Amount: amount,
-          DetailType: "SalesItemLineDetail",
-          SalesItemLineDetail: {
-            ItemRef: {
-              value: qboItemId,
-              name: localItem.productName
-            },
-            Qty: Number(localItem.originalQty),
-            UnitPrice: Number(localItem.price),
-            TaxCodeRef: {
-              value: localItem.taxCodeRef || "4"
-            }
-          }
-        };
-
-        updatePayload.Line.push(lineItem);
-        processedProducts++;
-        
-        console.log(`Processed product: ${localItem.productName} (Qty: ${localItem.originalQty}, Price: ${localItem.price}, Amount: ${amount})`);
-      } catch (productError) {
-        console.error(`Error processing product ${localItem.productName}:`, productError);
-        skippedProducts++;
-        continue;
+      const amount = Number(localItem.price) * Number(localItem.originalQty);
+      const qboItemId = await productIdToQboId(localItem.productId);
+      
+      if (!qboItemId) {
+        throw new AccessError(`Product ${localItem.productName} not found in QuickBooks`);
       }
+      
+      const lineItem = {
+        Description: localItem.productName,
+        Amount: amount,
+        DetailType: "SalesItemLineDetail",
+        SalesItemLineDetail: {
+          ItemRef: {
+            value: qboItemId,
+            name: localItem.productName
+          },
+          Qty: Number(localItem.originalQty),
+          UnitPrice: Number(localItem.price),
+          TaxCodeRef: {
+            value: localItem.taxCodeRef || "4"
+          }
+        }
+      };
+      
+      updatePayload.Line.push(lineItem);
     }
-    
-    console.log(`Product processing complete: ${processedProducts} processed, ${skippedProducts} skipped`);
     
     if (updatePayload.Line.length === 0) {
-      throw new AccessError('No valid products found to update in QuickBooks');
+      throw new AccessError('No products found to update in QuickBooks');
     }
-
-    console.log('Final update payload:', JSON.stringify(updatePayload, null, 2));
 
     // Update the quote in QuickBooks
     const baseURL = getBaseURL(oauthClient);
-    try {
-      await makeCustomApiCall(
-        oauthClient,
-        `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
-        'POST',
-        updatePayload
-      );
-    } catch (apiError) {
-      if (apiError.message === 'QBO_REAUTH_REQUIRED') {
-        // Clear the token and force re-authentication
-        await query('UPDATE companies SET qb_token = NULL WHERE companyid = $1', [companyId]);
-        throw new AccessError('QuickBooks re-authentication required. Please reconnect your QuickBooks account.');
-      }
-      throw apiError;
-    }
+    await makeCustomApiCall(
+      oauthClient,
+      `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
+      'POST',
+      updatePayload
+    );
 
     await setOrderStatus(quoteId, 'finalised');
     return { message: 'Quote updated successfully in QuickBooks'};
   } catch (error) {
     console.error('Error updating quote in QuickBooks:', error);
-    
-    // Provide more specific error messages
-    if (error.message.includes('QuickBooks API Forbidden')) {
-      throw new AccessError('Access denied by QuickBooks. Please check your permissions and try again.');
-    }
-    
     throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
   }
 }
