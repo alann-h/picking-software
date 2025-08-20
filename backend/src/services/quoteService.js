@@ -142,7 +142,14 @@ export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
     console.error('Error type:', typeof e);
     console.error('Error message:', e.message);
     console.error('Error stack:', e.stack);
-    console.error('Full error object:', JSON.stringify(e, null, 2));
+    console.error('Error constructor:', e.constructor?.name);
+    console.error('Error keys:', Object.keys(e));
+    
+    // Safely log error properties without circular references
+    if (e.statusCode) console.error('Status code:', e.statusCode);
+    if (e.code) console.error('Code:', e.code);
+    if (e.name) console.error('Name:', e.name);
+    
     console.error('=== End Error Debug ===');
     throw new InputError(e.message);
   }
