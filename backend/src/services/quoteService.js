@@ -569,7 +569,13 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
+    
     const qbQuote = rawQuoteData.QueryResponse.Estimate[0];
+    
+    // Validate QuickBooks data
+    if (!qbQuote || !qbQuote.SyncToken) {
+      throw new AccessError('Invalid QuickBooks quote data or missing SyncToken');
+    }
     
     // Prepare the update payload
     const updatePayload = {
@@ -608,17 +614,32 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
 
     // Update the quote in QuickBooks
     const baseURL = getBaseURL(oauthClient);
-    await makeCustomApiCall(
-      oauthClient,
-      `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
-      'POST',
-      updatePayload
-    );
+    try {
+      await makeCustomApiCall(
+        oauthClient,
+        `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
+        'POST',
+        updatePayload
+      );
+    } catch (apiError) {
+      if (apiError.message === 'QBO_REAUTH_REQUIRED') {
+        // Clear the token and force re-authentication
+        await query('UPDATE companies SET qb_token = NULL WHERE companyid = $1', [companyId]);
+        throw new AccessError('QuickBooks re-authentication required. Please reconnect your QuickBooks account.');
+      }
+      throw apiError;
+    }
 
     await setOrderStatus(quoteId, 'finalised');
     return { message: 'Quote updated successfully in QuickBooks'};
   } catch (error) {
     console.error('Error updating quote in QuickBooks:', error);
+    
+    // Provide more specific error messages
+    if (error.message.includes('QuickBooks API Forbidden')) {
+      throw new AccessError('Access denied by QuickBooks. Please check your permissions and try again.');
+    }
+    
     throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
   }
 }

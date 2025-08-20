@@ -121,12 +121,20 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
                 if (qbWindow) qbWindow.location.href = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`; 
             }, 3000); 
             
-
-            
             handleOpenSnackbar('Quote finalised and opened in QuickBooks!', 'success'); 
             navigate('/dashboard'); 
         }, 
-        onError: (error) => handleOpenSnackbar(error.message, 'error'), 
+        onError: (error: any) => {
+            // Handle specific QuickBooks errors
+            if (error.message?.includes('re-authentication required')) {
+                handleOpenSnackbar('QuickBooks connection expired. Please reconnect your account in settings.', 'error');
+                navigate('/settings'); // Redirect to settings to reconnect
+            } else if (error.message?.includes('Access denied by QuickBooks')) {
+                handleOpenSnackbar('QuickBooks access denied. Please check your permissions.', 'error');
+            } else {
+                handleOpenSnackbar(error.message, 'error');
+            }
+        }, 
     });
     const confirmBarcodeScan = useMutation({ mutationFn: (variables: { barcode: string, quantity: number }) => barcodeScan(variables.barcode, quoteId, variables.quantity), onSuccess: () => { handleOpenSnackbar('Product scanned successfully!', 'success'); invalidateAndRefetch(); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
 

@@ -28,17 +28,44 @@ export async function transaction(callback) {
 }
 
 export async function makeCustomApiCall(oauthClient, url, method, body) {
-  const token = oauthClient.getToken().access_token;
-  const response = await fetch(url, {
-    method: method,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body)
-  });
-  return response.json();
+  try {
+    const response = await oauthClient.makeApiCall({
+      url: url,
+      method: method,
+      body: body,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.body && response.body.Fault) {
+      const error = response.body.Fault.Error[0];
+      console.error('QuickBooks API Error:', {
+        url: url,
+        error: error
+      });
+      
+      if (error.Message?.includes('OAuth') || error.Message?.includes('authentication')) {
+        throw new Error('QBO_REAUTH_REQUIRED');
+      }
+      
+      throw new Error(`QuickBooks API Error: ${error.Message || 'Unknown error'}`);
+    }
+
+    return response.body || response;
+  } catch (error) {
+    if (error.message === 'QBO_REAUTH_REQUIRED') {
+      throw error;
+    }
+    
+    console.error('QuickBooks API Call Error:', {
+      url: url,
+      method: method,
+      error: error.message
+    });
+    
+    throw error;
+  }
 }
 
 const AES_SECRET_KEY = crypto
