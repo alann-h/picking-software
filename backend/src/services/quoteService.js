@@ -93,6 +93,11 @@ async function filterEstimates(responseData, companyId) {
 
 export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
   try {
+    console.log('=== getQbEstimate Debug ===');
+    console.log('Quote ID:', quoteId);
+    console.log('Company ID:', companyId);
+    console.log('Raw Data Needed:', rawDataNeeded);
+    
     const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
@@ -100,21 +105,32 @@ export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
 
     const baseURL = getBaseURL(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
-
+    
+    console.log('QuickBooks Query:', queryStr);
+    console.log('Base URL:', baseURL);
+    console.log('Full URL:', `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`);
 
     const estimateResponse = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
-
+    console.log('QuickBooks API Response Type:', typeof estimateResponse);
+    console.log('QuickBooks API Response Keys:', Object.keys(estimateResponse));
+    console.log('QuickBooks API Response:', JSON.stringify(estimateResponse, null, 2));
 
     const responseData = estimateResponse.json;
-    if (rawDataNeeded) return responseData;
-
+    console.log('Response Data from .json:', responseData);
     
+    if (rawDataNeeded) {
+      console.log('Returning raw data as requested');
+      return responseData;
+    }
+
+    console.log('Filtering quote data...');
     const filteredQuote = await filterEstimates(responseData, companyId);
     return filteredQuote;
   } catch (e) {
+    console.error('Error in getQbEstimate:', e);
     throw new InputError(e.message);
   }
 }
@@ -581,9 +597,26 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
       throw new AccessError('Invalid QuickBooks quote data: missing QueryResponse');
     }
     
+    console.log('QueryResponse keys found:', Object.keys(rawQuoteData.QueryResponse));
+    console.log('QueryResponse content:', JSON.stringify(rawQuoteData.QueryResponse, null, 2));
+    
     if (!rawQuoteData.QueryResponse.Estimate) {
       console.error('Missing Estimate in QueryResponse');
       console.log('QueryResponse keys:', Object.keys(rawQuoteData.QueryResponse));
+      console.log('QueryResponse full content:', rawQuoteData.QueryResponse);
+      
+      // Check if this is an error response
+      if (rawQuoteData.QueryResponse.Fault) {
+        console.error('QuickBooks returned a Fault response:', rawQuoteData.QueryResponse.Fault);
+        throw new AccessError(`QuickBooks error: ${rawQuoteData.QueryResponse.Fault.Error?.[0]?.Message || 'Unknown QuickBooks error'}`);
+      }
+      
+      // Check if this is an empty response
+      if (Object.keys(rawQuoteData.QueryResponse).length === 0) {
+        console.error('QueryResponse is completely empty - this suggests an API failure');
+        throw new AccessError('QuickBooks API returned empty response - quote may not exist or API call failed');
+      }
+      
       throw new AccessError('Invalid QuickBooks quote data: missing Estimate');
     }
     
@@ -596,7 +629,8 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     
     if (rawQuoteData.QueryResponse.Estimate.length === 0) {
       console.error('Estimate array is empty');
-      throw new AccessError('Invalid QuickBooks quote data: Estimate array is empty');
+      console.log('This suggests the quote was not found in QuickBooks');
+      throw new AccessError('Quote not found in QuickBooks - it may have been deleted or the ID is incorrect');
     }
     
     const oauthClient = await getOAuthClient(companyId);
