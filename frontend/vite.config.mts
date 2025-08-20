@@ -42,9 +42,16 @@ export default defineConfig({
     }, {} as Record<string, ProxyOptions>),
   },
   build: {
+    cssCodeSplit: true,
+    minify: 'esbuild',
+    target: 'esnext',
     rollupOptions: {
       output: {
         manualChunks(id: string) {
+          // Add critical path optimization for landing page
+          if (id.includes('landing/AnimatedSection')) {
+            return 'critical-landing';
+          }
           if (id.includes('html5-qrcode') || id.includes('@dnd-kit')) {
             return 'vendor-tools';
           }

@@ -11,6 +11,20 @@
       gtag('config', 'G-B1JJ247L26');
     </script>
     
+    <!-- DNS Prefetching for external domains -->
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/index.tsx" as="script" type="module">
+    
+    <!-- Performance meta tags -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />    
     <meta name="theme-color" content="#000000" />
@@ -35,5 +49,20 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
+    
+    <!-- Service Worker Registration for Performance -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
