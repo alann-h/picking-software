@@ -83,8 +83,11 @@ export async function syncToQuickBooks(req, res, next) {
   try {
     const { quoteId } = req.params;
     const localQuote = await fetchQuoteData(quoteId);
+    console.log(JSON.stringify(localQuote, null, 2), 'localQuote');
     const rawData = await getQbEstimate(quoteId, req.session.companyId, true);
+    console.log(JSON.stringify(rawData, null, 2), 'rawData');
     const result = await updateQuoteInQuickBooks(quoteId, localQuote, rawData, req.session.companyId);
+    console.log(JSON.stringify(result, null, 2), 'result');
     res.json({ message: result.message });
   } catch (err) {
     next(err);
