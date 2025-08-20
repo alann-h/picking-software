@@ -22,6 +22,9 @@ export default defineConfig({
   plugins: [
     react()
   ],
+  esbuild: {
+    drop: ['console', 'debugger'],
+  },
   
   envDir: '../',
   test: {
@@ -48,37 +51,50 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id: string) {
-          // Add critical path optimization for landing page
-          if (id.includes('landing/AnimatedSection')) {
+          // Critical landing page components - load first
+          if (id.includes('Hero') || id.includes('LandingPage')) {
             return 'critical-landing';
           }
-          if (id.includes('html5-qrcode') || id.includes('@dnd-kit')) {
-            return 'vendor-tools';
+          
+          // Landing page sections - load after hero
+          if (id.includes('landing/')) {
+            return 'landing-sections';
           }
-          // Group MUI and Emotion libraries into a single chunk.
+          
+          // Core UI components - keep MUI and Emotion together to avoid conflicts
           if (id.includes('@mui') || id.includes('@emotion')) {
             return 'vendor-mui';
           }
-          // Group React core and router into their own chunk.
-          if (
-            id.includes('react-router-dom') ||
-            id.includes('react-dom') ||
-            id.includes('react')
-          ) {
+          
+          // React core and router
+          if (id.includes('react') && !id.includes('react-query')) {
             return 'vendor-react';
           }
-          // Create a chunk for other large libraries like TanStack Query and Framer Motion.
-          if (
-            id.includes('@tanstack/react-query') ||
-            id.includes('framer-motion')
-          ) {
-            return 'vendor-libs';
+          
+          // Data fetching and state management
+          if (id.includes('@tanstack/react-query') || id.includes('react-query')) {
+            return 'vendor-query';
           }
-          // Place all other node_modules into a default vendor chunk.
+          
+          // Animation libraries - keep simple and avoid conflicts
+          if (id.includes('framer-motion')) {
+            return 'vendor-animations';
+          }
+          
+          // Utility libraries
+          if (id.includes('html5-qrcode') || id.includes('@dnd-kit') || id.includes('date-fns')) {
+            return 'vendor-utils';
+          }
+          
+          // All other node_modules
           if (id.includes('node_modules')) {
             return 'vendor';
           }
         },
+        // Add cache busting
+        chunkFileNames: () => `js/[name]-[hash].js`,
+        entryFileNames: 'js/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       },
     },
   },

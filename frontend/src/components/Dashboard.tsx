@@ -45,7 +45,7 @@ import { getRuns } from '../api/runs';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { AvailableQuotesSkeleton, RunListSkeleton } from './Skeletons'
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
 
 // ====================================================================================
 // Reusable & Child Components (No changes needed in these)

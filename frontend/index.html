@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-        <!-- Google tag (gtag.js) -->
+        <!-- Google tag (gtag.js) - Optimized for performance -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-B1JJ247L26"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
-      gtag('config', 'G-B1JJ247L26');
+      gtag('config', 'G-B1JJ247L26', {
+        send_page_view: false, // Prevent blocking initial page load
+        page_title: document.title
+      });
+      
+      // Send page view after page loads
+      window.addEventListener('load', () => {
+        gtag('event', 'page_view');
+      });
     </script>
     
     <!-- DNS Prefetching for external domains -->
@@ -16,14 +23,52 @@
     
     <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://www.googletagmanager.com">
-    
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/src/index.tsx" as="script" type="module">
-    
+     
     <!-- Performance meta tags -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <!-- Critical CSS for above-the-fold content -->
+    <style>
+      /* Critical rendering path CSS */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%);
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Loading state for better UX */
+      .app-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%);
+        color: white;
+        font-size: 1.2rem;
+        font-weight: 500;
+      }
+      
+      /* Prevent layout shift */
+      * {
+        box-sizing: border-box;
+      }
+      
+      /* Optimize font rendering */
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+    </style>
     
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />    
@@ -54,9 +99,21 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          // Add version parameter to force service worker update
+          navigator.serviceWorker.register('/sw.js?v=4')
             .then((registration) => {
               console.log('SW registered: ', registration);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New service worker available, reload to use it
+                    window.location.reload();
+                  }
+                });
+              });
             })
             .catch((registrationError) => {
               console.log('SW registration failed: ', registrationError);

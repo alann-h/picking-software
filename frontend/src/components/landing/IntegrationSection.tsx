@@ -25,7 +25,7 @@ const IntegrationSection = () => {
             <AnimatedSection>
               <Box
                 component="img"
-                src="https://quickbooks.intuit.com/cas/dam/IMAGE/A732uaqi3/standardlogo.png"
+                src="/quickbooks-logo.png"
                 alt="QuickBooks Integration"
                 sx={{
                   width: '100%',

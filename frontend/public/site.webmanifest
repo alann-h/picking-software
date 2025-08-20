@@ -1,7 +1,12 @@
 {
-  "name": "Smart Picker - Order Picking Software",
+  "name": "Smart Picker - Efficient Order Preparation",
   "short_name": "Smart Picker",
-  "description": "Smart order picking app with barcode scanning and digital lists",
+  "description": "The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1E40AF",
+  "theme_color": "#1E40AF",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -14,10 +19,23 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#667eea",
-  "background_color": "#ffffff",
-  "display": "standalone",
-  "start_url": "/",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en",
   "scope": "/",
-  "orientation": "portrait-primary"
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "Get Started",
+      "short_name": "Start",
+      "description": "Quick access to get started with Smart Picker",
+      "url": "/login",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }

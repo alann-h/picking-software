@@ -14,7 +14,7 @@ import { useSnackbarContext } from './SnackbarContext';
 import { CreateRun } from './runs/CreateRun';
 import { RunList } from './runs/RunList';
 import { CreateRunSkeleton, RunListSkeleton } from './Skeletons';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
 
 const Runs: React.FC = () => {
   const { isAdmin, userCompanyId } = useAuth();

@@ -20,7 +20,7 @@ import ProductFilter, { SortField } from './ProductFilter';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
 import FinalConfirmationModal from './FinalConfirmationModal';
 import { useModalState } from '../utils/modalState';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
 import { useQuoteManager } from './useQuote';
 import { getStatusColor } from '../utils/other';
 

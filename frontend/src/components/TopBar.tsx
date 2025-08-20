@@ -32,7 +32,7 @@ import {
   History as HistoryIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
 
 import { logoutAllDevices, getUserSessions } from '../api/auth';
 

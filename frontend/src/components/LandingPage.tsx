@@ -1,19 +1,12 @@
 import React, { Suspense } from 'react';
 import { 
-  Button, 
   Box, 
-  Typography, 
-  Container,
-  Stack,
-  Chip
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { ArrowForward } from '@mui/icons-material';
 import SEO from './SEO';
 import { getPageStructuredData } from '../utils/structuredData';
 import CookieConsent from './CookieConsent';
-import AnimatedSection from './landing/AnimatedSection';
 import Hero from './Hero';
+import { useLandingPageCache } from '../hooks/useLandingPageCache';
 
 // --- LAZY LOAD THE SECTIONS ---
 const FeaturesSection = React.lazy(() => import('./landing/FeaturesSection'));
@@ -21,7 +14,7 @@ const IntegrationSection = React.lazy(() => import('./landing/IntegrationSection
 const LearnMoreSection = React.lazy(() => import('./landing/LearnMoreSection'));
 
 const LandingPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { isCached, isLoading } = useLandingPageCache();
 
   return (
     <>
@@ -31,6 +24,26 @@ const LandingPage: React.FC = () => {
         keywords="order picking, barcode scanning, warehouse management, inventory management, QuickBooks integration, mobile app, efficiency, digital lists"
         structuredData={getPageStructuredData('webPage')}
       />
+      
+      {/* Cache Status Indicator (Development Only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ 
+          position: 'fixed', 
+          top: 10, 
+          right: 10, 
+          zIndex: 9999,
+          background: isCached ? '#4CAF50' : '#FF9800',
+          color: 'white',
+          px: 2,
+          py: 1,
+          borderRadius: 1,
+          fontSize: '0.8rem',
+          opacity: isLoading ? 0.7 : 1
+        }}>
+          {isLoading ? 'Caching...' : isCached ? 'Cached' : 'Not Cached'}
+        </Box>
+      )}
+      
       <Box sx={{ backgroundColor: '#FFFFFF' }}>
       
       {/* --- HERO SECTION --- */}

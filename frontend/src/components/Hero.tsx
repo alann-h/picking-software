@@ -22,16 +22,9 @@ const Hero: React.FC = () => {
         background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
         position: 'relative',
         overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-          opacity: 0.3,
-        }
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
     >
       <Container maxWidth="lg" sx={{ height: '100vh', display: 'flex', alignItems: 'center' }}>
@@ -54,12 +47,12 @@ const Hero: React.FC = () => {
             <Typography
               component="h1"
               variant="h1"
-              fontWeight="bold"
               sx={{
                 fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem' },
                 mb: 3,
                 lineHeight: 1.1,
-                textShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                textShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                fontWeight: 'bold'
               }}
             >
               Goodbye spreadsheets,<br />
@@ -99,7 +92,7 @@ const Hero: React.FC = () => {
                 onClick={() => navigate("/login")}
                 endIcon={<ArrowForward />}
                 sx={{
-                  background: 'linear-gradient(45deg, #FFFFFF, #F3F4F6)',
+                  background: 'rgba(255,255,255,0.9)',
                   color: '#1E40AF',
                   px: 4,
                   py: 1.5,
@@ -109,7 +102,7 @@ const Hero: React.FC = () => {
                   boxShadow: '0 8px 25px rgba(255,255,255,0.2)',
                   border: '1px solid rgba(255,255,255,0.3)',
                   '&:hover': {
-                    background: 'linear-gradient(45deg, #F3F4F6, #FFFFFF)',
+                    background: 'rgba(255,255,255,1)',
                     transform: 'translateY(-2px)',
                     boxShadow: '0 12px 35px rgba(255,255,255,0.3)',
                   }
