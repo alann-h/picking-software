@@ -12,11 +12,15 @@ import {
   Stack,
   ToggleButton,
   ToggleButtonGroup,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import FunctionsIcon from '@mui/icons-material/Functions';
 import QrCodeIcon from '@mui/icons-material/QrCode';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 
 interface BarcodeModalProps {
   isOpen: boolean;
@@ -26,7 +30,7 @@ interface BarcodeModalProps {
   productName: string;
 }
 
-const StyledDialog = styled(Dialog)(({ theme }) => ({
+const StyledDialog = styled(Dialog)(() => ({
   '& .MuiDialog-paper': {
     borderRadius: 16,
     minWidth: 400,
@@ -97,8 +101,28 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
     setNumeratorInput(e.target.value);
   };
 
+  const STEP = 1;
+  
   const handleDenominatorChange = (e: ChangeEvent<HTMLInputElement>) => {
     setDenominatorInput(e.target.value);
+  };
+  
+  const handleIncrement = () => { 
+    if (!isFractionMode) { 
+      const next = parseFloat((parsedQty + STEP).toFixed(4)); 
+      setParsedQty(next); 
+      setDecimalInput(next.toString()); 
+    } 
+  };
+  
+  const handleDecrement = () => { 
+    if (!isFractionMode) { 
+      const next = parseFloat((parsedQty - STEP).toFixed(4)); 
+      if (next > 0) { 
+        setParsedQty(next); 
+        setDecimalInput(next.toString()); 
+      } 
+    } 
   };
 
   const handleConfirm = () => {
@@ -207,7 +231,29 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
             }
             slotProps={{
               input: {
-                inputProps: { min: 0, step: 1.00 }
+                inputProps: { min: 0, step: 1.00 },
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconButton 
+                      onClick={handleDecrement} 
+                      size="small" 
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      <RemoveIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton 
+                      onClick={handleIncrement} 
+                      size="small" 
+                      sx={{ color: 'text.secondary' }}
+                    >
+                      <AddIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }
             }}
             sx={{ mb: 3 }}

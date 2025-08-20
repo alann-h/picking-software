@@ -10,8 +10,6 @@ import {
   Paper,
   Stack,
   Divider,
-  Alert,
-  useTheme,
   FormControlLabel,
   Checkbox
 } from '@mui/material';
@@ -19,7 +17,6 @@ import {
   Visibility, 
   VisibilityOff, 
   Email, 
-  Lock, 
   Business,
   ArrowForward,
   SwitchAccount,
@@ -169,14 +166,6 @@ const Login: React.FC = () => {
         return newState;
       });
     }
-  };
-
-  const handleClickShowPassword = () => {
-    setShowPassword((prev) => !prev);
-  };
-
-  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
   };
 
   const handleCredentialLogin = async (e: React.FormEvent) => {

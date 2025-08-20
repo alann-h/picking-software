@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Paper, Typography, Table, TableBody, TableCell, 
@@ -16,7 +16,7 @@ import ProductDetailsQuote from './ProductDetailsQuote';
 import AdjustQuantityModal from './AdjustQuantityModal';
 import AddProductModal from './AddProductModal';
 import ProductRow from './ProductRow';
-import ProductFilter, { SortField } from './ProductFilter';
+import ProductFilter from './ProductFilter';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
 import FinalConfirmationModal from './FinalConfirmationModal';
 import BarcodeModal from './BarcodeModal';
@@ -38,8 +38,6 @@ const Quote: React.FC = () => {
   const { quoteData, actions, pendingStates } = useQuoteManager(quoteId, openModal);
 
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [sortField, setSortField] = useState<SortField | ''>('sku');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pickerNote, setPickerNote] = useState(quoteData?.pickerNote || '');
 
   // Barcode mode is now automatically managed by BarcodeListener
@@ -56,17 +54,30 @@ const Quote: React.FC = () => {
         p.pickingStatus.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    if (sortField) {
-      products.sort((a, b) => {
-        const valA = a[sortField];
-        const valB = b[sortField];
-        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
+    
+
+    products.sort((a, b) => {
+      const statusPriority: Record<string, number> = {
+        'pending': 1,
+        'backorder': 2,
+        'unavailable': 3,
+        'completed': 4,
+      };
+      
+      const statusA = statusPriority[a.pickingStatus] || 999;
+      const statusB = statusPriority[b.pickingStatus] || 999;
+      
+      // First sort by status priority
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+      
+      // If status is the same, sort by SKU alphabetically
+      return a.sku.localeCompare(b.sku, undefined, { numeric: true, sensitivity: 'base' });
+    });
+    
     return products;
-  }, [productArray, searchTerm, sortField, sortOrder]);
+  }, [productArray, searchTerm]);
 
   const { hasPendingProducts, backorderProducts } = useMemo(() => {
     const pending = productArray.some(p => p.pickingStatus === 'pending');
@@ -77,12 +88,12 @@ const Quote: React.FC = () => {
   const handleMainActionClick = () => {
     if (quoteData.orderStatus === 'checking') {
       if (hasPendingProducts) {
-        alert('Please resolve all "pending" items before finalising the invoice.');
+        openModal('quoteInvoice');
       } else {
         openModal('finalConfirmation');
       }
     } else {
-      actions.openQuoteInvoiceModal();
+      openModal('quoteInvoice');
     }
   };
   
@@ -248,7 +259,7 @@ const Quote: React.FC = () => {
         </Box>
       </Box>
       
-      <ProductFilter searchTerm={searchTerm} sortField={sortField} sortOrder={sortOrder} onSearchChange={(e) => setSearchTerm(e.target.value)} onSortFieldChange={(e) => setSortField(e.target.value as SortField)} onSortOrderChange={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')} />
+      <ProductFilter searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)} />
       
       {/* Product Table */}
       <TableContainer component={Paper}>
