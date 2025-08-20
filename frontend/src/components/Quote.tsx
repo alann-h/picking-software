@@ -41,7 +41,9 @@ const Quote: React.FC = () => {
   const [sortField, setSortField] = useState<SortField | ''>('sku');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pickerNote, setPickerNote] = useState(quoteData?.pickerNote || '');
-  const [isBarcodeMode, setIsBarcodeMode] = useState<boolean>(true);
+
+  // Barcode mode is now automatically managed by BarcodeListener
+  // No need for manual keyboard listeners
 
   const productArray = useMemo(() => Object.values(quoteData.productInfo), [quoteData.productInfo]);
 
@@ -237,22 +239,6 @@ const Quote: React.FC = () => {
 
         
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, alignItems: 'center' }}>
-          {/* Barcode Mode Status Chip */}
-          <Chip
-            label={isBarcodeMode ? "Scanner Active" : "Scanner Inactive"}
-            size="small"
-            color={isBarcodeMode ? "success" : "error"}
-            variant="outlined"
-            title="Barcode mode automatically switches based on context"
-            sx={{
-              fontSize: '0.75rem',
-              height: '24px',
-              '& .MuiChip-label': {
-                px: 1.5
-              }
-            }}
-          />
-          
           <Button variant="outlined" color="secondary" onClick={() => openModal('cameraScanner')} disabled={quoteData.orderStatus === 'finalised'}>
             <CameraAltIcon /> {!isMobile && "Scan"}
           </Button>
