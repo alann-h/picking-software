@@ -191,7 +191,7 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
             error={isTooLow}
             helperText={isTooLow ? 'Quantity must be greater than 0' : ''}
             slotProps={{
-              htmlInput: { min: 0, step: 0.01 }
+              htmlInput: { min: 0, step: 1.00 }
             }}
           />
         )}

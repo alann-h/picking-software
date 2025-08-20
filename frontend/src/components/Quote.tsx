@@ -19,6 +19,7 @@ import ProductRow from './ProductRow';
 import ProductFilter, { SortField } from './ProductFilter';
 import QuoteInvoiceModal from './QuoteInvoiceModal';
 import FinalConfirmationModal from './FinalConfirmationModal';
+import BarcodeModal from './BarcodeModal';
 import { useModalState } from '../utils/modalState';
 import { useAuth } from '../hooks/useAuth';
 import { useQuoteManager } from './useQuote';
@@ -92,12 +93,15 @@ const Quote: React.FC = () => {
     actions.handleBarcodeScan(barcode);
   }, [closeModal, actions]); 
 
+
   return (
     <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
       <title>{`Smart Picker | Quote: ${quoteId}`}</title>
       
       {/* Modals now receive actions directly from the hook */}
       <BarcodeListener onBarcodeScanned={actions.handleBarcodeScan} disabled={modalState.isOpen} />
+      
+      {modalState.type === 'barcodeModal' && modalState.data && <BarcodeModal isOpen={modalState.isOpen} onClose={closeModal} onConfirm={modalState.data.onConfirm} availableQty={modalState.data.availableQty} productName={modalState.data.productName} />}
       {modalState.type === 'cameraScanner' && <CameraScannerModal isOpen={modalState.isOpen} onClose={closeModal} onScanSuccess={handleCameraScanSuccess} />}
       {modalState.type === 'productDetails' && modalState.data && <ProductDetailsQuote open={modalState.isOpen} onClose={closeModal} productName={modalState.data.name} productDetails={modalState.data.details} />}
       {modalState.type === 'adjustQuantity' && modalState.data && <AdjustQuantityModal isOpen={modalState.isOpen} onClose={closeModal} productName={modalState.data.productName} currentQty={modalState.data.pickingQty} productId={modalState.data.productId} onConfirm={actions.adjustQuantity} isLoading={pendingStates.isAdjustingQuantity} />}

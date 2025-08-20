@@ -180,12 +180,14 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
                                 error={!!errors.given_name} 
                                 helperText={errors.given_name} 
                                 required
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <Person sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                        </InputAdornment>
-                                    ),
+                                slotProps={{
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <Person sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                            </InputAdornment>
+                                        ),
+                                    },
                                 }}
                             />
                             <TextField 
@@ -196,12 +198,14 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
                                 error={!!errors.family_name} 
                                 helperText={errors.family_name} 
                                 required
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <Person sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                        </InputAdornment>
-                                    ),
+                                slotProps={{
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <Person sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                            </InputAdornment>
+                                        ),
+                                    },
                                 }}
                             />
                         </Stack>
@@ -222,12 +226,14 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
                             error={!!errors.display_email} 
                             helperText={errors.display_email} 
                             required
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <Email sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                    </InputAdornment>
-                                ),
+                            slotProps={{
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Email sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                        </InputAdornment>
+                                    ),
+                                },
                             }}
                         />
                     </Box>
@@ -248,25 +254,26 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
                             error={!!errors.password} 
                             helperText={errors.password} 
                             required
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <Security sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                    </InputAdornment>
-                                ),
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <IconButton
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            edge="end"
-                                        >
-                                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                                        </IconButton>
-                                    </InputAdornment>
-                                ),
+                            slotProps={{
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Security sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                        </InputAdornment>
+                                    ),
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                edge="end"
+                                            >
+                                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                },
                             }}
                         />
-
                         {/* Password Strength Indicator */}
                         {newUser.password && (
                             <Box sx={{ mt: 2 }}>

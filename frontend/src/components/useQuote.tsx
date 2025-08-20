@@ -142,7 +142,7 @@ export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) =
                 throw new Error('This product has already been fully picked.');
             }
 
-            openModal('barcode', {
+            openModal('barcodeModal', {
                 productName,
                 availableQty: product.pickingQty,
                 onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),

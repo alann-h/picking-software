@@ -9,7 +9,6 @@ import {
   Typography,
   Box,
   Divider,
-  Chip,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -170,8 +169,10 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
               value={numeratorInput}
               onChange={handleNumeratorChange}
               size="small"
-              InputProps={{
-                inputProps: { min: 0, step: 1 }
+              slotProps={{
+                input: {
+                  inputProps: { min: 0, step: 1 }
+                }
               }}
             />
             <TextField
@@ -182,8 +183,10 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
               size="small"
               error={isInvalidFraction}
               helperText={isInvalidFraction ? 'Denominator must be greater than 0' : ''}
-              InputProps={{
-                inputProps: { min: 1, step: 1 }
+              slotProps={{
+                input: {
+                  inputProps: { min: 1, step: 1 }
+                }
               }}
             />
           </Stack>
@@ -202,8 +205,10 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
                 ? `Cannot exceed available quantity (${availableQty})`
                 : ''
             }
-            InputProps={{
-              inputProps: { min: 0, step: 0.01 }
+            slotProps={{
+              input: {
+                inputProps: { min: 0, step: 1.00 }
+              }
             }}
             sx={{ mb: 3 }}
           />

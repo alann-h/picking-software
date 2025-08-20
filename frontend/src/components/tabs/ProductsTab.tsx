@@ -160,37 +160,39 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                   onChange={onSearchChange}
                   variant="outlined"
                   size="medium"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: searchTerm && (
-                      <InputAdornment position="end">
-                        <Tooltip title="Clear search">
-                          <IconButton
-                            size="small"
-                            onClick={() => onSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>)}
-                            sx={{ color: 'text.secondary' }}
-                          >
-                            <ClearIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      borderRadius: 2,
-                      backgroundColor: 'white',
-                      '& .MuiOutlinedInput-root': {
-                        '&:hover fieldset': {
-                          borderColor: 'primary.main',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: 'primary.main',
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: searchTerm && (
+                        <InputAdornment position="end">
+                          <Tooltip title="Clear search">
+                            <IconButton
+                              size="small"
+                              onClick={() => onSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>)}
+                              sx={{ color: 'text.secondary' }}
+                            >
+                              <ClearIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        borderRadius: 2,
+                        backgroundColor: 'white',
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: 'primary.main',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'primary.main',
+                          },
                         },
                       },
-                    }
+                    },
                   }}
                 />
 

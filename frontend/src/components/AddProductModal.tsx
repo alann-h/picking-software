@@ -221,8 +221,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                     error={parseFloat(numeratorInput) < 0}
                     helperText={parseFloat(numeratorInput) < 0 ? 'Enter a valid numerator' : ''}
                     disabled={isSubmitting}
-                    InputProps={{
-                      inputProps: { min: 0, step: 1 }
+                    slotProps={{
+                      input: {
+                        inputProps: { min: 0, step: 1 }
+                      }
                     }}
                   />
                   <TextField
@@ -234,8 +236,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                     error={isInvalidFraction}
                     helperText={isInvalidFraction ? 'Denominator must be greater than 0' : ''}
                     disabled={isSubmitting}
-                    InputProps={{
-                      inputProps: { min: 1, step: 1 }
+                    slotProps={{
+                      input: {
+                        inputProps: { min: 1, step: 1 }
+                      }
                     }}
                   />
                 </Stack>
@@ -250,32 +254,34 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                     error={isTooLow}
                     helperText={isTooLow ? 'Quantity must be greater than 0' : ''}
                     disabled={isSubmitting}
-                    InputProps={{
-                      inputProps: { min: 0, step: 0.01 },
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <IconButton 
-                            onClick={handleDecrement} 
-                            size="small" 
-                            disabled={isSubmitting}
-                            sx={{ color: 'text.secondary' }}
-                          >
-                            <RemoveIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton 
-                            onClick={handleIncrement} 
-                            size="small" 
-                            disabled={isSubmitting}
-                            sx={{ color: 'text.secondary' }}
-                          >
-                            <AddIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
+                    slotProps={{
+                      input: {
+                        inputProps: { min: 0, step: 1.00 },
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <IconButton 
+                              onClick={handleDecrement} 
+                              size="small" 
+                              disabled={isSubmitting}
+                              sx={{ color: 'text.secondary' }}
+                            >
+                              <RemoveIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton 
+                              onClick={handleIncrement} 
+                              size="small" 
+                              disabled={isSubmitting}
+                              sx={{ color: 'text.secondary' }}
+                            >
+                              <AddIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }
                     }}
                   />
                 </Box>

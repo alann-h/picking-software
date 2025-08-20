@@ -177,12 +177,14 @@ const FilterSection: React.FC<FilterSectionProps> = ({
               label="Customer Name"
               value={filters.customerName}
               onChange={(e) => onFilterChange('customerName', e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
               }}
               size="small"
             />
@@ -214,12 +216,14 @@ const FilterSection: React.FC<FilterSectionProps> = ({
               label="Quote Number"
               value={filters.quoteNumber}
               onChange={(e) => onFilterChange('quoteNumber', e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
               }}
               size="small"
             />
