@@ -565,15 +565,56 @@ export async function deleteQuotesBulk(quoteIds) {
 
 export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, companyId) {
   try {
+    console.log('=== QuickBooks Update Debug ===');
+    console.log('Quote ID:', quoteId);
+    console.log('Company ID:', companyId);
+    console.log('Raw Quote Data Type:', typeof rawQuoteData);
+    console.log('Raw Quote Data Keys:', rawQuoteData ? Object.keys(rawQuoteData) : 'rawQuoteData is null/undefined');
+    console.log('Raw Quote Data:', JSON.stringify(rawQuoteData, null, 2));
+    
+    if (!rawQuoteData) {
+      throw new AccessError('Raw quote data is missing');
+    }
+    
+    if (!rawQuoteData.QueryResponse) {
+      console.error('Missing QueryResponse in rawQuoteData');
+      throw new AccessError('Invalid QuickBooks quote data: missing QueryResponse');
+    }
+    
+    if (!rawQuoteData.QueryResponse.Estimate) {
+      console.error('Missing Estimate in QueryResponse');
+      console.log('QueryResponse keys:', Object.keys(rawQuoteData.QueryResponse));
+      throw new AccessError('Invalid QuickBooks quote data: missing Estimate');
+    }
+    
+    if (!Array.isArray(rawQuoteData.QueryResponse.Estimate)) {
+      console.error('Estimate is not an array');
+      console.log('Estimate type:', typeof rawQuoteData.QueryResponse.Estimate);
+      console.log('Estimate value:', rawQuoteData.QueryResponse.Estimate);
+      throw new AccessError('Invalid QuickBooks quote data: Estimate is not an array');
+    }
+    
+    if (rawQuoteData.QueryResponse.Estimate.length === 0) {
+      console.error('Estimate array is empty');
+      throw new AccessError('Invalid QuickBooks quote data: Estimate array is empty');
+    }
+    
     const oauthClient = await getOAuthClient(companyId);
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
     
     const qbQuote = rawQuoteData.QueryResponse.Estimate[0];
+    console.log('QuickBooks Quote found:', {
+      hasId: !!qbQuote.Id,
+      hasSyncToken: !!qbQuote.SyncToken,
+      quoteKeys: qbQuote ? Object.keys(qbQuote) : 'qbQuote is null'
+    });
     
     // Validate QuickBooks data
     if (!qbQuote || !qbQuote.SyncToken) {
+      console.error('Invalid QuickBooks quote or missing SyncToken');
+      console.log('QB Quote:', qbQuote);
       throw new AccessError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
@@ -582,12 +623,6 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
       throw new AccessError('Invalid product information structure');
     }
     
-    console.log('Processing products for QuickBooks update:', {
-      totalProducts: Object.keys(quoteLocalDb.productInfo).length,
-      productKeys: Object.keys(quoteLocalDb.productInfo)
-    });
-    
-    // Prepare the update payload
     const updatePayload = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
@@ -599,28 +634,24 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     let skippedProducts = 0;
 
     for (const [productKey, localItem] of Object.entries(quoteLocalDb.productInfo)) {
-      // Validate product data structure
       if (!localItem || typeof localItem !== 'object') {
         console.warn(`Skipping invalid product at key ${productKey}:`, localItem);
         skippedProducts++;
         continue;
       }
       
-      // Check required fields
       if (!localItem.productId || !localItem.productName || !localItem.price || !localItem.originalQty) {
         console.warn(`Skipping incomplete product ${productKey}:`, localItem);
         skippedProducts++;
         continue;
       }
       
-      // Skip items marked as 'unavailable'
       if (localItem.pickingStatus === 'unavailable') {
         console.log(`Skipping unavailable product: ${localItem.productName}`);
         skippedProducts++;
         continue;
       }
       
-      // Check for pending status
       if (localItem.pickingStatus === 'pending') {
         throw new AccessError('Quote must not have any products pending!');
       }
@@ -654,7 +685,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
             Qty: Number(localItem.originalQty),
             UnitPrice: Number(localItem.price),
             TaxCodeRef: {
-              value: localItem.taxCodeRef || "4" // Default tax code if missing
+              value: localItem.taxCodeRef || "4"
             }
           }
         };
@@ -675,6 +706,8 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
     if (updatePayload.Line.length === 0) {
       throw new AccessError('No valid products found to update in QuickBooks');
     }
+
+    console.log('Final update payload:', JSON.stringify(updatePayload, null, 2));
 
     // Update the quote in QuickBooks
     const baseURL = getBaseURL(oauthClient);

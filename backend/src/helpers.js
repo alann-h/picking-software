@@ -29,6 +29,8 @@ export async function transaction(callback) {
 
 export async function makeCustomApiCall(oauthClient, url, method, body) {
   try {
+    console.log('Making QuickBooks API call:', { url, method, body });
+    
     const response = await oauthClient.makeApiCall({
       url: url,
       method: method,
@@ -38,32 +40,65 @@ export async function makeCustomApiCall(oauthClient, url, method, body) {
       }
     });
 
+    console.log('QuickBooks API response received:', {
+      hasBody: !!response.body,
+      bodyType: typeof response.body,
+      bodyKeys: response.body ? Object.keys(response.body) : 'no body',
+      fullResponse: JSON.stringify(response, null, 2)
+    });
+
+    // Check if there's a QuickBooks error response
     if (response.body && response.body.Fault) {
-      const error = response.body.Fault.Error[0];
-      console.error('QuickBooks API Error:', {
+      console.error('QuickBooks API Error Response:', {
         url: url,
-        error: error
+        fault: response.body.Fault,
+        faultKeys: Object.keys(response.body.Fault),
+        errorType: typeof response.body.Fault.Error,
+        errorIsArray: Array.isArray(response.body.Fault.Error),
+        errorLength: response.body.Fault.Error ? response.body.Fault.Error.length : 'no error array'
       });
       
-      if (error.Message?.includes('OAuth') || error.Message?.includes('authentication')) {
-        throw new Error('QBO_REAUTH_REQUIRED');
+      // Safely extract error message
+      let errorMessage = 'Unknown QuickBooks error';
+      
+      if (response.body.Fault.Error && Array.isArray(response.body.Fault.Error) && response.body.Fault.Error.length > 0) {
+        const error = response.body.Fault.Error[0];
+        errorMessage = error.Message || error.Detail || 'Unknown error';
+        
+        // Check for OAuth/authentication errors
+        if (errorMessage.includes('OAuth') || errorMessage.includes('authentication') || errorMessage.includes('token')) {
+          throw new Error('QBO_REAUTH_REQUIRED');
+        }
+      } else if (response.body.Fault.Error && typeof response.body.Fault.Error === 'string') {
+        errorMessage = response.body.Fault.Error;
+      } else if (response.body.Fault.Message) {
+        errorMessage = response.body.Fault.Message;
       }
       
-      throw new Error(`QuickBooks API Error: ${error.Message || 'Unknown error'}`);
+      throw new Error(`QuickBooks API Error: ${errorMessage}`);
     }
 
     return response.body || response;
   } catch (error) {
+    // If it's already our custom error, re-throw it
     if (error.message === 'QBO_REAUTH_REQUIRED') {
       throw error;
     }
     
+    // If it's already a QuickBooks API Error, re-throw it
+    if (error.message.startsWith('QuickBooks API Error:')) {
+      throw error;
+    }
+    
+    // Log the error for debugging
     console.error('QuickBooks API Call Error:', {
       url: url,
       method: method,
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
     
+    // Re-throw the error to be handled by the calling function
     throw error;
   }
 }
