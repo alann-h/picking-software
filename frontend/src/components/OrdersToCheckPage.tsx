@@ -14,7 +14,6 @@ import {
   Chip,
   Avatar,
   AvatarGroup,
-  Skeleton,
   Alert,
   useTheme,
   useMediaQuery,
@@ -32,6 +31,7 @@ import { useSnackbarContext } from './SnackbarContext';
 import { getQuotesWithStatus } from '../api/quote';
 import { getUserStatus } from '../api/user';
 import { QuoteSummary } from '../utils/types';
+import { OrderHistorySkeleton } from './Skeletons';
 
 // =================================================================
 // 1. INTERFACE
@@ -140,31 +140,6 @@ const EmptyState: React.FC = () => {
         </Box>
       </Stack>
     </Paper>
-  );
-};
-
-const LoadingSkeleton: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  return (
-    <Grid container spacing={3} sx={{ mt: 1 }}>
-      {Array.from({ length: isMobile ? 1 : 6 }).map((_, index) => (
-        <Grid component="div" size={{ xs: 12, sm: 6, md: 4 }} key={index}>
-          <Card elevation={0} sx={{ height: '100%', border: `1px solid ${theme.palette.divider}` }}>
-            <CardContent sx={{ p: 3 }}>
-              <Skeleton variant="text" width="60%" height={32} sx={{ mb: 2 }} />
-              <Stack spacing={2}>
-                <Skeleton variant="text" width="80%" height={24} />
-                <Skeleton variant="text" width="60%" height={24} />
-                <Skeleton variant="text" width="70%" height={24} />
-                <Skeleton variant="text" width="50%" height={24} />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
   );
 };
 
@@ -280,6 +255,19 @@ const QuoteCard: React.FC<{ quote: EnhancedQuoteSummary }> = ({ quote }) => {
               <PreparerAvatars preparers={preparerNames} />
             </Box>
 
+            {/* Time Taken */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <TrendingIcon color="action" sx={{ fontSize: 24 }} />
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Time Taken
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  {quote.timeTaken}
+                </Typography>
+              </Box>
+            </Box>
+
             {/* Last Modified */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <TimeIcon color="action" sx={{ fontSize: 24 }} />
@@ -304,7 +292,7 @@ const OrdersToCheckPage: React.FC = () => {
 
   const renderContent = () => {
     if (isLoading) {
-      return <LoadingSkeleton />;
+      return <OrderHistorySkeleton />;
     }
 
     if (error) {

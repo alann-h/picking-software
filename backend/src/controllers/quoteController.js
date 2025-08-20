@@ -11,7 +11,8 @@ import {
   addProductToQuote,
   adjustProductQuantity,
   processBarcode,
-  savePickerNote
+  savePickerNote,
+  deleteQuotesBulk
 } from '../services/quoteService.js';
 
 // GET /quotes/customer/:customerId
@@ -140,6 +141,17 @@ export async function savePickerNoteController(req, res, next) {
     }
     const updated = await savePickerNote(quoteId, note);
     res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /quotes/bulk-delete
+export async function bulkDeleteQuotes(req, res, next) {
+  try {
+    const { quoteIds } = req.body;
+    const result = await deleteQuotesBulk(quoteIds);
+    res.json(result);
   } catch (err) {
     next(err);
   }

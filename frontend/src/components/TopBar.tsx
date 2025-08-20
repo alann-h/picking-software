@@ -5,8 +5,6 @@ import {
   IconButton, 
   Toolbar, 
   Typography, 
-  useTheme,
-  useMediaQuery, 
   Box, 
   Tooltip, 
   Menu, 
@@ -29,7 +27,9 @@ import {
   Group as GroupIcon,
   Dashboard as DashboardIcon,
   Logout as LogoutIcon,
-  DevicesOther as DevicesOtherIcon
+  DevicesOther as DevicesOtherIcon,
+  Menu as MenuIcon,
+  History as HistoryIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
@@ -44,91 +44,73 @@ interface TopBarProps {
 // 1. Child component for items that need authentication
 // This component is ONLY rendered on protected pages, so useAuth() is always safe here.
 // ====================================================================================
-const AuthenticatedNavItems: React.FC = () => {
-  const navigate = useNavigate();
-  const isMobile = useMediaQuery(useTheme().breakpoints.down('sm'));
+const AuthenticatedNavItems: React.FC<{ onAdminMenuClick: (event: React.MouseEvent<HTMLButtonElement>) => void }> = ({ onAdminMenuClick }) => {
   const { isAdmin } = useAuth();
 
   return (
     <>
       {isAdmin && (
-        <>
-          {isMobile ? (
-            <Tooltip title="Orders to Check">
-              <IconButton 
-                color="primary" 
-                onClick={() => navigate('/orders-to-check')}
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'rgba(59,130,246,0.1)',
-                    transform: 'translateY(-1px)'
-                  },
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <AssignmentIcon />
-              </IconButton>
-            </Tooltip>
-          ) : (
-            <Button 
-              startIcon={<AssignmentIcon />} 
-              onClick={() => navigate('/orders-to-check')}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 500,
-                borderRadius: 2,
-                px: 2,
-                '&:hover': {
-                  backgroundColor: 'rgba(59,130,246,0.1)',
-                  transform: 'translateY(-1px)'
-                },
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Orders to Check
-            </Button>
-          )}
-
-          {isMobile ? (
-            <Tooltip title="Manage Runs">
-              <IconButton 
-                color="primary" 
-                onClick={() => navigate('/run')}
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'rgba(59,130,246,0.1)',
-                    transform: 'translateY(-1px)'
-                  },
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <DirectionsRunIcon />
-              </IconButton>
-            </Tooltip>
-          ) : (
-            <Button 
-              startIcon={<DirectionsRunIcon />} 
-              onClick={() => navigate('/run')}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 500,
-                borderRadius: 2,
-                px: 2,
-                '&:hover': {
-                  backgroundColor: 'rgba(59,130,246,0.1)',
-                  transform: 'translateY(-1px)'
-                },
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Manage Runs
-            </Button>
-          )}
-        </>
+        <Tooltip title="Admin Operations">
+          <IconButton 
+            color="primary" 
+            onClick={onAdminMenuClick}
+            sx={{
+              '&:hover': {
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                transform: 'translateY(-1px)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
+        </Tooltip>
       )}
     </>
   );
 };
+
+// ====================================================================================
+// 1.5. Admin Menu Content
+// ====================================================================================
+const AdminMenuContent: React.FC<{ onMenuItemClick: (path: string) => void; onClose: () => void }> = ({ onMenuItemClick, onClose }) => {
+    const handleClick = (path: string) => {
+        onMenuItemClick(path);
+        onClose();
+    };
+
+    return (
+        <div>
+            <MenuItem 
+              onClick={() => handleClick('/orders-to-check')}
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+              }}
+            >
+                <ListItemIcon><AssignmentIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Orders to Check</ListItemText>
+            </MenuItem>
+            <MenuItem 
+              onClick={() => handleClick('/run')}
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+              }}
+            >
+                <ListItemIcon><DirectionsRunIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Manage Runs</ListItemText>
+            </MenuItem>
+            <MenuItem 
+              onClick={() => handleClick('/order-history')}
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+              }}
+            >
+                <ListItemIcon><HistoryIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Order History</ListItemText>
+            </MenuItem>
+        </div>
+    );
+}
 
 // ====================================================================================
 // 2. The main TopBar component
@@ -138,10 +120,12 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
+  const [adminMenuAnchor, setAdminMenuAnchor] = useState<null | HTMLElement>(null);
   const [logoutAllDialogOpen, setLogoutAllDialogOpen] = useState(false);
   
   const open = Boolean(anchorEl);
   const mobileMenuOpen = Boolean(mobileMenuAnchor);
+  const adminMenuOpen = Boolean(adminMenuAnchor);
 
   const authData = disableTopBar ? null : useAuth();
   const userName = authData?.userName || null;
@@ -150,6 +134,8 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
   const handleMobileMenuClose = () => setMobileMenuAnchor(null);
+  const handleAdminMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setAdminMenuAnchor(event.currentTarget);
+  const handleAdminMenuClose = () => setAdminMenuAnchor(null);
   const handleTitleClick = () => navigate(disableTopBar ? '/' : '/dashboard');
   const handleMenuItemClick = (path: string) => {
     if (path === '/logout') {
@@ -323,7 +309,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
             <>
               {/* Desktop Navigation */}
               <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
-                <AuthenticatedNavItems />
+                <AuthenticatedNavItems onAdminMenuClick={handleAdminMenuClick} />
               </Box>
 
               {/* User Profile - Only show when we have auth data */}
@@ -371,6 +357,28 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                   }}
                 >
                   <SettingsMenuContent onMenuItemClick={handleMenuItemClick} userName={userName} userEmail={userEmail} />
+                </Menu>
+              )}
+
+              {/* Admin Menu */}
+              {authData && (
+                <Menu 
+                  id="admin-menu" 
+                  anchorEl={adminMenuAnchor} 
+                  open={adminMenuOpen} 
+                  onClose={handleAdminMenuClose}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        borderRadius: 2,
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                        border: '1px solid rgba(59,130,246,0.1)',
+                        minWidth: 200
+                      }
+                    }
+                  }}
+                >
+                  <AdminMenuContent onMenuItemClick={handleMenuItemClick} onClose={handleAdminMenuClose} />
                 </Menu>
               )}
 

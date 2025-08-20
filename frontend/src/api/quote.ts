@@ -1,4 +1,4 @@
-import { apiCallGet, apiCallPut } from '../utils/apiHelpers';
+import { apiCallGet, apiCallPut, apiCallPost } from '../utils/apiHelpers';
 
 export const extractQuote = async (quoteId: number) => {
     const url = `quotes/${quoteId}`;
@@ -46,3 +46,8 @@ export const savePickerNote = async (quoteId: number, note: string) => {
   const data = await apiCallPut('quotes/picker-note', { quoteId, note });
   return data;
 }
+
+export const deleteQuotesBulk = async (quoteIds: number[]) => {
+  const response = await apiCallPost('quotes/bulk-delete', { quoteIds });
+  return response;
+};

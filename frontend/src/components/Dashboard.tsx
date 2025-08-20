@@ -117,7 +117,6 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                                 <TableCell>Quote ID</TableCell>
                                 <TableCell>Status</TableCell>
                                 <TableCell>Customer Name</TableCell>
-                                <TableCell align="right">Amount</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -169,9 +168,6 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                                         />
                                     </TableCell>
                                     <TableCell>{quote.customerName}</TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 600, color: 'success.main' }}>
-                                      ${quote.totalAmount.toFixed(2)}
-                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -207,9 +203,6 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
               Quote #{quote.id}
             </Typography>
           </Stack>
-          <Typography variant="h6" fontWeight="bold" color="success.main">
-            ${quote.totalAmount.toFixed(2)}
-          </Typography>
         </Stack>
         
         <Stack spacing={1.5}>

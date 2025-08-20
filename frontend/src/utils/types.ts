@@ -78,9 +78,12 @@ export interface QuoteSummary {
     id: number;
     totalAmount: number;
     customerName: string;
-    customerId?: number;
+    customerId: number;
     lastModified: string;
     preparerNames?: string;
+    orderStatus: string;
+    timeStarted: string;
+    timeTaken: string;
 }
 
 export interface Run {

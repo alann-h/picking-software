@@ -1,4 +1,4 @@
-import { Box, Grid, Paper, Skeleton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
+import { Box, Grid, Paper, Skeleton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useTheme, useMediaQuery } from "@mui/material";
 
 export const RunListSkeleton = () => (
     <Stack spacing={2} sx={{ mt: 2 }}>
@@ -115,6 +115,31 @@ export const QuoteSkeleton = () => {
         <Skeleton variant="rounded" width={180} height={48} />
       </Box>
     </Paper>
+  );
+};
+
+export const OrderHistorySkeleton = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  return (
+    <Grid container spacing={3} sx={{ mt: 1 }}>
+      {Array.from({ length: isMobile ? 1 : 6 }).map((_, index) => (
+        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+          <Paper elevation={0} sx={{ height: '100%', border: `1px solid ${theme.palette.divider}` }}>
+            <Box sx={{ p: 3 }}>
+              <Skeleton variant="text" width="60%" height={32} sx={{ mb: 2 }} />
+              <Stack spacing={2}>
+                <Skeleton variant="text" width="80%" height={24} />
+                <Skeleton variant="text" width="60%" height={24} />
+                <Skeleton variant="text" width="70%" height={24} />
+                <Skeleton variant="text" width="50%" height={24} />
+              </Stack>
+            </Box>
+          </Paper>
+        </Grid>
+      ))}
+    </Grid>
   );
 };
 

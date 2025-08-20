@@ -181,17 +181,7 @@ const Quote: React.FC = () => {
               {quoteData.customerName}
             </Typography>
           </Box>
-
-          {/* Total Amount */}
-          <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-              Total Amount
-            </Typography>
-            <Typography variant="h6" fontWeight={600} color="success.main">
-              ${quoteData.totalAmount}
-            </Typography>
-          </Box>
-
+          
           {/* Order Status */}
           <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
             <Typography variant="caption" color="text.secondary" display="block" gutterBottom>

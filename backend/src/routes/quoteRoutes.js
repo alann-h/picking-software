@@ -11,7 +11,8 @@ import {
   addProduct,
   adjustQty,
   scanProduct,
-  savePickerNoteController
+  savePickerNoteController,
+  bulkDeleteQuotes
 } from '../controllers/quoteController.js';
 
 import {
@@ -24,6 +25,7 @@ import {
   addProductRules,
   adjustQtyRules,
   scanRules,
+  bulkDeleteRules,
 } from '../validators/quoteValidator.js';
 
 const router = Router();
@@ -46,5 +48,8 @@ router.put('/products/qty', adjustQtyRules(), validate, asyncHandler(adjustQty))
 
 // Scan product into quote by barcode
 router.put('/products/scan', scanRules(), validate, asyncHandler(scanProduct));
+
+// Bulk delete quotes
+router.post('/bulk-delete', bulkDeleteRules(), validate, asyncHandler(bulkDeleteQuotes));
 
 export default router;

@@ -25,6 +25,7 @@ const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
 const AboutUs = React.lazy(() => import('./components/AboutUs'));
 const PublicLayout = React.lazy(() => import('./components/PublicLayout'));
 const ErrorBoundary = React.lazy(() => import('./components/ErrorBoundary'));
+const OrderHistory = React.lazy(() => import('./components/OrderHistory'));
 
 
 const App: React.FC = () => {
@@ -131,6 +132,11 @@ const App: React.FC = () => {
                   <Route path="/orders-to-check" element={
                     <Suspense fallback={<LoadingSpinner />}>
                       <OrdersToCheckPage />
+                    </Suspense>
+                  } />
+                  <Route path="/order-history" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <OrderHistory />
                     </Suspense>
                   } />
                   <Route path="/run" element={

@@ -13,7 +13,7 @@ export const customerIdRule = () => [
 
 // NEW: For GET /quotes?status=...
 export const listQuotesRules = () => [
-  query('status').optional().isIn(['pending', 'checking', 'finalised'])
+  query('status').optional().isIn(['pending', 'checking', 'finalised', 'all'])
     .withMessage('Invalid status provided.'),
 ];
 
@@ -54,6 +54,15 @@ export const scanRules = () => [
     .customSanitizer(value => {
         return parseFloat(parseFloat(value).toFixed(2));
     })
+];
+
+export const bulkDeleteRules = () => [
+  body('quoteIds')
+    .isArray({ min: 1 })
+    .withMessage('Quote IDs must be an array with at least one element.'),
+  body('quoteIds.*')
+    .isInt({ min: 1 })
+    .withMessage('Each quote ID must be a positive integer.'),
 ];
 
 export { validate };

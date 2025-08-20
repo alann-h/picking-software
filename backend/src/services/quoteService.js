@@ -409,12 +409,43 @@ export async function setOrderStatus(quoteId, newStatus) {
 
 export async function getQuotesWithStatus(status) {
   try {
-    const result = await query(
-      'SELECT * FROM quotes WHERE orderstatus = $1 ORDER BY lastmodified DESC',
-      [status]
-    );
-    console.log(result);
+    let queryText, queryParams;
+    
+    if (status === 'all') {
+      queryText = 'SELECT * FROM quotes ORDER BY lastmodified DESC';
+      queryParams = [];
+    } else {
+      queryText = 'SELECT * FROM quotes WHERE orderstatus = $1 ORDER BY lastmodified DESC';
+      queryParams = [status];
+    }
+    
+    const result = await query(queryText, queryParams);
     return result.map(quote => {
+      // Calculate time taken using raw timestamps BEFORE formatting
+      let timeTaken = 'N/A';
+      if (quote.timestarted && quote.lastmodified) {
+        const start = new Date(quote.timestarted);
+        const end = new Date(quote.lastmodified);
+        
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          const diffMs = end.getTime() - start.getTime();
+          
+          if (diffMs >= 0) {
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (diffHours > 0) {
+              timeTaken = `${diffHours}h ${diffMinutes}m`;
+            } else {
+              timeTaken = `${diffMinutes}m`;
+            }
+          } else {
+            timeTaken = 'Invalid time';
+          }
+        }
+      }
+
+      // Format timestamps AFTER calculation
       const formattedTimeStarted = formatTimestampForSydney(quote.timestarted);
       const formattedLastModified = formatTimestampForSydney(quote.lastmodified);
 
@@ -426,6 +457,7 @@ export async function getQuotesWithStatus(status) {
         orderStatus: quote.orderstatus,
         timeStarted: formattedTimeStarted,
         lastModified: formattedLastModified,
+        timeTaken: timeTaken,
         companyId: quote.companyid,
         preparerNames: quote.preparer_names
       };
@@ -438,12 +470,95 @@ export async function getQuotesWithStatus(status) {
 
 export async function savePickerNote(quoteId, note) {
   try {
-    const result = await query('UPDATE quotes SET pickernote = $1 WHERE quoteid = $2 returning pickernote', [note, quoteId]);
-
+    const result = await query(
+      'UPDATE quotes SET pickernote = $1 WHERE quoteid = $2 RETURNING pickernote',
+      [note, quoteId]
+    );
+    
+    if (result.length === 0) {
+      throw new InputError('Quote not found');
+    }
+    
     return {pickerNote: result[0].pickernote};
+  } catch (error) {
+    if (error instanceof InputError) {
+      throw error;
+    }
+    throw new InputError('Failed to save picker note');
+  }
+}
 
-  } catch(error) {
-    throw new AccessError(`Issue with saving note! ${error.message}`);
+export async function deleteQuotesBulk(quoteIds) {
+  try {
+    const result = await transaction(async (client) => {
+      const deletedQuotes = [];
+      const errors = [];
+      
+      for (const quoteId of quoteIds) {
+        try {
+          // First, check if quote exists
+          const quoteExists = await client.query(
+            'SELECT quoteid FROM quotes WHERE quoteid = $1',
+            [quoteId]
+          );
+          
+          if (quoteExists.length === 0) {
+            errors.push({ quoteId, error: 'Quote not found' });
+            continue;
+          }
+          
+          await client.query(
+            'DELETE FROM quoteitems WHERE quoteid = $1',
+            [quoteId]
+          );
+          
+          // Delete the quote
+          const deletedQuote = await client.query(
+            'DELETE FROM quotes WHERE quoteid = $1 RETURNING quoteid, customerid',
+            [quoteId]
+          );
+          
+          if (deletedQuote.length > 0) {
+            deletedQuotes.push(deletedQuote[0]);
+          }
+          
+        } catch (error) {
+          errors.push({ quoteId, error: error.message });
+        }
+      }
+      
+      return { deletedQuotes, errors };
+    });
+    
+    // Prepare response
+    const successCount = result.deletedQuotes.length;
+    const errorCount = result.errors.length;
+    
+    if (errorCount === 0) {
+      return {
+        success: true,
+        message: `Successfully deleted ${successCount} quote${successCount !== 1 ? 's' : ''}`,
+        deletedCount: successCount,
+        deletedQuotes: result.deletedQuotes
+      };
+    } else if (successCount === 0) {
+      return {
+        success: false,
+        message: `Failed to delete any quotes. ${errorCount} error${errorCount !== 1 ? 's' : ''} occurred.`,
+        errors: result.errors
+      };
+    } else {
+      return {
+        success: true,
+        message: `Partially successful: deleted ${successCount} quote${successCount !== 1 ? 's' : ''}, ${errorCount} failed`,
+        deletedCount: successCount,
+        deletedQuotes: result.deletedQuotes,
+        errors: result.errors
+      };
+    }
+    
+  } catch (error) {
+    throw new InputError(`Bulk delete operation failed: ${error.message}`);
   }
 }
 
