@@ -1,5 +1,5 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query, transaction, makeCustomApiCall, roundQuantity, formatTimestampForSydney } from '../helpers.js';
+import { query, transaction, roundQuantity, formatTimestampForSydney } from '../helpers.js';
 import { getOAuthClient, getBaseURL } from './authService.js';
 import { productIdToQboId, getProductsFromDBByIds } from './productService.js';
 
@@ -627,12 +627,14 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
 
     // Update the quote in QuickBooks
     const baseURL = getBaseURL(oauthClient);
-    await makeCustomApiCall(
-      oauthClient,
-      `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
-      'POST',
-      updatePayload
-    );
+    await oauthClient.makeApiCall({
+      url: `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
+      method: 'POST',
+      body: updatePayload,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
 
     await setOrderStatus(quoteId, 'finalised');
     return { message: 'Quote updated successfully in QuickBooks'};
