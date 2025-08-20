@@ -577,6 +577,16 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
       throw new AccessError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
+    // Validate and clean product data
+    if (!quoteLocalDb.productInfo || typeof quoteLocalDb.productInfo !== 'object') {
+      throw new AccessError('Invalid product information structure');
+    }
+    
+    console.log('Processing products for QuickBooks update:', {
+      totalProducts: Object.keys(quoteLocalDb.productInfo).length,
+      productKeys: Object.keys(quoteLocalDb.productInfo)
+    });
+    
     // Prepare the update payload
     const updatePayload = {
       Id: quoteId,
@@ -585,31 +595,85 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
       Line: []
     };
 
-    for (const localItem of Object.values(quoteLocalDb.productInfo)) {
+    let processedProducts = 0;
+    let skippedProducts = 0;
+
+    for (const [productKey, localItem] of Object.entries(quoteLocalDb.productInfo)) {
+      // Validate product data structure
+      if (!localItem || typeof localItem !== 'object') {
+        console.warn(`Skipping invalid product at key ${productKey}:`, localItem);
+        skippedProducts++;
+        continue;
+      }
+      
+      // Check required fields
+      if (!localItem.productId || !localItem.productName || !localItem.price || !localItem.originalQty) {
+        console.warn(`Skipping incomplete product ${productKey}:`, localItem);
+        skippedProducts++;
+        continue;
+      }
+      
       // Skip items marked as 'unavailable'
-      if (localItem.pickingStatus === 'unavailable') continue;
-      if (localItem.pickingStatus === 'pending') return AccessError('Wuote must not have any products pending!');
-      const amount = Number(localItem.price) * Number(localItem.originalQty);
-
-      const qboItemId = await productIdToQboId(localItem.productId);
-      const lineItem = {
-        Description: localItem.productName,
-        Amount: amount,
-        DetailType: "SalesItemLineDetail",
-        SalesItemLineDetail: {
-          ItemRef: {
-            value: qboItemId,
-            name: localItem.productName
-          },
-          Qty: Number(localItem.originalQty),
-          UnitPrice: Number(localItem.price),
-          TaxCodeRef: {
-            value: localItem.taxCodeRef
-          }
+      if (localItem.pickingStatus === 'unavailable') {
+        console.log(`Skipping unavailable product: ${localItem.productName}`);
+        skippedProducts++;
+        continue;
+      }
+      
+      // Check for pending status
+      if (localItem.pickingStatus === 'pending') {
+        throw new AccessError('Quote must not have any products pending!');
+      }
+      
+      try {
+        const amount = Number(localItem.price) * Number(localItem.originalQty);
+        
+        if (isNaN(amount)) {
+          console.warn(`Skipping product with invalid amount calculation: ${localItem.productName}`);
+          skippedProducts++;
+          continue;
         }
-      };
 
-      updatePayload.Line.push(lineItem);
+        const qboItemId = await productIdToQboId(localItem.productId);
+        
+        if (!qboItemId) {
+          console.warn(`Skipping product without QuickBooks ID: ${localItem.productName}`);
+          skippedProducts++;
+          continue;
+        }
+        
+        const lineItem = {
+          Description: localItem.productName,
+          Amount: amount,
+          DetailType: "SalesItemLineDetail",
+          SalesItemLineDetail: {
+            ItemRef: {
+              value: qboItemId,
+              name: localItem.productName
+            },
+            Qty: Number(localItem.originalQty),
+            UnitPrice: Number(localItem.price),
+            TaxCodeRef: {
+              value: localItem.taxCodeRef || "4" // Default tax code if missing
+            }
+          }
+        };
+
+        updatePayload.Line.push(lineItem);
+        processedProducts++;
+        
+        console.log(`Processed product: ${localItem.productName} (Qty: ${localItem.originalQty}, Price: ${localItem.price}, Amount: ${amount})`);
+      } catch (productError) {
+        console.error(`Error processing product ${localItem.productName}:`, productError);
+        skippedProducts++;
+        continue;
+      }
+    }
+    
+    console.log(`Product processing complete: ${processedProducts} processed, ${skippedProducts} skipped`);
+    
+    if (updatePayload.Line.length === 0) {
+      throw new AccessError('No valid products found to update in QuickBooks');
     }
 
     // Update the quote in QuickBooks
