@@ -106,7 +106,7 @@ export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
     });
 
     const responseData = estimateResponse.json;
-    
+    console.log(JSON.stringify(responseData, null, 2), 'responseData');
     if (rawDataNeeded) {
       return responseData;
     }
