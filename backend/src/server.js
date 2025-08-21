@@ -143,7 +143,7 @@ const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   size: 64,
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   getTokenFromRequest: req => req.headers['x-csrf-token'],
-  getSessionIdentifier: (req) => req.session && req.session.id ? req.session.id : null,
+  getSessionIdentifier: (req) => req.session.id,
 });
 
 // Middleware to protect internal endpoints by checking for a secret key
@@ -230,38 +230,7 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
   });
 }));
 
-// CSRF protection with error handling
-app.use((req, res, next) => {
-  // Skip CSRF for internal routes
-  if (req.path.startsWith('/internal/')) {
-    return next();
-  }
-  
-  // Skip CSRF for static assets and health checks
-  if (req.path === '/csrf-token' || req.path === '/verifyUser' || req.path === '/debug/session') {
-    return next();
-  }
-  
-  doubleCsrfProtection(req, res, (err) => {
-    if (err && err.code === 'EBADCSRFTOKEN') {
-      console.error('CSRF token validation failed:', {
-        path: req.path,
-        method: req.method,
-        sessionId: req.session?.id,
-        csrfToken: req.headers['x-csrf-token'],
-        userAgent: req.headers['user-agent'],
-        timestamp: new Date().toISOString()
-      });
-      
-      return res.status(403).json({
-        error: 'Invalid CSRF token',
-        message: 'Security token validation failed. Please refresh the page and try again.',
-        code: 'EBADCSRFTOKEN'
-      });
-    }
-    next(err);
-  });
-});
+app.use(doubleCsrfProtection);
 
 // Rate limiting for security
 const loginLimiter = rateLimit({
@@ -298,12 +267,6 @@ app.use('/auth', generalLimiter);
 // src/server.js
 app.get('/csrf-token', (req, res, next) => {
   try {
-    // Ensure session exists and is valid
-    if (!req.session || !req.session.id) {
-      console.warn('CSRF token request without valid session');
-      return res.status(401).json({ error: 'No valid session found' });
-    }
-    
     const csrfToken = generateCsrfToken(req, res);
     req.session.csrfSessionEnsured = true;
 
@@ -312,18 +275,9 @@ app.get('/csrf-token', (req, res, next) => {
         console.error("Error saving session after CSRF token generation:", err);
         return next(err);
       }
-      
-      // Log successful token generation for debugging
-      console.log(`CSRF token generated for session: ${req.session.id}`);
-      
-      res.json({ 
-        csrfToken,
-        sessionId: req.session.id,
-        timestamp: new Date().toISOString()
-      });
+      res.json({ csrfToken });
     });
   } catch (err) {
-    console.error("Error generating CSRF token:", err);
     next(err);
   }
 });
@@ -364,14 +318,8 @@ app.get('/debug/session', asyncHandler(async (req, res) => {
   res.json({
     sessionExists: !!req.session,
     sessionId: req.session?.id,
-    csrfSessionEnsured: req.session?.csrfSessionEnsured,
-    environment: process.env.VITE_APP_ENV,
-    timestamp: new Date().toISOString(),
-    headers: {
-      'x-csrf-token': req.headers['x-csrf-token'],
-      'cookie': req.headers.cookie ? 'present' : 'missing',
-      'user-agent': req.headers['user-agent']
-    }
+    sessionData: req.session,
+    cookies: req.headers.cookie
   });
 }));
 
@@ -438,6 +386,35 @@ app.post('/debug/test-csrf', asyncHandler(async (req, res) => {
   };
   
   res.json(testResult);
+}));
+
+// QBO Token Status Endpoint - Check if QBO token issues are causing problems
+app.get('/debug/qbo-token-status', asyncHandler(async (req, res) => {
+  if (!req.session || !req.session.companyId) {
+    return res.status(401).json({ error: 'No company ID in session' });
+  }
+
+  try {
+    const { qboTokenService } = await import('./services/qboTokenService.js');
+    const tokenStatus = await qboTokenService.getTokenStatus(req.session.companyId);
+    
+    res.json({
+      companyId: req.session.companyId,
+      userId: req.session.userId,
+      timestamp: new Date().toISOString(),
+      qboToken: tokenStatus,
+      session: {
+        id: req.session.id,
+        csrfSessionEnsured: req.session.csrfSessionEnsured
+      }
+    });
+  } catch (error) {
+    console.error('Error checking QBO token status:', error);
+    res.status(500).json({ 
+      error: 'Failed to check QBO token status',
+      message: error.message 
+    });
+  }
 }));
 
 // Security monitoring endpoint (admin only)

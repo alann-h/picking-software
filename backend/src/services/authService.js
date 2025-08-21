@@ -91,29 +91,14 @@ export async function getOAuthClient(companyId) {
     throw new Error('A companyId is required to get the QuickBooks client.');
   }
 
-  const result = await query('SELECT qb_token FROM companies WHERE companyid = $1', [companyId]);
-  if (!result || result.length === 0 || !result[0].qb_token) {
-    throw new AuthenticationError('QBO_REAUTH_REQUIRED');
+  try {
+    // Use the new token service for better token management
+    const { qboTokenService } = await import('./qboTokenService.js');
+    return await qboTokenService.getOAuthClient(companyId);
+  } catch (error) {
+    console.error(`Error getting OAuth client for company ${companyId}:`, error);
+    throw error;
   }
-
-  const encryptedTokenFromDB = result[0].qb_token;
-  const decryptedToken = decryptToken(encryptedTokenFromDB);
-
-  const refreshedToken = await refreshToken(decryptedToken);
-
-
-  if (refreshedToken.access_token !== decryptedToken.access_token) {
-    console.log('Saving new token to the database for company:', companyId);
-    const newlyEncryptedToken = encryptToken(refreshedToken);
-    await query(
-      'UPDATE companies SET qb_token = $1 WHERE companyid = $2',
-      [newlyEncryptedToken, companyId]
-    );
-  }
-
-  const oauthClient = initializeOAuthClient();
-  oauthClient.setToken(refreshedToken);
-  return oauthClient;
 }
 
 export async function login(email, password, ipAddress = null, userAgent = null) {
