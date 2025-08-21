@@ -143,7 +143,7 @@ const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   size: 64,
   ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   getTokenFromRequest: req => req.headers['x-csrf-token'],
-  getSessionIdentifier: (req) => req.session.id,
+  getSessionIdentifier: (req) => req.session && req.session.id ? req.session.id : null,
 });
 
 // Middleware to protect internal endpoints by checking for a secret key
@@ -230,7 +230,38 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
   });
 }));
 
-app.use(doubleCsrfProtection);
+// CSRF protection with error handling
+app.use((req, res, next) => {
+  // Skip CSRF for internal routes
+  if (req.path.startsWith('/internal/')) {
+    return next();
+  }
+  
+  // Skip CSRF for static assets and health checks
+  if (req.path === '/csrf-token' || req.path === '/verifyUser' || req.path === '/debug/session') {
+    return next();
+  }
+  
+  doubleCsrfProtection(req, res, (err) => {
+    if (err && err.code === 'EBADCSRFTOKEN') {
+      console.error('CSRF token validation failed:', {
+        path: req.path,
+        method: req.method,
+        sessionId: req.session?.id,
+        csrfToken: req.headers['x-csrf-token'],
+        userAgent: req.headers['user-agent'],
+        timestamp: new Date().toISOString()
+      });
+      
+      return res.status(403).json({
+        error: 'Invalid CSRF token',
+        message: 'Security token validation failed. Please refresh the page and try again.',
+        code: 'EBADCSRFTOKEN'
+      });
+    }
+    next(err);
+  });
+});
 
 // Rate limiting for security
 const loginLimiter = rateLimit({
@@ -267,6 +298,12 @@ app.use('/auth', generalLimiter);
 // src/server.js
 app.get('/csrf-token', (req, res, next) => {
   try {
+    // Ensure session exists and is valid
+    if (!req.session || !req.session.id) {
+      console.warn('CSRF token request without valid session');
+      return res.status(401).json({ error: 'No valid session found' });
+    }
+    
     const csrfToken = generateCsrfToken(req, res);
     req.session.csrfSessionEnsured = true;
 
@@ -275,9 +312,18 @@ app.get('/csrf-token', (req, res, next) => {
         console.error("Error saving session after CSRF token generation:", err);
         return next(err);
       }
-      res.json({ csrfToken });
+      
+      // Log successful token generation for debugging
+      console.log(`CSRF token generated for session: ${req.session.id}`);
+      
+      res.json({ 
+        csrfToken,
+        sessionId: req.session.id,
+        timestamp: new Date().toISOString()
+      });
     });
   } catch (err) {
+    console.error("Error generating CSRF token:", err);
     next(err);
   }
 });
@@ -318,9 +364,80 @@ app.get('/debug/session', asyncHandler(async (req, res) => {
   res.json({
     sessionExists: !!req.session,
     sessionId: req.session?.id,
-    sessionData: req.session,
-    cookies: req.headers.cookie
+    csrfSessionEnsured: req.session?.csrfSessionEnsured,
+    environment: process.env.VITE_APP_ENV,
+    timestamp: new Date().toISOString(),
+    headers: {
+      'x-csrf-token': req.headers['x-csrf-token'],
+      'cookie': req.headers.cookie ? 'present' : 'missing',
+      'user-agent': req.headers['user-agent']
+    }
   });
+}));
+
+// CSRF Flow Test Endpoint - Railway-friendly debugging
+app.get('/debug/csrf-flow', asyncHandler(async (req, res) => {
+  const debugInfo = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.VITE_APP_ENV,
+    session: {
+      exists: !!req.session,
+      id: req.session?.id,
+      csrfSessionEnsured: req.session?.csrfSessionEnsured,
+      userId: req.session?.userId,
+      companyId: req.session?.companyId
+    },
+    headers: {
+      'x-csrf-token': req.headers['x-csrf-token'] ? 'present' : 'missing',
+      'cookie': req.headers.cookie ? 'present' : 'missing',
+      'user-agent': req.headers['user-agent'],
+      'origin': req.headers.origin,
+      'referer': req.headers.referer
+    },
+    csrf: {
+      cookieName: 'x-csrf-token',
+      cookieDomain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : 'localhost',
+      secure: process.env.VITE_APP_ENV === 'production',
+      sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax'
+    },
+    environment_vars: {
+      VITE_APP_ENV: process.env.VITE_APP_ENV,
+      SESSION_SECRET: process.env.SESSION_SECRET ? 'set' : 'missing',
+      VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || 'not set'
+    }
+  };
+
+  // Test CSRF token generation
+  try {
+    if (req.session && req.session.id) {
+      const csrfToken = generateCsrfToken(req, res);
+      debugInfo.csrf.tokenGenerated = true;
+      debugInfo.csrf.tokenLength = csrfToken.length;
+      debugInfo.csrf.tokenPreview = csrfToken.substring(0, 8) + '...';
+    } else {
+      debugInfo.csrf.tokenGenerated = false;
+      debugInfo.csrf.error = 'No valid session for token generation';
+    }
+  } catch (error) {
+    debugInfo.csrf.tokenGenerated = false;
+    debugInfo.csrf.error = error.message;
+  }
+
+  res.json(debugInfo);
+}));
+
+// Simple CSRF Test Endpoint - Easy to test from browser
+app.post('/debug/test-csrf', asyncHandler(async (req, res) => {
+  const testResult = {
+    success: true,
+    message: 'CSRF validation passed!',
+    timestamp: new Date().toISOString(),
+    sessionId: req.session?.id,
+    method: req.method,
+    path: req.path
+  };
+  
+  res.json(testResult);
 }));
 
 // Security monitoring endpoint (admin only)

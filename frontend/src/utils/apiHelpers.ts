@@ -4,6 +4,13 @@ import { API_BASE } from '../api/config';
 let cachedCsrfToken: string | null;
 
 /**
+ * Clears the cached CSRF token
+ */
+export const clearCsrfToken = (): void => {
+    cachedCsrfToken = null;
+};
+
+/**
  * Fetches the CSRF token from the backend and caches it.
  * This should ideally be called once at application startup or after login.
  * @returns The fetched CSRF token.
@@ -22,9 +29,18 @@ export const fetchAndCacheCsrfToken = async (): Promise<string> => {
             throw new Error("CSRF token not found in response.");
         }
         cachedCsrfToken = data.csrfToken;
-        return data.csrfToken
+        
+        // Log successful token fetch for debugging
+        console.log('CSRF token fetched successfully:', {
+            sessionId: data.sessionId,
+            timestamp: data.timestamp
+        });
+        
+        return data.csrfToken;
     } catch (error) {
         console.error("Error fetching CSRF token:", error);
+        // Clear cached token on error
+        cachedCsrfToken = null;
         throw error;
     }
 };
@@ -89,8 +105,10 @@ export const handleResponse = async (response: Response): Promise<any> => {
       errorData = { message: response.statusText };
     }
 
-    if (response.status === 403 && errorData.error?.includes('CSRF token mismatch')) {
-      console.warn("CSRF token mismatch. Invalidating token and prompting refresh.");
+    if (response.status === 403 && (errorData.error?.includes('CSRF token') || errorData.code === 'EBADCSRFTOKEN')) {
+      console.warn("CSRF token error detected. Invalidating token and prompting refresh.");
+      // Clear the cached token
+      clearCsrfToken();
       const csrfError = new HttpError(response, errorData);
       csrfError.name = 'CsrfError';
       throw csrfError;
