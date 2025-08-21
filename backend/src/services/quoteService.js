@@ -1,6 +1,6 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query, transaction, roundQuantity, formatTimestampForSydney } from '../helpers.js';
-import { getOAuthClient, getBaseURL } from './authService.js';
+import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { productIdToQboId, getProductsFromDBByIds } from './productService.js';
 
 export async function getCustomerQuotes(customerId, companyId) {
@@ -10,10 +10,11 @@ export async function getCustomerQuotes(customerId, companyId) {
       throw new AccessError('OAuth client could not be initialised');
     }
     const baseURL = getBaseURL(oauthClient);
+    const realmId = getRealmId(oauthClient);
 
     const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
     const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+      url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
     const responseJSON = response.json;
@@ -60,9 +61,9 @@ async function filterEstimates(responseData, companyId) {
                 };
             }
             
-            productInfo[itemLocal.productid] = {
-                productName: itemLocal.productname,
-                productId: itemLocal.productid,
+            productInfo[itemLocal.id] = {
+                productName: itemLocal.product_name,
+                productId: itemLocal.id,
                 sku: itemLocal.sku,
                 pickingQty: line.SalesItemLineDetail?.Qty || 0,
                 originalQty: line.SalesItemLineDetail?.Qty || 0,
@@ -99,10 +100,11 @@ export async function getQbEstimate(quoteId, companyId, rawDataNeeded) {
     }
 
     const baseURL = getBaseURL(oauthClient);
+    const realmId = getRealmId(oauthClient);
     const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
 
     const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+      url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
 
     const responseData = estimateResponse.json;
@@ -122,30 +124,30 @@ export async function estimateToDB(quote) {
     await transaction(async (client) => {
       // Check if the quote already exists
       const existingQuote = await client.query(
-        'SELECT quoteid FROM quotes WHERE quoteid = $1',
+        'SELECT id FROM quotes WHERE id = $1',
         [quote.quoteId]
       );
       if (existingQuote.rows.length > 0) {
         // Quote exists, update it
         await client.query(
-          'UPDATE quotes SET customerid = $2, totalamount = $3, customername = $4, orderstatus = $5, ordernote = $6 WHERE quoteid = $1',
+          'UPDATE quotes SET id = $2, total_amount = $3, customer_name = $4, status = $5, order_note = $6 WHERE id = $1',
           [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.orderNote]
         );
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (quoteid, customerid, totalamount, customername, orderstatus, companyid, ordernote) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          'INSERT INTO quotes (id, customer_id, total_amount, customer_name, status, company_id, order_note) VALUES ($1, $2, $3, $4, $5::order_status, $6, $7)',
           [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.companyId, quote.orderNote]
         );
       }
 
       // Delete existing quote items
-      await client.query('DELETE FROM quoteitems WHERE quoteid = $1', [quote.quoteId]);
+      await client.query('DELETE FROM quote_items WHERE quote_id = $1', [quote.quoteId]);
 
       // Insert new quote items
       for (const [productId, item] of Object.entries(quote.productInfo)) {
         await client.query(
-          'INSERT INTO quoteitems (quoteid, productid, barcode, productname, pickingqty, originalqty, pickingstatus, sku, price, companyid, tax_code_ref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+          'INSERT INTO quote_items (quote_id, product_id, barcode, product_name, picking_quantity, original_quantity, picking_status, sku, price, company_id, tax_code_ref) VALUES ($1, $2, $3, $4, $5, $6, $7::picking_status, $8, $9, $10, $11)',
           [
             quote.quoteId,
             productId,
@@ -170,7 +172,7 @@ export async function estimateToDB(quote) {
 export async function checkQuoteExists(quoteId) {
   try {
     const result = await query(
-      'SELECT quoteid FROM quotes WHERE quoteid = $1',
+      'SELECT id FROM quotes WHERE id = $1',
       [quoteId]
     );
     return result.length > 0;
@@ -185,41 +187,41 @@ export async function fetchQuoteData(quoteId) {
     const result = await query(`
       SELECT q.*, qi.*
       FROM quotes q
-      LEFT JOIN quoteitems qi ON q.quoteid = qi.quoteid
-      WHERE q.quoteid = $1
+      LEFT JOIN quote_items qi ON q.id = qi.quote_id
+      WHERE q.id = $1
     `, [quoteId]);
 
     if (result.length === 0) {
       return null;
     }
-    const formattedTime = formatTimestampForSydney(result[0].lastmodified);
+    const formattedTime = formatTimestampForSydney(result[0].updated_at);
 
     const quote = {
-      quoteId: result[0].quoteid,
-      customerId: result[0].customerid,
-      customerName: result[0].customername,
-      totalAmount: result[0].totalamount,
-      timeStarted: result[0].timestarted,
-      orderStatus: result[0].orderstatus, 
+      quoteId: result[0].id,
+      customerId: result[0].customer_id,
+      customerName: result[0].customer_name,
+      totalAmount: result[0].total_amount,
+      timeStarted: result[0].created_at,
+      orderStatus: result[0].status, 
       lastModified: formattedTime,
       productInfo: {},
-      companyId: result[0].companyid,
-      pickerNote: result[0].pickernote,
-      orderNote: result[0].ordernote
+      companyId: result[0].company_id,
+      pickerNote: result[0].picker_note,
+      orderNote: result[0].order_note
     };
 
     result.forEach(row => {
-      if (row.quoteid && row.productid) {
-        quote.productInfo[row.productid] = {
-          quoteId: row.quoteid,
-          productId: row.productid,
-          productName: row.productname,
-          originalQty: row.originalqty,
-          pickingQty: row.pickingqty,
-          pickingStatus: row.pickingstatus,
+      if (row.quote_id && row.product_id) {
+        quote.productInfo[row.product_id] = {
+          quoteId: row.quote_id,
+          productId: row.product_id,
+          productName: row.product_name,
+          originalQty: row.original_quantity,
+          pickingQty: row.picking_quantity,
+          pickingStatus: row.picking_status,
           sku: row.sku,
           price: row.price,
-          companyId: row.companyid,
+          companyId: row.company_id,
           barcode: row.barcode,
           taxCodeRef: row.tax_code_ref
         };
@@ -242,7 +244,7 @@ export async function fetchQuoteData(quoteId) {
 async function updateQuotePreparerNames(quoteId, userName) {
   try {
     const result = await query(
-      'SELECT preparer_names FROM quotes WHERE quoteid = $1',
+      'SELECT preparer_names FROM quotes WHERE id = $1',
       [quoteId]
     );
 
@@ -259,7 +261,7 @@ async function updateQuotePreparerNames(quoteId, userName) {
       const updatedNamesString = currentNames.join(', ');
 
       await query(
-        'UPDATE quotes SET preparer_names = $1 WHERE quoteid = $2',
+        'UPDATE quotes SET preparer_names = $1 WHERE id = $2',
         [updatedNamesString, quoteId]
       );
       console.log(`Quote ${quoteId}: Preparer names updated to "${updatedNamesString}" by ${userName}`);
@@ -273,7 +275,7 @@ async function updateQuotePreparerNames(quoteId, userName) {
 export async function processBarcode(barcode, quoteId, newQty, userName) {
   try {
     const checkStatusResult = await query(
-      'SELECT pickingstatus FROM quoteitems WHERE quoteid = $1 AND barcode = $2',
+      'SELECT picking_status FROM quote_items WHERE quote_id = $1 AND barcode = $2',
       [quoteId, barcode]
     );
 
@@ -281,7 +283,7 @@ export async function processBarcode(barcode, quoteId, newQty, userName) {
       throw new InputError('Quote number is invalid or scanned product does not exist on quote');
     }
 
-    const currentStatus = checkStatusResult[0].pickingstatus;
+    const currentStatus = checkStatusResult[0].picking_status;
     
     if (currentStatus === 'completed') {
       throw new InputError(`This item has already been fully picked`);
@@ -290,13 +292,13 @@ export async function processBarcode(barcode, quoteId, newQty, userName) {
     }
 
     const result = await query(
-      'UPDATE quoteitems SET pickingqty = GREATEST(pickingqty - $1, 0), pickingstatus = CASE WHEN pickingqty - $1 <= 0 THEN \'completed\' ELSE pickingstatus END WHERE quoteid = $2 AND barcode = $3 RETURNING pickingqty, productname, pickingstatus',
+      'UPDATE quote_items SET picking_quantity = GREATEST(picking_quantity - $1, 0), picking_status = CASE WHEN picking_quantity - $1 <= 0 THEN \'completed\' ELSE picking_status END WHERE quote_id = $2 AND barcode = $3 RETURNING picking_quantity, product_name, picking_status',
       [newQty, quoteId, barcode]
     );
 
     await updateQuotePreparerNames(quoteId, userName);
 
-    return { productName: result[0].productname, updatedQty: result[0].pickingqty, pickingStatus: result[0].pickingstatus };
+    return { productName: result[0].product_name, updatedQty: result[0].picking_quantity, pickingStatus: result[0].picking_status };
   } catch (error) {
     throw new AccessError(error.message);
   }
@@ -304,11 +306,11 @@ export async function processBarcode(barcode, quoteId, newQty, userName) {
 
 export async function addProductToQuote(productId, quoteId, qty, companyId) {
   try {
-    const product = await query('SELECT * FROM products WHERE productid = $1', [productId]);
+    const product = await query('SELECT * FROM products WHERE id = $1', [productId]);
     if (product.length === 0) {
       throw new AccessError('Product does not exist in database!');
     }
-    const quote = await query('SELECT * FROM quotes WHERE quoteid = $1', [quoteId]);
+    const quote = await query('SELECT * FROM quotes WHERE id = $1', [quoteId]);
     if (quote.length === 0) {
       throw new AccessError('Quote does not exist in database!');
     }
@@ -319,14 +321,14 @@ export async function addProductToQuote(productId, quoteId, qty, companyId) {
       const pickingStatus = 'pending';
       // Check if the product already exists in the quote
       const existingItem = await client.query(
-        'SELECT * FROM quoteitems WHERE quoteid = $1 AND productid = $2',
+        'SELECT * FROM quote_items WHERE quote_id = $1 AND product_id = $2',
         [quoteId, productId]
       );
       
       if (existingItem.rows.length > 0) {
         // If the product exists, update the quantities
         addExisitingProduct = await client.query(
-          'UPDATE quoteitems SET pickingqty = pickingqty + $1, originalqty = originalqty + $1, pickingstatus = $2 WHERE quoteid = $3 AND productid = $4 returning *',
+          'UPDATE quote_items SET picking_quantity = picking_quantity + $1, original_quantity = original_quantity + $1, picking_status = $2 WHERE quote_id = $3 AND product_id = $4 returning *',
           [qty, pickingStatus, quoteId, productId]
         );
       } else {
@@ -336,19 +338,19 @@ export async function addProductToQuote(productId, quoteId, qty, companyId) {
           }
           // If the product doesn't exist, insert a new row
           addNewProduct = await client.query(
-            'INSERT INTO quoteitems (quoteid, productid, pickingqty, originalqty, pickingstatus, barcode, productname, sku, price, companyid, tax_code_ref) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *',
-            [quoteId, productId, qty, qty, pickingStatus, product[0].barcode, product[0].productname, product[0].sku, product[0].price, companyId, product[0].tax_code_ref]
+            'INSERT INTO quote_items (quote_id, product_id, picking_quantity, original_quantity, picking_status, barcode, product_name, sku, price, company_id, tax_code_ref) VALUES ($1, $2, $3, $4, $5::picking_status, $6, $7, $8, $9, $10, $11) returning *',
+            [quoteId, productId, qty, qty, pickingStatus, product[0].barcode, product[0].product_name, product[0].sku, product[0].price, companyId, product[0].tax_code_ref]
           );
       }
       
       const price = product[0].price * qty;
-      const newTotalAmount =  Number(quote[0].totalamount) + price;
-      totalAmount = await client.query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
+      const newTotalAmount =  Number(quote[0].total_amount) + price;
+      totalAmount = await client.query('UPDATE quotes SET total_amount = $1 WHERE id = $2 returning total_amount', [newTotalAmount, quoteId]);
     });
     if (addNewProduct) {
-      return {status: 'new', productInfo: addNewProduct.rows[0], totalAmount: totalAmount.rows[0].totalamount, lastModified: totalAmount.rows[0].lastmodified};
+      return {status: 'new', productInfo: addNewProduct.rows[0], totalAmount: totalAmount.rows[0].total_amount, lastModified: totalAmount.rows[0].updated_at};
     } else {
-      return {status: 'exists', productInfo: addExisitingProduct.rows[0], totalAmount: totalAmount.rows[0].totalamount };
+      return {status: 'exists', productInfo: addExisitingProduct.rows[0], totalAmount: totalAmount.rows[0].total_amount };
     }
   } catch (e) {
     throw new AccessError(e.message);
@@ -358,7 +360,7 @@ export async function addProductToQuote(productId, quoteId, qty, companyId) {
 export async function adjustProductQuantity(quoteId, productId, newQty) {
   try {
     const quote = await query(
-      'SELECT totalamount FROM quotes WHERE quoteid = $1',
+      'SELECT total_amount FROM quotes WHERE id = $1',
       [quoteId]
     );
 
@@ -367,7 +369,7 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
     }
 
     const quoteitems = await query(
-      'SELECT originalqty FROM quoteitems WHERE quoteid = $1 AND productid = $2',
+      'SELECT original_quantity FROM quote_items WHERE quote_id = $1 AND product_id = $2',
       [quoteId, productId]
     );
 
@@ -375,19 +377,19 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
       throw new AccessError('Product does not exist in this quote!');
     }
     
-    const product = await query('SELECT price FROM products WHERE productid = $1', [productId]);
+    const product = await query('SELECT price FROM products WHERE id = $1', [productId]);
 
-    const qtyDiff = newQty - Number(quoteitems[0].originalqty);
+    const qtyDiff = newQty - Number(quoteitems[0].original_quantity);
     const priceChange = Number(product[0].price) * qtyDiff;
-    const newTotalAmount = Number(quote[0].totalamount) + priceChange;
+    const newTotalAmount = Number(quote[0].total_amount) + priceChange;
 
     const updatedItem = await query(
-      'UPDATE quoteitems SET pickingqty = $1, originalqty = $1 WHERE quoteid = $2 AND productid = $3 RETURNING pickingqty, originalqty',
+      'UPDATE quote_items SET picking_quantity = $1, original_quantity = $1 WHERE quote_id = $2 AND product_id = $3 RETURNING picking_quantity, original_quantity',
       [newQty, quoteId, productId]
     );
 
-    const updatedTotalAmt = await query('UPDATE quotes SET totalamount = $1 WHERE quoteid = $2 returning totalamount', [newTotalAmount, quoteId]);
-    return { pickingQty: updatedItem[0].pickingqty, originalQty: updatedItem[0].originalqty, totalAmount: updatedTotalAmt[0].totalamount };
+    const updatedTotalAmt = await query('UPDATE quotes SET total_amount = $1 WHERE id = $2 returning total_amount', [newTotalAmount, quoteId]);
+    return { pickingQty: updatedItem[0].picking_quantity, originalQty: updatedItem[0].original_quantity, totalAmount: updatedTotalAmt[0].total_amount };
   } catch (error) {
     throw new AccessError(error.message);
   }
@@ -396,10 +398,10 @@ export async function adjustProductQuantity(quoteId, productId, newQty) {
 export async function setOrderStatus(quoteId, newStatus) {
   try {
     const result = await query(
-      'UPDATE quotes SET orderstatus = $1 WHERE quoteid = $2 returning orderstatus',
+      'UPDATE quotes SET status = $1 WHERE id = $2 returning status',
       [newStatus, quoteId]
     );
-    return {orderStatus: result[0].orderstatus};
+    return {orderStatus: result[0].status};
   } catch (error) {
     throw new AccessError(error.message);
   }
@@ -410,10 +412,10 @@ export async function getQuotesWithStatus(status) {
     let queryText, queryParams;
     
     if (status === 'all') {
-      queryText = 'SELECT * FROM quotes ORDER BY lastmodified DESC';
+      queryText = 'SELECT * FROM quotes ORDER BY updated_at DESC';
       queryParams = [];
     } else {
-      queryText = 'SELECT * FROM quotes WHERE orderstatus = $1 ORDER BY lastmodified DESC';
+      queryText = 'SELECT * FROM quotes WHERE status = $1 ORDER BY updated_at DESC';
       queryParams = [status];
     }
     
@@ -421,9 +423,9 @@ export async function getQuotesWithStatus(status) {
     return result.map(quote => {
       // Calculate time taken using raw timestamps BEFORE formatting
       let timeTaken = 'N/A';
-      if (quote.timestarted && quote.lastmodified) {
-        const start = new Date(quote.timestarted);
-        const end = new Date(quote.lastmodified);
+      if (quote.created_at && quote.updated_at) {
+        const start = new Date(quote.created_at);
+        const end = new Date(quote.updated_at);
         
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
           const diffMs = end.getTime() - start.getTime();
@@ -444,21 +446,21 @@ export async function getQuotesWithStatus(status) {
       }
 
       // Format timestamps AFTER calculation
-      const formattedTimeStarted = formatTimestampForSydney(quote.timestarted);
-      const formattedLastModified = formatTimestampForSydney(quote.lastmodified);
+      const formattedTimeStarted = formatTimestampForSydney(quote.created_at);
+      const formattedLastModified = formatTimestampForSydney(quote.updated_at);
 
       return {
-        id: quote.quoteid,
-        customerId: quote.customerid,
-        customerName: quote.customername,
-        totalAmount: parseFloat(quote.totalamount),
-        orderStatus: quote.orderstatus,
+        id: quote.id,
+        customerId: quote.id,
+        customerName: quote.customer_name,
+        totalAmount: parseFloat(quote.total_amount),
+        orderStatus: quote.status,
         timeStarted: formattedTimeStarted,
         lastModified: formattedLastModified,
         timeTaken: timeTaken,
-        companyId: quote.companyid,
+        companyId: quote.id,
         preparerNames: quote.preparer_names,
-        pickerNote: quote.pickernote
+        pickerNote: quote.picker_note
       };
     });
   } catch (error) {
@@ -470,7 +472,7 @@ export async function getQuotesWithStatus(status) {
 export async function savePickerNote(quoteId, note) {
   try {
     const result = await query(
-      'UPDATE quotes SET pickernote = $1 WHERE quoteid = $2 RETURNING pickernote',
+      'UPDATE quotes SET picker_note = $1 WHERE id = $2 RETURNING picker_note',
       [note, quoteId]
     );
     
@@ -478,7 +480,7 @@ export async function savePickerNote(quoteId, note) {
       throw new InputError('Quote not found');
     }
     
-    return {pickerNote: result[0].pickernote};
+    return {pickerNote: result[0].picker_note};
   } catch (error) {
     if (error instanceof InputError) {
       throw error;
@@ -497,7 +499,7 @@ export async function deleteQuotesBulk(quoteIds) {
         try {
           // First, check if quote exists
           const quoteExists = await client.query(
-            'SELECT quoteid FROM quotes WHERE quoteid = $1',
+            'SELECT id FROM quotes WHERE id = $1',
             [quoteId]
           );
           
@@ -507,13 +509,13 @@ export async function deleteQuotesBulk(quoteIds) {
           }
           
           await client.query(
-            'DELETE FROM quoteitems WHERE quoteid = $1',
+            'DELETE FROM quote_items WHERE quote_id = $1',
             [quoteId]
           );
           
           // Delete the quote
           const deletedQuote = await client.query(
-            'DELETE FROM quotes WHERE quoteid = $1 RETURNING quoteid, customerid',
+            'DELETE FROM quotes WHERE id = $1 RETURNING id, id',
             [quoteId]
           );
           
@@ -652,10 +654,10 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
  */
 export async function ensureQuotesExistInDB(quoteIds, companyId) {
     const quotesCheckResult = await query(
-        'SELECT quoteid FROM quotes WHERE quoteid = ANY($1::int[])',
+        'SELECT id FROM quotes WHERE id = ANY($1::int[])',
         [quoteIds]
     );
-    const existingIds = new Set(quotesCheckResult.map(r => r.quoteid));
+    const existingIds = new Set(quotesCheckResult.map(r => r.id));
 
     const missingIds = quoteIds.filter(id => !existingIds.has(id));
 
@@ -691,12 +693,13 @@ export async function getQbEstimatesBulk(quoteIds, companyId) {
         if (!oauthClient) throw new AccessError('OAuth client could not be initialised');
 
         const baseURL = getBaseURL(oauthClient);
+        const realmId = getRealmId(oauthClient);
         
         const idList = quoteIds.map(id => `'${id}'`).join(',');
         const queryStr = `SELECT * FROM estimate WHERE Id IN (${idList})`;
 
         const estimateResponse = await oauthClient.makeApiCall({
-            url: `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+            url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
         });
 
         const responseData = estimateResponse.json;

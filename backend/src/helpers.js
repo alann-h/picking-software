@@ -80,3 +80,48 @@ export function formatTimestampForSydney(timestamp) {
     hour12: true
   });
 }
+
+/**
+ * Utility functions for UUID handling and comparison
+ */
+
+/**
+ * Normalize UUID for comparison (remove hyphens and convert to lowercase)
+ * @param {string} uuid - The UUID to normalize
+ * @returns {string} - Normalized UUID string
+ */
+export function normalizeUUID(uuid) {
+  if (!uuid) return null;
+  return uuid.replace(/-/g, '').toLowerCase();
+}
+
+/**
+ * Compare two UUIDs for equality (handles different formats)
+ * @param {string} uuid1 - First UUID
+ * @param {string} uuid2 - Second UUID
+ * @returns {boolean} - True if UUIDs are equal
+ */
+export function compareUUIDs(uuid1, uuid2) {
+  if (!uuid1 || !uuid2) return false;
+  return normalizeUUID(uuid1) === normalizeUUID(uuid2);
+}
+
+/**
+ * Validate if a string is a valid UUID format
+ * @param {string} uuid - String to validate
+ * @returns {boolean} - True if valid UUID format
+ */
+export function isValidUUID(uuid) {
+  if (!uuid || typeof uuid !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
+/**
+ * Safely convert string to UUID for database queries
+ * @param {string} uuid - String to convert
+ * @returns {string|null} - Valid UUID or null
+ */
+export function safeUUID(uuid) {
+  return isValidUUID(uuid) ? uuid : null;
+}

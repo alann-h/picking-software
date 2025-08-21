@@ -10,7 +10,7 @@ import { ensureQuotesExistInDB } from './quoteService.js';
  */
 async function getNextRunNumber(companyId) {
     const result = await query(
-        'SELECT COALESCE(MAX(run_number), 0) + 1 AS next_run_number FROM runs WHERE companyid = $1',
+        'SELECT COALESCE(MAX(run_number), 0) + 1 AS next_run_number FROM runs WHERE company_id = $1',
         [companyId]
     );
     return result[0].next_run_number;
@@ -29,7 +29,7 @@ export async function createBulkRun(orderedQuoteIds, companyId) {
         await ensureQuotesExistInDB(orderedQuoteIds, companyId);
         return await transaction(async (client) => {
             const quotesResult = await client.query(
-                'SELECT quoteid, orderstatus FROM quotes WHERE quoteid = ANY($1::int[]) FOR UPDATE',
+                'SELECT id, status FROM quotes WHERE id = ANY($1::int[]) FOR UPDATE',
                 [orderedQuoteIds]
             );
 
@@ -38,17 +38,17 @@ export async function createBulkRun(orderedQuoteIds, companyId) {
             }
             
             for (const quote of quotesResult.rows) {
-                if (!['pending', 'checking'].includes(quote.orderstatus)) {
-                    throw new InputError(`Quote ID ${quote.quoteid} has status '${quote.orderstatus}' and cannot be added to a run.`);
+                if (!['pending', 'checking'].includes(quote.status)) {
+                    throw new InputError(`Quote ID ${quote.id} has status '${quote.status}' and cannot be added to a run.`);
                 }
             }
 
-            const nextRunNumber = await getNextRunNumber(companyId, client);
+            const nextRunNumber = await getNextRunNumber(companyId);
 
             const newRunResult = await client.query(
-                `INSERT INTO runs (companyid, run_number, status)
-                 VALUES ($1, $2, 'pending')
-                 RETURNING id, companyid, created_at, run_number, status`,
+                `INSERT INTO runs (company_id, run_number, status)
+                 VALUES ($1, $2, 'pending'::run_status)
+                 RETURNING id, company_id, created_at, run_number, status`,
                 [companyId, nextRunNumber]
             );
             
@@ -63,12 +63,12 @@ export async function createBulkRun(orderedQuoteIds, companyId) {
             }).join(',');
 
             await client.query(
-                `INSERT INTO run_items (run_id, quoteid, priority) VALUES ${placeholders}`,
+                `INSERT INTO run_items (run_id, quote_id, priority) VALUES ${placeholders}`,
                 values
             );
 
             await client.query(
-                `UPDATE quotes SET orderstatus = 'assigned' WHERE quoteid = ANY($1::int[])`,
+                `UPDATE quotes SET status = 'assigned'::order_status WHERE id = ANY($1::int[])`,
                 [orderedQuoteIds]
             );
 
@@ -91,9 +91,9 @@ export async function getRunsByCompanyId(companyId) {
     try {
         // --- Step 1: Fetch all the parent 'runs' for the company ---
         const runsSql = `
-            SELECT id, companyid, created_at, run_number, status
+            SELECT id, company_id, created_at, run_number, status
             FROM runs
-            WHERE companyid = $1 AND status IN ('pending', 'checking')
+            WHERE company_id = $1 AND status IN ('pending'::run_status, 'checking'::run_status)
             ORDER BY run_number DESC
         `;
         const runsResult = await query(runsSql, [companyId]);
@@ -109,12 +109,12 @@ export async function getRunsByCompanyId(companyId) {
             SELECT 
                 ri.run_id, 
                 ri.priority, 
-                q.quoteid, 
-                q.customername, 
-                q.totalamount,
-                q.orderstatus
+                q.id, 
+                q.customer_name, 
+                q.total_amount,
+                q.status
             FROM run_items ri
-            JOIN quotes q ON ri.quoteid = q.quoteid
+            JOIN quotes q ON ri.quote_id = q.id
             WHERE ri.run_id = ANY($1) -- Use ANY($1) to match all IDs in the runIds array
             ORDER BY ri.priority ASC
         `;
@@ -127,11 +127,11 @@ export async function getRunsByCompanyId(companyId) {
                 itemsByRunId.set(item.run_id, []);
             }
             itemsByRunId.get(item.run_id).push({
-                quoteId: item.quoteid,
-                customerName: item.customername,
-                totalAmount: parseFloat(item.totalamount),
+                quoteId: item.id,
+                customerName: item.customer_name,
+                totalAmount: parseFloat(item.total_amount),
                 priority: item.priority,
-                orderStatus: item.orderstatus
+                orderStatus: item.status
             });
         }
 
@@ -164,7 +164,7 @@ export async function updateRunStatus(runId, newStatus) {
 
     try {
         const result = await query(
-            'UPDATE runs SET status = $1 WHERE id = $2 RETURNING id, companyid, created_at, run_number, status',
+            'UPDATE runs SET status = $1 WHERE id = $2 RETURNING id, company_id, created_at, run_number, status',
             [newStatus, runId]
         );
         if (result[0].length === 0) {
@@ -203,7 +203,7 @@ export async function updateRunQuotes(runId, orderedQuoteIds) {
                 }).join(',');
 
                 await client.query(
-                    `INSERT INTO run_items (run_id, quoteid, priority) VALUES ${placeholders}`,
+                    `INSERT INTO run_items (run_id, quote_id, priority) VALUES ${placeholders}`,
                     values
                 );
             }
@@ -227,10 +227,10 @@ export async function deleteRunById(runId) {
     try {
         await transaction(async (client) => {
             const itemsResult = await client.query(
-                'SELECT quoteid FROM run_items WHERE run_id = $1',
+                'SELECT id FROM run_items WHERE run_id = $1',
                 [runId]
             );
-            const quoteIdsToRelease = itemsResult.rows.map(item => item.quoteid);
+            const quoteIdsToRelease = itemsResult.rows.map(item => item.id);
 
             await client.query('DELETE FROM run_items WHERE run_id = $1', [runId]);
 
@@ -238,7 +238,7 @@ export async function deleteRunById(runId) {
 
             if (quoteIdsToRelease.length > 0) {
                 await client.query(
-                    `UPDATE quotes SET orderstatus = 'pending' WHERE quoteid = ANY($1::int[])`,
+                    `UPDATE quotes SET status = 'pending'::order_status WHERE id = ANY($1::int[])`,
                     [quoteIdsToRelease]
                 );
             }

@@ -1,5 +1,5 @@
 import OAuthClient from 'intuit-oauth';
-import { query, transaction, encryptToken, decryptToken } from '../helpers.js';
+import { query, encryptToken, decryptToken } from '../helpers.js';
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
 
 /**
@@ -47,7 +47,7 @@ class QBOTokenService {
       }
 
       // Get current token from database
-      const result = await query('SELECT qb_token FROM companies WHERE companyid = $1', [companyId]);
+      const result = await query('SELECT qb_token FROM companies WHERE id = $1', [companyId]);
       if (!result || result.length === 0 || !result[0].qb_token) {
         throw new AuthenticationError('QBO_REAUTH_REQUIRED');
       }
@@ -119,7 +119,7 @@ class QBOTokenService {
       // Save the new token to the database
       const encryptedToken = encryptToken(refreshedToken);
       await query(
-        'UPDATE companies SET qb_token = $1 WHERE companyid = $2',
+        'UPDATE companies SET qb_token = $1 WHERE id = $2',
         [encryptedToken, companyId]
       );
 
@@ -164,7 +164,7 @@ class QBOTokenService {
    */
   async getTokenStatus(companyId) {
     try {
-      const result = await query('SELECT qb_token FROM companies WHERE companyid = $1', [companyId]);
+      const result = await query('SELECT qb_token FROM companies WHERE id = $1', [companyId]);
       if (!result || result.length === 0 || !result[0].qb_token) {
         return { status: 'NO_TOKEN', message: 'No QBO token found' };
       }

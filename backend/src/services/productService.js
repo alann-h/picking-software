@@ -1,17 +1,17 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query } from '../helpers.js';
-import { getBaseURL, getOAuthClient } from './authService.js';
+import { getBaseURL, getOAuthClient, getRealmId } from './authService.js';
 import he from 'he';
 
 export async function productIdToQboId(productId) {
   try {
     const result = await query(
-      `SELECT qbo_item_id FROM products WHERE productid = $1`,
+      `SELECT qbo_item_id FROM products WHERE id = $1`,
       [productId]
     );
 
     if (result.length === 0) {
-      throw new AccessError(`No product found with productid=${productId}`);
+      throw new AccessError(`No product found with id=${productId}`);
     }
 
     return result[0].qbo_item_id;
@@ -28,7 +28,8 @@ export async function enrichWithQBOData(products, companyId) {
     try {
       const query = `SELECT * FROM Item WHERE Sku = '${product.sku}'`;
       const baseURL = getBaseURL(oauthClient);
-      const url = `${baseURL}v3/company/${companyId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
+      const realmId = getRealmId(oauthClient);
+      const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
       const response = await oauthClient.makeApiCall({ url });
       const itemData = response.json?.QueryResponse?.Item?.[0];
@@ -67,13 +68,13 @@ export async function insertProductsTempTable(products, companyId, client) {
     await client.query(`
       CREATE TEMP TABLE temp_products (
         category VARCHAR,
-        productname VARCHAR,
+        product_name VARCHAR,
         barcode VARCHAR,
         sku VARCHAR,
         price NUMERIC,
         quantity_on_hand NUMERIC,
         qbo_item_id VARCHAR,
-        companyid VARCHAR,
+        id VARCHAR,
         tax_code_ref VARCHAR
       ) ON COMMIT DROP;
     `);
@@ -102,7 +103,7 @@ export async function insertProductsTempTable(products, companyId, client) {
     await client.query(`
       UPDATE products AS p
       SET 
-        productname     = tp.productname,
+        product_name     = tp.product_name,
         category         = tp.category,
         barcode          = tp.barcode,
         sku              = tp.sku,
@@ -110,7 +111,7 @@ export async function insertProductsTempTable(products, companyId, client) {
         quantity_on_hand = tp.quantity_on_hand,
         tax_code_ref     = tp.tax_code_ref
       FROM temp_products AS tp
-      WHERE p.qbo_item_id = tp.qbo_item_id AND p.companyid = tp.companyid;
+      WHERE p.qbo_item_id = tp.qbo_item_id AND p.id = tp.id;
     `);
 
     // 4. Update existing products based on barcode
@@ -118,7 +119,7 @@ export async function insertProductsTempTable(products, companyId, client) {
     await client.query(`
       UPDATE products AS p
       SET 
-        productname     = tp.productname,
+        product_name     = tp.product_name,
         category         = tp.category,
         sku              = tp.sku,
         price            = tp.price,
@@ -126,19 +127,19 @@ export async function insertProductsTempTable(products, companyId, client) {
         tax_code_ref     = tp.tax_code_ref,
         qbo_item_id      = tp.qbo_item_id
       FROM temp_products AS tp
-      WHERE p.barcode = tp.barcode AND p.companyid = tp.companyid AND p.qbo_item_id IS NULL;
+      WHERE p.barcode = tp.barcode AND p.id = tp.id AND p.qbo_item_id IS NULL;
     `);
 
     // 5. Insert new products
     await client.query(`
       INSERT INTO products (
-        category, productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid, tax_code_ref
+        category, product_name, barcode, sku, price, quantity_on_hand, qbo_item_id, id, tax_code_ref
       )
       SELECT 
-        tp.category, tp.productname, tp.barcode, tp.sku, tp.price, tp.quantity_on_hand, tp.qbo_item_id, tp.companyid, tp.tax_code_ref
+        tp.category, tp.product_name, tp.barcode, tp.sku, tp.price, tp.quantity_on_hand, tp.qbo_item_id, tp.id, tp.tax_code_ref
       FROM temp_products AS tp
       LEFT JOIN products AS p
-        ON tp.qbo_item_id = p.qbo_item_id AND tp.companyid = p.companyid
+        ON tp.qbo_item_id = p.qbo_item_id AND tp.id = p.id
       WHERE p.qbo_item_id IS NULL;
     `);
 
@@ -154,11 +155,11 @@ export async function insertProductsTempTable(products, companyId, client) {
 
 export async function getProductName(barcode) {
   try {
-    const result = await query('SELECT productname FROM products WHERE barcode = $1', [barcode]);
+    const result = await query('SELECT product_name FROM products WHERE barcode = $1', [barcode]);
     if (result.length === 0) {
       throw new InputError('This product does not exist within the database');
     }
-    return result[0].productname;
+    return result[0].product_name;
   } catch (error) {
     throw new AccessError(error.message);
   }
@@ -191,15 +192,15 @@ export async function getProductsFromDBByIds(itemIds) {
 
 export async function getAllProducts(companyId) {
   try {
-    const result = await query('SELECT * FROM products WHERE companyid = $1', [companyId]);
+    const result = await query('SELECT * FROM products WHERE company_id = $1', [companyId]);
     return result.map(product => ({
-      productId: product.productid,
-      productName: product.productname,
+      productId: product.id,
+      productName: product.product_name,
       barcode: product.barcode ?? '',
       sku: product.sku ?? '',
       price: parseFloat(product.price),
       quantityOnHand: parseFloat(product.quantity_on_hand),
-      companyId: Number(product.companyid),
+      companyId: product.company_id,
       category: product.category ?? null,
       qboItemId: product.qbo_item_id ?? '',
       isArchived: product.is_archived
@@ -210,7 +211,7 @@ export async function getAllProducts(companyId) {
 }
 
 const fieldToDbColumnMap = {
-  productName: 'productname',
+  productName: 'product_name',
   price: 'price',
   barcode: 'barcode',
   quantityOnHand: 'quantity_on_hand',
@@ -253,7 +254,7 @@ export async function updateProductDb(productId, updateFields) {
   const sqlQuery = `
     UPDATE products
     SET ${setClause}
-    WHERE productid = $${fields.length + 1}
+    WHERE id = $${fields.length + 1}
     RETURNING *;
   `;
 
@@ -263,7 +264,7 @@ export async function updateProductDb(productId, updateFields) {
 
 export async function setProductArchiveStatusDb(productId, isArchived) {
   const result = await query(
-    'UPDATE products SET is_archived = $1 WHERE productid = $2 RETURNING *;',
+    'UPDATE products SET is_archived = $1 WHERE id = $2 RETURNING *;',
     [isArchived, productId]
   );
   return result[0];
@@ -283,21 +284,21 @@ export async function addProductDb(product, companyId) {
     const { price, quantity_on_hand, qbo_item_id, tax_code_ref } = enrichedProduct[0];
 
     const values = [
-      productName,       // $1 → productname
+      productName,       // $1 → product_name
       barcodeValue,      // $2 → barcode
       sku,               // $3 → sku
       price,             // $4 → price
       quantity_on_hand,  // $5 → quantity_on_hand
       qbo_item_id,       // $6 → qbo_item_id
-      companyId,         // $7 → companyid
+      companyId,         // $7 → id
       tax_code_ref       // $8 → tax_code_ref
     ];
     const text = `
       INSERT INTO products
-        (productname, barcode, sku, price, quantity_on_hand, qbo_item_id, companyid, tax_code_ref)
+        (product_name, barcode, sku, price, quantity_on_hand, qbo_item_id, company_id, tax_code_ref)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       ON CONFLICT (sku) DO UPDATE
-        SET productname      = EXCLUDED.productname,
+        SET product_name      = EXCLUDED.product_name,
             barcode          = EXCLUDED.barcode,
             price            = EXCLUDED.price,
             qbo_item_id      = EXCLUDED.qbo_item_id,
@@ -317,7 +318,7 @@ export async function addProductDb(product, companyId) {
 export async function saveForLater(quoteId, productId) {
   try {
     const result = await query(
-      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'backorder\' THEN \'pending\' ELSE \'backorder\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus, productname',
+      'UPDATE quote_items SET picking_status = CASE WHEN picking_status = \'backorder\' THEN \'pending\' ELSE \'backorder\' END WHERE quote_id = $1 AND product_id = $2 RETURNING picking_status, product_name',
       [quoteId, productId]
     );
     
@@ -325,8 +326,8 @@ export async function saveForLater(quoteId, productId) {
       throw new AccessError('Product does not exist in this quote!');
     }
     
-    const newStatus = result[0].pickingstatus;
-    const productName = result[0].productname;
+    const newStatus = result[0].picking_status;
+    const productName = result[0].product_name;
     
     return {
       status: 'success',
@@ -341,7 +342,7 @@ export async function saveForLater(quoteId, productId) {
 export async function setUnavailable(quoteId, productId) {
   try {
     const checkResult = await query(
-      'SELECT pickingstatus, productname FROM quoteitems WHERE quoteid = $1 AND productid = $2',
+      'SELECT picking_status, product_name FROM quote_items WHERE quote_id = $1 AND product_id = $2',
       [quoteId, productId]
     );
 
@@ -349,8 +350,8 @@ export async function setUnavailable(quoteId, productId) {
       throw new AccessError('Product does not exist in this quote!');
     }
 
-    const currentStatus = checkResult[0].pickingstatus;
-    const productName = checkResult[0].productname;
+    const currentStatus = checkResult[0].picking_status;
+    const productName = checkResult[0].product_name;
 
     if (currentStatus === 'completed') {
       return {
@@ -361,13 +362,13 @@ export async function setUnavailable(quoteId, productId) {
     }
 
     const updateResult = await query(
-      'UPDATE quoteitems SET pickingstatus = CASE WHEN pickingstatus = \'unavailable\' THEN \'pending\' ELSE \'unavailable\' END WHERE quoteid = $1 AND productid = $2 RETURNING pickingstatus',
+      'UPDATE quote_items SET picking_status = CASE WHEN picking_status = \'unavailable\' THEN \'pending\' ELSE \'unavailable\' END WHERE quote_id = $1 AND product_id = $2 RETURNING picking_status',
       [quoteId, productId]
     );
 
-    await query('UPDATE quotes SET lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $1', [quoteId]);
+    await query('UPDATE quotes SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [quoteId]);
 
-    const newStatus = updateResult[0].pickingstatus;
+    const newStatus = updateResult[0].picking_status;
 
     return {
       status: 'success',
@@ -382,7 +383,7 @@ export async function setUnavailable(quoteId, productId) {
 export async function setProductFinished(quoteId, productId) {
   try {
     const result = await query(
-      'UPDATE quoteitems SET pickingqty = 0, pickingstatus = \'completed\' WHERE quoteid = $1 AND productid = $2 RETURNING *',
+      'UPDATE quote_items SET picking_quantity = 0, picking_status = \'completed\' WHERE quote_id = $1 AND product_id = $2 RETURNING *',
       [quoteId, productId]
     );
 
@@ -390,12 +391,12 @@ export async function setProductFinished(quoteId, productId) {
       throw new AccessError('Product does not exist in this quote!');
     }
     
-    await query('UPDATE quotes SET lastmodified = CURRENT_TIMESTAMP WHERE quoteid = $1', [quoteId]);
+    await query('UPDATE quotes SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [quoteId]);
 
     return { 
-      pickingQty: result[0].pickingqty,
-      newStatus: result[0].pickingstatus,
-      message: `Set ${result[0].productname} to finished!`
+      pickingQty: result[0].picking_quantity,
+      newStatus: result[0].picking_status,
+      message: `Set ${result[0].product_name} to finished!`
     }
     ;
   } catch (error) {

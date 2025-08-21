@@ -211,7 +211,7 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
   const { jobId } = req.params;
 
   const companyId = req.session.companyId;
-  const { rows } = await pool.query('SELECT * FROM jobs WHERE id = $1 AND companyid = $2', [jobId, companyId]);
+  const { rows } = await pool.query('SELECT * FROM jobs WHERE id = $1 AND company_id = $2', [jobId, companyId]);
 
   const job = rows[0];
 
@@ -643,7 +643,7 @@ app.post('/upload', isAuthenticated, upload.single('input'), asyncHandler(async 
 
       // 2. Create a job record in your database
       const dbResponse = await pool.query(
-        `INSERT INTO jobs (s3_key, companyid) VALUES ($1, $2) RETURNING id`,
+        `INSERT INTO jobs (s3_key, id) VALUES ($1, $2) RETURNING id`,
         [s3Key, req.session.companyId]
       );
       const jobId = dbResponse.rows[0].id;

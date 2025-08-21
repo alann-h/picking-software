@@ -1,6 +1,6 @@
 import { AccessError } from '../middlewares/errorHandler.js';
 import { transaction } from '../helpers.js';
-import { getOAuthClient, getBaseURL } from './authService.js';
+import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 
 export async function fetchCustomers(companyId) {
   try {
@@ -9,6 +9,7 @@ export async function fetchCustomers(companyId) {
       throw new AccessError('OAuth client could not be initialised');
     }
     const baseURL = getBaseURL(oauthClient);
+    const realmId = getRealmId(oauthClient);
     
     let allCustomers = [];
     let startPosition = 1;
@@ -17,7 +18,7 @@ export async function fetchCustomers(companyId) {
 
     while (moreRecords) {
       const response = await oauthClient.makeApiCall({
-        url: `${baseURL}v3/company/${companyId}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
+        url: `${baseURL}v3/company/${realmId}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
       });
 
       const responseData = response.json;
@@ -50,7 +51,7 @@ export async function saveCustomers(customers, companyId) {
           continue;
         }
         await client.query(
-          'INSERT INTO customers (customerid, customername, companyid) VALUES ($1, $2, $3) ON CONFLICT (customerid) DO UPDATE SET customername = $2',
+          'INSERT INTO customers (id, customer_name, company_id) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET customer_name = $2',
           [customer.customerId, customer.customerName, companyId]
         );
       }

@@ -43,7 +43,6 @@
     "pg": "^8.11.3",
     "pg-format": "^1.0.4",
     "swagger-ui-express": "^5.0.0",
-    "uuid": "^11.1.0",
     "validator": "^13.11.0"
   },
   "devDependencies": {

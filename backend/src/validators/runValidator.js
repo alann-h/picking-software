@@ -1,5 +1,5 @@
 import { body, param } from 'express-validator';
-import { validate } from './authValidator.js';
+import { validate, companyIdRule, companyIdBodyRule } from './authValidator.js';
 
 // Reusable validation for run ID
 export const runIdRule = () => [
@@ -8,11 +8,8 @@ export const runIdRule = () => [
         .isUUID().withMessage('Run ID must be a valid UUID.')
 ];
 
-export const companyIdRule = () => [
-    param('companyId')
-        .exists().withMessage('Company ID is required.')
-        .isString().notEmpty().withMessage('Company ID cannot be empty.')
-];
+// Use shared company ID validation
+export { companyIdRule };
 
 export const runCreateRules = () => [
     body('orderedQuoteIds')
@@ -22,9 +19,7 @@ export const runCreateRules = () => [
     body('orderedQuoteIds.*')
         .isInt({ gt: 0 }).withMessage('Each Quote ID in the array must be a positive integer.'),
 
-    body('companyId')
-        .exists().withMessage('Company ID is required.')
-        .isString().notEmpty().withMessage('Company ID cannot be empty.')
+    ...companyIdBodyRule()
 ];
 
 export const runStatusUpdateRules = () => [
@@ -36,7 +31,7 @@ export const runStatusUpdateRules = () => [
 export const runUpdateRules = () => [
     param('runId')
         .exists().withMessage('Run ID is required in the URL.')
-        .isInt({ gt: 0 }).withMessage('Run ID must be a positive integer.'),
+        .isUUID().withMessage('Run ID must be a valid UUID.'),
 
     body('orderedQuoteIds')
         .exists().withMessage('An array of Quote IDs is required.')
@@ -45,6 +40,5 @@ export const runUpdateRules = () => [
     body('orderedQuoteIds.*')
         .isInt({ gt: 0 }).withMessage('Each Quote ID in the array must be a positive integer.')
 ];
-
 
 export { validate };

@@ -19,9 +19,10 @@ export async function callback(req, res, next) {
   try {
     const token = await authService.handleCallback(req.url);
     const companyInfo = await saveCompanyInfo(token);
-    const user = await authService.saveUserQbButton(token, companyInfo.companyid);
+    const user = await authService.saveUserQbButton(token, companyInfo.qb_realm_id);
 
-    req.session.companyId = companyInfo.companyid;
+    req.session.realmId = companyInfo.qb_realm_id;
+    req.session.companyId = companyInfo.id;
     req.session.isAdmin = true;
     req.session.userId = user.id;
     req.session.name = user.given_name + ' ' + user.family_name;
@@ -62,7 +63,8 @@ export async function login(req, res, next) {
       // Set session data in new session
       req.session.isAdmin = user.is_admin;
       req.session.userId = user.id;
-      req.session.companyId = user.companyid;
+      req.session.companyId = user.company_id; // Database UUID
+      req.session.realmId = user.realm_id; // QuickBooks realm ID
       req.session.name = user.given_name + ' ' + user.family_name;
       req.session.email = user.display_email;
       req.session.loginTime = new Date().toISOString();
@@ -84,7 +86,7 @@ export async function login(req, res, next) {
           timestamp: new Date(),
           metadata: {
             rememberMe,
-            companyId: user.companyid
+            companyId: user.company_id
           }
         });
       } catch (logError) {
@@ -197,8 +199,8 @@ export async function getAllUsers(req, res, next) {
 // DELETE /auth/disconnect
 export async function disconnect(req, res, next) {
   try {
-    const userId = req.session?.userId;
-    const companyId = req.session?.companyId;
+    const userId = req.session.userId;
+    const companyId = req.session.companyId;
     
     console.log(`User ${userId} from company ${companyId} is disconnecting from QuickBooks`);
     

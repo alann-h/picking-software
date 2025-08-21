@@ -11,3 +11,5 @@ node_modules/
 !README.md
 
 lambda-function/
+
+backups/

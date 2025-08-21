@@ -66,3 +66,16 @@ export const updateUserRules = () => [
     .matches(/[^A-Za-z0-9]/).withMessage('Password must contain a symbol')
     .trim(),
 ];
+
+// Reusable validation rules for company IDs
+export const companyIdRule = () => [
+  param('companyId')
+    .exists().withMessage('Company ID is required.')
+    .isUUID().withMessage('Company ID must be a valid UUID.')
+];
+
+export const companyIdBodyRule = () => [
+  body('companyId')
+    .exists().withMessage('Company ID is required.')
+    .isUUID().withMessage('Company ID must be a valid UUID.')
+];

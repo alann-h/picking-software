@@ -1,11 +1,11 @@
 import OAuthClient from 'intuit-oauth';
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
 import { query, transaction, encryptToken, decryptToken } from '../helpers.js';
-import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
 import crypto from 'crypto';
 import { isAccountLocked, incrementFailedAttempts, resetFailedAttempts } from './securityService.js';
+import { qboTokenService } from './qboTokenService.js';
 
 export function initializeOAuthClient() {
   const environment = process.env.VITE_APP_ENV;
@@ -44,7 +44,7 @@ export function getBaseURL(oauthClient) {
   return oauthClient.environment === 'sandbox' ? OAuthClient.environment.sandbox : OAuthClient.environment.production;
 }
 
-export function getCompanyId(oauthClient) {
+export function getRealmId(oauthClient) {
   return oauthClient.getToken().realmId;
 }
 
@@ -93,7 +93,6 @@ export async function getOAuthClient(companyId) {
 
   try {
     // Use the new token service for better token management
-    const { qboTokenService } = await import('./qboTokenService.js');
     return await qboTokenService.getOAuthClient(companyId);
   } catch (error) {
     console.error(`Error getting OAuth client for company ${companyId}:`, error);
@@ -113,9 +112,10 @@ export async function login(email, password, ipAddress = null, userAgent = null)
     const result = await query(`
       SELECT 
         u.*,
-        c.qb_token as token
+        c.qb_token as token,
+        c.qb_realm_id as realm_id
       FROM users u
-      JOIN companies c ON u.companyid = c.companyid
+      JOIN companies c ON u.company_id = c.id
       WHERE u.normalised_email = $1
     `, [email]);
 
@@ -146,8 +146,8 @@ export async function login(email, password, ipAddress = null, userAgent = null)
         const encryptedToken = encryptToken(refreshedToken);
         // Update the company's token in the database with the newly encrypted token
         await query(
-          'UPDATE companies SET qb_token = $1 WHERE companyid = $2',
-          [encryptedToken, user.companyid]
+          'UPDATE companies SET qb_token = $1 WHERE id = $2',
+          [encryptedToken, user.company_id]
         );
         user.token = refreshedToken;
       }
@@ -178,14 +178,13 @@ export async function register(displayEmail, password, is_admin, givenName, fami
     throw new AuthenticationError('An account with this email address already exists. Please log in.');
   }
 
-  const userId = uuidv4();
   const hashedPassword = await bcrypt.hash(password, saltRounds);
   
   const result = await query(`
-    INSERT INTO users (id, normalised_email, password, is_admin, given_name, family_name, companyid, display_email) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    INSERT INTO users (normalised_email, password_hash, is_admin, given_name, family_name, company_id, display_email) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING *`,
-    [userId, normalisedEmail, hashedPassword, is_admin, givenName, familyName, companyId, displayEmail]
+    [normalisedEmail, hashedPassword, is_admin, givenName, familyName, companyId, displayEmail]
   );
   
   if (result.length === 0) {
@@ -261,7 +260,7 @@ export async function saveUserQbButton(token, companyId) {
         true, // is_admin
         userInfo.givenName,
         userInfo.familyName,
-        companyId
+        companyId // This will be stored as company_id in the database
       );
       return newUser;
     }
@@ -280,11 +279,11 @@ export async function getAllUsers(companyId) {
         given_name, 
         family_name, 
         is_admin,
-        companyid
+        company_id
       FROM 
         users 
       WHERE 
-        companyid = $1
+        company_id = $1
     `, [companyId]);
     return result;
   } catch (e) {
