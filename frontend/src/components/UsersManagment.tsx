@@ -46,7 +46,7 @@ const UsersManagement = () => {
         fetchUsers();
     }, [fetchUsers]);
 
-    const handleAddUser = async (newUserData: Omit<UserData, 'id' | 'companyid'>) => {
+    const handleAddUser = async (newUserData: Omit<UserData, 'id' | 'company_id'>) => {
         try {
             await registerUser(
                 newUserData.display_email,

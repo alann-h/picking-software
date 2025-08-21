@@ -51,7 +51,7 @@ export interface Product {
     sku: string;
     quantityOnHand: number;
     price: number;
-    companyId: number;
+    companyId: string;
     category: string;
     qboItemId: string;
     isArchived: boolean;
@@ -63,7 +63,7 @@ export interface UserData {
     given_name: string;
     family_name: string;
     is_admin: boolean;
-    companyid: number;
+    company_id: string;
 }
 
 export interface UserUpdateData {
@@ -89,12 +89,12 @@ export interface QuoteSummary {
 
 export interface Run {
   id: string;
-  companyid: string;
+  company_id: string; // Changed from companyid: string to company_id: string
   created_at: string;
   run_number: number;
   status: 'pending' | 'checking' | 'finalised';
-  customername?: string;
-  totalamount?: number; 
+  customer_name?: string; // Changed from customername?: string
+  total_amount?: number; // Changed from totalamount?: number
   quotes: RunQuote[];
 }
 
