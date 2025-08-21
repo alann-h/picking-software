@@ -19,7 +19,7 @@ export async function callback(req, res, next) {
   try {
     const token = await authService.handleCallback(req.url);
     const companyInfo = await saveCompanyInfo(token);
-    const user = await authService.saveUserQbButton(token, companyInfo.qb_realm_id);
+    const user = await authService.saveUserQbButton(token, companyInfo.id);
 
     req.session.realmId = companyInfo.qb_realm_id;
     req.session.companyId = companyInfo.id;
