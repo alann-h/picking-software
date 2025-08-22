@@ -1,31 +1,49 @@
 // src/controllers/authController.js
 import * as authService from '../services/authService.js';
-import { saveCompanyInfo, removeQuickBooksData } from '../services/companyService.js';
+import { saveCompanyInfo, removeCompanyData } from '../services/companyService.js';
 import { logSecurityEvent } from '../services/securityService.js'; // Added import for security logging
 
-// GET /auth/uri
-export async function authUri(req, res, next) {
+// GET /auth/qbo-uri
+export async function qboAuthUri(req, res, next) {
   try {
     const rememberMe = req.query.rememberMe === 'true';
-    const uri = await authService.getAuthUri(rememberMe);
+    const uri = await authService.getAuthUri('qbo', rememberMe);
     res.redirect(uri);
   } catch (err) {
     next(err);
   }
 }
 
-// GET /auth/callback
+// GET /auth/xero-uri
+export async function xeroAuthUri(req, res, next) {
+  try {
+    const rememberMe = req.query.rememberMe === 'true';
+    const uri = await authService.getAuthUri('xero', rememberMe);
+    res.redirect(uri);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /auth/qbo-callback or /auth/xero-callback
 export async function callback(req, res, next) {
   try {
-    const token = await authService.handleCallback(req.url);
-    const companyInfo = await saveCompanyInfo(token);
-    const user = await authService.saveUserQbButton(token, companyInfo.id);
+    // Determine platform from the route
+    const isXero = req.path.includes('xero-callback');
+    const connectionType = isXero ? 'xero' : 'qbo';
+    
+    console.log(`Processing ${connectionType.toUpperCase()} callback`);
+    
+    const token = await authService.handleCallback(req.url, connectionType);
+    const companyInfo = await saveCompanyInfo(token, connectionType);
+    const user = await authService.saveUserFromOAuth(token, companyInfo.id, connectionType);
 
     req.session.companyId = companyInfo.id;
     req.session.isAdmin = true;
     req.session.userId = user.id;
     req.session.name = user.given_name + ' ' + user.family_name;
     req.session.email = user.display_email;
+    req.session.connectionType = connectionType; // Store which platform was used
 
     // Check if "Remember Me" was requested (stored in state or query param)
     const rememberMe = req.query.rememberMe === 'true' || req.query.state?.includes('rememberMe=true');
@@ -218,7 +236,7 @@ export async function disconnect(req, res, next) {
     }
     
     try {
-      await removeQuickBooksData(companyId);
+      await removeCompanyData(companyId);
       console.log(`Successfully removed QuickBooks data for company ${companyId}`);
     } catch (dataError) {
       console.warn(`Could not remove QuickBooks data for company ${companyId}:`, dataError.message);

@@ -9,7 +9,8 @@ export const API_BASE = import.meta.env.VITE_API_BASE_URL;
 /**
  * Auth endpoints
  */
-export const AUTH_URI = `${API_BASE}/auth/uri`;
+export const QBO_AUTH_URI = `${API_BASE}/auth/qbo-uri`;
+export const XERO_AUTH_URI = `${API_BASE}/auth/xero-uri`;
 
 
 /**

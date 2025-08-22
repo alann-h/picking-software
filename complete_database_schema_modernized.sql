@@ -40,7 +40,9 @@ CREATE TABLE public.companies (
     connection_type connection_type NOT NULL DEFAULT 'none',
     -- QuickBooks fields
     qb_realm_id text,
-    qb_token text, -- Note: sensitive data, consider application-level encryption
+    qb_token text, -- Note: stores encrypted access_token only
+    qb_refresh_token text, -- Note: stores encrypted refresh_token separately
+    qb_token_expires_at timestamptz, -- Note: stores expiration timestamp separately
     -- Xero fields
     xero_tenant_id text,
     xero_token text, -- Note: sensitive data, consider application-level encryption

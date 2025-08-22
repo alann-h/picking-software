@@ -2,7 +2,8 @@
 import { Router } from 'express';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import {
-  authUri,
+  qboAuthUri,
+  xeroAuthUri,
   callback,
   login,
   register,
@@ -17,8 +18,10 @@ import { validate, loginRules, registerRules, updateUserRules, userIdRules } fro
 
 const router = new Router();
 
-router.get('/uri', asyncHandler(authUri));
-router.get('/callback', asyncHandler(callback));
+router.get('/qbo-uri', asyncHandler(qboAuthUri));
+router.get('/xero-uri', asyncHandler(xeroAuthUri));
+router.get('/qbo-callback', asyncHandler(callback));
+router.get('/xero-callback', asyncHandler(callback));
 router.post('/login', loginRules(), validate , asyncHandler(login));
 router.post('/logout', asyncHandler(logout));
 

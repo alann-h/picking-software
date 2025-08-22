@@ -34,7 +34,7 @@ import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
 import { transaction } from './helpers.js';
 import { insertProductsTempTable } from './services/productService.js';
-import { getOAuthClient } from './services/authService.js';
+import { getOAuthClient, getAuthUri } from './services/authService.js';
 import pool from './db.js';
 
 const app = express();
@@ -395,8 +395,8 @@ app.get('/debug/qbo-token-status', asyncHandler(async (req, res) => {
   }
 
   try {
-    const { qboTokenService } = await import('./services/qboTokenService.js');
-    const tokenStatus = await qboTokenService.getTokenStatus(req.session.companyId);
+    const { tokenService } = await import('./services/tokenService.js');
+    const tokenStatus = await tokenService.getTokenStatus(req.session.companyId, 'qbo');
     
     res.json({
       companyId: req.session.companyId,

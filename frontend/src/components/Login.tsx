@@ -22,6 +22,7 @@ import {
   SwitchAccount,
   Person
 } from '@mui/icons-material';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { loginWithCredentials, verifyUser, logout } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
@@ -29,7 +30,7 @@ import LoadingWrapper from './LoadingWrapper';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 
-import { AUTH_URI } from '../api/config';
+import { QBO_AUTH_URI, XERO_AUTH_URI } from '../api/config';
 import SEO from './SEO';
 
 const loginSchema = z.object({
@@ -115,8 +116,17 @@ const Login: React.FC = () => {
     if (rememberMe) {
       localStorage.setItem('rememberMe', 'true');
     }
-    const authUriWithRememberMe = rememberMe ? `${AUTH_URI}?rememberMe=true` : AUTH_URI;
+    const authUriWithRememberMe = rememberMe ? `${QBO_AUTH_URI}?rememberMe=true` : QBO_AUTH_URI;
     window.location.href = authUriWithRememberMe;
+  };
+
+  const handleXeroLogin = () => {
+    setIsSubmitting(true);
+    if (rememberMe) {
+      localStorage.setItem('rememberMe', 'true');
+    }
+    const xeroAuthUriWithRememberMe = rememberMe ? `${XERO_AUTH_URI}?rememberMe=true` : XERO_AUTH_URI;
+    window.location.href = xeroAuthUriWithRememberMe;
   };
 
   const validateField = (name: string, value: string) => {
@@ -488,6 +498,38 @@ const Login: React.FC = () => {
                   }}
                 >
                   Sign in with QuickBooks
+                </Button>
+
+                {/* Xero Login */}
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={handleXeroLogin}
+                  disabled={isSubmitting}
+                  startIcon={<AccountBalanceIcon />}
+                  endIcon={<ArrowForward />}
+                  sx={{
+                    py: 1.5,
+                    borderRadius: 2,
+                    borderColor: '#6366F1',
+                    color: '#6366F1',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    mt: 2,
+                    '&:hover': {
+                      borderColor: '#4F46E5',
+                      backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                      transform: 'translateY(-1px)',
+                    },
+                    '&:disabled': {
+                      borderColor: '#E5E7EB',
+                      color: '#9CA3AF',
+                      transform: 'none',
+                    }
+                  }}
+                >
+                  Sign in with Xero
                 </Button>
 
 

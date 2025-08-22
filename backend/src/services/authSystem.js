@@ -1,0 +1,350 @@
+import OAuthClient from 'intuit-oauth';
+import { XeroClient } from 'xero-node';
+import crypto from 'crypto';
+
+/**
+ * Authentication System Class
+ * Handles both QuickBooks Online (QBO) and Xero authentication
+ */
+export class AuthSystem {
+    constructor() {
+        this.environment = process.env.VITE_APP_ENV;
+        this.baseUrl = process.env.VITE_APP_ENV === 'production' ? 'https://smartpicker.au' : 'http://localhost:5033';
+        
+        // QBO Configuration
+        this.qboClientId = this.environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
+        this.qboClientSecret = this.environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
+        
+        // Xero Configuration
+        this.xeroClientId = process.env.XERO_CLIENT_ID;
+        this.xeroClientSecret = process.env.XERO_CLIENT_SECRET;
+        
+        this.validateConfiguration();
+    }
+
+    /**
+     * Validate that all required environment variables are set
+     */
+    validateConfiguration() {
+        if (!this.environment) {
+            throw new Error('Missing required environment variables: VITE_APP_ENV');
+        }
+        
+        if (!this.qboClientId || !this.qboClientSecret) {
+            throw new Error('Missing QBO environment variables: CLIENT_ID_DEV/PROD, CLIENT_SECRET_DEV/PROD');
+        }
+        
+        if (!this.xeroClientId || !this.xeroClientSecret) {
+            throw new Error('Missing Xero environment variables: XERO_CLIENT_ID, XERO_CLIENT_SECRET');
+        }
+    }
+
+    /**
+     * Initialize QBO OAuth Client
+     * @returns {OAuthClient} Initialized QBO OAuth client
+     */
+    initializeQBO() {
+        return new OAuthClient({
+            clientId: this.qboClientId,
+            clientSecret: this.qboClientSecret,
+            environment: this.environment,
+            redirectUri: `${this.baseUrl}/auth/qbo-callback`
+        });
+    }
+
+    /**
+     * Initialize Xero OAuth Client
+     * @returns {XeroClient} Initialized Xero client
+     */
+    initializeXero() {
+        return new XeroClient({
+            clientId: this.xeroClientId,
+            clientSecret: this.xeroClientSecret,
+            redirectUris: [`${this.baseUrl}/auth/xero-callback`],
+            scopes: [
+                'offline_access',
+                'accounting.transactions.read',
+                'accounting.contacts.read',
+                'accounting.settings.read'
+            ]
+        });
+    }
+
+    /**
+     * Get QBO authorization URI
+     * @param {boolean} rememberMe - Whether to remember the user
+     * @returns {Promise<string>} Authorization URI
+     */
+    getQBOAuthUri(rememberMe = false) {
+        const oauthClient = this.initializeQBO();
+        const state = rememberMe ? `rememberMe=true&${crypto.randomBytes(16).toString('hex')}` : crypto.randomBytes(16).toString('hex');
+        
+        return oauthClient.authorizeUri({ 
+            scope: [
+                OAuthClient.scopes.Accounting,
+                OAuthClient.scopes.OpenId,
+                OAuthClient.scopes.Profile,
+                OAuthClient.scopes.Email,
+            ], 
+            state: state
+        });
+    }
+
+    /**
+     * Get Xero authorization URI
+     * @param {boolean} rememberMe - Whether to remember the user
+     * @returns {Promise<string>} Authorization URI
+     */
+    async getXeroAuthUri(rememberMe = false) {
+        const xeroClient = this.initializeXero();
+        const state = rememberMe ? `rememberMe=true&${crypto.randomBytes(16).toString('hex')}` : crypto.randomBytes(16).toString('hex');
+        
+        const url = await xeroClient.buildConsentUrl(state);
+        return url;
+    }
+
+    /**
+     * Handle QBO OAuth callback
+     * @param {string} url - Callback URL
+     * @returns {Promise<Object>} Token object
+     */
+    async handleQBOCallback(url) {
+        const oauthClient = this.initializeQBO();
+        try {
+            const authResponse = await oauthClient.createToken(url);
+            return authResponse.getToken();
+        } catch (error) {
+            console.error('QBO callback error:', error);
+            throw new Error('Could not create QBO token: ' + error.message);
+        }
+    }
+
+    /**
+     * Handle Xero OAuth callback
+     * @param {string} url - Callback URL
+     * @returns {Promise<Object>} Token object
+     */
+    async handleXeroCallback(url) {
+        const xeroClient = this.initializeXero();
+        try {
+            const urlParams = new URL(url).searchParams;
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            
+            if (!code) {
+                throw new Error('Authorization code not found in callback URL');
+            }
+            
+            const tokenSet = await xeroClient.apiCallback(url);
+            return {
+                access_token: tokenSet.access_token,
+                refresh_token: tokenSet.refresh_token,
+                expires_at: tokenSet.expires_at,
+                tenant_id: tokenSet.tenant_id || null
+            };
+        } catch (error) {
+            console.error('Xero callback error:', error);
+            throw new Error('Could not create Xero token: ' + error.message);
+        }
+    }
+
+    /**
+     * Refresh QBO token
+     * @param {Object} token - Current token object
+     * @returns {Promise<Object>} Refreshed token
+     */
+    async refreshQBOToken(token) {
+        const oauthClient = this.initializeQBO();
+        oauthClient.setToken(token);
+
+        if (oauthClient.isAccessTokenValid()) {
+            return token;
+        }
+
+        if (!oauthClient.token.isRefreshTokenValid()) {
+            throw new Error('QBO refresh token has expired, please reauthenticate');
+        }
+
+        try {
+            const response = await oauthClient.refreshUsingToken(token.refresh_token);
+            console.log('QBO Token Refreshed!');
+            return response.getToken();
+        } catch (error) {
+            if (error.error === 'invalid_grant') {
+                throw new Error('QBO_TOKEN_REVOKED');
+            }
+            throw new Error('Failed to refresh QBO token: ' + error.message);
+        }
+    }
+
+    /**
+     * Refresh Xero token
+     * @param {Object} token - Current token object
+     * @returns {Promise<Object>} Refreshed token
+     */
+    async refreshXeroToken(token) {
+        const xeroClient = this.initializeXero();
+        
+        try {
+            // Set the current token
+            xeroClient.setTokenSet({
+                access_token: token.access_token,
+                refresh_token: token.refresh_token,
+                expires_at: token.expires_at
+            });
+
+            // Check if token is expired and refresh if needed
+            if (token.expires_at && new Date() >= new Date(token.expires_at * 1000)) {
+                const newTokenSet = await xeroClient.refreshToken();
+                console.log('Xero Token Refreshed!');
+                return {
+                    access_token: newTokenSet.access_token,
+                    refresh_token: newTokenSet.refresh_token,
+                    expires_at: newTokenSet.expires_at,
+                    tenant_id: token.tenant_id
+                };
+            }
+            
+            return token;
+        } catch (error) {
+            console.error('Xero token refresh error:', error);
+            throw new Error('Failed to refresh Xero token: ' + error.message);
+        }
+    }
+
+    /**
+     * Get QBO base URL based on environment
+     * @param {OAuthClient} oauthClient - QBO OAuth client
+     * @returns {string} Base URL
+     */
+    getQBOBaseURL(oauthClient) {
+        return oauthClient.environment === 'sandbox' ? 
+            OAuthClient.environment.sandbox : 
+            OAuthClient.environment.production;
+    }
+
+    /**
+     * Get QBO realm ID from token
+     * @param {OAuthClient} oauthClient - QBO OAuth client
+     * @returns {string} Realm ID
+     */
+    getQBORealmId(oauthClient) {
+        return oauthClient.getToken().realmId;
+    }
+
+    /**
+     * Revoke QBO token
+     * @param {Object} token - Token to revoke
+     */
+    async revokeQBOToken(token) {
+        const oauthClient = this.initializeQBO();
+        oauthClient.setToken(token);
+        
+        try {
+            await oauthClient.revoke();
+        } catch (error) {
+            console.error('Error revoking QBO token:', error);
+            throw new Error('Could not revoke QBO token: ' + error.message);
+        }
+    }
+
+    /**
+     * Revoke Xero token
+     * @param {Object} token - Token to revoke
+     */
+    async revokeXeroToken(token) {
+        const xeroClient = this.initializeXero();
+        
+        try {
+            // Set the current token set
+            xeroClient.setTokenSet({
+                access_token: token.access_token,
+                refresh_token: token.refresh_token,
+                expires_at: token.expires_at
+            });
+            
+            // Use the proper revoke method
+            await xeroClient.revokeToken();
+            console.log('Xero token revoked successfully');
+        } catch (error) {
+            console.error('Error revoking Xero token:', error);
+            throw new Error('Could not revoke Xero token: ' + error.message);
+        }
+    }
+
+    /**
+     * Get user info from QBO
+     * @param {Object} token - QBO token
+     * @returns {Promise<Object>} User information
+     */
+    async getQBOUserInfo(token) {
+        const oauthClient = this.initializeQBO();
+        oauthClient.setToken(token);
+        
+        try {
+            const userInfo = await oauthClient.getUserInfo();
+            return userInfo.json;
+        } catch (error) {
+            throw new Error('Could not get QBO user information: ' + error.message);
+        }
+    }
+
+    /**
+     * Get user info from Xero
+     * @param {Object} token - Xero token
+     * @returns {Promise<Object>} User information
+     */
+    async getXeroUserInfo(token) {
+        const xeroClient = this.initializeXero();
+        xeroClient.setTokenSet({
+            access_token: token.access_token,
+            refresh_token: token.refresh_token,
+            expires_at: token.expires_at
+        });
+        
+        try {
+            // Get real company information from Xero using the accounting API
+            const organisationsResponse = await xeroClient.accountingApi.getOrganisations(token.tenant_id);
+            const organisation = organisationsResponse.body.organisations?.[0];
+            
+            if (organisation) {
+                return {
+                    email: `user@${organisation.name || 'company'}.com`, // Use real company name
+                    givenName: 'Xero', // Default name since Xero doesn't provide user details
+                    familyName: 'User',
+                    tenant_id: token.tenant_id,
+                    companyName: organisation.name || `Company ${token.tenant_id}`, // Real company name!
+                    legalName: organisation.legalName, // Legal company name
+                    organisationId: organisation.organisationID,
+                    countryCode: organisation.countryCode?.value,
+                    baseCurrency: organisation.baseCurrency?.value,
+                    organisationType: organisation.organisationType?.value,
+                    isDemoCompany: organisation.isDemoCompany,
+                    organisationStatus: organisation.organisationStatus
+                };
+            }
+            
+            // Fallback if no organisation details
+            return {
+                email: `user@company-${token.tenant_id}.com`,
+                givenName: 'Xero',
+                familyName: 'User',
+                tenant_id: token.tenant_id,
+                companyName: `Company ${token.tenant_id}`
+            };
+        } catch (error) {
+            console.warn('Could not get Xero organisation info, using fallback:', error.message);
+            // Fallback to basic info
+            return {
+                email: 'xero-user@company.com',
+                givenName: 'Xero',
+                familyName: 'User',
+                tenant_id: token.tenant_id,
+                companyName: 'Xero Company'
+            };
+        }
+    }
+}
+
+// Export a singleton instance
+export const authSystem = new AuthSystem();

@@ -1,101 +1,94 @@
-import OAuthClient from 'intuit-oauth';
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
 import { query, transaction, encryptToken, decryptToken } from '../helpers.js';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
 import crypto from 'crypto';
 import { isAccountLocked, incrementFailedAttempts, resetFailedAttempts } from './securityService.js';
-import { qboTokenService } from './qboTokenService.js';
+import { tokenService } from './tokenService.js';
+import { authSystem } from './authSystem.js';
 
-export function initializeOAuthClient() {
-  const environment = process.env.VITE_APP_ENV;
-  const clientId = environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
-  const clientSecret = environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
-  const redirectUri = environment === 'production' ? process.env.REDIRECT_URI_PROD : process.env.REDIRECT_URI_DEV;
-
-  if (!clientId || !clientSecret || !redirectUri || !environment) {
-    throw new Error('Missing required environment variables');
+// Generic OAuth client initialization - supports both QBO and Xero
+export function initializeOAuthClient(connectionType = 'qbo') {
+  if (connectionType === 'qbo') {
+    return authSystem.initializeQBO();
+  } else if (connectionType === 'xero') {
+    return authSystem.initializeXero();
   }
-
-  return new OAuthClient({
-    clientId,
-    clientSecret,
-    environment,
-    redirectUri
-  });
+  throw new Error(`Unsupported connection type: ${connectionType}`);
 }
 
-export function getAuthUri(rememberMe = false) {
-  const oauthClient = initializeOAuthClient();
-  const state = rememberMe ? `rememberMe=true&${crypto.randomBytes(16).toString('hex')}` : crypto.randomBytes(16).toString('hex');
-  const authUri = oauthClient.authorizeUri({ 
-    scope: [
-      OAuthClient.scopes.Accounting,
-      OAuthClient.scopes.OpenId,
-      OAuthClient.scopes.Profile,
-      OAuthClient.scopes.Email,
-    ], 
-    state: state
-  });
-  return Promise.resolve(authUri);
+// Get auth URI for specified platform
+export function getAuthUri(connectionType = 'qbo', rememberMe = false) {
+  if (connectionType === 'qbo') {
+    return authSystem.getQBOAuthUri(rememberMe);
+  } else if (connectionType === 'xero') {
+    return authSystem.getXeroAuthUri(rememberMe);
+  }
+  throw new Error(`Unsupported connection type: ${connectionType}`);
 }
 
-export function getBaseURL(oauthClient) {
-  return oauthClient.environment === 'sandbox' ? OAuthClient.environment.sandbox : OAuthClient.environment.production;
+// Get base URL for specified platform
+export function getBaseURL(oauthClient, connectionType = 'qbo') {
+  if (connectionType === 'qbo') {
+    return authSystem.getQBOBaseURL(oauthClient);
+  } else if (connectionType === 'xero') {
+    return 'https://api.xero.com';
+  }
+  throw new Error(`Unsupported connection type: ${connectionType}`);
 }
 
-export function getRealmId(oauthClient) {
-  return oauthClient.getToken().realmId;
+// Get realm/tenant ID for specified platform
+export function getRealmId(oauthClient, connectionType = 'qbo') {
+  if (connectionType === 'qbo') {
+    return authSystem.getQBORealmId(oauthClient);
+  } else if (connectionType === 'xero') {
+    return oauthClient.tenantId || null;
+  }
+  throw new Error(`Unsupported connection type: ${connectionType}`);
 }
 
-export async function handleCallback(url) {
-  const oauthClient = initializeOAuthClient();
+export async function handleCallback(url, connectionType = 'qbo') {
   try {
-    const authResponse = await oauthClient.createToken(url);
-    const token = authResponse.getToken();
-    return token;
+    if (connectionType === 'qbo') {
+      return await authSystem.handleQBOCallback(url);
+    } else if (connectionType === 'xero') {
+      return await authSystem.handleXeroCallback(url);
+    }
+    throw new Error(`Unsupported connection type: ${connectionType}`);
   } catch (e) {
     console.error(e);
     throw new AccessError('Could not create token.');
   }
 }
 
-export async function refreshToken(token) {
-  const oauthClient = initializeOAuthClient();
-  oauthClient.setToken(token);
-
-  if (oauthClient.isAccessTokenValid()) {
-    return token;
-  }
-
-  if (!oauthClient.token.isRefreshTokenValid()) {
-    console.warn('Refresh Token has expired!');
-    throw new AuthenticationError('The Refresh token is invalid, please reauthenticate.');
-  }
-
+export async function refreshToken(token, connectionType = 'qbo') {
   try {
-    const response = await oauthClient.refreshUsingToken(token.refresh_token);
-    console.log('Token Refreshed!');
-    return response.getToken();
+    if (connectionType === 'qbo') {
+      return await authSystem.refreshQBOToken(token);
+    } else if (connectionType === 'xero') {
+      return await authSystem.refreshXeroToken(token);
+    }
+    throw new Error(`Unsupported connection type: ${connectionType}`);
   } catch (e) {
-    // 💡 CHECK FOR THE SPECIFIC ERROR FROM INTUIT
-    if (e.error === 'invalid_grant') {
+    if (e.message === 'QBO_TOKEN_REVOKED') {
       throw new AuthenticationError('QBO_TOKEN_REVOKED');
+    } else if (e.message === 'XERO_TOKEN_REVOKED') {
+      throw new AuthenticationError('XERO_TOKEN_REVOKED');
     }
     throw new AccessError('Failed to refresh token: ' + e.message);
   }
 }
 
-export async function getOAuthClient(companyId) {
+export async function getOAuthClient(companyId, connectionType = 'qbo') {
   if (!companyId) {
-    throw new Error('A companyId is required to get the QuickBooks client.');
+    throw new Error('A companyId is required to get the OAuth client.');
   }
 
   try {
-    // Use the new token service for better token management
-    return await qboTokenService.getOAuthClient(companyId);
+    // Use the new generic token service for better token management
+    return await tokenService.getOAuthClient(companyId, connectionType);
   } catch (error) {
-    console.error(`Error getting OAuth client for company ${companyId}:`, error);
+    console.error(`Error getting OAuth client for company ${companyId} (${connectionType}):`, error);
     throw error;
   }
 }
@@ -222,20 +215,22 @@ export async function deleteUser(userId, sessionId) {
   }
 };
 
-async function getUserInfo(token) {
+async function getUserInfo(token, connectionType = 'qbo') {
   try {
-    const oauthClient = initializeOAuthClient();
-    oauthClient.setToken(token);
-    const userInfo = await oauthClient.getUserInfo();
-    return userInfo.json;
+    if (connectionType === 'qbo') {
+      return await authSystem.getQBOUserInfo(token);
+    } else if (connectionType === 'xero') {
+      return await authSystem.getXeroUserInfo(token);
+    }
+    throw new Error(`Unsupported connection type: ${connectionType}`);
   } catch (e) {
     throw new AccessError('Could not get user information: ' + e.message);
   }
 }
 
-export async function saveUserQbButton(token, companyId) {
+export async function saveUserFromOAuth(token, companyId, connectionType = 'qbo') {
   try {
-    const userInfo = await getUserInfo(token);
+    const userInfo = await getUserInfo(token, connectionType);
     const normalisedEmail = validator.normalizeEmail(userInfo.email);
 
     // Check if a user with this email already exists in your database
@@ -246,12 +241,12 @@ export async function saveUserQbButton(token, companyId) {
 
     // If the user exists, return their data immediately.
     if (existingUserResult.length > 0) {
-      console.log(`Existing user re-authenticated: ${normalisedEmail}`);
+      console.log(`Existing user re-authenticated via ${connectionType}: ${normalisedEmail}`);
       return existingUserResult[0];
     } 
     
     else {
-      console.log(`New user registering via QuickBooks: ${normalisedEmail}`);
+      console.log(`New user registering via ${connectionType}: ${normalisedEmail}`);
       const password = crypto.randomBytes(16).toString('hex');
       
       const newUser = await register(
@@ -265,7 +260,7 @@ export async function saveUserQbButton(token, companyId) {
       return newUser;
     }
   } catch (e) {
-    throw new AccessError(`Failed during QuickBooks user processing: ${e.message}`);
+    throw new AccessError(`Failed during ${connectionType} user processing: ${e.message}`);
   }
 }
 
@@ -352,14 +347,22 @@ export async function updateUser(userId, userData) {
   }
 }
 
-export async function revokeQuickBooksToken(token) {
+export async function revokeToken(token, connectionType = 'qbo') {
   try {
-    const oauthClient = initializeOAuthClient();
-    oauthClient.setToken(token);
-
-    await oauthClient.revoke();
+    if (connectionType === 'qbo') {
+      await authSystem.revokeQBOToken(token);
+    } else if (connectionType === 'xero') {
+      await authSystem.revokeXeroToken(token);
+    } else {
+      throw new Error(`Unsupported connection type: ${connectionType}`);
+    }
   } catch (e) {
-    console.error('Error revoking QuickBooks token:', e);
-    throw new AccessError('Could not revoke QuickBooks token: ' + e.message);
+    console.error(`Error revoking ${connectionType} token:`, e);
+    throw new AccessError(`Could not revoke ${connectionType} token: ` + e.message);
   }
+}
+
+// Keep backward compatibility
+export async function revokeQuickBooksToken(token) {
+  return revokeToken(token, 'qbo');
 }
