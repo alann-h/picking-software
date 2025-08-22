@@ -17,7 +17,7 @@ import { useSnackbarContext } from '../SnackbarContext';
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount);
 
-const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: number) => void }> = ({ quote, onRemove }) => {
+const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: string) => void }> = ({ quote, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.quoteId });
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -68,7 +68,7 @@ export const RunItem: React.FC<{
     }, [isEditing, run.quotes]);
 
     const updateRunQuotesMutation = useMutation({
-        mutationFn: ({ runId, orderedQuoteIds }: { runId: string, orderedQuoteIds: number[] }) => updateRunQuotes(runId, orderedQuoteIds),
+        mutationFn: ({ runId, orderedQuoteIds }: { runId: string, orderedQuoteIds: string[] }) => updateRunQuotes(runId, orderedQuoteIds),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
             handleOpenSnackbar('Run updated successfully!', 'success');
@@ -116,7 +116,7 @@ export const RunItem: React.FC<{
     const handleEditToggle = () => setIsEditing(!isEditing);
     const handleCancelEdit = () => setIsEditing(false);
 
-    const handleRemoveQuote = (quoteIdToRemove: number) => {
+    const handleRemoveQuote = (quoteIdToRemove: string) => {
         setEditableQuotes(prev => prev.filter(q => q.quoteId !== quoteIdToRemove));
     };
 

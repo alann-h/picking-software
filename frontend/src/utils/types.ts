@@ -23,7 +23,7 @@ export interface QuoteData {
     orderStatus: string;
     orderNote: string;
     pickerNote: string;
-    quoteId: number;
+    quoteId: string;
 }
 
 export interface BarcodeListenerProps {
@@ -34,7 +34,7 @@ export type QuoteUpdateFunction = (_updater: (_prevQuoteData: QuoteData) => Part
 
 export interface Customer {
     customerName: string;
-    customerId: number;
+    customerId: string;
 }
 export type SnackbarSeverity = 'error' | 'success' | 'info' | 'warning';
 export interface SnackbarContextType {
@@ -75,10 +75,10 @@ export interface UserUpdateData {
 }
 
 export interface QuoteSummary {
-    id: number;
+    id: string;
     totalAmount: number;
     customerName: string;
-    customerId: number;
+    customerId: string;
     lastModified: string;
     preparerNames?: string;
     orderStatus: string;
@@ -89,17 +89,17 @@ export interface QuoteSummary {
 
 export interface Run {
   id: string;
-  company_id: string; // Changed from companyid: string to company_id: string
+  company_id: string;
   created_at: string;
   run_number: number;
   status: 'pending' | 'checking' | 'finalised';
-  customer_name?: string; // Changed from customername?: string
-  total_amount?: number; // Changed from totalamount?: number
+  customer_name?: string;
+  total_amount?: number;
   quotes: RunQuote[];
 }
 
 export interface RunQuote {
-  quoteId: number;
+  quoteId: string;
   customerName: string;
   totalAmount: number;
   priority: number;

@@ -36,7 +36,7 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
     </Paper>
 );
 
-const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: number) => void }> = ({ quote, onRemove }) => {
+const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: string) => void }> = ({ quote, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.id });
     const theme = useTheme();
     const style = {
@@ -90,7 +90,7 @@ interface RunBuilder {
 }
 
 
-const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<number>, onStageQuote: (quote: QuoteSummary) => void }> = ({ customer, stagedQuoteIds, onStageQuote }) => {
+    const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<string>, onStageQuote: (quote: QuoteSummary) => void }> = ({ customer, stagedQuoteIds, onStageQuote }) => {
 
     const { data: quotesData } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', customer.customerId],
@@ -131,18 +131,18 @@ export const CreateRun: React.FC<{}> = () => {
 
     const selectedCustomer = useMemo(() => {
         const customerId = searchParams.get('customerId');
-        return customers?.find(c => String(c.customerId) === customerId) || null;
+        return customers?.find(c => c.customerId === customerId) || null;
     }, [customers, searchParams]);
 
     const handleCustomerChange = (_: React.SyntheticEvent | null, customer: Customer | null) => {
         startTransition(() => {
-            setSearchParams(customer ? { customerId: String(customer.customerId) } : {});
+            setSearchParams(customer ? { customerId: customer.customerId } : {});
         });
     };
 
     const stagedQuoteIds = useMemo(() => new Set(stagedQuotes.map(q => q.id)), [stagedQuotes]);
     const createRunMutation = useMutation({
-        mutationFn: (quoteIds: number[]) => createRunFromQuotes(quoteIds, userCompanyId!),
+        mutationFn: (quoteIds: string[]) => createRunFromQuotes(quoteIds, userCompanyId!),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs'] });
             setRunsToCreate([]);
@@ -174,7 +174,7 @@ export const CreateRun: React.FC<{}> = () => {
     const handleStageQuote = (quote: QuoteSummary) => {
         setStagedQuotes(prev => [quote, ...prev]);
     };
-    const handleUnstageQuote = (quoteId: number) => {
+    const handleUnstageQuote = (quoteId: string) => {
         const quoteToUnstage = stagedQuotes.find(q => q.id === quoteId);
         if (!quoteToUnstage) return;
         setStagedQuotes(prev => prev.filter(q => q.id !== quoteId));

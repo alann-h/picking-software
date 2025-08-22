@@ -1,7 +1,7 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query, transaction, roundQuantity, formatTimestampForSydney } from '../helpers.js';
 import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
-import { productIdToQboId, getProductsFromDBByIds } from './productService.js';
+import { getProductsFromDBByIds, productIdToExternalId } from './productService.js';
 
 export async function getCustomerQuotes(customerId, companyId) {
   try {

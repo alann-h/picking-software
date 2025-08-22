@@ -387,8 +387,6 @@ export async function setUnavailable(quoteId, productId) {
       [quoteId, productId]
     );
 
-    await query('UPDATE quotes SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [quoteId]);
-
     const newStatus = updateResult[0].picking_status;
 
     return {
@@ -411,8 +409,6 @@ export async function setProductFinished(quoteId, productId) {
     if (result.length === 0) {
       throw new AccessError('Product does not exist in this quote!');
     }
-    
-    await query('UPDATE quotes SET updated_at = CURRENT_TIMESTAMP WHERE id = $1', [quoteId]);
 
     return { 
       pickingQty: result[0].picking_quantity,

@@ -29,7 +29,7 @@ const useQuery = () => new URLSearchParams(useLocation().search);
 
 const Quote: React.FC = () => {
   const query = useQuery();
-  const quoteId = Number(query.get('id'));
+      const quoteId = query.get('id') || '';
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { modalState, closeModal, openModal } = useModalState();

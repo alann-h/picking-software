@@ -20,9 +20,6 @@ import {
   TableHead,
   TableRow,
   useTheme,
-  useMediaQuery,
-  Button,
-  Alert,
   LinearProgress
 } from '@mui/material';
 import {
@@ -63,7 +60,6 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const navigate = useNavigate();
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const { quoteCount } = useMemo(() => ({ quoteCount: (run.quotes || []).length }), [run.quotes]);
     
     const getStatusChipColor = (status: Run['status']) => {
@@ -320,8 +316,6 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
 const Dashboard: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [isPending, startTransition] = useTransition();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],
@@ -331,12 +325,12 @@ const Dashboard: React.FC = () => {
     const selectedCustomer = useMemo(() => {
         const customerId = searchParams.get('customer');
         if (!customerId) return null;
-        return customers.find(c => String(c.customerId) === customerId) || null;
+        return customers.find(c => c.customerId === customerId) || null;
     }, [customers, searchParams]);
 
     const handleCustomerChange = (_: React.SyntheticEvent, customer: Customer | null) => {
         startTransition(() => {
-            setSearchParams(customer ? { customer: String(customer.customerId) } : {});
+            setSearchParams(customer ? { customer: customer.customerId } : {});
         });
     };
 

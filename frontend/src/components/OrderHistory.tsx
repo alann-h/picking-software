@@ -86,7 +86,7 @@ const useOrderHistory = () => {
 
   // Delete quote mutation
   const deleteQuoteMutation = useMutation({
-    mutationFn: async (quoteIds: number[]) => {
+    mutationFn: async (quoteIds: string[]) => {
       const response = await deleteQuotesBulk(quoteIds);
       return response;
     },
@@ -520,7 +520,7 @@ const OrderHistory: React.FC = () => {
   });
 
   // Bulk selection state
-  const [selectedQuotes, setSelectedQuotes] = useState<Set<number>>(new Set());
+      const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Get unique order statuses for filter dropdown
@@ -569,7 +569,7 @@ const OrderHistory: React.FC = () => {
     }
   };
 
-  const handleSelectQuote = (quoteId: number, checked: boolean) => {
+      const handleSelectQuote = (quoteId: string, checked: boolean) => {
     const newSelected = new Set(selectedQuotes);
     if (checked) {
       newSelected.add(quoteId);

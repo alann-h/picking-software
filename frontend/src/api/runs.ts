@@ -8,7 +8,7 @@ import { Run } from '../utils/types';
  * @param {string} companyId The ID of the company creating the run.
  * @returns {Promise<Run>} The newly created run object.
  */
-export const createRunFromQuotes  = async (orderedQuoteIds: number[], companyId: string): Promise<Run> => {
+export const createRunFromQuotes  = async (orderedQuoteIds: string[], companyId: string): Promise<Run> => {
   const data = await apiCallPost('runs/bulk', { orderedQuoteIds, companyId });
   return data;
 };
@@ -34,7 +34,7 @@ export const updateRunStatus = async (runId: string, status: 'pending' | 'checki
   return data;
 };
 
-export const updateRunQuotes  = async (runId: string, orderedQuoteIds: number[]): Promise<Run> => {
+export const updateRunQuotes  = async (runId: string, orderedQuoteIds: string[]): Promise<Run> => {
   const data = await apiCallPost(`runs/${runId}`, { orderedQuoteIds });
   return data;
 };

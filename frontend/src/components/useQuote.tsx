@@ -26,7 +26,7 @@ import {
 import { useCallback, useMemo } from 'react';
 
 
-export const useQuoteManager = (quoteId: number, openModal: OpenModalFunction) => {
+export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { handleOpenSnackbar } = useSnackbarContext();

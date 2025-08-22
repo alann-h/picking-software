@@ -24,17 +24,17 @@ export const getAllProducts = async () => {
   return response;  
 }
 
-export const saveProductForLater = async (quoteId: number, productId: number) => {
+export const saveProductForLater = async (quoteId: string, productId: number) => {
   const response = await apiCallPut('products/for-later', { quoteId, productId });
   return response;  
 }
 
-export const setProductUnavailable = async (quoteId: number, productId: number) => {
+export const setProductUnavailable = async (quoteId: string, productId: number) => {
   const response = await apiCallPut('products/unavailable', { quoteId, productId });
   return response;
 }
 
-export const setProductFinished = async (quoteId: number, productId: number) => {
+export const setProductFinished = async (quoteId: string, productId: number) => {
   const response = await apiCallPut('products/finished', { quoteId, productId });
   return response;
 }
