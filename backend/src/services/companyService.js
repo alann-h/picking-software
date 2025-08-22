@@ -32,17 +32,37 @@ export async function saveCompanyInfo(token) {
 
         const companyInfo = await getCompanyInfo(tempOAuthClient, token.realmId);
         const encryptedToken = await encryptToken(token);
-        const result = await query(`
-            INSERT INTO companies (company_name, qb_realm_id, qb_token) 
-            VALUES ($1, $2, $3)
-            ON CONFLICT (qb_realm_id) DO UPDATE 
-            SET 
-                company_name = EXCLUDED.company_name,
-                qb_token = EXCLUDED.qb_token
-            RETURNING *`,
-            [companyInfo.companyName, companyInfo.realmId, encryptedToken]
+        
+        // First check if company with this QBO realm already exists
+        const existingCompany = await query(
+            'SELECT id FROM companies WHERE qb_realm_id = $1',
+            [companyInfo.realmId]
         );
-        return result[0];
+
+        if (existingCompany.length > 0) {
+            // Update existing company
+            const result = await query(`
+                UPDATE companies 
+                SET 
+                    company_name = $1,
+                    qb_token = $2,
+                    connection_type = 'qbo',
+                    updated_at = NOW()
+                WHERE qb_realm_id = $3
+                RETURNING *`,
+                [companyInfo.companyName, encryptedToken, companyInfo.realmId]
+            );
+            return result[0];
+        } else {
+            // Insert new company
+            const result = await query(`
+                INSERT INTO companies (company_name, qb_realm_id, qb_token, connection_type) 
+                VALUES ($1, $2, $3, 'qbo')
+                RETURNING *`,
+                [companyInfo.companyName, companyInfo.realmId, encryptedToken]
+            );
+            return result[0];
+        }
     } catch (error) {
         throw new Error(`Failed to save company info: ${error.message}`);
     }
@@ -50,19 +70,26 @@ export async function saveCompanyInfo(token) {
 
 export async function removeQuickBooksData(companyId) {
     return transaction(async (client) => {
+        // Delete in correct order to respect foreign key constraints
         await Promise.all([
-            client.query('DELETE from users where company_id = $1', [companyId]),
-            client.query('DELETE FROM customers WHERE company_id = $1', [companyId]),
-            client.query('DELETE FROM quote_items WHERE company_id = $1', [companyId]),
-            client.query('DELETE FROM products WHERE company_id = $1', [companyId]),
-            client.query('DELETE FROM quotes WHERE company_id = $1', [companyId]),
-            client.query('DELETE FROM jobs WHERE company_id = $1', [companyId]),
-            client.query('DELETE FROM runs WHERE company_id = $1', [companyId]),
-            client.query('DELETE FROM run_items WHERE company_id = $1', [companyId]),
+            client.query('DELETE FROM run_items WHERE run_id IN (SELECT id FROM runs WHERE company_id = $1)', [companyId]),
+            client.query('DELETE FROM quote_items WHERE quote_id IN (SELECT id FROM quotes WHERE company_id = $1)', [companyId]),
             client.query('DELETE FROM security_events WHERE company_id = $1', [companyId]),
         ]);
 
-        await client.query('DELETE FROM companies WHERE id = $1', [companyId]); // Delete company last
+        await Promise.all([
+            client.query('DELETE FROM runs WHERE company_id = $1', [companyId]),
+            client.query('DELETE FROM quotes WHERE company_id = $1', [companyId]),
+            client.query('DELETE FROM customers WHERE company_id = $1', [companyId]),
+            client.query('DELETE FROM products WHERE company_id = $1', [companyId]),
+            client.query('DELETE FROM jobs WHERE company_id = $1', [companyId]),
+        ]);
+
+        // Update users to remove company association (don't delete users)
+        await client.query('UPDATE users SET company_id = NULL WHERE company_id = $1', [companyId]);
+
+        // Finally delete the company
+        await client.query('DELETE FROM companies WHERE id = $1', [companyId]);
 
         return { success: true, message: 'Company and related data deleted successfully' };
     }).catch((e) => {
