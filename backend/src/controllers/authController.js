@@ -21,7 +21,6 @@ export async function callback(req, res, next) {
     const companyInfo = await saveCompanyInfo(token);
     const user = await authService.saveUserQbButton(token, companyInfo.id);
 
-    req.session.realmId = companyInfo.qb_realm_id;
     req.session.companyId = companyInfo.id;
     req.session.isAdmin = true;
     req.session.userId = user.id;
@@ -64,7 +63,6 @@ export async function login(req, res, next) {
       req.session.isAdmin = user.is_admin;
       req.session.userId = user.id;
       req.session.companyId = user.company_id; // Database UUID
-      req.session.realmId = user.realm_id; // QuickBooks realm ID
       req.session.name = user.given_name + ' ' + user.family_name;
       req.session.email = user.display_email;
       req.session.loginTime = new Date().toISOString();

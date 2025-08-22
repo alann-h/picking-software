@@ -10,7 +10,7 @@ import {
   setUnavailableHandler,
   setFinishedHandler,
   updateProduct,
-  getQboItemId,
+  getExternalId,
   addProduct,
   setProductArchiveStatus
 } from '../controllers/productController.js';
@@ -45,7 +45,7 @@ router.put('/:productId', updateProductRules(), validate, asyncHandler(updatePro
 router.put('/:productId/archive-status', setArchiveStatusRules(), validate, asyncHandler(setProductArchiveStatus));
 
 // QBO ID lookup & creation
-router.get('/:productId/qbo-item-id', productIdRule(), validate, asyncHandler(getQboItemId));
+router.get('/:productId/external-item-id', productIdRule(), validate, asyncHandler(getExternalId));
 router.post('/', addProductRules(), validate, asyncHandler(addProduct));
 
 export default router;

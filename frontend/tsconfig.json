@@ -16,5 +16,6 @@
     "jsx": "react-jsx",
     "types": ["vite/client"]
   },
-  "include": ["src", "vite.config.mts"]
+  "include": ["src", "vite.config.mts"],
+  "exclude": ["node_modules/**/*"]
 }

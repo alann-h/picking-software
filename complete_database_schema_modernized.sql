@@ -14,8 +14,9 @@ COMMENT ON EXTENSION pgcrypto IS 'Provides cryptographic functions, e.g., for UU
 CREATE TYPE job_status AS ENUM ('queued', 'processing', 'completed', 'failed');
 CREATE TYPE order_status AS ENUM ('pending', 'checking', 'finalised', 'cancelled', 'assigned');
 CREATE TYPE picking_status AS ENUM ('pending', 'backorder', 'completed', 'unavailable');
-CREATE TYPE run_status AS ENUM ('pending', 'active', 'completed');
+CREATE TYPE run_status AS ENUM ('pending', 'checking', 'finalised');
 CREATE TYPE security_event_type AS ENUM ('login_success', 'login_failure', 'logout', 'password_reset_request', 'password_reset_success', 'user_lockout');
+CREATE TYPE connection_type AS ENUM ('none', 'qbo', 'xero');
 
 --
 -- Reusable trigger function for auditing timestamps
@@ -36,17 +37,32 @@ $$ LANGUAGE plpgsql;
 CREATE TABLE public.companies (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     company_name text NOT NULL,
-    qb_realm_id text NOT NULL UNIQUE,
+    connection_type connection_type NOT NULL DEFAULT 'none',
+    -- QuickBooks fields
+    qb_realm_id text,
     qb_token text, -- Note: sensitive data, consider application-level encryption
+    -- Xero fields
+    xero_tenant_id text,
+    xero_token text, -- Note: sensitive data, consider application-level encryption
+    xero_refresh_token text,
+    xero_token_expires_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    -- Ensure only one connection type is active at a time
+    CONSTRAINT one_connection_type CHECK (
+        (connection_type = 'none' AND qb_realm_id IS NULL AND xero_tenant_id IS NULL) OR
+        (connection_type = 'qbo' AND qb_realm_id IS NOT NULL AND xero_tenant_id IS NULL) OR
+        (connection_type = 'xero' AND xero_tenant_id IS NOT NULL AND qb_realm_id IS NULL)
+    )
 );
-COMMENT ON TABLE public.companies IS 'Stores information about customer companies.';
+COMMENT ON TABLE public.companies IS 'Stores information about customer companies and their accounting software connections.';
+COMMENT ON COLUMN public.companies.connection_type IS 'Type of accounting software connection (none, qbo, xero).';
 COMMENT ON COLUMN public.companies.qb_realm_id IS 'QuickBooks Realm ID, used as the primary identifier for a company.';
+COMMENT ON COLUMN public.companies.xero_tenant_id IS 'Xero Tenant ID, used as the primary identifier for a company.';
 
 CREATE TABLE public.users (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    company_id uuid REFERENCES public.companies(id) ON DELETE SET NULL, -- Allow NULL for users without company
     given_name text NOT NULL,
     family_name text,
     display_email text NOT NULL UNIQUE,
@@ -70,7 +86,8 @@ CREATE TABLE public.products (
     product_name text NOT NULL,
     sku text NOT NULL,
     barcode text,
-    qbo_item_id text,
+    -- Generic external ID fields
+    external_item_id text, -- Can be QBO item ID or Xero item ID
     category text,
     tax_code_ref text,
     price numeric(10, 2) NOT NULL DEFAULT 0.00,
@@ -79,7 +96,7 @@ CREATE TABLE public.products (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE(company_id, sku),
-    UNIQUE(company_id, qbo_item_id)
+    UNIQUE(company_id, external_item_id)
 );
 COMMENT ON TABLE public.products IS 'Stores product and inventory information.';
 CREATE INDEX ON public.products(company_id);

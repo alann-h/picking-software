@@ -1,6 +1,6 @@
 // src/controllers/productController.js
 import {
-    productIdToQboId,
+    productIdToExternalId,
     getProductsFromDBByIds,
     getAllProducts,
     saveForLater,
@@ -26,8 +26,8 @@ export async function barcodeToName(req, res, next) {
 export async function getProduct(req, res, next) {
   try {
     const { productId } = req.params;
-    const qboItemId = await productIdToQboId(parseInt(productId, 10));
-    const productData = await getProductsFromDBByIds([qboItemId]);
+    const externalId = await productIdToExternalId(parseInt(productId, 10));
+    const productData = await getProductsFromDBByIds([externalId]);
     res.json(productData[0]);
   } catch (err) {
     next(err);
@@ -101,13 +101,13 @@ export async function setProductArchiveStatus(req, res, next) {
   }
 }
 
-// GET /products/:productId/qbo-item-id
-export async function getQboItemId(req, res, next) {
+// GET /products/:productId/external-item-id
+export async function getExternalId(req, res, next) {
   try {
     const { productId } = req.params;
 
-    const qboItemId = await productIdToQboId(productId);
-    res.json({ qboItemId });
+    const externalId = await productIdToExternalId(productId);
+    res.json({ externalId });
   } catch (err) {
     next(err);
   }

@@ -53,7 +53,7 @@ export interface Product {
     price: number;
     companyId: string;
     category: string;
-    qboItemId: string;
+    externalItemId: string;
     isArchived: boolean;
   }
 export interface UserData {

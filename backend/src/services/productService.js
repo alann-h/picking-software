@@ -3,10 +3,11 @@ import { query } from '../helpers.js';
 import { getBaseURL, getOAuthClient, getRealmId } from './authService.js';
 import he from 'he';
 
-export async function productIdToQboId(productId) {
+
+export async function productIdToExternalId(productId) {
   try {
     const result = await query(
-      `SELECT qbo_item_id FROM products WHERE id = $1`,
+      `SELECT external_item_id FROM products WHERE id = $1`,
       [productId]
     );
 
@@ -14,46 +15,66 @@ export async function productIdToQboId(productId) {
       throw new AccessError(`No product found with id=${productId}`);
     }
 
-    return result[0].qbo_item_id;
+    return result[0].external_item_id;
   } catch (err) {
     throw new AccessError(err.message);
   }
 }
 
 export async function enrichWithQBOData(products, companyId) {
-  const oauthClient = await getOAuthClient(companyId);
-  const enriched = [];
+  try {
+    const oauthClient = await getOAuthClient(companyId);
+    const enriched = [];
 
-  for (const product of products) {
-    try {
-      const query = `SELECT * FROM Item WHERE Sku = '${product.sku}'`;
-      const baseURL = getBaseURL(oauthClient);
-      const realmId = getRealmId(oauthClient);
-      const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
+    for (const product of products) {
+      try {
+        const query = `SELECT * FROM Item WHERE Sku = '${product.sku}'`;
+        const baseURL = getBaseURL(oauthClient);
+        const realmId = getRealmId(oauthClient);
+        const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
-      const response = await oauthClient.makeApiCall({ url });
-      const itemData = response.json?.QueryResponse?.Item?.[0];
+        const response = await oauthClient.makeApiCall({ url });
+        const itemData = response.json?.QueryResponse?.Item?.[0];
 
-      if (!itemData || !itemData.Active) continue;
+        if (!itemData || !itemData.Active) continue;
 
-      const QtyOnHand = parseFloat(itemData.QtyOnHand);
+        const QtyOnHand = parseFloat(itemData.QtyOnHand);
         if (!isFinite(QtyOnHand)) {
-        console.warn(`Invalid quantity for SKU ${product.sku}`);
-        continue;
+          console.warn(`Invalid quantity for SKU ${product.sku}`);
+          continue;
+        }
+        enriched.push({
+          ...product,
+          price: itemData.UnitPrice,
+          quantity_on_hand: QtyOnHand,
+          external_item_id: itemData.Id,
+          tax_code_ref: itemData.SalesTaxCodeRef.value
+        });
+      } catch (err) {
+        console.warn(`Failed QBO lookup for SKU ${product.sku}: ${err.message}`);
+        // Add product without enrichment if QBO lookup fails
+        enriched.push({
+          ...product,
+          price: product.price || 0,
+          quantity_on_hand: product.quantity_on_hand || 0,
+          external_item_id: null,
+          tax_code_ref: null
+        });
       }
-      enriched.push({
-        ...product,
-        price: itemData.UnitPrice,
-        quantity_on_hand: QtyOnHand,
-        qbo_item_id: itemData.Id,
-        tax_code_ref: itemData.SalesTaxCodeRef.value
-      });
-    } catch (err) {
-      console.warn(`Failed QBO lookup for SKU ${product.sku}: ${err.message}`);
     }
-  }
 
-  return enriched;
+    return enriched;
+  } catch (error) {
+    console.error('Error enriching products with QBO data:', error);
+    // Return products without enrichment if there's an error
+    return products.map(product => ({
+      ...product,
+      price: product.price || 0,
+      quantity_on_hand: product.quantity_on_hand || 0,
+      external_item_id: null,
+      tax_code_ref: null
+    }));
+  }
 }
 
 export async function insertProductsTempTable(products, companyId, client) {
@@ -73,7 +94,7 @@ export async function insertProductsTempTable(products, companyId, client) {
         sku VARCHAR,
         price NUMERIC,
         quantity_on_hand NUMERIC,
-        qbo_item_id VARCHAR,
+        external_item_id VARCHAR,
         id VARCHAR,
         tax_code_ref VARCHAR
       ) ON COMMIT DROP;
@@ -92,14 +113,14 @@ export async function insertProductsTempTable(products, companyId, client) {
       p.sku,
       p.price,
       p.quantity_on_hand,
-      p.qbo_item_id,
+      p.external_item_id,
       companyId,
       p.tax_code_ref,
     ]);
 
     await client.query(`INSERT INTO temp_products VALUES (${values})`, params);
 
-    // 3. Update existing products based on qbo_item_id
+    // 3. Update existing products based on external_item_id
     await client.query(`
       UPDATE products AS p
       SET 
@@ -111,11 +132,11 @@ export async function insertProductsTempTable(products, companyId, client) {
         quantity_on_hand = tp.quantity_on_hand,
         tax_code_ref     = tp.tax_code_ref
       FROM temp_products AS tp
-      WHERE p.qbo_item_id = tp.qbo_item_id AND p.id = tp.id;
+      WHERE p.external_item_id = tp.external_item_id AND p.id = tp.id;
     `);
 
     // 4. Update existing products based on barcode
-    // This handles the case where the barcode changes but qbo_item_id doesn't
+    // This handles the case where the barcode changes but external_item_id doesn't
     await client.query(`
       UPDATE products AS p
       SET 
@@ -125,22 +146,22 @@ export async function insertProductsTempTable(products, companyId, client) {
         price            = tp.price,
         quantity_on_hand = tp.quantity_on_hand,
         tax_code_ref     = tp.tax_code_ref,
-        qbo_item_id      = tp.qbo_item_id
+        external_item_id      = tp.external_item_id
       FROM temp_products AS tp
-      WHERE p.barcode = tp.barcode AND p.id = tp.id AND p.qbo_item_id IS NULL;
+              WHERE p.barcode = tp.barcode AND p.id = tp.id AND p.external_item_id IS NULL;
     `);
 
     // 5. Insert new products
     await client.query(`
       INSERT INTO products (
-        category, product_name, barcode, sku, price, quantity_on_hand, qbo_item_id, id, tax_code_ref
+        category, product_name, barcode, sku, price, quantity_on_hand, external_item_id, id, tax_code_ref
       )
       SELECT 
-        tp.category, tp.product_name, tp.barcode, tp.sku, tp.price, tp.quantity_on_hand, tp.qbo_item_id, tp.id, tp.tax_code_ref
+        tp.category, tp.product_name, tp.barcode, tp.sku, tp.price, tp.quantity_on_hand, tp.external_item_id, tp.id, tp.tax_code_ref
       FROM temp_products AS tp
       LEFT JOIN products AS p
-        ON tp.qbo_item_id = p.qbo_item_id AND tp.id = p.id
-      WHERE p.qbo_item_id IS NULL;
+        ON tp.external_item_id = p.external_item_id AND tp.id = p.id
+      WHERE p.external_item_id IS NULL;
     `);
 
     await client.query('COMMIT');
@@ -166,8 +187,8 @@ export async function getProductName(barcode) {
 }
 
 /**
- * Fetches multiple products from the database based on an array of QuickBooks Item IDs.
- * @param {string[]} itemIds - An array of QBO item IDs to fetch.
+ * Fetches multiple products from the database based on an array of external Item IDs.
+ * @param {string[]} itemIds - An array of external item IDs to fetch.
  * @returns {Promise<object[]>} A promise that resolves to an array of any product objects found.
  */
 export async function getProductsFromDBByIds(itemIds) {
@@ -177,7 +198,7 @@ export async function getProductsFromDBByIds(itemIds) {
 
   const placeholders = itemIds.map((_, index) => `$${index + 1}`).join(', ');
 
-  const sqlQuery = `SELECT * FROM products WHERE qbo_item_id IN (${placeholders}) AND is_archived = FALSE`;
+  const sqlQuery = `SELECT * FROM products WHERE external_item_id IN (${placeholders}) AND is_archived = FALSE`;
 
   let results;
   try {
@@ -202,7 +223,7 @@ export async function getAllProducts(companyId) {
       quantityOnHand: parseFloat(product.quantity_on_hand),
       companyId: product.company_id,
       category: product.category ?? null,
-      qboItemId: product.qbo_item_id ?? '',
+      externalItemId: product.external_item_id ?? '',
       isArchived: product.is_archived
     }));
   } catch (error) {
@@ -281,27 +302,27 @@ export async function addProductDb(product, companyId) {
     if (productName) { productName = he.decode(productName); }
     if (sku) { sku = he.decode(sku); }
 
-    const { price, quantity_on_hand, qbo_item_id, tax_code_ref } = enrichedProduct[0];
+    const { price, quantity_on_hand, external_item_id, tax_code_ref } = enrichedProduct[0];
 
     const values = [
       productName,       // $1 → product_name
       barcodeValue,      // $2 → barcode
       sku,               // $3 → sku
-      price,             // $4 → price
-      quantity_on_hand,  // $5 → quantity_on_hand
-      qbo_item_id,       // $6 → qbo_item_id
-      companyId,         // $7 → id
+      price || 0,        // $4 → price
+      quantity_on_hand || 0,  // $5 → quantity_on_hand
+      external_item_id,       // $6 → external_item_id
+      companyId,         // $7 → company_id
       tax_code_ref       // $8 → tax_code_ref
     ];
     const text = `
       INSERT INTO products
-        (product_name, barcode, sku, price, quantity_on_hand, qbo_item_id, company_id, tax_code_ref)
+        (product_name, barcode, sku, price, quantity_on_hand, external_item_id, company_id, tax_code_ref)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       ON CONFLICT (sku) DO UPDATE
         SET product_name      = EXCLUDED.product_name,
             barcode          = EXCLUDED.barcode,
             price            = EXCLUDED.price,
-            qbo_item_id      = EXCLUDED.qbo_item_id,
+            external_item_id      = EXCLUDED.external_item_id,
             quantity_on_hand = EXCLUDED.quantity_on_hand,
             tax_code_ref     = EXCLUDED.tax_code_ref
       RETURNING sku;

@@ -596,9 +596,9 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
       }
       
       const amount = Number(localItem.price) * Number(localItem.originalQty);
-      const qboItemId = await productIdToQboId(localItem.productId);
+      const externalId = await productIdToExternalId(localItem.productId);
       
-      if (!qboItemId) {
+      if (!externalId) {
         throw new AccessError(`Product ${localItem.productName} not found in QuickBooks`);
       }
       
@@ -608,7 +608,7 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
         DetailType: "SalesItemLineDetail",
         SalesItemLineDetail: {
           ItemRef: {
-            value: qboItemId,
+            value: externalId,
             name: localItem.productName
           },
           Qty: Number(localItem.originalQty),
