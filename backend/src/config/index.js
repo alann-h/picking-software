@@ -4,7 +4,7 @@
  */
 
 import dotenv from 'dotenv';
-import { OAuthClient } from 'intuit-oauth';
+import OAuthClient from 'intuit-oauth';
 
 // Load environment variables
 dotenv.config();
