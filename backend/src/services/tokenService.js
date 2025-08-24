@@ -1,6 +1,7 @@
 import { query, encryptToken, decryptToken } from '../helpers.js';
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
 import { authSystem } from './authSystem.js';
+import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
 
 /**
  * Generic Token Management Service
@@ -36,7 +37,6 @@ class TokenService {
       getUserInfo: (token) => authSystem.getQBOUserInfo(token),
       revokeToken: (token) => authSystem.revokeQBOToken(token),
       getBaseURL: (client) => authSystem.getQBOBaseURL(client),
-      getRealmId: (client) => authSystem.getQBORealmId(client)
     });
 
     // Xero Handler
@@ -55,7 +55,6 @@ class TokenService {
       getUserInfo: (token) => authSystem.getXeroUserInfo(token),
       revokeToken: (token) => authSystem.revokeXeroToken(token),
       getBaseURL: () => 'https://api.xero.com',
-      getRealmId: (client) => client.tenantId || null
     });
   }
 
@@ -101,14 +100,15 @@ class TokenService {
       }
       
       if (!result || result.length === 0) {
-        throw new AuthenticationError(`${connectionType.toUpperCase()}_REAUTH_REQUIRED`);
+        const errorCode = connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED;
+        throw new AuthenticationError(errorCode);
       }
 
               let currentToken;
         if (connectionType === 'qbo') {
           // For QBO, construct token object from separate fields
           if (!result[0].qb_token || !result[0].qb_refresh_token) {
-            throw new AuthenticationError('QBO_REAUTH_REQUIRED');
+            throw new AuthenticationError(AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED);
           }
           
           const decryptedAccessToken = decryptToken(result[0].qb_token);
@@ -124,7 +124,7 @@ class TokenService {
         } else if (connectionType === 'xero') {
           // For Xero, construct token object from separate fields
           if (!result[0].xero_token || !result[0].xero_refresh_token) {
-            throw new AuthenticationError('XERO_REAUTH_REQUIRED');
+            throw new AuthenticationError(AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
           }
           
           const decryptedAccessToken = decryptToken(result[0].xero_token);
@@ -140,7 +140,8 @@ class TokenService {
         } else {
           // For other platforms, decrypt the main token field
           if (!result[0][handler.getTokenField]) {
-            throw new AuthenticationError(`${connectionType.toUpperCase()}_REAUTH_REQUIRED`);
+            const errorCode = connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED;
+            throw new AuthenticationError(errorCode);
           }
           const encryptedToken = result[0][handler.getTokenField];
           currentToken = decryptToken(encryptedToken);
@@ -236,7 +237,8 @@ class TokenService {
       console.error(`Failed to refresh token for company ${companyId} (${connectionType}):`, error);
       
       if (error.message.includes('REFRESH_TOKEN_EXPIRED') || error.message.includes('REAUTH_REQUIRED')) {
-        throw new AuthenticationError(`${connectionType.toUpperCase()}_REAUTH_REQUIRED`);
+        const errorCode = connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED;
+        throw new AuthenticationError(errorCode);
       }
       
       throw new AccessError(`Failed to refresh ${connectionType.toUpperCase()} token: ${error.message}`);

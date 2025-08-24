@@ -1,13 +1,11 @@
+import { config } from './config/index.js';
 import pg from 'pg';
 
-const sslConfig = process.env.VITE_APP_ENV === 'production' 
-  ? { rejectUnauthorized: false } 
-  : false;
-
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: sslConfig,
+  connectionString: config.database.url,
+  max: config.database.maxConnections,
+  idleTimeoutMillis: config.database.idleTimeoutMillis,
+  ssl: config.database.ssl ? { rejectUnauthorized: false } : false,
 });
-
 
 export default pool;

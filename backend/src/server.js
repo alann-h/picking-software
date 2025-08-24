@@ -2,7 +2,7 @@
 
 // --- Core & External Imports
 import express from 'express';
-import cors from 'cors';
+import corsMiddleware from 'cors';
 import morgan from 'morgan';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
@@ -34,57 +34,46 @@ import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
 import { transaction } from './helpers.js';
 import { insertProductsTempTable } from './services/productService.js';
-import { getOAuthClient, getAuthUri } from './services/authService.js';
+import { getOAuthClient } from './services/authService.js';
 import pool from './db.js';
+
+// --- Configuration
+import config from './config/index.js';
 
 const app = express();
 const unlinkAsync = promisify(fsUnlink);
 
 // — CORS
-const corsOptions = {
-  origin: process.env.VITE_APP_ENV === 'production'
-    ? ['https://smartpicker.au']
-    : ['http://localhost:5173'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
-};
-app.use(cors(corsOptions));
+app.use(corsMiddleware(config.cors));
 
 // --- AWS Clients
-const s3Client = new S3Client({ region: process.env.AWS_REGION });
-const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
-const S3_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+const s3Client = new S3Client({ region: config.aws.region });
+const lambdaClient = new LambdaClient({ region: config.aws.region });
+const S3_BUCKET_NAME = config.aws.bucketName;
 
 // — Express proxy/trust
-app.set('trust proxy', 1);
+app.set('trust proxy', config.server.trustProxy);
 
 // — Sessions with Postgres store
 const PgStore = pgSession(session);
 app.use(cookieParser());
 app.use(session({
-  store: new PgStore({ pool, tableName: 'sessions' }),
-  secret: process.env.SESSION_SECRET,
+  store: new PgStore({ pool, tableName: config.session.store.tableName }),
+  secret: config.session.secret,
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    secure: process.env.VITE_APP_ENV === 'production',
-    sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // Default: 24 hours
-    domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
-  },
+  cookie: config.session.cookie,
 }));
 
 // — Prune sessions daily
 setInterval(() => {
-  new PgStore({ pool, tableName: 'sessions' }).pruneSessions();
-}, 24 * 60 * 60 * 1000);
+  new PgStore({ pool, tableName: config.session.store.tableName }).pruneSessions();
+}, config.session.store.pruneInterval);
 
 // — Body parsing & logging
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(morgan(':method :url :status'));
+app.use(morgan(config.logging.morgan));
 
 // Additional security headers
 app.use((req, res, next) => {
@@ -100,48 +89,20 @@ app.use((req, res, next) => {
 });
 
 // Security headers with helmet
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Material-UI
-      scriptSrc: ["'self'", "https://www.googletagmanager.com", "https://www.google-analytics.com"],
-      imgSrc: ["'self'", "data:", "https:", "https://www.google-analytics.com"],
-      fontSrc: ["'self'", "https:", "data:"],
-      connectSrc: ["'self'", "https:", "https://www.google-analytics.com"],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: [],
-      requireTrustedTypesFor: ["'script'"] // Enable Trusted Types for DOM XSS protection
-    },
-    reportOnly: false // Enforce CSP in production
-  },
-  hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true
-  },
-  noSniff: true,
-  xssFilter: true,
-  frameguard: { action: 'deny' },
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  crossOriginEmbedderPolicy: { policy: "require-corp" },
-  crossOriginOpenerPolicy: { policy: "same-origin" },
-  crossOriginResourcePolicy: { policy: "same-origin" }
-}));
+app.use(helmet(config.security.helmet));
 
 // — CSRF protection
 const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => process.env.SESSION_SECRET,
-  cookieName: 'x-csrf-token',
+  getSecret: () => config.session.secret,
+  cookieName: config.security.csrf.cookieName,
   cookieOptions: {
     httpOnly: true,
-    sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.VITE_APP_ENV === 'production',
-    domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+    sameSite: config.session.cookie.sameSite,
+    secure: config.session.cookie.secure,
+    domain: config.session.cookie.domain,
   },
-  size: 64,
-  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+  size: config.security.csrf.size,
+  ignoredMethods: config.security.csrf.ignoredMethods,
   getTokenFromRequest: req => req.headers['x-csrf-token'],
   getSessionIdentifier: (req) => req.session.id,
 });
@@ -149,7 +110,7 @@ const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
 // Middleware to protect internal endpoints by checking for a secret key
 const verifyInternalRequest = (req, res, next) => {
   const apiKey = req.headers['x-internal-api-key'];
-  if (apiKey && apiKey === process.env.INTERNAL_API_KEY) {
+  if (apiKey && apiKey === config.internal.apiKey) {
     return next();
   }
   res.status(401).json({ error: 'Unauthorized' });
@@ -234,15 +195,15 @@ app.use(doubleCsrfProtection);
 
 // Rate limiting for security
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  message: 'Too many login attempts, please try again later.',
+  windowMs: config.security.rateLimit.login.windowMs,
+  max: config.security.rateLimit.login.max,
+  message: config.security.rateLimit.login.message,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
     res.status(429).json({
       error: 'Too many login attempts',
-      retryAfter: Math.ceil(15 * 60 / 1000),
+      retryAfter: Math.ceil(config.security.rateLimit.login.windowMs / 1000),
       message: 'Account temporarily locked due to too many failed attempts. Please try again later.'
     });
   },
@@ -251,9 +212,9 @@ const loginLimiter = rateLimit({
 });
 
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
-  message: 'Too many requests from this IP, please try again later.',
+  windowMs: config.security.rateLimit.general.windowMs,
+  max: config.security.rateLimit.general.max,
+  message: config.security.rateLimit.general.message,
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -327,7 +288,7 @@ app.get('/debug/session', asyncHandler(async (req, res) => {
 app.get('/debug/csrf-flow', asyncHandler(async (req, res) => {
   const debugInfo = {
     timestamp: new Date().toISOString(),
-    environment: process.env.VITE_APP_ENV,
+    environment: config.currentEnv,
     session: {
       exists: !!req.session,
       id: req.session?.id,
@@ -343,14 +304,14 @@ app.get('/debug/csrf-flow', asyncHandler(async (req, res) => {
       'referer': req.headers.referer
     },
     csrf: {
-      cookieName: 'x-csrf-token',
-      cookieDomain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : 'localhost',
-      secure: process.env.VITE_APP_ENV === 'production',
-      sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax'
+      cookieName: config.security.csrf.cookieName,
+      cookieDomain: config.session.cookie.domain || 'localhost',
+      secure: config.session.cookie.secure,
+      sameSite: config.session.cookie.sameSite
     },
     environment_vars: {
-      VITE_APP_ENV: process.env.VITE_APP_ENV,
-      SESSION_SECRET: process.env.SESSION_SECRET ? 'set' : 'missing',
+      VITE_APP_ENV: config.currentEnv,
+      SESSION_SECRET: config.session.secret ? 'set' : 'missing',
       VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || 'not set'
     }
   };
@@ -449,6 +410,8 @@ app.post('/logout-all', asyncHandler(async (req, res) => {
   
   console.log(`User ${userId} from company ${companyId} is logging out from all devices`);
   
+  let deletedSessionsCount = 0;
+  
   try {
     // Delete all sessions for this user from the database using JSON operator
     const client = await pool.connect();
@@ -458,7 +421,8 @@ app.post('/logout-all', asyncHandler(async (req, res) => {
         [userId]
       );
       
-      console.log(`Deleted ${result.rowCount} sessions for user ${userId}`);
+      deletedSessionsCount = result.rowCount;
+      console.log(`Deleted ${deletedSessionsCount} sessions for user ${userId}`);
     } finally {
       client.release();
     }
@@ -473,16 +437,16 @@ app.post('/logout-all', asyncHandler(async (req, res) => {
       // Clear the session cookie
       res.clearCookie('connect.sid', {
         httpOnly: true,
-        secure: process.env.VITE_APP_ENV === 'production',
-        sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+        secure: config.session.cookie.secure,
+        sameSite: config.session.cookie.sameSite,
+        domain: config.session.cookie.domain,
         path: '/'
       });
       
       console.log(`Successfully logged out user ${userId} from all devices`);
       res.json({ 
         message: 'Successfully logged out from all devices',
-        deletedSessions: result.rowCount,
+        deletedSessions: deletedSessionsCount,
         timestamp: new Date().toISOString()
       });
     });
@@ -661,7 +625,7 @@ app.post('/upload', isAuthenticated, upload.single('input'), asyncHandler(async 
 
       // 4. Invoke the Lambda function asynchronously
       const invokeCommand = new InvokeCommand({
-        FunctionName: 'product-processor',
+        FunctionName: config.aws.lambda.functionName,
         InvocationType: 'Event',
         Payload: JSON.stringify(lambdaPayload),
       });
@@ -696,7 +660,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 app.use(errorHandler);
 
 // — Start server
-const port = process.env.BACKEND_PORT;
+const port = config.server.port;
 app.listen(port, () => {
   console.log(`Backend server running on port ${port}`);
   console.log(`Docs at https://api.smartpicker.au/docs`);

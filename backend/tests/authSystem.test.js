@@ -1,5 +1,5 @@
 // Set environment variables before importing
-process.env.VITE_APP_ENV = 'sandbox';
+process.env.VITE_APP_ENV = 'development';
 process.env.REDIRECT_URI_DEV = 'http://localhost:5033/auth/callback';
 process.env.CLIENT_ID_DEV = 'test_qbo_client_id';
 process.env.CLIENT_SECRET_DEV = 'test_qbo_client_secret';

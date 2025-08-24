@@ -19,7 +19,7 @@ root.render(
     <QueryClientProvider client={queryClient}>
       <CssBaseline />
       <App />
-      {import.meta.env.VITE_APP_ENV === 'sandbox' && <ReactQueryDevtools initialIsOpen={false} />}
+      {import.meta.env.VITE_APP_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
     </BrowserRouter>
   // </React.StrictMode>

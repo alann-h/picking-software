@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { isAccountLocked, incrementFailedAttempts, resetFailedAttempts } from './securityService.js';
 import { tokenService } from './tokenService.js';
 import { authSystem } from './authSystem.js';
+import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
 
 // Generic OAuth client initialization - supports both QBO and Xero
 export function initializeOAuthClient(connectionType = 'qbo') {
@@ -99,7 +100,7 @@ export async function login(email, password, ipAddress = null, userAgent = null)
     const lockoutStatus = await isAccountLocked(email);
     if (lockoutStatus.isLocked) {
       const remainingTime = Math.ceil((new Date(lockoutStatus.lockedUntil) - new Date()) / 1000 / 60);
-      throw new AuthenticationError(`Account temporarily locked. Try again in ${remainingTime} minutes.`);
+      throw new AuthenticationError(AUTH_ERROR_CODES.ACCOUNT_LOCKED, `Account temporarily locked. Try again in ${remainingTime} minutes.`);
     }
 
     const result = await query(`
@@ -115,7 +116,7 @@ export async function login(email, password, ipAddress = null, userAgent = null)
     if (result.length === 0) {
       // Increment failed attempts for non-existent user
       await incrementFailedAttempts(email, ipAddress, userAgent);
-      throw new AuthenticationError('Invalid email or password');
+      throw new AuthenticationError(AUTH_ERROR_CODES.INVALID_CREDENTIALS, 'Invalid email or password');
     }
 
     const user = result[0];
@@ -124,7 +125,7 @@ export async function login(email, password, ipAddress = null, userAgent = null)
     if (!isPasswordValid) {
       // Increment failed attempts for invalid password
       await incrementFailedAttempts(email, ipAddress, userAgent);
-      throw new AuthenticationError('Invalid email or password');
+      throw new AuthenticationError(AUTH_ERROR_CODES.INVALID_CREDENTIALS, 'Invalid email or password');
     }
 
     // Reset failed attempts on successful login
@@ -149,12 +150,12 @@ export async function login(email, password, ipAddress = null, userAgent = null)
       if (error.message === 'QBO_TOKEN_REVOKED') {
         user.qboReAuthRequired = true;
       } else {
-        throw new AuthenticationError(error.message);
+        throw new AuthenticationError(AUTH_ERROR_CODES.TOKEN_INVALID, error.message);
       }
     }
     return user;
   } catch (error) {
-    throw new AuthenticationError(error.message);
+    throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
   }
 }
 
@@ -168,7 +169,7 @@ export async function register(displayEmail, password, is_admin, givenName, fami
   );
 
   if (existingUser.length > 0) {
-    throw new AuthenticationError('An account with this email address already exists. Please log in.');
+    throw new AuthenticationError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'An account with this email address already exists. Please log in.');
   }
 
   const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -181,7 +182,7 @@ export async function register(displayEmail, password, is_admin, givenName, fami
   );
   
   if (result.length === 0) {
-    throw new AccessError('Unable to register user.');
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Unable to register user.');
   }
   return result[0];
 }
@@ -211,7 +212,7 @@ export async function deleteUser(userId, sessionId) {
       return result.rows[0];
     });
   } catch (error) {
-    throw new AuthenticationError(error.message);
+    throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
   }
 };
 
@@ -224,7 +225,7 @@ async function getUserInfo(token, connectionType = 'qbo') {
     }
     throw new Error(`Unsupported connection type: ${connectionType}`);
   } catch (e) {
-    throw new AccessError('Could not get user information: ' + e.message);
+    throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);
   }
 }
 
@@ -260,7 +261,7 @@ export async function saveUserFromOAuth(token, companyId, connectionType = 'qbo'
       return newUser;
     }
   } catch (e) {
-    throw new AccessError(`Failed during ${connectionType} user processing: ${e.message}`);
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, `Failed during ${connectionType} user processing: ${e.message}`);
   }
 }
 
@@ -282,7 +283,7 @@ export async function getAllUsers(companyId) {
     `, [companyId]);
     return result;
   } catch (e) {
-    throw new AccessError('Could not get user information: ' + e.message);
+    throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);
   }
 }
 
@@ -291,7 +292,7 @@ export async function updateUser(userId, userData) {
   const saltRounds = 10;
 
   if (fields.length === 0) {
-    throw new AccessError('No update data provided.');
+    throw new AccessError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'No update data provided.');
   }
 
   const setClauses = [];
@@ -321,7 +322,7 @@ export async function updateUser(userId, userData) {
   }
 
   if (setClauses.length === 0) {
-      throw new AccessError('The provided update data does not contain any valid fields for update.');
+      throw new AccessError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'The provided update data does not contain any valid fields for update.');
   }
 
   values.push(userId);
@@ -337,13 +338,13 @@ export async function updateUser(userId, userData) {
     const result = await query(sql, values);
 
     if (result.length === 0) {
-      throw new AccessError('User not found or no update was necessary.');
+      throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'User not found or no update was necessary.');
     }
 
     delete result[0].password;
     return result[0];
   } catch (error) {
-    throw new AccessError(error.message);
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
   }
 }
 
@@ -358,7 +359,7 @@ export async function revokeToken(token, connectionType = 'qbo') {
     }
   } catch (e) {
     console.error(`Error revoking ${connectionType} token:`, e);
-    throw new AccessError(`Could not revoke ${connectionType} token: ` + e.message);
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, `Could not revoke ${connectionType} token: ` + e.message);
   }
 }
 

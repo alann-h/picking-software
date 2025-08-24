@@ -6,18 +6,20 @@ import crypto from 'crypto';
  * Authentication System Class
  * Handles both QuickBooks Online (QBO) and Xero authentication
  */
+import { oauth, currentEnv } from '../config/index.js';
+
 export class AuthSystem {
     constructor() {
-        this.environment = process.env.VITE_APP_ENV;
-        this.baseUrl = process.env.VITE_APP_ENV === 'production' ? 'https://smartpicker.au' : 'http://localhost:5033';
+        this.environment = currentEnv;
+        this.baseUrl = oauth.baseUrl;
         
         // QBO Configuration
-        this.qboClientId = this.environment === 'production' ? process.env.CLIENT_ID_PROD : process.env.CLIENT_ID_DEV;
-        this.qboClientSecret = this.environment === 'production' ? process.env.CLIENT_SECRET_PROD : process.env.CLIENT_SECRET_DEV;
+        this.qboClientId = oauth.qbo.clientId;
+        this.qboClientSecret = oauth.qbo.clientSecret;
         
         // Xero Configuration
-        this.xeroClientId = process.env.XERO_CLIENT_ID;
-        this.xeroClientSecret = process.env.XERO_CLIENT_SECRET;
+        this.xeroClientId = oauth.xero.clientId;
+        this.xeroClientSecret = oauth.xero.clientSecret;
         
         this.validateConfiguration();
     }
@@ -48,7 +50,7 @@ export class AuthSystem {
             clientId: this.qboClientId,
             clientSecret: this.qboClientSecret,
             environment: this.environment,
-            redirectUri: `${this.baseUrl}/auth/qbo-callback`
+            redirectUri: `${this.baseUrl}${oauth.qbo.redirectUri}`
         });
     }
 
@@ -60,13 +62,8 @@ export class AuthSystem {
         return new XeroClient({
             clientId: this.xeroClientId,
             clientSecret: this.xeroClientSecret,
-            redirectUris: [`${this.baseUrl}/auth/xero-callback`],
-            scopes: [
-                'offline_access',
-                'accounting.transactions.read',
-                'accounting.contacts.read',
-                'accounting.settings.read'
-            ]
+            redirectUris: [`${this.baseUrl}${oauth.xero.redirectUri}`],
+            scopes: oauth.xero.scopes
         });
     }
 
@@ -80,12 +77,7 @@ export class AuthSystem {
         const state = rememberMe ? `rememberMe=true&${crypto.randomBytes(16).toString('hex')}` : crypto.randomBytes(16).toString('hex');
         
         return oauthClient.authorizeUri({ 
-            scope: [
-                OAuthClient.scopes.Accounting,
-                OAuthClient.scopes.OpenId,
-                OAuthClient.scopes.Profile,
-                OAuthClient.scopes.Email,
-            ], 
+            scope: oauth.qbo.scopes, 
             state: state
         });
     }
@@ -129,7 +121,6 @@ export class AuthSystem {
         try {
             const urlParams = new URL(url).searchParams;
             const code = urlParams.get('code');
-            const state = urlParams.get('state');
             
             if (!code) {
                 throw new Error('Authorization code not found in callback URL');
