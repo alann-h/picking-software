@@ -112,7 +112,7 @@ const baseConfig = {
 
   // OAuth configuration
   oauth: {
-    baseUrl: currentEnv === ENV.PRODUCTION ? 'https://smartpicker.au' : 'http://localhost:5033',
+    baseUrl: currentEnv === ENV.PRODUCTION ? 'https://api.smartpicker.au' : 'http://localhost:5033',
     
     // QuickBooks Online
     qbo: {
@@ -124,6 +124,7 @@ const baseConfig = {
 
     // Xero
     xero: {
+      baseUrl: 'https://api.xero.com',
       clientId: process.env.XERO_CLIENT_ID,
       clientSecret: process.env.XERO_CLIENT_SECRET,
       redirectUri: process.env.XERO_REDIRECT_URI,

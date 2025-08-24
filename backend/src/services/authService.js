@@ -33,7 +33,7 @@ export function getBaseURL(oauthClient, connectionType = 'qbo') {
   if (connectionType === 'qbo') {
     return authSystem.getQBOBaseURL(oauthClient);
   } else if (connectionType === 'xero') {
-    return 'https://api.xero.com';
+    return authSystem.getXeroBaseURL();
   }
   throw new Error(`Unsupported connection type: ${connectionType}`);
 }

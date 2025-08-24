@@ -6,7 +6,7 @@ import crypto from 'crypto';
  * Authentication System Class
  * Handles both QuickBooks Online (QBO) and Xero authentication
  */
-import { oauth, currentEnv } from '../config/index.js';
+import { oauth, currentEnv, ENV } from '../config/index.js';
 
 export class AuthSystem {
     constructor() {
@@ -209,9 +209,17 @@ export class AuthSystem {
      * @returns {string} Base URL
      */
     getQBOBaseURL(oauthClient) {
-        return oauthClient.environment === 'sandbox' ? 
-            OAuthClient.environment.sandbox : 
-            OAuthClient.environment.production;
+        return oauthClient.environment === ENV.PRODUCTION ? 
+            OAuthClient.environment.production : 
+            OAuthClient.environment.sandbox;
+    }
+
+    /**
+     * Get Xero base URL
+     * @returns {string} Base URL
+     */
+    getXeroBaseURL() {
+        return oauth.xero.baseUrl;
     }
 
     /**
