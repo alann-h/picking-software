@@ -16,7 +16,7 @@ const ENV = {
 };
 
 // Current environment
-const currentEnv = process.env.VITE_APP_ENV || ENV.SANDBOX;
+const currentEnv = process.env.VITE_APP_ENV === 'production' ? ENV.PRODUCTION : ENV.SANDBOX;
 
 // Base configuration
 const baseConfig = {

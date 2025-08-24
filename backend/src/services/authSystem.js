@@ -282,6 +282,7 @@ export class AuthSystem {
         
         try {
             const userInfo = await oauthClient.getUserInfo();
+            console.log(userInfo.json);
             return userInfo.json;
         } catch (error) {
             throw new Error('Could not get QBO user information: ' + error.message);
@@ -341,6 +342,42 @@ export class AuthSystem {
                 tenant_id: token.tenant_id,
                 companyName: 'Xero Company'
             };
+        }
+    }
+
+    /**
+     * Get QBO company information
+     * @param {Object} token - QBO token
+     * @returns {Promise<Object>} Company information
+     */
+    async getQBOCompanyInfo(token) {
+        const oauthClient = this.initializeQBO();
+        oauthClient.setToken(token);
+        
+        try {
+            const realmId = token.realmId;
+            const baseURL = this.getQBOBaseURL(oauthClient);
+            const queryStr = `SELECT * FROM CompanyInfo`;
+            
+            const response = await oauthClient.makeApiCall({
+                url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+            });
+            
+            const responseJSON = response.json;
+            // Filter out test companies
+            const companyInfoFull = responseJSON.QueryResponse.CompanyInfo[0];
+            
+            if (!companyInfoFull) {
+                throw new Error('No company information found');
+            }
+            
+            return {
+                companyName: companyInfoFull.CompanyName,
+                realmId: realmId,
+            };
+        } catch (error) {
+            console.error('Could not get QBO company info:', error);
+            return null;
         }
     }
 }
