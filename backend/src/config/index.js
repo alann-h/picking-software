@@ -23,7 +23,7 @@ const baseConfig = {
   // Server configuration
   server: {
     port: process.env.BACKEND_PORT || 5033,
-    trustProxy: process.env.TRUST_PROXY === 'true'
+    trustProxy: process.env.TRUST_PROXY === 'true' ? 1 : 0
   },
 
   // Database configuration
