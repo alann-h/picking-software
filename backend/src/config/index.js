@@ -143,7 +143,7 @@ const baseConfig = {
 
   // Logging configuration
   logging: {
-    level: process.env.LOG_LEVEL || 'info',
+    level: 'info',
     format: currentEnv === ENV.PRODUCTION ? 'json' : 'dev',
     morgan: ':method :url :status'
   }

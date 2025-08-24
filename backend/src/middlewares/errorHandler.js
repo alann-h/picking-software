@@ -56,7 +56,7 @@ export default (err, req, res, _next) => {
   };
 
   // Add additional context for development
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.VITE_APP_ENV === 'development') {
     errorResponse.error.stack = err.stack;
     errorResponse.error.name = err.name;
   }

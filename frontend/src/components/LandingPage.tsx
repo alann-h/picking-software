@@ -26,7 +26,7 @@ const LandingPage: React.FC = () => {
       />
       
       {/* Cache Status Indicator (Development Only) */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.VITE_APP_ENV === 'development' && (
         <Box sx={{ 
           position: 'fixed', 
           top: 10, 
