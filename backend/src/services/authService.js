@@ -311,7 +311,6 @@ export async function getAllUsers(companyId) {
       WHERE 
         company_id = $1
     `, [companyId]);
-    console.log(result);
     return result;
   } catch (e) {
     throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);

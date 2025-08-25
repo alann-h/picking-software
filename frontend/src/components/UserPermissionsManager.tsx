@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAdminFunctions } from '../hooks/useAuth';
 import { CompanyUserPermission } from '../api/permissions';
@@ -41,10 +41,8 @@ const UserPermissionsManager: React.FC = () => {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // With useSuspenseQuery, data is guaranteed to be defined
   const typedUsers = users as User[];
 
-  // TanStack Query mutation for updating permissions
   const updatePermissionMutation = useMutation({
     mutationFn: async ({ userId, field, value }: { userId: string; field: string; value: any }) => {
       const currentUser = typedUsers.find(u => u.id === userId);
@@ -60,25 +58,19 @@ const UserPermissionsManager: React.FC = () => {
       return updateUserPermissions(userId, updatedPermissions);
     },
     onMutate: async ({ userId, field, value }) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['companyUserPermissions'] });
 
-      // Snapshot the previous value
       const previousUsers = queryClient.getQueryData(['companyUserPermissions']);
 
-      // Optimistically update to the new value
       queryClient.setQueryData(['companyUserPermissions'], (old: any) => {
         if (!old) return old;
         return old.map((user: any) =>
           user.id === userId ? { ...user, [field]: value } : user
         );
       });
-
-      // Return a context object with the snapshotted value
       return { previousUsers };
     },
     onError: (err, variables, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousUsers) {
         queryClient.setQueryData(['companyUserPermissions'], context.previousUsers);
       }
@@ -89,7 +81,6 @@ const UserPermissionsManager: React.FC = () => {
       handleOpenSnackbar('User permissions updated successfully!', 'success');
     },
     onSettled: () => {
-      // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: ['companyUserPermissions'] });
     },
   });
