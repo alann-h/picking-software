@@ -26,7 +26,7 @@ class TokenService {
       xero: {
         fields: ['xero_token', 'xero_refresh_token', 'xero_token_expires_at', 'xero_tenant_id'],
         tokenField: 'xero_token',
-        realmField: 'xero_tenant_id',
+        tenantIdField: 'xero_tenant_id',
         validate: this.validateXeroToken.bind(this),
         refresh: authSystem.refreshXeroToken.bind(authSystem),
         initClient: () => authSystem.initializeXero(),

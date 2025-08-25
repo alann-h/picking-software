@@ -121,17 +121,7 @@ export class AuthSystem {
         try {
             const tokenSet = await xeroClient.apiCallback(url);
             xeroClient.setTokenSet(tokenSet);
-            
-            let tenantId = null;
-            try {
-                const tenants = await xeroClient.updateTenants();
-                if (tenants && tenants.length > 0) {
-                    tenantId = tenants[0].tenantId;
-                }
-            } catch (error) {
-                console.warn('Could not fetch Xero tenant ID:', error.message);
-            }
-            
+            const tenantId = await this.getXeroTenantId(xeroClient);
             return {
                 access_token: tokenSet.access_token,
                 refresh_token: tokenSet.refresh_token,
@@ -237,6 +227,23 @@ export class AuthSystem {
     }
 
     /**
+     * Get Xero tenant ID from token
+     * @param {XeroClient} xeroClient - Xero OAuth client
+     * @returns {string} Tenant ID
+     */
+    async getXeroTenantId(xeroClient) {
+        let tenantId = null;
+        try {
+            const tenants = await xeroClient.updateTenants();
+            if (tenants && tenants.length > 0) {
+                tenantId = tenants[0].tenantId;
+            }
+        } catch (error) {
+            console.warn('Could not fetch Xero tenant ID:', error.message);
+        }
+        return tenantId;
+    }
+    /**
      * Revoke QBO token
      * @param {Object} token - Token to revoke
      */
@@ -304,8 +311,8 @@ export class AuthSystem {
       const userInfo = await xeroClient.accountingApi.getUsers(token.tenant_id);
       const mainUser = userInfo.body.users.find(user => user.isOwner) || userInfo.body.users[0];
       return {
-        givenName: mainUser.givenName, 
-        familyName: mainUser.familyName,
+        givenName: mainUser.firstName, 
+        familyName: mainUser.lastName,
         email: mainUser.emailAddress
       }
     }

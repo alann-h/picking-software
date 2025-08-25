@@ -40,13 +40,12 @@ export function getBaseURL(oauthClient, connectionType) {
 }
 
 // Get realm/tenant ID for specified platform
-export function getRealmId(oauthClient, connectionType) {
-  if (connectionType === 'qbo') {
-    return authSystem.getQBORealmId(oauthClient);
-  } else if (connectionType === 'xero') {
-    return oauthClient.tenantId || null;
-  }
-  throw new Error(`Unsupported connection type: ${connectionType}`);
+export function getRealmId(oauthClient) {
+  return authSystem.getQBORealmId(oauthClient);
+}
+
+export async function getTenantId(oauthClient) {
+  return await authSystem.getXeroTenantId(oauthClient);
 }
 
 export async function handleCallback(url, connectionType) {
@@ -189,8 +188,7 @@ export async function register(displayEmail, password, is_admin, givenName, fami
   // Set default permissions for the new user
   if (companyId) {
     try {
-      const permission = await permissionService.setDefaultPermissions(result[0].id, companyId, is_admin);
-      console.log('permission', permission);
+      await permissionService.setDefaultPermissions(result[0].id, companyId, is_admin);
     } catch (permissionError) {
       console.warn('Failed to set default permissions for user:', permissionError);
       // Don't fail user registration if permission setting fails
