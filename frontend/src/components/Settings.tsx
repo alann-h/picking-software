@@ -4,13 +4,16 @@ import {
   Typography, 
   Paper, 
   useTheme, 
-  Tabs, 
-  Tab, 
   CircularProgress,
   Container,
   useMediaQuery,
   Stack,
-  Divider
+  Divider,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { 
   Settings as SettingsIcon,
@@ -39,29 +42,15 @@ const Settings: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
 
-  const tabValue = useMemo(() => {
+  const currentPath = useMemo(() => {
     const path = location.pathname;
-    if (isAdmin) {
-      if (path.includes('/settings/upload')) return 1;
-      if (path.includes('/settings/users')) return 2;
-    }
-    return 0;
-  }, [location.pathname, isAdmin]);
+    if (path.includes('/settings/upload')) return 'upload';
+    if (path.includes('/settings/users')) return 'users';
+    return 'products';
+  }, [location.pathname]);
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    switch (newValue) {
-      case 0:
-        navigate('/settings/products');
-        break;
-      case 1:
-        navigate('/settings/upload');
-        break;
-      case 2:
-        navigate('/settings/users');
-        break;
-      default:
-        navigate('/settings/products');
-    }
+  const handleMenuClick = (path: string) => {
+    navigate(`/settings/${path}`);
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +64,7 @@ const Settings: React.FC = () => {
     );
   }, [allProducts, searchTerm]);
 
-  const tabConfig = [
+  const menuItems = [
     {
       label: 'Current Products',
       icon: <InventoryIcon />,
@@ -157,101 +146,134 @@ const Settings: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <Paper 
-              elevation={0}
-              sx={{ 
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 3,
-                overflow: 'hidden'
-              }}
-            >
-              {/* Enhanced Tabs */}
-              <Box
-                sx={{
-                  background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
-                  borderBottom: '1px solid',
-                  borderColor: 'divider'
+            <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+              {/* Vertical Menu Sidebar */}
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  width: { xs: '100%', lg: 320 },
+                  flexShrink: 0,
+                  bgcolor: 'grey.50'
                 }}
               >
-                <Tabs 
-                  value={tabValue} 
-                  onChange={handleTabChange} 
-                  aria-label="settings tabs" 
-                  variant={isMobile ? "scrollable" : "fullWidth"}
-                  scrollButtons="auto" 
-                  allowScrollButtonsMobile
+                <Box
                   sx={{
-                    '& .MuiTab-root': {
-                      minHeight: 64,
-                      textTransform: 'none',
-                      fontWeight: 500,
-                      fontSize: '0.95rem',
-                      color: 'text.secondary',
-                      '&.Mui-selected': {
-                        color: 'primary.main',
-                        fontWeight: 600
-                      }
-                    },
-                    '& .MuiTabs-indicator': {
-                      height: 3,
-                      borderRadius: '3px 3px 0 0'
-                    }
+                    background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    p: 2
                   }}
                 >
-                  {tabConfig.map((tab, index) => (
-                    <Tab 
-                      key={tab.path}
-                      label={
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          {tab.icon}
-                          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                            <Typography variant="body1" fontWeight="inherit">
-                              {tab.label}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', md: 'block' } }}>
-                              {tab.description}
-                            </Typography>
-                          </Box>
-                        </Stack>
-                      }
-                      sx={{
-                        minWidth: { xs: 'auto', sm: 200 },
-                        px: { xs: 2, sm: 3 }
-                      }}
-                    />
+                  <Typography variant="h6" fontWeight={600} color="text.primary">
+                    Navigation
+                  </Typography>
+                </Box>
+                
+                <List sx={{ p: 0 }}>
+                  {menuItems.map((item, index) => (
+                    <React.Fragment key={item.path}>
+                      <ListItem disablePadding>
+                        <ListItemButton
+                          onClick={() => handleMenuClick(item.path)}
+                          selected={currentPath === item.path}
+                          sx={{
+                            py: 2.5,
+                            px: 3,
+                            '&.Mui-selected': {
+                              bgcolor: 'primary.50',
+                              borderRight: '3px solid',
+                              borderColor: 'primary.main',
+                              '&:hover': {
+                                bgcolor: 'primary.100',
+                              }
+                            },
+                            '&:hover': {
+                              bgcolor: 'grey.100',
+                            }
+                          }}
+                        >
+                          <ListItemIcon 
+                            sx={{ 
+                              color: currentPath === item.path ? 'primary.main' : 'text.secondary',
+                              minWidth: 40
+                            }}
+                          >
+                            {item.icon}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={
+                              <Typography 
+                                variant="body1" 
+                                fontWeight={currentPath === item.path ? 600 : 500}
+                                color={currentPath === item.path ? 'primary.main' : 'text.primary'}
+                              >
+                                {item.label}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography 
+                                variant="caption" 
+                                color="text.secondary"
+                                sx={{ display: { xs: 'none', lg: 'block' } }}
+                              >
+                                {item.description}
+                              </Typography>
+                            }
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                      {index < menuItems.length - 1 && (
+                        <Divider sx={{ mx: 3, opacity: 0.6 }} />
+                      )}
+                    </React.Fragment>
                   ))}
-                </Tabs>
-              </Box>
+                </List>
+              </Paper>
 
-              {/* Tab Content */}
-              <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-                <Routes>
-                  <Route
-                    path="products"
-                    element={
-                      <ProductsTab
-                        searchTerm={searchTerm}
-                        onSearchChange={handleSearchChange}
-                        filteredProducts={filteredProducts}
-                        isLoading={isLoading}
-                        refetch={refetch}
-                        isAdmin={isAdmin}
-                      />
-                    }
-                  />
-                  <Route 
-                    path="upload" 
-                    element={isAdmin ? <UploadTab refetch={refetch} /> : <Navigate to="/settings/products" replace />} 
-                  />
-                  <Route 
-                    path="users" 
-                    element={isAdmin ? <UsersTab /> : <Navigate to="/settings/products" replace />} 
-                  />
-                  <Route path="*" element={<Navigate to="products" replace />} />
-                </Routes>
-              </Box>
-            </Paper>
+              {/* Content Area */}
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  flex: 1,
+                  bgcolor: 'white'
+                }}
+              >
+                <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+                  <Routes>
+                    <Route
+                      path="products"
+                      element={
+                        <ProductsTab
+                          searchTerm={searchTerm}
+                          onSearchChange={handleSearchChange}
+                          filteredProducts={filteredProducts}
+                          isLoading={isLoading}
+                          refetch={refetch}
+                          isAdmin={isAdmin}
+                        />
+                      }
+                    />
+                    <Route 
+                      path="upload" 
+                      element={isAdmin ? <UploadTab refetch={refetch} /> : <Navigate to="/settings/products" replace />} 
+                    />
+                    <Route 
+                      path="users" 
+                      element={isAdmin ? <UsersTab /> : <Navigate to="/settings/products" replace />} 
+                    />
+                    <Route path="*" element={<Navigate to="products" replace />} />
+                  </Routes>
+                </Box>
+              </Paper>
+            </Box>
           </motion.div>
         </Stack>
       </Container>
