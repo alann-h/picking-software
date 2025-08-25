@@ -90,7 +90,7 @@ export class AuthSystem {
     async getXeroAuthUri(rememberMe = false) {
         const xeroClient = this.initializeXero();
         const state = rememberMe ? `rememberMe=true&${crypto.randomBytes(16).toString('hex')}` : crypto.randomBytes(16).toString('hex');
-        
+
         const url = await xeroClient.buildConsentUrl(state);
         return url;
     }
@@ -113,25 +113,30 @@ export class AuthSystem {
 
     /**
      * Handle Xero OAuth callback
-     * @param {string} url - Callback URL
+     * @param {string} url - Callback URL (can be full URL or just path)
      * @returns {Promise<Object>} Token object
      */
     async handleXeroCallback(url) {
         const xeroClient = this.initializeXero();
         try {
-            const urlParams = new URL(url).searchParams;
-            const code = urlParams.get('code');
+            const tokenSet = await xeroClient.apiCallback(url);
+            xeroClient.setTokenSet(tokenSet);
             
-            if (!code) {
-                throw new Error('Authorization code not found in callback URL');
+            let tenantId = null;
+            try {
+                const tenants = await xeroClient.updateTenants();
+                if (tenants && tenants.length > 0) {
+                    tenantId = tenants[0].tenantId;
+                }
+            } catch (error) {
+                console.warn('Could not fetch Xero tenant ID:', error.message);
             }
             
-            const tokenSet = await xeroClient.apiCallback(url);
             return {
                 access_token: tokenSet.access_token,
                 refresh_token: tokenSet.refresh_token,
                 expires_at: tokenSet.expires_at,
-                tenant_id: tokenSet.tenant_id || null
+                tenant_id: tenantId
             };
         } catch (error) {
             console.error('Xero callback error:', error);
@@ -282,7 +287,6 @@ export class AuthSystem {
         
         try {
             const userInfo = await oauthClient.getUserInfo();
-            console.log(userInfo.json);
             return userInfo.json;
         } catch (error) {
             throw new Error('Could not get QBO user information: ' + error.message);
@@ -295,54 +299,15 @@ export class AuthSystem {
      * @returns {Promise<Object>} User information
      */
     async getXeroUserInfo(token) {
-        const xeroClient = this.initializeXero();
-        xeroClient.setTokenSet({
-            access_token: token.access_token,
-            refresh_token: token.refresh_token,
-            expires_at: token.expires_at
-        });
-        
-        try {
-            // Get real company information from Xero using the accounting API
-            const organisationsResponse = await xeroClient.accountingApi.getOrganisations(token.tenant_id);
-            const organisation = organisationsResponse.body.organisations?.[0];
-            
-            if (organisation) {
-                return {
-                    email: `user@${organisation.name || 'company'}.com`, // Use real company name
-                    givenName: 'Xero', // Default name since Xero doesn't provide user details
-                    familyName: 'User',
-                    tenant_id: token.tenant_id,
-                    companyName: organisation.name || `Company ${token.tenant_id}`, // Real company name!
-                    legalName: organisation.legalName, // Legal company name
-                    organisationId: organisation.organisationID,
-                    countryCode: organisation.countryCode?.value,
-                    baseCurrency: organisation.baseCurrency?.value,
-                    organisationType: organisation.organisationType?.value,
-                    isDemoCompany: organisation.isDemoCompany,
-                    organisationStatus: organisation.organisationStatus
-                };
-            }
-            
-            // Fallback if no organisation details
-            return {
-                email: `user@company-${token.tenant_id}.com`,
-                givenName: 'Xero',
-                familyName: 'User',
-                tenant_id: token.tenant_id,
-                companyName: `Company ${token.tenant_id}`
-            };
-        } catch (error) {
-            console.warn('Could not get Xero organisation info, using fallback:', error.message);
-            // Fallback to basic info
-            return {
-                email: 'xero-user@company.com',
-                givenName: 'Xero',
-                familyName: 'User',
-                tenant_id: token.tenant_id,
-                companyName: 'Xero Company'
-            };
-        }
+      const xeroClient = this.initializeXero();
+      xeroClient.setTokenSet(token);
+      const userInfo = await xeroClient.accountingApi.getUsers(token.tenant_id);
+      const mainUser = userInfo.body.users.find(user => user.isOwner) || userInfo.body.users[0];
+      return {
+        givenName: mainUser.givenName, 
+        familyName: mainUser.familyName,
+        email: mainUser.emailAddress
+      }
     }
 
     /**
@@ -379,6 +344,21 @@ export class AuthSystem {
             console.error('Could not get QBO company info:', error);
             return null;
         }
+    }
+
+    /**
+     * Get Xero company information
+     * @param {Object} token - Xero token
+     * @returns {Promise<Object>} Company information
+     */
+    async getXeroCompanyInfo(token) {
+        const xeroClient = this.initializeXero();
+        xeroClient.setTokenSet(token);
+        const companyInfo = await xeroClient.accountingApi.getOrganisations(token.tenant_id);
+        return {
+            companyName: companyInfo.body.organisations[0].name,
+            tenantId: token.tenant_id
+        };
     }
 }
 

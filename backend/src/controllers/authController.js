@@ -33,8 +33,11 @@ export async function callback(req, res, next) {
     const connectionType = isXero ? 'xero' : 'qbo';
     
     console.log(`Processing ${connectionType.toUpperCase()} callback`);
-    
-    const token = await authService.handleCallback(req.url, connectionType);
+
+    // Construct full URL for OAuth callback processing
+    const fullUrl = req.url.startsWith('http') ? req.url : `${req.protocol}://${req.get('host')}${req.url}`;
+
+    const token = await authService.handleCallback(fullUrl, connectionType);
     const companyInfo = await saveCompanyInfo(token, connectionType);
     const user = await authService.saveUserFromOAuth(token, companyInfo.id, connectionType);
 

@@ -4,27 +4,8 @@ import { authSystem } from './authSystem.js';
 
 export async function saveCompanyInfo(token, connectionType = 'qbo') {
     try {
-        let companyInfo;
-        
-        if (connectionType === 'qbo') {
-            companyInfo = await authSystem.getQBOUserInfo(token);
-            
-            const realmId = token.realmId;
-
-            let companyName;
-            
-            try {
-                const companyDetails = await authSystem.getQBOCompanyInfo(token);
-                if (companyDetails) {
-                    companyName = companyDetails.companyName;
-                }
-            } catch (error) {
-                console.warn('Could not get company details, using user info fallback ' + error.message);
-            }
-            
-            if (!companyName) {
-                companyName = companyInfo.givenName + ' ' + companyInfo.familyName;
-            }
+        if (connectionType === 'qbo') {            
+            const companyDetails = await authSystem.getQBOCompanyInfo(token);
 
             const encryptedAccessToken = await encryptToken(token.access_token);
             const encryptedRefreshToken = await encryptToken(token.refresh_token);
@@ -33,7 +14,7 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
             
             const existingCompany = await query(
                 'SELECT id FROM companies WHERE qb_realm_id = $1',
-                [realmId]
+                [companyDetails.realmId]
             );
 
             if (existingCompany.length > 0) {
@@ -50,7 +31,7 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
                         updated_at = NOW()
                     WHERE qb_realm_id = $5
                     RETURNING *`,
-                    [companyName, encryptedAccessToken, encryptedRefreshToken, expiresAt, realmId]
+                    [companyDetails.companyName, encryptedAccessToken, encryptedRefreshToken, expiresAt, companyDetails.realmId]
                 );
                 return result[0];
             } else {
@@ -59,28 +40,25 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
                     INSERT INTO companies (company_name, qb_realm_id, qb_token, qb_refresh_token, qb_token_expires_at, connection_type, xero_tenant_id, xero_token, xero_refresh_token, xero_token_expires_at) 
                     VALUES ($1, $2, $3, $4, $5, 'qbo', NULL, NULL, NULL, NULL)
                     RETURNING *`,
-                    [companyName, realmId, encryptedAccessToken, encryptedRefreshToken, expiresAt]
+                    [companyDetails.companyName, companyDetails.realmId, encryptedAccessToken, encryptedRefreshToken, expiresAt]
                 );
                 return result[0];
             }
         } else if (connectionType === 'xero') {
-            companyInfo = {
-                companyName: token.companyName || 'Xero Company',
-                tenantId: token.tenant_id
-            };
-            
+            const companyDetails = await authSystem.getXeroCompanyInfo(token);
+
             const encryptedAccessToken = await encryptToken(token.access_token);
             const encryptedRefreshToken = await encryptToken(token.refresh_token);
             const expiresAt = token.expires_at ? 
                 new Date(token.expires_at * 1000) : null;
-            
+
             const existingCompany = await query(
                 'SELECT id FROM companies WHERE xero_tenant_id = $1',
-                [companyInfo.tenantId]
+                [companyDetails.tenantId]
             );
 
             if (existingCompany.length > 0) {
-                // Update existing company - clear other connection fields
+                // Update existing company - clear other connection fields and switch to Xero
                 const result = await query(`
                     UPDATE companies 
                     SET 
@@ -91,9 +69,9 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
                         connection_type = 'xero',
                         qb_realm_id = NULL, qb_token = NULL, qb_refresh_token = NULL, qb_token_expires_at = NULL,
                         updated_at = NOW()
-                    WHERE xero_tenant_id = $5
+                    WHERE id = $5
                     RETURNING *`,
-                    [companyInfo.companyName, encryptedAccessToken, encryptedRefreshToken, expiresAt, companyInfo.tenantId]
+                    [companyDetails.companyName, encryptedAccessToken, encryptedRefreshToken, expiresAt, existingCompany[0].id]
                 );
                 return result[0];
             } else {
@@ -102,7 +80,7 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
                     INSERT INTO companies (company_name, xero_tenant_id, xero_token, xero_refresh_token, xero_token_expires_at, connection_type, qb_realm_id, qb_token, qb_refresh_token, qb_token_expires_at) 
                     VALUES ($1, $2, $3, $4, $5, 'xero', NULL, NULL, NULL, NULL)
                     RETURNING *`,
-                    [companyInfo.companyName, companyInfo.tenantId, encryptedAccessToken, encryptedRefreshToken, expiresAt]
+                    [companyDetails.companyName, companyDetails.tenantId, encryptedAccessToken, encryptedRefreshToken, expiresAt]
                 );
                 return result[0];
             }
