@@ -126,6 +126,7 @@ export async function register(req, res, next) {
   try {
     const { email, password, isAdmin, givenName, familyName } = req.body;
     const companyId = req.session.companyId;
+    const connectionType = req.session.connectionType;
 
     const newUser = await authService.register(
       email,
@@ -133,7 +134,8 @@ export async function register(req, res, next) {
       isAdmin,
       givenName,
       familyName,
-      companyId
+      companyId,
+      connectionType
     );
     res.json(newUser);
   } catch (err) {

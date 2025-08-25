@@ -1,5 +1,5 @@
 import express from 'express';
-import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { isAuthenticated, isAdmin } from '../middlewares/authMiddleware.js';
 import {
   getCompanyUserPermissions,
   updateUserPermissions,
@@ -12,16 +12,14 @@ import {
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
+router.use(isAuthenticated);
 
-// Company user permissions
-router.get('/company/:companyId', getCompanyUserPermissions);
-router.post('/user/:userId', updateUserPermissions);
-router.delete('/user/:userId', revokeUserPermissions);
+router.get('/company/:companyId', isAdmin, getCompanyUserPermissions);
+router.post('/user/:userId', isAdmin, updateUserPermissions);
+router.delete('/user/:userId', isAdmin, revokeUserPermissions);
 
-// Audit and monitoring
-router.get('/audit/:companyId', getCompanyAuditLogs);
-router.get('/health/:companyId', getConnectionHealth);
-router.get('/user-audit/:userId', getUserAuditLogs);
+router.get('/audit/:companyId', isAdmin, getCompanyAuditLogs);
+router.get('/health/:companyId', isAdmin, getConnectionHealth);
+router.get('/user-audit/:userId', isAdmin, getUserAuditLogs);
 
 export default router;

@@ -1,5 +1,5 @@
-import { query, transaction } from '../helpers.js';
-import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
+import { query } from '../helpers.js';
+import { AccessError } from '../middlewares/errorHandler.js';
 
 class PermissionService {
   /**

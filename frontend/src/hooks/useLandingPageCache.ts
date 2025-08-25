@@ -77,7 +77,6 @@ export const useLandingPageCache = (): CacheStatus => {
         componentsToPreload.map(componentLoader => componentLoader())
       );
 
-      console.log('Landing page components preloaded successfully');
     } catch (error) {
       console.error('Error preloading landing page components:', error);
     }

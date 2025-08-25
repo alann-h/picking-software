@@ -71,9 +71,7 @@
         window.addEventListener('load', () => {
           // Add version parameter to force service worker update
           navigator.serviceWorker.register('/sw.js?v=4')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-              
+            .then((registration) => {              
               // Check for updates
               registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;

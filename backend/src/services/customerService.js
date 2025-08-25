@@ -4,12 +4,12 @@ import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 
 export async function fetchCustomers(companyId) {
   try {
-    const oauthClient = await getOAuthClient(companyId);
+    const oauthClient = await getOAuthClient(companyId, 'qbo');
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
-    const baseURL = getBaseURL(oauthClient);
-    const realmId = getRealmId(oauthClient);
+    const baseURL = getBaseURL(oauthClient, 'qbo');
+    const realmId = getRealmId(oauthClient, 'qbo');
     
     let allCustomers = [];
     let startPosition = 1;

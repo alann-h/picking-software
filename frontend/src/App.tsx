@@ -52,10 +52,11 @@ const App: React.FC = () => {
     
   return (
     <ThemeProvider theme={theme}>
-        <SnackbarProvider>
-            <title>Smart Picker</title>
-            <link rel="icon" type="image/png" href="/SP.png" />          
-          <CssBaseline />
+      <SnackbarProvider>
+        <title>Smart Picker</title>
+        <link rel="icon" type="image/png" href="/SP.png" />          
+        <CssBaseline />
+        <ErrorBoundary>
           <Box sx={{ 
             display: 'flex', 
             flexDirection: 'column', 
@@ -152,7 +153,8 @@ const App: React.FC = () => {
           </Box>
           <SnackbarComponent />
           <Footer />
-        </SnackbarProvider>
+        </ErrorBoundary>
+      </SnackbarProvider>
     </ThemeProvider>
   );
 };

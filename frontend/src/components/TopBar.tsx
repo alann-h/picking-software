@@ -29,7 +29,8 @@ import {
   Logout as LogoutIcon,
   DevicesOther as DevicesOtherIcon,
   Menu as MenuIcon,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -498,7 +499,7 @@ const SettingsMenuContent: React.FC<{ onMenuItemClick: (path: string) => void; u
                 <MenuItem key="users" onClick={() => onMenuItemClick('/settings/users')}>
                     <ListItemIcon><GroupIcon fontSize="small" /></ListItemIcon>
                     <ListItemText>User Management</ListItemText>
-                </MenuItem>
+                </MenuItem>,
             ]}
             <Divider sx={{ my: 1 }} />
             <MenuItem 

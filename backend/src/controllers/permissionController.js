@@ -7,14 +7,10 @@ export async function getCompanyUserPermissions(req, res, next) {
   try {
     const { companyId } = req.params;
     const currentUserId = req.session.userId;
+    const connectionType = req.session.connectionType;
 
     // Check if current user has access to view permissions
-    const currentUserPermission = await permissionService.checkUserPermission(
-      currentUserId, 
-      companyId, 
-      'qbo', 
-      'admin'
-    );
+    const currentUserPermission = await permissionService.checkUserPermission(currentUserId, companyId, connectionType, 'admin');
 
     if (!currentUserPermission.hasAccess) {
       throw new AccessError('Insufficient permissions to view company user permissions');

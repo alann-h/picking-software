@@ -10,7 +10,7 @@ import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
 import { permissionService } from './permissionService.js';
 
 // Generic OAuth client initialization - supports both QBO and Xero
-export function initializeOAuthClient(connectionType = 'qbo') {
+export function initializeOAuthClient(connectionType) {
   if (connectionType === 'qbo') {
     return authSystem.initializeQBO();
   } else if (connectionType === 'xero') {
@@ -20,7 +20,7 @@ export function initializeOAuthClient(connectionType = 'qbo') {
 }
 
 // Get auth URI for specified platform
-export function getAuthUri(connectionType = 'qbo', rememberMe = false) {
+export function getAuthUri(connectionType, rememberMe = false) {
   if (connectionType === 'qbo') {
     return authSystem.getQBOAuthUri(rememberMe);
   } else if (connectionType === 'xero') {
@@ -30,7 +30,7 @@ export function getAuthUri(connectionType = 'qbo', rememberMe = false) {
 }
 
 // Get base URL for specified platform
-export function getBaseURL(oauthClient, connectionType = 'qbo') {
+export function getBaseURL(oauthClient, connectionType) {
   if (connectionType === 'qbo') {
     return authSystem.getQBOBaseURL(oauthClient);
   } else if (connectionType === 'xero') {
@@ -40,7 +40,7 @@ export function getBaseURL(oauthClient, connectionType = 'qbo') {
 }
 
 // Get realm/tenant ID for specified platform
-export function getRealmId(oauthClient, connectionType = 'qbo') {
+export function getRealmId(oauthClient, connectionType) {
   if (connectionType === 'qbo') {
     return authSystem.getQBORealmId(oauthClient);
   } else if (connectionType === 'xero') {
@@ -49,7 +49,7 @@ export function getRealmId(oauthClient, connectionType = 'qbo') {
   throw new Error(`Unsupported connection type: ${connectionType}`);
 }
 
-export async function handleCallback(url, connectionType = 'qbo') {
+export async function handleCallback(url, connectionType) {
   try {
     if (connectionType === 'qbo') {
       return await authSystem.handleQBOCallback(url);
@@ -63,7 +63,7 @@ export async function handleCallback(url, connectionType = 'qbo') {
   }
 }
 
-export async function refreshToken(token, connectionType = 'qbo') {
+export async function refreshToken(token, connectionType) {
   try {
     if (connectionType === 'qbo') {
       return await authSystem.refreshQBOToken(token);
@@ -160,7 +160,7 @@ export async function login(email, password, ipAddress = null, userAgent = null)
   }
 }
 
-export async function register(displayEmail, password, is_admin, givenName, familyName, companyId) {
+export async function register(displayEmail, password, is_admin, givenName, familyName, companyId, connectionType) {
   const saltRounds = 10;
   const normalisedEmail = validator.normalizeEmail(displayEmail);
 
@@ -189,7 +189,8 @@ export async function register(displayEmail, password, is_admin, givenName, fami
   // Set default permissions for the new user
   if (companyId) {
     try {
-      await permissionService.setDefaultPermissions(result[0].id, companyId, is_admin);
+      const permission = await permissionService.setDefaultPermissions(result[0].id, companyId, is_admin);
+      console.log('permission', permission);
     } catch (permissionError) {
       console.warn('Failed to set default permissions for user:', permissionError);
       // Don't fail user registration if permission setting fails
@@ -228,7 +229,7 @@ export async function deleteUser(userId, sessionId) {
   }
 };
 
-async function getUserInfo(token, connectionType = 'qbo') {
+async function getUserInfo(token, connectionType) {
   try {
     if (connectionType === 'qbo') {
       return await authSystem.getQBOUserInfo(token);
@@ -241,7 +242,7 @@ async function getUserInfo(token, connectionType = 'qbo') {
   }
 }
 
-export async function saveUserFromOAuth(token, companyId, connectionType = 'qbo') {
+export async function saveUserFromOAuth(token, companyId, connectionType) {
   try {
     const userInfo = await getUserInfo(token, connectionType);
     const normalisedEmail = validator.normalizeEmail(userInfo.email);
@@ -268,7 +269,8 @@ export async function saveUserFromOAuth(token, companyId, connectionType = 'qbo'
         true, // is_admin
         userInfo.givenName,
         userInfo.familyName,
-        companyId // This will be stored as company_id in the database
+        companyId,
+        connectionType
       );
       return newUser;
     }
