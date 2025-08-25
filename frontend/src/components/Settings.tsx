@@ -3,10 +3,7 @@ import {
   Box, 
   Typography, 
   Paper, 
-  useTheme, 
-  CircularProgress,
   Container,
-  useMediaQuery,
   Stack,
   Divider,
   List,
@@ -32,8 +29,6 @@ import UsersTab from './tabs/UsersTab';
 import { useAuth } from '../hooks/useAuth';
 
 const Settings: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin } = useAuth();

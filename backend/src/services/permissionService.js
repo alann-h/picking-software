@@ -118,7 +118,6 @@ class PermissionService {
         WHERE u.company_id = $1
         ORDER BY u.created_at
       `, [companyId]);
-
       return result;
     } catch (error) {
       console.error('Error getting company user permissions:', error);

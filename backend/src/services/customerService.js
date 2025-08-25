@@ -1,6 +1,6 @@
-import { getOAuthClient, getBaseURL, getTenantId } from '../services/authService.js';
+import { getOAuthClient, getBaseURL, getTenantId, getRealmId } from '../services/authService.js';
 import { AccessError } from '../middlewares/errorHandler.js';
-import { query, transaction } from '../helpers.js';
+import { transaction } from '../helpers.js';
 
 export async function fetchCustomers(companyId, connectionType = 'qbo') {
   try {
@@ -10,9 +10,9 @@ export async function fetchCustomers(companyId, connectionType = 'qbo') {
     }
 
     if (connectionType === 'qbo') {
-      return await fetchQBOCustomers(oauthClient, companyId);
+      return await fetchQBOCustomers(oauthClient);
     } else if (connectionType === 'xero') {
-      return await fetchXeroCustomers(oauthClient, companyId);
+      return await fetchXeroCustomers(oauthClient);
     } else {
       throw new AccessError(`Unsupported connection type: ${connectionType}`);
     }
@@ -23,7 +23,7 @@ export async function fetchCustomers(companyId, connectionType = 'qbo') {
 
 async function fetchQBOCustomers(oauthClient) {
   const baseURL = getBaseURL(oauthClient, 'qbo');
-  const realmId = getTenantId(oauthClient);
+  const realmId = await getRealmId(oauthClient);
   
   let allCustomers = [];
   let startPosition = 1;
@@ -52,7 +52,7 @@ async function fetchQBOCustomers(oauthClient) {
   return allCustomers;
 }
 
-async function fetchXeroCustomers(oauthClient, companyId) {
+async function fetchXeroCustomers(oauthClient) {
   try {
     const tenantId = await getTenantId(oauthClient);
 

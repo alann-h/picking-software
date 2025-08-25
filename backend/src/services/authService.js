@@ -159,7 +159,7 @@ export async function login(email, password, ipAddress = null, userAgent = null)
   }
 }
 
-export async function register(displayEmail, password, is_admin, givenName, familyName, companyId, connectionType) {
+export async function register(displayEmail, password, is_admin, givenName, familyName, companyId) {
   const saltRounds = 10;
   const normalisedEmail = validator.normalizeEmail(displayEmail);
 
@@ -245,16 +245,34 @@ export async function saveUserFromOAuth(token, companyId, connectionType) {
     const userInfo = await getUserInfo(token, connectionType);
     const normalisedEmail = validator.normalizeEmail(userInfo.email);
 
-    // Check if a user with this email already exists in your database
     const existingUserResult = await query(
       'SELECT * FROM users WHERE normalised_email = $1',
       [normalisedEmail]
     );
 
-    // If the user exists, return their data immediately.
     if (existingUserResult.length > 0) {
-      console.log(`Existing user re-authenticated via ${connectionType}: ${normalisedEmail}`);
-      return existingUserResult[0];
+      const existingUser = existingUserResult[0];
+      
+      if (existingUser.company_id !== companyId) {
+        console.log(`User ${normalisedEmail} switching from company ${existingUser.company_id} to ${companyId} via ${connectionType}`);
+        
+        await query(
+          'UPDATE users SET company_id = $1 WHERE id = $2',
+          [companyId, existingUser.id]
+        );
+        
+        existingUser.company_id = companyId;
+        
+        try {
+          await permissionService.setDefaultPermissions(existingUser.id, companyId, existingUser.is_admin);
+        } catch (permissionError) {
+          console.warn('Failed to set default permissions for user switching companies:', permissionError);
+        }
+      } else {
+        console.log(`Existing user re-authenticated via ${connectionType}: ${normalisedEmail}`);
+      }
+      
+      return existingUser;
     } 
     
     else {
@@ -293,6 +311,7 @@ export async function getAllUsers(companyId) {
       WHERE 
         company_id = $1
     `, [companyId]);
+    console.log(result);
     return result;
   } catch (e) {
     throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);
