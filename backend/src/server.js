@@ -28,6 +28,7 @@ import customerRoutes from './routes/customerRoutes.js';
 import quoteRoutes from './routes/quoteRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import runRoutes from './routes/runRoutes.js';
+import permissionRoutes from './routes/permissionRoutes.js';
 
 import asyncHandler from './middlewares/asyncHandler.js';
 import { isAuthenticated } from './middlewares/authMiddleware.js';
@@ -249,6 +250,7 @@ app.use('/customers', customerRoutes);
 app.use('/quotes', quoteRoutes);
 app.use('/products', productRoutes);
 app.use('/runs', runRoutes);
+app.use('/permissions', permissionRoutes);
 
 // Utility routes
 app.get('/verifyUser', asyncHandler(async (req, res) => {

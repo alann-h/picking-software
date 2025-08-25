@@ -7,6 +7,7 @@ import { isAccountLocked, incrementFailedAttempts, resetFailedAttempts } from '.
 import { tokenService } from './tokenService.js';
 import { authSystem } from './authSystem.js';
 import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
+import { permissionService } from './permissionService.js';
 
 // Generic OAuth client initialization - supports both QBO and Xero
 export function initializeOAuthClient(connectionType = 'qbo') {
@@ -184,6 +185,17 @@ export async function register(displayEmail, password, is_admin, givenName, fami
   if (result.length === 0) {
     throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Unable to register user.');
   }
+
+  // Set default permissions for the new user
+  if (companyId) {
+    try {
+      await permissionService.setDefaultPermissions(result[0].id, companyId, is_admin);
+    } catch (permissionError) {
+      console.warn('Failed to set default permissions for user:', permissionError);
+      // Don't fail user registration if permission setting fails
+    }
+  }
+
   return result[0];
 }
 
