@@ -4,6 +4,7 @@ import { authSystem } from './authSystem.js';
 import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
 import { permissionService } from './permissionService.js';
 import { auditService } from './auditService.js';
+import QuickBooks from 'node-quickbooks';
 
 class TokenService {
   constructor() {
