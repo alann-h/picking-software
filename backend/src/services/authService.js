@@ -86,8 +86,8 @@ export async function getOAuthClient(companyId, connectionType = 'qbo') {
   }
 
   try {
-    // Use the new generic token service for better token management
-    return await tokenService.getOAuthClient(companyId, connectionType);
+    const oauthClient = await tokenService.getOAuthClient(companyId, connectionType);
+    return oauthClient;
   } catch (error) {
     console.error(`Error getting OAuth client for company ${companyId} (${connectionType}):`, error);
     throw error;

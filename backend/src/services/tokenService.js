@@ -30,11 +30,7 @@ class TokenService {
         validate: this.validateXeroToken.bind(this),
         refresh: authSystem.refreshXeroToken.bind(authSystem),
         initClient: () => authSystem.initializeXero(),
-        setClientToken: (client, token) => client.setTokenSet({
-          access_token: token.access_token,
-          refresh_token: token.refresh_token,
-          expires_at: token.expires_at
-        })
+        setClientToken: (client, token) => client.setToken(token)
       }
     };
 
@@ -125,24 +121,26 @@ class TokenService {
     }
 
     const accessToken = decryptToken(dbRow[handler.tokenField]);
-
-    let refreshToken;
-    if (connectionType === 'qbo') {
-      refreshToken = decryptToken(dbRow.qb_refresh_token);
-    }  else if (connectionType === 'xero') {
-      refreshToken = decryptToken(dbRow.xero_refresh_token);
-    }
+    const refreshToken = decryptToken(dbRow[connectionType === 'qbo' ? 'qb_refresh_token' : 'xero_refresh_token']);
+    
+    let connectionTokenInfo = {};
 
     if (connectionType === 'qbo') {
-      const expiresAtTimestamp = Math.floor(new Date(dbRow.qb_token_expires_at).getTime() / 1000);
+      // **QBO requires a duration in seconds (`expires_in`)**
+      const expirationTime = new Date(dbRow.qb_token_expires_at).getTime();
+      const expiresInSeconds = Math.floor((expirationTime - Date.now()) / 1000);
+
       connectionTokenInfo = {
-        expires_at: expiresAtTimestamp,
+        expires_in: expiresInSeconds > 0 ? expiresInSeconds : 0,
         realmId: dbRow.qb_realm_id
       };
     } else if (connectionType === 'xero') {
-      const expiresAtTimestamp = Math.floor(new Date(dbRow.xero_token_expires_at).getTime() / 1000);
+      // **Xero requires a UNIX timestamp in seconds (`expires_at`)**
+      const expirationTime = new Date(dbRow.xero_token_expires_at).getTime();
+      const expiresAtSeconds = Math.floor(expirationTime / 1000);
+
       connectionTokenInfo = {
-        expires_at: expiresAtTimestamp,
+        expires_at: expiresAtSeconds,
         tenant_id: dbRow.xero_tenant_id
       };
     }
@@ -152,23 +150,23 @@ class TokenService {
       refresh_token: refreshToken,
       ...connectionTokenInfo
     };
-  }
+}
 
   validateQBOToken(token) {
-    if (!token?.access_token) return false;
-    if (!token.expires_at) return false;
-    
-    const now = Math.floor(Date.now() / 1000);
-    const buffer = 5 * 60;
-    return token.expires_at - buffer > now;
+    if (!token?.access_token || !token.expires_at) {
+      return false;
+  }
+    const now = new Date();
+    const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
+    return new Date(token.expires_at) > new Date(now.getTime() + buffer);
   }
 
   validateXeroToken(token) {
     if (!token?.access_token) return false;
     
-    const now = Math.floor(Date.now() / 1000);
-    const buffer = 5 * 60;
-    return token.expires_at && token.expires_at - buffer > now;
+    const now = new Date();
+    const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
+    return token.expires_at && new Date(token.expires_at) > new Date(now.getTime() + buffer);
   }
 
   async refreshCompanyToken(companyId, currentToken, connectionType) {
@@ -179,8 +177,14 @@ class TokenService {
       const refreshedToken = await handler.refresh(currentToken);
       const encryptedAccessToken = await encryptToken(refreshedToken.access_token);
       const encryptedRefreshToken = await encryptToken(refreshedToken.refresh_token);
-      const expiresAt = connectionType === 'qbo' ? new Date(refreshedToken.expires_in * 1000) : new Date(refreshedToken.expires_at * 1000);
 
+      let expiresAt;
+      if (connectionType === 'qbo') {
+        const now = new Date();
+        expiresAt = new Date(now.getTime() + (refreshedToken.expires_in * 1000));
+      } else {
+        expiresAt = new Date(refreshedToken.expires_at * 1000);
+      }
 
       const updateFields = connectionType === 'qbo' ? {
         qb_token: encryptedAccessToken,
@@ -211,7 +215,6 @@ class TokenService {
   async getOAuthClient(companyId, connectionType = 'qbo') {
     const validToken = await this.getValidToken(companyId, connectionType);
     const handler = this.connectionHandlers.get(connectionType);
-    
     const client = handler.initClient();
     handler.setClientToken(client, validToken);
     return client;

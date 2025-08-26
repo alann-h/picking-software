@@ -9,7 +9,7 @@ export async function getCustomerQuotes(customerId, companyId) {
     if (!oauthClient) {
       throw new AccessError('OAuth client could not be initialised');
     }
-    const baseURL = getBaseURL(oauthClient);
+    const baseURL = getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
 
     const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;

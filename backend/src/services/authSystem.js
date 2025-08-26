@@ -153,8 +153,8 @@ export class AuthSystem {
 
         try {
             const response = await oauthClient.refreshUsingToken(token.refresh_token);
-            console.log('QBO Token Refreshed!');
-            return response.getToken();
+            const tokenData = response.getToken();
+            return tokenData;
         } catch (error) {
             if (error.error === 'invalid_grant') {
                 throw new Error('QBO_TOKEN_REVOKED');
