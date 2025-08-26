@@ -156,11 +156,11 @@ class TokenService {
 
   validateQBOToken(token) {
     if (!token?.access_token) return false;
-    if (!token.expires_in) return false;
+    if (!token.expires_at) return false;
     
     const now = Math.floor(Date.now() / 1000);
     const buffer = 5 * 60;
-    return token.expires_in - buffer > now;
+    return token.expires_at - buffer > now;
   }
 
   validateXeroToken(token) {
