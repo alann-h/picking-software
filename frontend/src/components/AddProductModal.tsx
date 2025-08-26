@@ -2,7 +2,7 @@ import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import {
   Modal, Box, Typography, TextField, Button, Autocomplete, 
   IconButton, Paper, Fade, InputAdornment, CircularProgress,
-  Divider, Chip, Stack, ToggleButton, ToggleButtonGroup,
+  Divider, Stack, ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -11,7 +11,8 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import FunctionsIcon from '@mui/icons-material/Functions';
 import { Product } from '../utils/types';
-import { useAllProducts } from './useAllProducts';
+import { useQuery } from '@tanstack/react-query';
+import { getAllProducts } from '../api/products';
 
 interface AddProductModalProps {
   open: boolean;
@@ -52,7 +53,11 @@ const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
 }));
 
 const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubmit, isSubmitting }) => {
-  const { allProducts, isLoading: isProductListLoading, refetch } = useAllProducts();
+  const { data: allProducts = [], isLoading: isProductListLoading } = useQuery<Product[]>({
+    queryKey: ['products'],
+    queryFn: getAllProducts,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [isFractionMode, setIsFractionMode] = useState<boolean>(false);
   const [decimalInput, setDecimalInput] = useState<string>('1');
@@ -63,14 +68,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
 
   useEffect(() => {
     if (open) {
-      refetch();
       setProduct(null);
       setIsFractionMode(false);
       setDecimalInput('1');
       setNumeratorInput('1');
       setDenominatorInput('1');
     }
-  }, [open, refetch]);
+  }, [open]);
   
   useEffect(() => { 
     if (!isFractionMode) { 

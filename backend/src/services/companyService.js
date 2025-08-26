@@ -6,6 +6,7 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
     try {
         if (connectionType === 'qbo') {            
             const companyDetails = await authSystem.getQBOCompanyInfo(token);
+            console.log('companyDetails', companyDetails);
 
             const encryptedAccessToken = await encryptToken(token.access_token);
             const encryptedRefreshToken = await encryptToken(token.refresh_token);

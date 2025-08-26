@@ -6,8 +6,6 @@ import {
   InputAdornment,
   Stack,
   Chip,
-  useTheme,
-  useMediaQuery,
   Card,
   CardContent,
   IconButton,
@@ -16,20 +14,19 @@ import {
 import { 
   Search as SearchIcon,
   Inventory as InventoryIcon,
-  FilterList as FilterIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { Product } from '../../utils/types';
 import ProductList from '../ProductListSettings';
 import { updateProductDb, setProductArchiveStatus, addProductDb } from '../../api/products'; 
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ProductsTabProps {
   searchTerm: string;
   onSearchChange: (_e: React.ChangeEvent<HTMLInputElement>) => void;
   filteredProducts: Product[];
   isLoading: boolean;
-  refetch: () => void;
   isAdmin: boolean;
 }
 
@@ -38,12 +35,10 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   onSearchChange,
   filteredProducts,
   isLoading,
-  refetch,
   isAdmin
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [searchField, setSearchField] = useState<'all' | 'name' | 'sku'>('all');
+  const queryClient = useQueryClient();
 
   const handleSearchFieldChange = (field: 'all' | 'name' | 'sku') => {
     setSearchField(field);
@@ -76,6 +71,11 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   };
 
   const finalFilteredProducts = getFilteredProducts();
+
+  // Function to refresh products data using TanStack Query
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+  };
 
   return (
     <motion.div
@@ -144,7 +144,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                     <Chip
                       label="SKU"
                       onClick={() => handleSearchFieldChange('sku')}
-                      color={searchField === 'sku' ? 'primary' : 'default'}
+                      color={searchField === 'name' ? 'primary' : 'default'}
                       variant={searchField === 'sku' ? 'filled' : 'outlined'}
                       size="small"
                       sx={{ fontWeight: 500 }}
@@ -231,7 +231,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
           <ProductList 
             products={finalFilteredProducts} 
             isLoading={isLoading} 
-            onRefresh={refetch} 
+            onRefresh={handleRefresh} 
             updateProductDb={updateProductDb} 
             setProductArchiveStatus={setProductArchiveStatus} 
             addProductDb={addProductDb} 

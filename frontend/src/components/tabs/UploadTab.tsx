@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import {
-  Grid,
   Typography,
   Box,
   Stack,
   Card,
   CardContent,
-  useTheme,
-  useMediaQuery
 } from '@mui/material';
 import {
   CloudUpload as CloudUploadIcon
@@ -16,16 +13,12 @@ import { motion } from 'framer-motion';
 import FileUpload from '../FileUpload';
 import { useSnackbarContext } from '../SnackbarContext';
 import { uploadProducts } from '../../api/products';
+import { useQueryClient } from '@tanstack/react-query';
 
-interface UploadTabProps {
-  refetch: () => void;
-}
-
-const UploadTab: React.FC<UploadTabProps> = ({ refetch }) => {
+const UploadTab: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { handleOpenSnackbar } = useSnackbarContext();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const queryClient = useQueryClient();
 
   const handleUpload = async () => {
     if (!selectedFile) {
@@ -42,7 +35,7 @@ const UploadTab: React.FC<UploadTabProps> = ({ refetch }) => {
   const handleSuccess = () => {
     handleOpenSnackbar('File processed successfully!', 'success');
     setSelectedFile(null);
-    refetch();
+    queryClient.invalidateQueries({ queryKey: ['products'] });
   };
 
   return (

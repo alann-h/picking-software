@@ -4,7 +4,6 @@ import { authSystem } from './authSystem.js';
 import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
 import { permissionService } from './permissionService.js';
 import { auditService } from './auditService.js';
-import QuickBooks from 'node-quickbooks';
 
 class TokenService {
   constructor() {
@@ -228,6 +227,19 @@ class TokenService {
     } catch (error) {
       return error.message.includes('REAUTH_REQUIRED') || error.message.includes('REFRESH_TOKEN_EXPIRED');
     }
+  }
+
+  /**
+   * Gets a fully authenticated node-quickbooks client for data operations.
+   * @param {string} companyId - The ID of the company.
+   * @param {string} [userId=null] - Optional user ID for permission checks.
+   * @returns {Promise<QuickBooks>} An initialized node-quickbooks client instance.
+   */
+    async getQBODataClient(companyId, userId = null) {
+      const validToken = await this.getValidToken(companyId, 'qbo', userId);
+      const qboClient = authSystem.createQBOClient(validToken);
+      
+      return qboClient;
   }
 
   async getTokenStatus(companyId, connectionType = 'qbo') {

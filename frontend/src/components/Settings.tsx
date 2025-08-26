@@ -21,7 +21,9 @@ import {
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 
-import { useAllProducts } from './useAllProducts';
+import { useQuery } from '@tanstack/react-query';
+import { getAllProducts } from '../api/products';
+import { Product } from '../utils/types';
 
 import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
@@ -33,7 +35,11 @@ const Settings: React.FC = () => {
   const location = useLocation();
   const { isAdmin } = useAuth();
 
-  const { allProducts, isLoading, refetch } = useAllProducts();
+  const { data: allProducts = [], isLoading } = useQuery<Product[]>({
+    queryKey: ['products'],
+    queryFn: getAllProducts,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -251,14 +257,13 @@ const Settings: React.FC = () => {
                           onSearchChange={handleSearchChange}
                           filteredProducts={filteredProducts}
                           isLoading={isLoading}
-                          refetch={refetch}
                           isAdmin={isAdmin}
                         />
                       }
                     />
                     <Route 
                       path="upload" 
-                      element={isAdmin ? <UploadTab refetch={refetch} /> : <Navigate to="/settings/products" replace />} 
+                      element={isAdmin ? <UploadTab /> : <Navigate to="/settings/products" replace />} 
                     />
                     <Route 
                       path="users/*" 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Button,
@@ -12,326 +12,32 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Checkbox,
-    FormControl,
-    MenuItem,
-    Select,
-    Chip,
-    IconButton,
-    Tooltip,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
 } from '@mui/material';
 import { 
     Add as AddIcon, 
     PowerOff as PowerOffIcon, 
-    Edit as EditIcon,
-    Save as SaveIcon,
-    Delete as DeleteIcon,
-    Person as PersonIcon,
     Security as SecurityIcon,
 } from '@mui/icons-material';
 import { useSnackbarContext } from './SnackbarContext';
 import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from '../api/user';
-import { UserData } from '../utils/types';
 import { useNavigate } from 'react-router-dom';
 import { disconnectQB } from '../api/auth';
 import { useAdminFunctions } from '../hooks/useAuth';
-import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import AddUserDialog from './userManagement/AddUserDialog';
 import ConfirmationDialog from './userManagement/ConfirmationDialog';
+import EditUserDialog from './userManagement/EditUserDialog';
+import UserTable from './userManagement/UserTable';
 import { UserTableSkeleton } from './Skeletons';
-
-
-
-interface ExtendedUserData extends UserData {
-    can_access_qbo?: boolean;
-    can_access_xero?: boolean;
-    can_refresh_tokens?: boolean;
-    access_level?: string;
-}
-
-interface EditUserDialogProps {
-    open: boolean;
-    user: ExtendedUserData | null;
-    onClose: () => void;
-    onSave: (userId: string, data: Partial<UserData>) => Promise<void>;
-    currentUser: ExtendedUserData | null;
-}
-
-// Zod validation schemas
-const UserUpdateSchema = z.object({
-    given_name: z.string()
-        .min(2, 'First name must be at least 2 characters')
-        .max(50, 'First name must be 50 characters or less')
-        .regex(/^[a-zA-Z\s\-']+$/, 'First name can only contain letters, spaces, hyphens, and apostrophes')
-        .optional(),
-    family_name: z.string()
-        .min(2, 'Last name must be at least 2 characters')
-        .max(50, 'Last name must be 50 characters or less')
-        .regex(/^[a-zA-Z\s\-']+$/, 'Last name can only contain letters, spaces, hyphens, and apostrophes')
-        .optional(),
-    display_email: z.string()
-        .email('Please enter a valid email address')
-        .max(255, 'Email address is too long')
-        .optional(),
-    is_admin: z.boolean().optional(),
-});
-
-// Schema for new user creation (includes password)
-const NewUserSchema = z.object({
-    given_name: z.string()
-        .min(2, 'First name must be at least 2 characters')
-        .max(50, 'First name must be 50 characters or less')
-        .regex(/^[a-zA-Z\s\-']+$/, 'First name can only contain letters, spaces, hyphens, and apostrophes'),
-    family_name: z.string()
-        .min(2, 'Last name must be at least 2 characters')
-        .max(50, 'Last name must be 50 characters or less')
-        .regex(/^[a-zA-Z\s\-']+$/, 'Last name can only contain letters, spaces, hyphens, and apostrophes'),
-    display_email: z.string()
-        .email('Please enter a valid email address')
-        .max(255, 'Email address is too long'),
-    password: z.string()
-        .min(8, 'Password must be at least 8 characters')
-        .max(128, 'Password is too long')
-        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one lowercase letter, one uppercase letter, and one number'),
-    is_admin: z.boolean().default(false),
-});
-
-// Schema for permission updates
-const PermissionUpdateSchema = z.object({
-    can_access_qbo: z.boolean().optional(),
-    can_access_xero: z.boolean().optional(),
-    can_refresh_tokens: z.boolean().optional(),
-    access_level: z.enum(['read', 'write', 'admin']).optional(),
-});
-
-type UserUpdateData = z.infer<typeof UserUpdateSchema>;
-
-// Zod validation utility function
-const validateWithZod = (schema: z.ZodSchema<any>, data: unknown): { isValid: boolean; errors: Record<string, string> } => {
-    try {
-        schema.parse(data);
-        return { isValid: true, errors: {} };
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            const newErrors: Record<string, string> = {};
-            error.issues.forEach((issue: z.core.$ZodIssue) => {
-                if (issue.path[0]) {
-                    newErrors[issue.path[0] as string] = issue.message;
-                }
-            });
-            return { isValid: false, errors: newErrors };
-        }
-        return { isValid: false, errors: { general: 'Validation failed' } };
-    }
-};
-
-// Security and permission utilities
-const canEditUser = (targetUser: ExtendedUserData, currentUser: ExtendedUserData | null): boolean => {
-    if (!currentUser) return false;
-    if (!currentUser.is_admin) return false;
-    if (targetUser.id === currentUser.id) return false; // Can't edit yourself
-    return true;
-};
-
-const canDeleteUser = (targetUser: ExtendedUserData, currentUser: ExtendedUserData | null): boolean => {
-    if (!currentUser) return false;
-    if (!currentUser.is_admin) return false;
-    if (targetUser.id === currentUser.id) return false; // Can't delete yourself
-    return true;
-};
-
-const canChangePermissions = (targetUser: ExtendedUserData, currentUser: ExtendedUserData | null): boolean => {
-    if (!currentUser) return false;
-    if (!currentUser.is_admin) return false;
-    if (targetUser.id === currentUser.id) return false; // Can't change own permissions
-    return true;
-};
-
-const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, onSave, currentUser }) => {
-    const [formData, setFormData] = useState<UserUpdateData>({});
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [isLoading, setIsLoading] = useState(false);
-    const [hasChanges, setHasChanges] = useState(false);
-
-    useEffect(() => {
-        if (user) {
-            setFormData({
-                given_name: user.given_name || '',
-                family_name: user.family_name || '',
-                display_email: user.display_email || '',
-                is_admin: user.is_admin || false,
-            });
-            setErrors({});
-            setHasChanges(false);
-        }
-    }, [user]);
-
-    const handleChange = (field: keyof UserUpdateData, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        setHasChanges(true);
-        
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: '' }));
-        }
-    };
-
-    const validateForm = (): boolean => {
-        const validation = validateWithZod(UserUpdateSchema, formData);
-        setErrors(validation.errors);
-        return validation.isValid;
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!user || !currentUser) return;
-
-        // Security check
-        if (!canEditUser(user, currentUser)) {
-            console.error('Unauthorized attempt to edit user');
-            return;
-        }
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            await onSave(user.id, formData);
-            onClose();
-        } catch (error) {
-            console.error('Failed to update user:', error);
-            // Error is handled by the parent component
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleClose = () => {
-        if (hasChanges) {
-            // Could add confirmation dialog here
-            console.log('Discarding unsaved changes');
-        }
-        onClose();
-    };
-
-    if (!user || !currentUser) return null;
-
-    // Security check - if user can't edit, don't show dialog
-    if (!canEditUser(user, currentUser)) {
-        console.error('Unauthorized access attempt to edit user dialog');
-        return null;
-    }
-
-    return (
-        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                    <PersonIcon color="primary" />
-                    <Typography variant="h6">Edit User: {user.display_email}</Typography>
-                </Stack>
-            </DialogTitle>
-            <form onSubmit={handleSubmit}>
-                <DialogContent>
-                    <Stack spacing={3}>
-                        <TextField
-                            label="First Name"
-                            value={formData.given_name || ''}
-                            onChange={(e) => handleChange('given_name', e.target.value)}
-                            error={!!errors.given_name}
-                            helperText={errors.given_name}
-                            fullWidth
-                            required
-                            inputProps={{
-                                maxLength: 50
-                            }}
-                        />
-                        <TextField
-                            label="Last Name"
-                            value={formData.family_name || ''}
-                            onChange={(e) => handleChange('family_name', e.target.value)}
-                            error={!!errors.family_name}
-                            helperText={errors.family_name}
-                            fullWidth
-                            required
-                            inputProps={{
-                                maxLength: 50
-                            }}
-                        />
-                        <TextField
-                            label="Email"
-                            type="email"
-                            value={formData.display_email || ''}
-                            onChange={(e) => handleChange('display_email', e.target.value)}
-                            error={!!errors.display_email}
-                            helperText={errors.display_email}
-                            fullWidth
-                            required
-                            inputProps={{
-                                maxLength: 255
-                            }}
-                        />
-                        <Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                Admin privileges allow full system access including user management
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Checkbox
-                                    checked={formData.is_admin || false}
-                                    onChange={(e) => handleChange('is_admin', e.target.checked)}
-                                    color="primary"
-                                />
-                                <Typography component="span" variant="body2">
-                                    Grant admin privileges
-                                </Typography>
-                            </Box>
-                            {formData.is_admin && (
-                                <Alert severity="warning" sx={{ mt: 1 }}>
-                                    <Typography variant="caption">
-                                        <strong>Warning:</strong> Admin users have full access to the system, including the ability to manage other users and access all data.
-                                    </Typography>
-                                </Alert>
-                            )}
-                        </Box>
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button 
-                        type="submit" 
-                        variant="contained" 
-                        disabled={isLoading || !hasChanges}
-                        startIcon={<SaveIcon />}
-                    >
-                        {isLoading ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                </DialogActions>
-            </form>
-        </Dialog>
-    );
-};
+import { ExtendedUserData, PermissionChangeConfirm } from './userManagement/types';
 
 const UsersManagement = () => {
     const [isAddDialogOpen, setAddDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<ExtendedUserData | null>(null);
     const [userToEdit, setUserToEdit] = useState<ExtendedUserData | null>(null);
     const [isDisconnecting, setDisconnecting] = useState(false);
-    const [permissionChangeConfirm, setPermissionChangeConfirm] = useState<{
-        userId: string;
-        field: string;
-        value: any;
-        user: ExtendedUserData;
-    } | null>(null);
+    const [permissionChangeConfirm, setPermissionChangeConfirm] = useState<PermissionChangeConfirm | null>(null);
     
     const navigate = useNavigate();
     const { handleOpenSnackbar } = useSnackbarContext();
@@ -372,7 +78,7 @@ const UsersManagement = () => {
 
     // Mutation for adding a new user
     const addUserMutation = useMutation({
-        mutationFn: async (newUserData: Omit<UserData, 'id' | 'company_id'>) => {
+        mutationFn: async (newUserData: Omit<ExtendedUserData, 'id' | 'company_id'>) => {
             return await registerUser(
                 newUserData.display_email,
                 newUserData.given_name,
@@ -393,7 +99,7 @@ const UsersManagement = () => {
 
     // Mutation for updating user information
     const updateUserMutation = useMutation({
-        mutationFn: async ({ userId, data }: { userId: string; data: Partial<UserData> }) => {
+        mutationFn: async ({ userId, data }: { userId: string; data: Partial<ExtendedUserData> }) => {
             return await updateUser(userId, data);
         },
         onSuccess: () => {
@@ -406,27 +112,17 @@ const UsersManagement = () => {
         },
     });
 
-    const handleAddUser = async (newUserData: Omit<UserData, 'id' | 'company_id'>) => {
+    const handleAddUser = async (newUserData: Omit<ExtendedUserData, 'id' | 'company_id'>) => {
         try {
             await addUserMutation.mutateAsync(newUserData);
             return true;
-        } catch (error) {
+        } catch (_error) {
             return false;
         }
     };
 
-    const handleUpdateUser = async (userId: string, data: Partial<UserData>) => {
-        // Security check
-        if (!currentUser || !canEditUser(userList.find((u: ExtendedUserData) => u.id === userId)!, currentUser)) {
-            handleOpenSnackbar('You do not have permission to edit this user.', 'error');
-            return;
-        }
-
-        try {
-            await updateUserMutation.mutateAsync({ userId, data });
-        } catch (error) {
-            throw error;
-        }
+    const handleUpdateUser = async (userId: string, data: Partial<ExtendedUserData>) => {
+        await updateUserMutation.mutateAsync({ userId, data });
     };
 
     // Mutation for updating user permissions
@@ -458,12 +154,6 @@ const UsersManagement = () => {
         const targetUser = userList.find((u: ExtendedUserData) => u.id === userId);
         if (!targetUser || !currentUser) return;
 
-        // Security check
-        if (!canChangePermissions(targetUser, currentUser)) {
-            handleOpenSnackbar('You do not have permission to change permissions for this user.', 'error');
-            return;
-        }
-
         // For sensitive permission changes, show confirmation
         if (field === 'access_level' && value === 'admin') {
             setPermissionChangeConfirm({ userId, field, value, user: targetUser });
@@ -476,7 +166,7 @@ const UsersManagement = () => {
     const performPermissionUpdate = async (userId: string, field: string, value: any) => {
         try {
             await updatePermissionsMutation.mutateAsync({ userId, field, value });
-        } catch (error) {
+        } catch (_error) {
             // Error is handled by the mutation
         }
     };
@@ -509,16 +199,9 @@ const UsersManagement = () => {
     const handleDeleteUser = async () => {
         if (!userToDelete || !currentUser) return;
 
-        // Security check
-        if (!canDeleteUser(userToDelete, currentUser)) {
-            handleOpenSnackbar('You do not have permission to delete this user.', 'error');
-            setUserToDelete(null);
-            return;
-        }
-
         try {
             await deleteUserMutation.mutateAsync(userToDelete.id);
-        } catch (error) {
+        } catch (_error) {
             // Error is handled by the mutation
         } finally {
             setUserToDelete(null);
@@ -543,7 +226,7 @@ const UsersManagement = () => {
     const handleQbDisconnect = async () => {
         try {
             await disconnectQBMutation.mutateAsync();
-        } catch (error) {
+        } catch (_error) {
             // Error is handled by the mutation
         } finally {
             setDisconnecting(false);
@@ -633,131 +316,16 @@ const UsersManagement = () => {
                                             <UserTableSkeleton />
                                         </TableCell>
                                     </TableRow>
-                                ) : userList.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={7} align="center">
-                                            <Typography color="text.secondary">No users found</Typography>
-                                        </TableCell>
-                                    </TableRow>
                                 ) : (
-                                    userList.map((user: ExtendedUserData) => {
-                                        const canEdit = canEditUser(user, currentUser);
-                                        const canDelete = canDeleteUser(user, currentUser);
-                                        const canChangePerms = canChangePermissions(user, currentUser);
-                                        
-                                        return (
-                                            <TableRow key={user.id} hover>
-                                                {/* User Information */}
-                                                <TableCell>
-                                                    <Box>
-                                                        <Typography variant="body1" fontWeight="medium">
-                                                            {user.display_email}
-                                                        </Typography>
-                                                        <Box display="flex" alignItems="center" gap={1}>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {user.given_name} {user.family_name}
-                                                            </Typography>
-                                                            {user.id === currentUser?.id && (
-                                                                <Chip label="You" size="small" color="info" />
-                                                            )}
-                                                        </Box>
-                                                    </Box>
-                                                </TableCell>
-
-                                                {/* Admin Status */}
-                                                <TableCell align="center">
-                                                    <Chip 
-                                                        label={user.is_admin ? "Admin" : "User"} 
-                                                        size="small" 
-                                                        color={user.is_admin ? "primary" : "default"}
-                                                    />
-                                                </TableCell>
-
-                                                {/* QBO Access */}
-                                                <TableCell align="center">
-                                                    <Checkbox
-                                                        checked={user.can_access_qbo || false}
-                                                        onChange={(e) => handlePermissionUpdate(user.id, 'can_access_qbo', e.target.checked)}
-                                                        color="primary"
-                                                        disabled={!canChangePerms || updatePermissionsMutation.isPending}
-                                                    />
-                                                </TableCell>
-
-                                                {/* Xero Access */}
-                                                <TableCell align="center">
-                                                    <Checkbox
-                                                        checked={user.can_access_xero || false}
-                                                        onChange={(e) => handlePermissionUpdate(user.id, 'can_access_xero', e.target.checked)}
-                                                        color="primary"
-                                                        disabled={!canChangePerms || updatePermissionsMutation.isPending}
-                                                    />
-                                                </TableCell>
-
-                                                {/* Token Refresh */}
-                                                <TableCell align="center">
-                                                    <Checkbox
-                                                        checked={user.can_refresh_tokens || false}
-                                                        onChange={(e) => handlePermissionUpdate(user.id, 'can_refresh_tokens', e.target.checked)}
-                                                        color="primary"
-                                                        disabled={!canChangePerms || updatePermissionsMutation.isPending}
-                                                    />
-                                                </TableCell>
-
-                                                {/* Access Level */}
-                                                <TableCell align="center">
-                                                    <FormControl size="small">
-                                                        <Select
-                                                            value={user.access_level || 'read'}
-                                                            onChange={(e) => handlePermissionUpdate(user.id, 'access_level', e.target.value)}
-                                                            displayEmpty
-                                                            disabled={!canChangePerms || updatePermissionsMutation.isPending}
-                                                        >
-                                                            <MenuItem value="read">Read</MenuItem>
-                                                            <MenuItem value="write">Write</MenuItem>
-                                                            <MenuItem value="admin">
-                                                                Admin
-                                                            </MenuItem>
-                                                        </Select>
-                                                    </FormControl>
-                                                </TableCell>
-
-                                                {/* Actions */}
-                                                <TableCell align="center">
-                                                    <Stack direction="row" spacing={1} justifyContent="center">
-                                                        {canEdit && (
-                                                            <Tooltip title="Edit user information">
-                                                                <IconButton
-                                                                    color="primary"
-                                                                    size="small"
-                                                                    onClick={() => setUserToEdit(user)}
-                                                                    disabled={updateUserMutation.isPending}
-                                                                >
-                                                                    <EditIcon />
-                                                                </IconButton>
-                                                            </Tooltip>
-                        )}
-                                                        {canDelete && (
-                                                            <Tooltip title="Delete user">
-                                                                <IconButton
-                                                                    color="error"
-                                                                    size="small"
-                                                                    onClick={() => setUserToDelete(user)}
-                                                                    disabled={deleteUserMutation.isPending}
-                                                                >
-                                                                    <DeleteIcon />
-                                                                </IconButton>
-                                                            </Tooltip>
-                                                        )}
-                                                        {!canEdit && !canDelete && (
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                No actions available
-                                                            </Typography>
-                                                        )}
-                                                    </Stack>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
+                                    <UserTable
+                                        userList={userList}
+                                        currentUser={currentUser}
+                                        isLoading={isLoading}
+                                        updatePermissionsMutation={updatePermissionsMutation}
+                                        onEditUser={setUserToEdit}
+                                        onDeleteUser={setUserToDelete}
+                                        onPermissionUpdate={handlePermissionUpdate}
+                                    />
                                 )}
                             </TableBody>
                         </Table>

@@ -1,21 +1,20 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import { 
   Box, 
   Typography, 
   Stack,
   Card,
   CardContent,
-  useTheme
 } from '@mui/material';
 import { 
   Group as GroupIcon,
   Security as SecurityIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import UserManagement from '../UsersManagment';
+
+const UserManagement = lazy(() => import('../UsersManagment'));
 
 const UsersTab: React.FC = () => {
-  const theme = useTheme();
 
   return (
     <motion.div

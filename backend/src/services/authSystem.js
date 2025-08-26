@@ -1,5 +1,6 @@
 import OAuthClient from 'intuit-oauth';
 import { XeroClient } from 'xero-node';
+import QuickBooks from 'node-quickbooks';
 import crypto from 'crypto';
 
 /**
@@ -226,6 +227,26 @@ export class AuthSystem {
         return oauthClient.getToken().realmId;
     }
 
+        /**
+     * Creates an initialized node-quickbooks client instance
+     * @param {Object} token - A valid QBO token object from your database
+     * @returns {QuickBooks} Initialized node-quickbooks client
+     */
+    createQBOClient(token) {
+        return new QuickBooks(
+            this.qboClientId,               // consumerKey
+            this.qboClientSecret,           // consumerSecret
+            token.access_token,             // accessToken
+            false,                          // no token secret for OAuth 2.0
+            token.realmId,                  // realmId
+            this.environment === 'sandbox', // useSandbox
+            false,                          // enable debugging
+            '75',                           // minorversion
+            '2.0',                          // oAuth version
+            token.refresh_token             // refreshToken
+        );
+    }
+
     /**
      * Get Xero tenant ID from token
      * @param {XeroClient} xeroClient - Xero OAuth client
@@ -323,28 +344,23 @@ export class AuthSystem {
      * @returns {Promise<Object>} Company information
      */
     async getQBOCompanyInfo(token) {
-        const oauthClient = this.initializeQBO();
-        oauthClient.setToken(token);
-        
+        const qboClient = this.createQBOClient(token);
         try {
             const realmId = token.realmId;
-            const baseURL = this.getQBOBaseURL(oauthClient);
-            const queryStr = `SELECT * FROM CompanyInfo`;
-            
-            const response = await oauthClient.makeApiCall({
-                url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+
+            const companyInfo = await new Promise((resolve, reject) => {
+                qboClient.getCompanyInfo(token.realmId, (err, data) => {
+                    if (err) return reject(err);
+                    resolve(data);
+                });
             });
-            
-            const responseJSON = response.json;
-            // Filter out test companies
-            const companyInfoFull = responseJSON.QueryResponse.CompanyInfo[0];
-            
-            if (!companyInfoFull) {
+
+            if (!companyInfo || !companyInfo.CompanyName) {
                 throw new Error('No company information found');
             }
-            
+
             return {
-                companyName: companyInfoFull.CompanyName,
+                companyName: companyInfo.CompanyName,
                 realmId: realmId,
             };
         } catch (error) {
