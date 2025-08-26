@@ -48,7 +48,7 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
 
             const encryptedAccessToken = await encryptToken(token.access_token);
             const encryptedRefreshToken = await encryptToken(token.refresh_token);
-            const expiresAt = new Date(Date.now() + (token.expires_in * 1000));
+            const expiresAt = new Date(token.expires_at * 1000);
 
             const existingCompany = await query(
                 'SELECT id FROM companies WHERE xero_tenant_id = $1',

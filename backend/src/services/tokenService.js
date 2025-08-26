@@ -132,23 +132,17 @@ class TokenService {
     }  else if (connectionType === 'xero') {
       refreshToken = decryptToken(dbRow.xero_refresh_token);
     }
-    
-    let expiresAt;
-    if (connectionType === 'qbo') {
-      expiresAt = Math.floor(new Date(dbRow.qb_token_expires_at).getTime() / 1000);
-    } else if (connectionType === 'xero') {
-      expiresAt = Math.floor(new Date(dbRow.xero_token_expires_at).getTime() / 1000);
-    }
 
-    let connectionTokenInfo;
     if (connectionType === 'qbo') {
+      const expiresAtTimestamp = Math.floor(new Date(dbRow.qb_token_expires_at).getTime() / 1000);
       connectionTokenInfo = {
-        expires_in: expiresAt,
+        expires_at: expiresAtTimestamp,
         realmId: dbRow.qb_realm_id
       };
     } else if (connectionType === 'xero') {
+      const expiresAtTimestamp = Math.floor(new Date(dbRow.xero_token_expires_at).getTime() / 1000);
       connectionTokenInfo = {
-        expires_at: expiresAt,
+        expires_at: expiresAtTimestamp,
         tenant_id: dbRow.xero_tenant_id
       };
     }
@@ -162,11 +156,11 @@ class TokenService {
 
   validateQBOToken(token) {
     if (!token?.access_token) return false;
-    if (!token.access_token_expires_at) return false; // Changed from true to false - tokens without expiration are invalid
+    if (!token.expires_in) return false;
     
     const now = Math.floor(Date.now() / 1000);
     const buffer = 5 * 60;
-    return token.access_token_expires_at - buffer > now;
+    return token.expires_in - buffer > now;
   }
 
   validateXeroToken(token) {

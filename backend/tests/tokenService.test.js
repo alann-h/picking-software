@@ -14,7 +14,7 @@ jest.mock('../src/helpers.js', () => ({
     access_token: 'test_access_token',
     refresh_token: 'test_refresh_token',
     expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-    access_token_expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+    expires_in: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
   })
 }));
 
@@ -30,7 +30,7 @@ jest.mock('../src/services/authSystem.js', () => ({
     refreshQBOToken: jest.fn().mockResolvedValue({
       access_token: 'new_qbo_token',
       refresh_token: 'new_qbo_refresh',
-      access_token_expires_at: 1234567899
+      expires_in: 1234567899
     }),
     refreshXeroToken: jest.fn().mockResolvedValue({
       access_token: 'new_xero_token',
@@ -205,13 +205,13 @@ describe('TokenService', () => {
     it('should validate QBO token correctly', () => {
       const validToken = {
         access_token: 'valid_token',
-        access_token_expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+        expires_in: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
       };
       expect(tokenService.validateQBOToken(validToken)).toBe(true);
 
       const expiredToken = {
         access_token: 'expired_token',
-        access_token_expires_at: Math.floor(Date.now() / 1000) - 3600 // 1 hour ago
+        expires_in: Math.floor(Date.now() / 1000) - 3600 // 1 hour ago
       };
       expect(tokenService.validateQBOToken(expiredToken)).toBe(false);
     });
