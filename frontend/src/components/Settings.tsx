@@ -261,7 +261,7 @@ const Settings: React.FC = () => {
                       element={isAdmin ? <UploadTab refetch={refetch} /> : <Navigate to="/settings/products" replace />} 
                     />
                     <Route 
-                      path="users" 
+                      path="users/*" 
                       element={isAdmin ? <UsersTab /> : <Navigate to="/settings/products" replace />} 
                     />
                     <Route path="*" element={<Navigate to="products" replace />} />

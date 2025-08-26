@@ -24,7 +24,7 @@ export async function fetchCustomers(companyId, connectionType = 'qbo') {
 async function fetchQBOCustomers(oauthClient) {
   const baseURL = getBaseURL(oauthClient, 'qbo');
   const realmId = await getRealmId(oauthClient);
-  
+
   let allCustomers = [];
   let startPosition = 1;
   let pageSize = 100; // API limit
@@ -34,7 +34,6 @@ async function fetchQBOCustomers(oauthClient) {
     const response = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${realmId}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
     });
-
     const responseData = response.json;
     const customers = responseData.QueryResponse.Customer || [];
 
@@ -66,7 +65,7 @@ async function fetchXeroCustomers(oauthClient) {
         undefined,
         undefined,
         page,
-        200
+        100
       );
 
       const customers = response.body.contacts || [];

@@ -9,9 +9,8 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
 
             const encryptedAccessToken = await encryptToken(token.access_token);
             const encryptedRefreshToken = await encryptToken(token.refresh_token);
-            const expiresAt = token.access_token_expires_at ? 
-                new Date(token.access_token_expires_at * 1000) : null;
-            
+            const expiresAt = new Date(Date.now() + (token.expires_in * 1000));
+
             const existingCompany = await query(
                 'SELECT id FROM companies WHERE qb_realm_id = $1',
                 [companyDetails.realmId]
@@ -49,8 +48,7 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
 
             const encryptedAccessToken = await encryptToken(token.access_token);
             const encryptedRefreshToken = await encryptToken(token.refresh_token);
-            const expiresAt = token.expires_at ? 
-                new Date(token.expires_at * 1000) : null;
+            const expiresAt = new Date(Date.now() + (token.expires_in * 1000));
 
             const existingCompany = await query(
                 'SELECT id FROM companies WHERE xero_tenant_id = $1',

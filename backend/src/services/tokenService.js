@@ -125,26 +125,44 @@ class TokenService {
     }
 
     const accessToken = decryptToken(dbRow[handler.tokenField]);
-    const refreshToken = connectionType === 'qbo' ? 
-      (dbRow.qb_refresh_token ? decryptToken(dbRow.qb_refresh_token) : null) :
-      (dbRow.xero_refresh_token ? decryptToken(dbRow.xero_refresh_token) : null);
+
+    let refreshToken;
+    if (connectionType === 'qbo') {
+      refreshToken = decryptToken(dbRow.qb_refresh_token);
+    }  else if (connectionType === 'xero') {
+      refreshToken = decryptToken(dbRow.xero_refresh_token);
+    }
     
+    let expiresAt;
+    if (connectionType === 'qbo') {
+      expiresAt = Math.floor(new Date(dbRow.qb_token_expires_at).getTime() / 1000);
+    } else if (connectionType === 'xero') {
+      expiresAt = Math.floor(new Date(dbRow.xero_token_expires_at).getTime() / 1000);
+    }
+
+    let connectionTokenInfo;
+    if (connectionType === 'qbo') {
+      connectionTokenInfo = {
+        expires_in: expiresAt,
+        realmId: dbRow.qb_realm_id
+      };
+    } else if (connectionType === 'xero') {
+      connectionTokenInfo = {
+        expires_at: expiresAt,
+        tenant_id: dbRow.xero_tenant_id
+      };
+    }
+
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
-      ...(connectionType === 'qbo' ? {
-        access_token_expires_at: dbRow.qb_token_expires_at ? Math.floor(new Date(dbRow.qb_token_expires_at).getTime() / 1000) : null,
-        realmId: dbRow.qb_realm_id
-      } : {
-        expires_at: dbRow.xero_token_expires_at ? Math.floor(new Date(dbRow.xero_token_expires_at).getTime() / 1000) : null,
-        tenant_id: dbRow.xero_tenant_id
-      })
+      ...connectionTokenInfo
     };
   }
 
   validateQBOToken(token) {
     if (!token?.access_token) return false;
-    if (!token.access_token_expires_at) return true;
+    if (!token.access_token_expires_at) return false; // Changed from true to false - tokens without expiration are invalid
     
     const now = Math.floor(Date.now() / 1000);
     const buffer = 5 * 60;
@@ -165,22 +183,26 @@ class TokenService {
 
     try {
       const refreshedToken = await handler.refresh(currentToken);
-      const encryptedToken = encryptToken(refreshedToken);
-      
+      const encryptedAccessToken = await encryptToken(refreshedToken.access_token);
+      const encryptedRefreshToken = await encryptToken(refreshedToken.refresh_token);
+      const expiresAt = connectionType === 'qbo' ? new Date(refreshedToken.expires_in * 1000) : new Date(refreshedToken.expires_at * 1000);
+
+
       const updateFields = connectionType === 'qbo' ? {
-        qb_token: encryptedToken.access_token,
-        qb_refresh_token: encryptedToken.refresh_token,
-        qb_token_expires_at: refreshedToken.access_token_expires_at ? new Date(refreshedToken.access_token_expires_at * 1000) : null
+        qb_token: encryptedAccessToken,
+        qb_refresh_token: encryptedRefreshToken,
+        qb_token_expires_at: expiresAt
       } : {
-        xero_token: encryptedToken.access_token,
-        xero_refresh_token: encryptedToken.refresh_token,
-        xero_token_expires_at: refreshedToken.expires_at ? new Date(refreshedToken.expires_at * 1000) : null
+        xero_token: encryptedAccessToken,
+        xero_refresh_token: encryptedRefreshToken,
+        xero_token_expires_at: expiresAt
       };
 
       const setClause = Object.keys(updateFields).map((key, index) => `${key} = $${index + 2}`).join(', ');
       const values = [companyId, ...Object.values(updateFields)];
-      
-      await query(`UPDATE companies SET ${setClause} WHERE id = $1`, values);
+
+      await query(`UPDATE companies SET ${setClause} WHERE id = $1 RETURNING *`, values);
+
       return refreshedToken;
 
     } catch (error) {
