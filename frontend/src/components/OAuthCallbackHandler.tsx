@@ -9,6 +9,7 @@ const OAuthCallbackHandler = () => {
   useEffect(() => {
     verifyUser()
       .then(response => {
+        console.log('OAuthCallbackHandler response:', response);
         if (response.isValid) { 
           navigate('/dashboard');
         } else {

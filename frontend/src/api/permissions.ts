@@ -1,4 +1,5 @@
 import { apiCallGet, apiCallPost, apiCallDelete } from '../utils/apiHelpers';
+import { PERMISSIONS_BASE } from './config';
 
 // --- Types ---
 export interface UserPermissions {
@@ -61,28 +62,23 @@ export interface ConnectionHealth {
  * Get all users and their permissions for a company
  */
 export const getCompanyUserPermissions = async (companyId: string): Promise<CompanyUserPermission[]> => {
-  
-  try {
-    const response = await apiCallGet(`permissions/company/${companyId}`);
-    return response;
-  } catch (error) {
-    throw error;
-  }
+  const response = await apiCallGet(`${PERMISSIONS_BASE}/company/${companyId}`);
+  return response;
 };
 
 /**
  * Update user permissions for a company
  */
 export const updateUserPermissions = async (userId: string, request: PermissionUpdateRequest): Promise<any> => {
-  const response = await apiCallPost(`permissions/user/${userId}`, request);
+  const response = await apiCallPost(`${PERMISSIONS_BASE}/user/${userId}`, request);
   return response;
 };
 
 /**
  * Revoke all permissions for a user in a company
  */
-export const revokeUserPermissions = async (userId: string, companyId: string): Promise<any> => {
-  const response = await apiCallDelete(`permissions/user/${userId}`);
+export const revokeUserPermissions = async (userId: string): Promise<any> => {
+  const response = await apiCallDelete(`${PERMISSIONS_BASE}/user/${userId}`);
   return response;
 };
 
@@ -101,7 +97,7 @@ export const getCompanyAuditLogs = async (
   if (offset !== 0) params.append('offset', offset.toString());
   
   const queryString = params.toString();
-  const url = queryString ? `permissions/audit/${companyId}?${queryString}` : `permissions/audit/${companyId}`;
+  const url = queryString ? `${PERMISSIONS_BASE}/audit/${companyId}?${queryString}` : `${PERMISSIONS_BASE}/audit/${companyId}`;
   
   const response = await apiCallGet(url);
   return response;
@@ -120,7 +116,7 @@ export const getUserAuditLogs = async (
   if (offset !== 0) params.append('offset', offset.toString());
   
   const queryString = params.toString();
-  const url = queryString ? `permissions/user-audit/${userId}?${queryString}` : `permissions/user-audit/${userId}`;
+  const url = queryString ? `api/permissions/user-audit/${userId}?${queryString}` : `api/permissions/user-audit/${userId}`;
   
   const response = await apiCallGet(url);
   return response;
@@ -130,7 +126,7 @@ export const getUserAuditLogs = async (
  * Get connection health for a company
  */
 export const getConnectionHealth = async (companyId: string): Promise<ConnectionHealth[]> => {
-  const response = await apiCallGet(`permissions/health/${companyId}`);
+  const response = await apiCallGet(`api/permissions/health/${companyId}`);
   return response;
 };
 
@@ -142,7 +138,7 @@ export const getFailedApiCalls = async (companyId: string, hours: number = 24): 
   if (hours !== 24) params.append('hours', hours.toString());
   
   const queryString = params.toString();
-  const url = queryString ? `permissions/failed-calls/${companyId}?${queryString}` : `permissions/failed-calls/${companyId}`;
+  const url = queryString ? `api/permissions/failed-calls/${companyId}?${queryString}` : `api/permissions/failed-calls/${companyId}`;
   
   const response = await apiCallGet(url);
   return response;
@@ -214,7 +210,7 @@ export const getCurrentUserPermissions = async (companyId: string): Promise<User
   try {
     // This would typically get the current user ID from your auth context
     // For now, we'll need to pass it in or get it from the session
-    const response = await apiCallGet(`permissions/current-user/${companyId}`);
+    const response = await apiCallGet(`api/permissions/current-user/${companyId}`);
     return response;
   } catch (error) {
     console.error('Error getting current user permissions:', error);

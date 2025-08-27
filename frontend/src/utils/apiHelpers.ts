@@ -1,4 +1,4 @@
-import { API_BASE } from '../api/config';
+import { CSRF_TOKEN, API_BASE } from '../api/config';
 
 // --- CSRF Token Management ---
 let cachedCsrfToken: string | null;
@@ -13,7 +13,7 @@ let cachedCsrfToken: string | null;
  */
 export const fetchAndCacheCsrfToken = async (): Promise<string> => {
     try {
-        const response = await fetch(`${API_BASE}/csrf-token`, {
+        const response = await fetch(`${API_BASE}/${CSRF_TOKEN}`, {
             credentials: 'include'
         });
         if (!response.ok) {

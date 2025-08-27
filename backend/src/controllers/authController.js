@@ -41,7 +41,12 @@ export async function callback(req, res, next) {
     const token = await authService.handleCallback(fullUrl, connectionType);
     const companyInfo = await saveCompanyInfo(token, connectionType);
     const user = await authService.saveUserFromOAuth(token, companyInfo.id, connectionType);
-    const customers = await fetchCustomers(companyInfo.id, connectionType);
+    
+    fetchCustomers(companyInfo.id, connectionType)
+      .then(customers => saveCustomers(customers, companyInfo.id))
+      .then(() => console.log(`[Background Sync] Successfully synced customers for company ${companyInfo.id}`))
+      .catch(err => console.error(`[Background Sync] FAILED for company ${companyInfo.id}:`, err));
+
 
     req.session.companyId = companyInfo.id;
     req.session.isAdmin = true;
@@ -57,7 +62,10 @@ export async function callback(req, res, next) {
     }
 
     req.session.save(err => {
-      if (err) return next(err);
+      if (err) {
+        console.error('[OAuth Callback] Session save error:', err);
+        return next(err);
+      }
       const redirectUri =
         process.env.VITE_APP_ENV === 'production'
           ? 'https://smartpicker.au/oauth/callback'

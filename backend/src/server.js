@@ -29,6 +29,7 @@ import quoteRoutes from './routes/quoteRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import runRoutes from './routes/runRoutes.js';
 import permissionRoutes from './routes/permissionRoutes.js';
+import webhookRoutes from './routes/webhookRoutes.js';
 
 import asyncHandler from './middlewares/asyncHandler.js';
 import { isAuthenticated } from './middlewares/authMiddleware.js';
@@ -220,14 +221,13 @@ const generalLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Apply rate limiting to sensitive endpoints
-app.use('/auth/login', loginLimiter);
-app.use('/auth/register', generalLimiter);
-app.use('/auth', generalLimiter);
+// Apply rate limiting to API endpoints
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/register', generalLimiter);
+app.use('/api', generalLimiter);
 
 // Public & CSRF-protected routes
-// src/server.js
-app.get('/csrf-token', (req, res, next) => {
+app.get('/api/csrf-token', (req, res, next) => {
   try {
     const csrfToken = generateCsrfToken(req, res);
     req.session.csrfSessionEnsured = true;
@@ -245,22 +245,62 @@ app.get('/csrf-token', (req, res, next) => {
 });
 
 // Feature routes
-app.use('/auth', authRoutes);
-app.use('/customers', customerRoutes);
-app.use('/quotes', quoteRoutes);
-app.use('/products', productRoutes);
-app.use('/runs', runRoutes);
-app.use('/permissions', permissionRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/quotes', quoteRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/runs', runRoutes);
+app.use('/api/permissions', permissionRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 // Utility routes
-app.get('/verifyUser', asyncHandler(async (req, res) => {
-  // Check if session exists and has required user data
+app.get('/api/verifyUser', asyncHandler(async (req, res) => {
+  console.log('[VerifyUser] Request headers:', {
+    host: req.get('host'),
+    origin: req.get('origin'),
+    referer: req.get('referer'),
+    cookie: req.get('cookie')
+  });
+  
+  console.log('[VerifyUser] Session check:', {
+    sessionExists: !!req.session,
+    sessionId: req.session?.id,
+    userId: req.session?.userId,
+    companyId: req.session?.companyId,
+    email: req.session?.email,
+    isAdmin: req.session?.isAdmin,
+    fullSession: req.session
+  });
+
+  // Debug: Check if session exists in database
+  if (req.session && req.session.id) {
+    try {
+      const client = await pool.connect();
+      try {
+        const result = await client.query(
+          'SELECT sess FROM sessions WHERE sid = $1',
+          [req.session.id]
+        );
+        if (result.rows.length > 0) {
+          console.log('[VerifyUser] Session found in database:', result.rows[0].sess);
+        } else {
+          console.log('[VerifyUser] Session NOT found in database');
+        }
+      } finally {
+        client.release();
+      }
+    } catch (dbError) {
+      console.error('[VerifyUser] Database error:', dbError);
+    }
+  }
+
   const hasValidSession = req.session && 
                          req.session.userId && 
                          req.session.companyId && 
                          req.session.email;
   
   if (hasValidSession) {
+    console.log('[VerifyUser] Valid session found');
     res.json({ 
       isValid: true, 
       user: {
@@ -272,6 +312,7 @@ app.get('/verifyUser', asyncHandler(async (req, res) => {
       }
     });
   } else {
+    console.log('[VerifyUser] Invalid session - missing required data');
     res.json({ isValid: false, user: null });
   }
 }));
@@ -569,7 +610,7 @@ app.get('/sessions/enhanced', asyncHandler(async (req, res) => {
   }
 }));
 
-app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
+app.get('/api/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   res.json({
     isAdmin: req.session.isAdmin || false,
     userId: req.session.userId,
@@ -581,7 +622,7 @@ app.get('/user-status', isAuthenticated, asyncHandler(async (req, res) => {
 
 // File upload route
 const upload = multer({ dest: '/tmp/' });
-app.post('/upload', isAuthenticated, upload.single('input'), asyncHandler(async (req, res) => {
+app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(async (req, res) => {
     if (!req.file?.path) {
       return res.status(400).json({ error: 'No file uploaded' });
     }

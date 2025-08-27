@@ -1,10 +1,11 @@
 import { apiCallGet, apiCallPost, apiCallDelete } from '../utils/apiHelpers';
+import { AUTH_BASE, VERIFY_USER } from './config';
 
 /**
  * Login user with credentials (for non admin users)
  */
 export const loginWithCredentials = async (email: string, password: string, rememberMe: boolean = false) => {
-  const data = await apiCallPost('auth/login', { email, password, rememberMe });
+  const data = await apiCallPost(`${AUTH_BASE}/login`, { email, password, rememberMe });
   return data;
 };
 
@@ -12,7 +13,7 @@ export const loginWithCredentials = async (email: string, password: string, reme
  * Verifies user
  */
 export const verifyUser = async () => {
-  const response = await apiCallGet('verifyUser');
+  const response = await apiCallGet(VERIFY_USER);
   return response;
 };
 
@@ -20,7 +21,7 @@ export const verifyUser = async () => {
  * Logout user from current session
  */
 export const logout = async () => {
-  const response = await apiCallPost('auth/logout', {});
+  const response = await apiCallPost(`${AUTH_BASE}/logout`, {});
   return response;
 };
 
@@ -70,6 +71,6 @@ export const getSecurityStats = async () => {
  * Disconnect from QuickBooks
  */
 export const disconnectQB = async() => {
-  const response = await apiCallDelete('auth/disconnect');
+  const response = await apiCallDelete(`${AUTH_BASE}/disconnect`);
   return response;
 }
