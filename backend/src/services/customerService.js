@@ -104,38 +104,3 @@ export async function saveCustomers(customers, companyId) {
     throw new AccessError(error.message);
   }
 }
-
-export async function fetchSingleCustomer(companyId, customerId, connectionType) {
-  try {
-    if (connectionType === 'qbo') {
-      const qboClient = await tokenService.getQBODataClient(companyId);
-      
-      const response = await new Promise((resolve, reject) => {
-        qboClient.getCustomer(customerId, (err, data) => {
-          if (err) return reject(err);
-          resolve(data);
-        });
-      });
-
-      return {
-        customerId: response.Id,
-        customerName: response.DisplayName
-      };
-    }
-    else if (connectionType === 'xero') {
-      const oauthClient = await tokenService.getOAuthClient(companyId, 'xero');
-      const tenantId = await authSystem.getXeroTenantId(oauthClient);
-      
-      const response = await oauthClient.accountingApi.getContact(tenantId, customerId);
-      const contact = response.body.contacts[0];
-      
-      return {
-        customerId: contact.contactID,
-        customerName: contact.name
-      };
-    }
-  } catch (error) {
-    console.error(`Failed to fetch single customer ${customerId}:`, error.message);
-    return null; // Return null to prevent crashes on failure
-  }
-}

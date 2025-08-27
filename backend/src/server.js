@@ -255,52 +255,12 @@ app.use('/api/webhooks', webhookRoutes);
 
 // Utility routes
 app.get('/api/verifyUser', asyncHandler(async (req, res) => {
-  console.log('[VerifyUser] Request headers:', {
-    host: req.get('host'),
-    origin: req.get('origin'),
-    referer: req.get('referer'),
-    cookie: req.get('cookie')
-  });
-  
-  console.log('[VerifyUser] Session check:', {
-    sessionExists: !!req.session,
-    sessionId: req.session?.id,
-    userId: req.session?.userId,
-    companyId: req.session?.companyId,
-    email: req.session?.email,
-    isAdmin: req.session?.isAdmin,
-    fullSession: req.session
-  });
-
-  // Debug: Check if session exists in database
-  if (req.session && req.session.id) {
-    try {
-      const client = await pool.connect();
-      try {
-        const result = await client.query(
-          'SELECT sess FROM sessions WHERE sid = $1',
-          [req.session.id]
-        );
-        if (result.rows.length > 0) {
-          console.log('[VerifyUser] Session found in database:', result.rows[0].sess);
-        } else {
-          console.log('[VerifyUser] Session NOT found in database');
-        }
-      } finally {
-        client.release();
-      }
-    } catch (dbError) {
-      console.error('[VerifyUser] Database error:', dbError);
-    }
-  }
-
   const hasValidSession = req.session && 
                          req.session.userId && 
                          req.session.companyId && 
                          req.session.email;
   
   if (hasValidSession) {
-    console.log('[VerifyUser] Valid session found');
     res.json({ 
       isValid: true, 
       user: {
@@ -312,7 +272,6 @@ app.get('/api/verifyUser', asyncHandler(async (req, res) => {
       }
     });
   } else {
-    console.log('[VerifyUser] Invalid session - missing required data');
     res.json({ isValid: false, user: null });
   }
 }));
