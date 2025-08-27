@@ -19,7 +19,6 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  useTheme,
   LinearProgress
 } from '@mui/material';
 import {
@@ -59,7 +58,6 @@ const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number; }
 const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const navigate = useNavigate();
-    const theme = useTheme();
     const { quoteCount } = useMemo(() => ({ quoteCount: (run.quotes || []).length }), [run.quotes]);
     
     const getStatusChipColor = (status: Run['status']) => {

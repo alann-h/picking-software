@@ -6,7 +6,6 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
     try {
         if (connectionType === 'qbo') {            
             const companyDetails = await authSystem.getQBOCompanyInfo(token);
-            console.log('companyDetails', companyDetails);
 
             const encryptedAccessToken = await encryptToken(token.access_token);
             const encryptedRefreshToken = await encryptToken(token.refresh_token);
@@ -18,7 +17,6 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
             );
 
             if (existingCompany.length > 0) {
-                // Update existing company - clear other connection fields
                 const result = await query(`
                     UPDATE companies 
                     SET 
@@ -35,7 +33,6 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
                 );
                 return result[0];
             } else {
-                // Insert new company
                 const result = await query(`
                     INSERT INTO companies (company_name, qb_realm_id, qb_token, qb_refresh_token, qb_token_expires_at, connection_type, xero_tenant_id, xero_token, xero_refresh_token, xero_token_expires_at) 
                     VALUES ($1, $2, $3, $4, $5, 'qbo', NULL, NULL, NULL, NULL)
@@ -57,7 +54,6 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
             );
 
             if (existingCompany.length > 0) {
-                // Update existing company - clear other connection fields and switch to Xero
                 const result = await query(`
                     UPDATE companies 
                     SET 
@@ -74,7 +70,6 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
                 );
                 return result[0];
             } else {
-                // Insert new company
                 const result = await query(`
                     INSERT INTO companies (company_name, xero_tenant_id, xero_token, xero_refresh_token, xero_token_expires_at, connection_type, qb_realm_id, qb_token, qb_refresh_token, qb_token_expires_at) 
                     VALUES ($1, $2, $3, $4, $5, 'xero', NULL, NULL, NULL, NULL)

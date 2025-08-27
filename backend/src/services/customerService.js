@@ -1,17 +1,15 @@
-import { getOAuthClient, getBaseURL, getTenantId, getRealmId } from '../services/authService.js';
+import { tokenService } from './tokenService.js';
+import { authSystem } from './authSystem.js';
 import { AccessError } from '../middlewares/errorHandler.js';
 import { transaction } from '../helpers.js';
 
 export async function fetchCustomers(companyId, connectionType = 'qbo') {
   try {
-    const oauthClient = await getOAuthClient(companyId, connectionType);
-    if (!oauthClient) {
-      throw new AccessError('OAuth client could not be initialised');
-    }
-
     if (connectionType === 'qbo') {
-      return await fetchQBOCustomers(oauthClient);
+      const qboClient = await tokenService.getQBODataClient(companyId);
+      return await fetchQBOCustomers(qboClient);
     } else if (connectionType === 'xero') {
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'xero');
       return await fetchXeroCustomers(oauthClient);
     } else {
       throw new AccessError(`Unsupported connection type: ${connectionType}`);
@@ -21,60 +19,53 @@ export async function fetchCustomers(companyId, connectionType = 'qbo') {
   }
 }
 
-async function fetchQBOCustomers(oauthClient) {
-  const baseURL = getBaseURL(oauthClient, 'qbo');
-  const realmId = await getRealmId(oauthClient);
-
-  let allCustomers = [];
-  let startPosition = 1;
-  let pageSize = 100; // API limit
-  let moreRecords = true;
-
-  while (moreRecords) {
-    const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${realmId}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
+async function fetchQBOCustomers(qboClient) {
+  try {
+    const response = await new Promise((resolve, reject) => {
+      qboClient.findCustomers((err, data) => {
+        if (err) return reject(err);
+        resolve(data);
+      });
     });
-    const responseData = response.json;
-    const customers = responseData.QueryResponse.Customer || [];
-
-    allCustomers.push(...customers.map(customer => ({
+    const customers = response.QueryResponse.Customer;
+    const allCustomers = customers.map(customer => ({
       customerId: customer.Id,
       customerName: customer.DisplayName
-    })));
-
-    if (customers.length < pageSize) {
-      moreRecords = false;
-    } else {
-      startPosition += pageSize;
-    }
+    }));
+    return allCustomers;
+  } catch (error) {
+    console.error('Error fetching QBO customers:', error);
+    throw new Error(`Failed to fetch QBO customers: ${error.message}`);
   }
-  return allCustomers;
 }
 
 async function fetchXeroCustomers(oauthClient) {
   try {
-    const tenantId = await getTenantId(oauthClient);
+    const tenantId = await authSystem.getXeroTenantId(oauthClient);
 
     let allCustomers = [];
     let page = 1;
     let hasMorePages = true;
 
+    const whereFilter = 'IsCustomer==true';
+
     while (hasMorePages) {
       const response = await oauthClient.accountingApi.getContacts(
         tenantId,
-        undefined,
-        undefined,
-        page,
-        100
+        undefined,  // ifModifiedSince
+        whereFilter, // where
+        undefined,  // order
+        undefined,  // iDs
+        page,       // page
+        true,       // includeArchived
+        true,       // summaryOnly
+        undefined,  // searchTerm
+        100         // pageSize
       );
 
       const customers = response.body.contacts || [];
       
-      const customerContacts = customers.filter(contact => 
-        contact.isCustomer === true || contact.isCustomer === undefined
-      );
-
-      allCustomers.push(...customerContacts.map(customer => ({
+      allCustomers.push(...customers.map(customer => ({
         customerId: customer.contactID,
         customerName: customer.name
       })));

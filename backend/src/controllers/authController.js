@@ -1,7 +1,8 @@
 // src/controllers/authController.js
 import * as authService from '../services/authService.js';
 import { saveCompanyInfo, removeCompanyData } from '../services/companyService.js';
-import { logSecurityEvent } from '../services/securityService.js'; // Added import for security logging
+import { logSecurityEvent } from '../services/securityService.js';
+import { fetchCustomers, saveCustomers } from '../services/customerService.js';
 
 // GET /auth/qbo-uri
 export async function qboAuthUri(req, res, next) {
@@ -40,6 +41,7 @@ export async function callback(req, res, next) {
     const token = await authService.handleCallback(fullUrl, connectionType);
     const companyInfo = await saveCompanyInfo(token, connectionType);
     const user = await authService.saveUserFromOAuth(token, companyInfo.id, connectionType);
+    const customers = await fetchCustomers(companyInfo.id, connectionType);
 
     req.session.companyId = companyInfo.id;
     req.session.isAdmin = true;
@@ -222,6 +224,7 @@ export async function disconnect(req, res, next) {
   try {
     const userId = req.session.userId;
     const companyId = req.session.companyId;
+    const connectionType = req.session.connectionType;
     
     console.log(`User ${userId} from company ${companyId} is disconnecting from QuickBooks`);
     
@@ -230,7 +233,7 @@ export async function disconnect(req, res, next) {
     }
 
     try {
-      const oauthClient = await authService.getOAuthClient(companyId);
+      const oauthClient = await authService.getOAuthClient(companyId, connectionType);
       const tokenToRevoke = oauthClient.getToken();
 
       await authService.revokeQuickBooksToken(tokenToRevoke);
