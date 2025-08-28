@@ -3,7 +3,7 @@ import {
   getCustomerQuotes,
   checkQuoteExists,
   fetchQuoteData,
-  getQbEstimate,
+  getEstimate,
   estimateToDB,
   getQuotesWithStatus,
   setOrderStatus,
@@ -38,7 +38,7 @@ export async function getEstimateById(req, res, next) {
       const quote = await fetchQuoteData(quoteId);
       return res.json({ source: 'database', data: quote });
     }
-    const [apiQuote] = await getQbEstimate(quoteId, req.session.companyId, false);
+    const [apiQuote] = await getEstimate(quoteId, req.session.companyId, false, req.session.connectionType);
    if (!apiQuote) {
       return res.status(404).json({
         source: 'api',
@@ -86,7 +86,7 @@ export async function syncToQuickBooks(req, res, next) {
   try {
     const { quoteId } = req.params;
     const localQuote = await fetchQuoteData(quoteId);
-    const rawData = await getQbEstimate(quoteId, req.session.companyId, true);
+    const rawData = await getEstimate(quoteId, req.session.companyId, true, req.session.connectionType);
     const result = await updateQuoteInQuickBooks(quoteId, localQuote, rawData, req.session.companyId);
     res.json({ message: result.message });
   } catch (err) {
