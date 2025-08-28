@@ -2,24 +2,38 @@ import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query, transaction, roundQuantity, formatTimestampForSydney } from '../helpers.js';
 import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { getProductsFromDBByIds, productIdToExternalId } from './productService.js';
+import { tokenService } from './tokenService.js';
+import { authSystem } from './authSystem.js';
 
-export async function getCustomerQuotes(customerId, companyId) {
+export async function getCustomerQuotes(customerId, companyId, connectionType) {
   try {
-    const oauthClient = await getOAuthClient(companyId);
-    if (!oauthClient) {
-      throw new AccessError('OAuth client could not be initialised');
+    if (connectionType === 'qbo') {
+      const qboClient = await tokenService.getQBODataClient(companyId);
+      return await getQboCustomerQuotes(qboClient, customerId);
+    } else if (connectionType === 'xero') {
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'xero');
+      return await getXeroCustomerQuotes(oauthClient, customerId);
+    } else {
+      throw new AccessError(`Unsupported connection type: ${connectionType}`);
     }
-    const baseURL = getBaseURL(oauthClient, 'qbo');
-    const realmId = getRealmId(oauthClient);
+  } catch (error) {
+    throw new InputError('Failed to fetch customer quotes: ' + error.message);
+  }
+}
 
-    const queryStr = `SELECT * from estimate WHERE CustomerRef='${customerId}'`;
-    const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+async function getQboCustomerQuotes(qboClient, customerId) {
+  try {
+    const response = await new Promise((resolve, reject) => {
+
+      const criteria = `CustomerRef = '${customerId}'`;
+      qboClient.findEstimates(criteria, (err, data) => {
+        if (err) return reject(err);
+        resolve(data);
+      });
     });
 
-    const responseJSON = response.json;
-    const estimates = responseJSON.QueryResponse.Estimate || [];
-
+    const estimates = response.QueryResponse.Estimate || [];
+    
     const customerQuotes = estimates
       .filter(quote => quote.TxnStatus !== 'Closed')
       .map(quote => ({
@@ -28,9 +42,48 @@ export async function getCustomerQuotes(customerId, companyId) {
         customerName: quote.CustomerRef.name,
         lastModified: quote.MetaData.LastUpdatedTime,
       }));
+    
     return customerQuotes;
-  } catch {
-    throw new InputError('This quote does not exist');
+  } catch (error) {
+    console.error('Error fetching QBO customer quotes:', error);
+    throw new Error(`Failed to fetch QBO customer quotes: ${error.message}`);
+  }
+}
+
+async function getXeroCustomerQuotes(oauthClient, customerId) {
+  try {
+    const tenantId = await authSystem.getXeroTenantId(oauthClient);
+
+    // Filter for open quotes - Xero quotes are typically drafts
+    let whereFilter = '(Status == "DRAFT")';
+    if (customerId) {
+      whereFilter += ` AND Contact.ContactID == "${customerId}"`;
+    }
+
+    const response = await oauthClient.accountingApi.getQuotes(
+      tenantId,
+      undefined,  // ifModifiedSince
+      whereFilter, // where
+      undefined,  // order
+      undefined,  // iDs
+      1,          // page
+      false,      // includeArchived
+      undefined,  // searchTerm
+      100         // pageSize
+    );
+
+    const quotes = response.body.quotes || [];
+    
+    return quotes.map(quote => ({
+      id: Number(quote.quoteID),
+      totalAmount: quote.Total || 0,
+      customerName: quote.Contact?.name || 'Unknown Customer',
+      lastModified: quote.UpdatedDateUTC,
+    }));
+
+  } catch (error) {
+    console.error('Error fetching Xero customer quotes:', error);
+    throw new Error(`Failed to fetch Xero customer quotes: ${error.message}`);
   }
 }
 

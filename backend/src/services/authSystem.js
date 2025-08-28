@@ -143,7 +143,7 @@ export class AuthSystem {
     async refreshQBOToken(token) {
         const oauthClient = this.initializeQBO();
         oauthClient.setToken(token);
-
+        console.log('refreshQBOToken', oauthClient.getToken());
         if (oauthClient.isAccessTokenValid()) {
             return token;
         }

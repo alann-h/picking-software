@@ -15,22 +15,20 @@ class TokenService {
   initializeConnectionHandlers() {
     const handlers = {
       qbo: {
-        fields: ['qb_token', 'qb_refresh_token', 'qb_token_expires_at', 'qb_realm_id'],
-        tokenField: 'qb_token',
-        realmField: 'qb_realm_id',
+        fields: ['qbo_token_data', 'connection_type', 'qbo_realm_id'],
+        tokenField: 'qbo_token_data',
         validate: this.validateQBOToken.bind(this),
         refresh: authSystem.refreshQBOToken.bind(authSystem),
         initClient: () => authSystem.initializeQBO(),
         setClientToken: (client, token) => client.setToken(token)
       },
       xero: {
-        fields: ['xero_token', 'xero_refresh_token', 'xero_token_expires_at', 'xero_tenant_id'],
-        tokenField: 'xero_token',
-        tenantIdField: 'xero_tenant_id',
+        fields: ['xero_token_data', 'connection_type', 'xero_tenant_id'],
+        tokenField: 'xero_token_data',
         validate: this.validateXeroToken.bind(this),
         refresh: authSystem.refreshXeroToken.bind(authSystem),
         initClient: () => authSystem.initializeXero(),
-        setClientToken: (client, token) => client.setToken(token)
+        setClientToken: (client, token) => client.setClientToken(token)
       }
     };
 
@@ -116,49 +114,42 @@ class TokenService {
       );
     }
 
-    if (connectionType === 'xero' && !dbRow.xero_refresh_token) {
-      throw new AuthenticationError(AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
+    try {
+      // Decrypt and parse the consolidated token data
+      const decryptedData = decryptToken(dbRow[handler.tokenField]);
+      const tokenData = JSON.parse(decryptedData);
+
+      if (connectionType === 'qbo') {
+        return {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_in: tokenData.expires_in,
+          x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
+          realmId: tokenData.realm_id
+        };
+      } else if (connectionType === 'xero') {
+        return {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_at: tokenData.expires_at,
+          tenant_id: tokenData.tenant_id
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing token data:', error);
+      throw new AuthenticationError(
+        connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED
+      );
     }
-
-    const accessToken = decryptToken(dbRow[handler.tokenField]);
-    const refreshToken = decryptToken(dbRow[connectionType === 'qbo' ? 'qb_refresh_token' : 'xero_refresh_token']);
-    
-    let connectionTokenInfo = {};
-
-    if (connectionType === 'qbo') {
-      // **QBO requires a duration in seconds (`expires_in`)**
-      const expirationTime = new Date(dbRow.qb_token_expires_at).getTime();
-      const expiresInSeconds = Math.floor((expirationTime - Date.now()) / 1000);
-
-      connectionTokenInfo = {
-        expires_in: expiresInSeconds > 0 ? expiresInSeconds : 0,
-        realmId: dbRow.qb_realm_id
-      };
-    } else if (connectionType === 'xero') {
-      // **Xero requires a UNIX timestamp in seconds (`expires_at`)**
-      const expirationTime = new Date(dbRow.xero_token_expires_at).getTime();
-      const expiresAtSeconds = Math.floor(expirationTime / 1000);
-
-      connectionTokenInfo = {
-        expires_at: expiresAtSeconds,
-        tenant_id: dbRow.xero_tenant_id
-      };
-    }
-
-    return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      ...connectionTokenInfo
-    };
-}
+  }
 
   validateQBOToken(token) {
-    if (!token?.access_token || !token.expires_at) {
+    if (!token?.access_token || !token.expires_in) {
       return false;
-  }
-    const now = new Date();
-    const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
-    return new Date(token.expires_at) > new Date(now.getTime() + buffer);
+    }
+    // expires_in is seconds until expiry, so check if it's greater than 5 minutes (300 seconds)
+    const buffer = 5 * 60; // 5 minutes in seconds
+    return token.expires_in > buffer;
   }
 
   validateXeroToken(token) {
@@ -166,7 +157,7 @@ class TokenService {
     
     const now = new Date();
     const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
-    return token.expires_at && new Date(token.expires_at) > new Date(now.getTime() + buffer);
+    return token.expires_at && new Date(token.expires_at * 1000) > new Date(now.getTime() + buffer);
   }
 
   async refreshCompanyToken(companyId, currentToken, connectionType) {
@@ -175,31 +166,40 @@ class TokenService {
 
     try {
       const refreshedToken = await handler.refresh(currentToken);
-      const encryptedAccessToken = await encryptToken(refreshedToken.access_token);
-      const encryptedRefreshToken = await encryptToken(refreshedToken.refresh_token);
-
-      let expiresAt;
+      
+      // Prepare the consolidated token data
+      let tokenDataToStore;
       if (connectionType === 'qbo') {
-        const now = new Date();
-        expiresAt = new Date(now.getTime() + (refreshedToken.expires_in * 1000));
+        tokenDataToStore = {
+          access_token: refreshedToken.access_token,
+          refresh_token: refreshedToken.refresh_token,
+          expires_in: refreshedToken.expires_in,
+          x_refresh_token_expires_in: refreshedToken.x_refresh_token_expires_in,
+          realm_id: refreshedToken.realmId,
+          created_at: new Date().toISOString()
+        };
       } else {
-        expiresAt = new Date(refreshedToken.expires_at * 1000);
+        tokenDataToStore = {
+          access_token: refreshedToken.access_token,
+          refresh_token: refreshedToken.refresh_token,
+          expires_at: refreshedToken.expires_at,
+          tenant_id: refreshedToken.tenant_id,
+          created_at: new Date().toISOString()
+        };
       }
 
-      const updateFields = connectionType === 'qbo' ? {
-        qb_token: encryptedAccessToken,
-        qb_refresh_token: encryptedRefreshToken,
-        qb_token_expires_at: expiresAt
-      } : {
-        xero_token: encryptedAccessToken,
-        xero_refresh_token: encryptedRefreshToken,
-        xero_token_expires_at: expiresAt
-      };
+      // Encrypt the consolidated data
+      const encryptedTokenData = await encryptToken(JSON.stringify(tokenDataToStore));
 
-      const setClause = Object.keys(updateFields).map((key, index) => `${key} = $${index + 2}`).join(', ');
-      const values = [companyId, ...Object.values(updateFields)];
-
-      await query(`UPDATE companies SET ${setClause} WHERE id = $1 RETURNING *`, values);
+      // Update the database
+      const updateField = connectionType === 'qbo' ? 'qbo_token_data' : 'xero_token_data';
+      const realmField = connectionType === 'qbo' ? 'qbo_realm_id' : 'xero_tenant_id';
+      const realmValue = connectionType === 'qbo' ? refreshedToken.realmId : refreshedToken.tenant_id;
+      
+      await query(
+        `UPDATE companies SET ${updateField} = $1, ${realmField} = $2 WHERE id = $3 RETURNING *`,
+        [encryptedTokenData, realmValue, companyId]
+      );
 
       return refreshedToken;
 
@@ -235,11 +235,11 @@ class TokenService {
    * @param {string} [userId=null] - Optional user ID for permission checks.
    * @returns {Promise<QuickBooks>} An initialized node-quickbooks client instance.
    */
-    async getQBODataClient(companyId, userId = null) {
-      const validToken = await this.getValidToken(companyId, 'qbo', userId);
-      const qboClient = authSystem.createQBOClient(validToken);
-      
-      return qboClient;
+  async getQBODataClient(companyId, userId = null) {
+    const validToken = await this.getValidToken(companyId, 'qbo', userId);
+    const qboClient = authSystem.createQBOClient(validToken);
+    
+    return qboClient;
   }
 
   async getTokenStatus(companyId, connectionType = 'qbo') {
@@ -247,20 +247,20 @@ class TokenService {
     if (!handler) return { status: 'ERROR', message: `Unsupported connection type: ${connectionType}` };
 
     try {
-      const result = await query(`SELECT ${handler.tokenField}, ${handler.realmField} FROM companies WHERE id = $1`, [companyId]);
+      const result = await query(`SELECT ${handler.tokenField} FROM companies WHERE id = $1`, [companyId]);
       
       if (!result?.length || !result[0][handler.tokenField]) {
         return { status: 'NO_TOKEN', message: `No ${connectionType.toUpperCase()} token found` };
       }
 
-      const currentToken = decryptToken(result[0][handler.tokenField]);
+      const currentToken = this.constructToken(result[0], connectionType, handler);
       const isValid = handler.validate(currentToken);
       
       return {
         status: isValid ? 'VALID' : 'EXPIRED',
         message: `Token is ${isValid ? 'valid' : 'expired'}`,
         connectionType,
-        realmId: result[0][handler.realmField]
+        realmId: connectionType === 'qbo' ? currentToken.realmId : currentToken.tenant_id
       };
     } catch (error) {
       return { status: 'ERROR', message: error.message };
@@ -269,32 +269,88 @@ class TokenService {
 
   async getCompanyConnections(companyId) {
     try {
-      const result = await query('SELECT connection_type, qb_realm_id, xero_tenant_id FROM companies WHERE id = $1', [companyId]);
+      const result = await query('SELECT connection_type, qbo_token_data, xero_token_data FROM companies WHERE id = $1', [companyId]);
       if (!result?.length) return [];
 
       const company = result[0];
       const connections = [];
 
-      if (company.connection_type === 'qbo' && company.qb_realm_id) {
-        connections.push({
-          type: 'qbo',
-          realmId: company.qb_realm_id,
-          status: await this.getTokenStatus(companyId, 'qbo')
-        });
+      if (company.connection_type === 'qbo' && company.qbo_token_data) {
+        try {
+          const qboToken = this.constructToken({ qbo_token_data: company.qbo_token_data }, 'qbo', this.connectionHandlers.get('qbo'));
+          connections.push({
+            type: 'qbo',
+            realmId: qboToken.realmId,
+            status: await this.getTokenStatus(companyId, 'qbo')
+          });
+        } catch (error) {
+          console.error('Error parsing QBO token:', error);
+        }
       }
 
-      if (company.connection_type === 'xero' && company.xero_tenant_id) {
-        connections.push({
-          type: 'xero',
-          tenantId: company.xero_tenant_id,
-          status: await this.getTokenStatus(companyId, 'xero')
-        });
+      if (company.connection_type === 'xero' && company.xero_token_data) {
+        try {
+          const xeroToken = this.constructToken({ xero_token_data: company.xero_token_data }, 'xero', this.connectionHandlers.get('xero'));
+          connections.push({
+            type: 'xero',
+            tenantId: xeroToken.tenant_id,
+            status: await this.getTokenStatus(companyId, 'xero')
+          });
+        } catch (error) {
+          console.error('Error parsing Xero token:', error);
+        }
       }
 
       return connections;
     } catch (error) {
       console.error(`Error getting company connections for ${companyId}:`, error);
       return [];
+    }
+  }
+
+  /**
+   * Store new token data in consolidated format
+   * @param {string} companyId - Company ID
+   * @param {string} connectionType - 'qbo' or 'xero'
+   * @param {Object} tokenData - Token data from OAuth callback
+   */
+  async storeTokenData(companyId, connectionType, tokenData) {
+    try {
+      let tokenDataToStore;
+      
+      if (connectionType === 'qbo') {
+        tokenDataToStore = {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_in: tokenData.expires_in,
+          x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in || 7776000,
+          realm_id: tokenData.realmId,
+          created_at: new Date().toISOString()
+        };
+      } else if (connectionType === 'xero') {
+        tokenDataToStore = {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_at: tokenData.expires_at,
+          tenant_id: tokenData.tenant_id,
+          created_at: new Date().toISOString()
+        };
+      }
+
+      const encryptedTokenData = await encryptToken(JSON.stringify(tokenDataToStore));
+      const updateField = connectionType === 'qbo' ? 'qbo_token_data' : 'xero_token_data';
+      const realmField = connectionType === 'qbo' ? 'qbo_realm_id' : 'xero_tenant_id';
+      const realmValue = connectionType === 'qbo' ? tokenData.realmId : tokenData.tenant_id;
+      
+      await query(
+        `UPDATE companies SET ${updateField} = $1, connection_type = $2, ${realmField} = $3 WHERE id = $4 RETURNING *`,
+        [encryptedTokenData, connectionType, realmValue, companyId]
+      );
+
+      console.log(`Successfully stored ${connectionType.toUpperCase()} token data for company ${companyId}`);
+    } catch (error) {
+      console.error(`Error storing ${connectionType} token data:`, error);
+      throw new Error(`Failed to store ${connectionType.toUpperCase()} token data: ${error.message}`);
     }
   }
 }

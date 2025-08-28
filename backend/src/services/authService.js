@@ -1,5 +1,5 @@
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
-import { query, transaction, encryptToken, decryptToken } from '../helpers.js';
+import { query, transaction, decryptToken } from '../helpers.js';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
 import crypto from 'crypto';
@@ -103,15 +103,19 @@ export async function login(email, password, ipAddress = null, userAgent = null)
       throw new AuthenticationError(AUTH_ERROR_CODES.ACCOUNT_LOCKED, `Account temporarily locked. Try again in ${remainingTime} minutes.`);
     }
 
-    const result = await query(`
-      SELECT 
-        u.*,
-        c.qb_token as token,
-        c.qb_realm_id as realm_id
-      FROM users u
-      JOIN companies c ON u.company_id = c.id
-      WHERE u.normalised_email = $1
-    `, [email]);
+          // Get user and company info
+      const result = await query(`
+        SELECT 
+          u.*,
+          c.connection_type,
+          c.qbo_token_data,
+          c.xero_token_data,
+          c.qbo_realm_id,
+          c.xero_tenant_id
+        FROM users u
+        JOIN companies c ON u.company_id = c.id
+        WHERE u.normalised_email = $1
+      `, [email]);
 
     if (result.length === 0) {
       // Increment failed attempts for non-existent user
@@ -131,28 +135,67 @@ export async function login(email, password, ipAddress = null, userAgent = null)
     // Reset failed attempts on successful login
     await resetFailedAttempts(email);
 
-    const decryptedToken = decryptToken(user.token);
+    // Get the appropriate token data based on connection type
+    let tokenData = null;
+    let connectionType = user.connection_type || 'qbo';
 
     try {
-      const refreshedToken = await refreshToken(decryptedToken);
-
-      if (JSON.stringify(refreshedToken) !== JSON.stringify(decryptedToken)) {
-        const encryptedToken = encryptToken(refreshedToken);
-        // Update the company's token in the database with the newly encrypted token
-        await query(
-          'UPDATE companies SET qb_token = $1 WHERE id = $2',
-          [encryptedToken, user.company_id]
-        );
-        user.token = refreshedToken;
-      }
-    } catch (error) {
-      // 💡 CATCH THE SPECIFIC REVOKED TOKEN ERROR
-      if (error.message === 'QBO_TOKEN_REVOKED') {
-        user.qboReAuthRequired = true;
+      if (connectionType === 'qbo' && user.qbo_token_data) {
+        // Decrypt and parse QBO token data
+        const decryptedData = decryptToken(user.qbo_token_data);
+        tokenData = JSON.parse(decryptedData);
+        
+        tokenData = {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_in: tokenData.expires_in,
+          x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
+          realmId: tokenData.realm_id
+        };
+      } else if (connectionType === 'xero' && user.xero_token_data) {
+        // Decrypt and parse Xero token data
+        const decryptedData = decryptToken(user.xero_token_data);
+        tokenData = JSON.parse(decryptedData);
+        
+        tokenData = {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_at: tokenData.expires_at,
+          tenant_id: tokenData.tenant_id
+        };
       } else {
-        throw new AuthenticationError(AUTH_ERROR_CODES.TOKEN_INVALID, error.message);
+        throw new Error('No valid token data found');
+      }
+
+      // Try to refresh the token if needed
+      const refreshedToken = await refreshToken(tokenData, connectionType);
+
+      if (JSON.stringify(refreshedToken) !== JSON.stringify(tokenData)) {
+        // Token was refreshed, update the database
+        await tokenService.storeTokenData(user.company_id, connectionType, refreshedToken);
+        user.token = refreshedToken;
+      } else {
+        user.token = tokenData;
+      }
+
+      // Add connection type to user object for frontend use
+      user.connectionType = connectionType;
+
+    } catch (error) {
+      // Handle specific token errors
+      if (error.message === 'QBO_TOKEN_REVOKED' || error.message === 'XERO_TOKEN_REVOKED') {
+        user.reAuthRequired = true;
+        user.connectionType = connectionType;
+      } else if (error.message.includes('REAUTH_REQUIRED')) {
+        user.reAuthRequired = true;
+        user.connectionType = connectionType;
+      } else {
+        console.error('Token refresh error:', error);
+        user.reAuthRequired = true;
+        user.connectionType = connectionType;
       }
     }
+
     return user;
   } catch (error) {
     throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
@@ -285,8 +328,7 @@ export async function saveUserFromOAuth(token, companyId, connectionType) {
         true, // is_admin
         userInfo.givenName,
         userInfo.familyName,
-        companyId,
-        connectionType
+        companyId
       );
       return newUser;
     }

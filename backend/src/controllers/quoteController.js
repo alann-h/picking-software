@@ -19,7 +19,10 @@ import {
 export async function getEstimates(req, res, next) {
   try {
     const { customerId } = req.params;
-    const quotes = await getCustomerQuotes(customerId, req.session.companyId);
+    const connectionType = req.query.connectionType;
+    const companyId = req.session.companyId;
+    
+    const quotes = await getCustomerQuotes(customerId, companyId, connectionType);
     res.json(quotes);
   } catch (err) {
     next(err);

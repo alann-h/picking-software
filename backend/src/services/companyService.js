@@ -1,52 +1,53 @@
 import { AccessError } from '../middlewares/errorHandler.js';
-import { encryptToken, query, transaction } from '../helpers.js';
+import { query, transaction } from '../helpers.js';
 import { authSystem } from './authSystem.js';
+import { tokenService } from './tokenService.js';
 
 export async function saveCompanyInfo(token, connectionType = 'qbo') {
     try {
         if (connectionType === 'qbo') {            
             const companyDetails = await authSystem.getQBOCompanyInfo(token);
 
-            const encryptedAccessToken = await encryptToken(token.access_token);
-            const encryptedRefreshToken = await encryptToken(token.refresh_token);
-            const expiresAt = new Date(Date.now() + (token.expires_in * 1000));
-
             const existingCompany = await query(
-                'SELECT id FROM companies WHERE qb_realm_id = $1',
+                'SELECT id FROM companies WHERE qbo_realm_id = $1',
                 [companyDetails.realmId]
             );
 
             if (existingCompany.length > 0) {
+                // Update existing company
+                await tokenService.storeTokenData(existingCompany[0].id, 'qbo', token);
+                
                 const result = await query(`
                     UPDATE companies 
                     SET 
                         company_name = $1,
-                        qb_token = $2,
-                        qb_refresh_token = $3,
-                        qb_token_expires_at = $4,
                         connection_type = 'qbo',
-                        xero_tenant_id = NULL, xero_token = NULL, xero_refresh_token = NULL, xero_token_expires_at = NULL,
                         updated_at = NOW()
-                    WHERE qb_realm_id = $5
+                    WHERE id = $2
                     RETURNING *`,
-                    [companyDetails.companyName, encryptedAccessToken, encryptedRefreshToken, expiresAt, companyDetails.realmId]
+                    [companyDetails.companyName, existingCompany[0].id]
                 );
                 return result[0];
             } else {
+                // Insert new company
                 const result = await query(`
-                    INSERT INTO companies (company_name, qb_realm_id, qb_token, qb_refresh_token, qb_token_expires_at, connection_type, xero_tenant_id, xero_token, xero_refresh_token, xero_token_expires_at) 
-                    VALUES ($1, $2, $3, $4, $5, 'qbo', NULL, NULL, NULL, NULL)
+                    INSERT INTO companies (company_name, connection_type, qbo_token_data, xero_token_data, qbo_realm_id, xero_tenant_id) 
+                    VALUES ($1, 'qbo', NULL, NULL, $2, NULL)
                     RETURNING *`,
-                    [companyDetails.companyName, companyDetails.realmId, encryptedAccessToken, encryptedRefreshToken, expiresAt]
+                    [companyDetails.companyName, companyDetails.realmId]
                 );
+                
+                // Store token data and realm ID
+                await tokenService.storeTokenData(result[0].id, 'qbo', token);
+                await query(
+                    'UPDATE companies SET qbo_realm_id = $1 WHERE id = $2',
+                    [companyDetails.realmId, result[0].id]
+                );
+                
                 return result[0];
             }
         } else if (connectionType === 'xero') {
             const companyDetails = await authSystem.getXeroCompanyInfo(token);
-
-            const encryptedAccessToken = await encryptToken(token.access_token);
-            const encryptedRefreshToken = await encryptToken(token.refresh_token);
-            const expiresAt = new Date(token.expires_at * 1000);
 
             const existingCompany = await query(
                 'SELECT id FROM companies WHERE xero_tenant_id = $1',
@@ -54,28 +55,36 @@ export async function saveCompanyInfo(token, connectionType = 'qbo') {
             );
 
             if (existingCompany.length > 0) {
+                // Update existing company
+                await tokenService.storeTokenData(existingCompany[0].id, 'xero', token);
+                
                 const result = await query(`
                     UPDATE companies 
                     SET 
                         company_name = $1,
-                        xero_token = $2,
-                        xero_refresh_token = $3,
-                        xero_token_expires_at = $4,
                         connection_type = 'xero',
-                        qb_realm_id = NULL, qb_token = NULL, qb_refresh_token = NULL, qb_token_expires_at = NULL,
                         updated_at = NOW()
-                    WHERE id = $5
+                    WHERE id = $2
                     RETURNING *`,
-                    [companyDetails.companyName, encryptedAccessToken, encryptedRefreshToken, expiresAt, existingCompany[0].id]
+                    [companyDetails.companyName, existingCompany[0].id]
                 );
                 return result[0];
             } else {
+                // Insert new company
                 const result = await query(`
-                    INSERT INTO companies (company_name, xero_tenant_id, xero_token, xero_refresh_token, xero_token_expires_at, connection_type, qb_realm_id, qb_token, qb_refresh_token, qb_token_expires_at) 
-                    VALUES ($1, $2, $3, $4, $5, 'xero', NULL, NULL, NULL, NULL)
+                    INSERT INTO companies (company_name, connection_type, qbo_token_data, xero_token_data, qbo_realm_id, xero_tenant_id) 
+                    VALUES ($1, 'xero', NULL, NULL, NULL, $2)
                     RETURNING *`,
-                    [companyDetails.companyName, companyDetails.tenantId, encryptedAccessToken, encryptedRefreshToken, expiresAt]
+                    [companyDetails.companyName, companyDetails.tenantId]
                 );
+                
+                // Store token data and tenant ID
+                await tokenService.storeTokenData(result[0].id, 'xero', token);
+                await query(
+                    'UPDATE companies SET xero_tenant_id = $1 WHERE id = $2',
+                    [companyDetails.tenantId, result[0].id]
+                );
+                
                 return result[0];
             }
         } else {

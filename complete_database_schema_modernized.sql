@@ -38,23 +38,17 @@ CREATE TABLE public.companies (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     company_name text NOT NULL,
     connection_type connection_type NOT NULL DEFAULT 'none',
-    -- QuickBooks fields
-    qb_realm_id text,
-    qb_token text, -- Note: stores encrypted access_token only
-    qb_refresh_token text, -- Note: stores encrypted refresh_token separately
-    qb_token_expires_at timestamptz, -- Note: stores expiration timestamp separately
-    -- Xero fields
+    qbo_realm_id text,
     xero_tenant_id text,
-    xero_token text, -- Note: sensitive data, consider application-level encryption
-    xero_refresh_token text,
-    xero_token_expires_at timestamptz,
+    qbo_token_data text,
+    xero_token_data text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     -- Ensure only one connection type is active at a time
     CONSTRAINT one_connection_type CHECK (
-        (connection_type = 'none' AND qb_realm_id IS NULL AND xero_tenant_id IS NULL) OR
-        (connection_type = 'qbo' AND qb_realm_id IS NOT NULL AND xero_tenant_id IS NULL) OR
-        (connection_type = 'xero' AND xero_tenant_id IS NOT NULL AND qb_realm_id IS NULL)
+        (connection_type = 'none' AND qbo_realm_id IS NULL AND xero_tenant_id IS NULL) OR
+        (connection_type = 'qbo' AND qbo_realm_id IS NOT NULL AND xero_tenant_id IS NULL) OR
+        (connection_type = 'xero' AND xero_tenant_id IS NOT NULL AND qbo_realm_id IS NULL)
     )
 );
 COMMENT ON TABLE public.companies IS 'Stores information about customer companies and their accounting software connections.';
