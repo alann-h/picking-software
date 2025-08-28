@@ -59,9 +59,6 @@ const UsersManagement = () => {
                 const permissions = userPermissions.find((p: any) => p.id === user.id);
                 return {
                     ...user,
-                    can_access_qbo: permissions?.can_access_qbo || false,
-                    can_access_xero: permissions?.can_access_xero || false,
-                    can_refresh_tokens: permissions?.can_refresh_tokens || false,
                     access_level: permissions?.access_level || 'read',
                 };
             });
@@ -132,9 +129,6 @@ const UsersManagement = () => {
             if (!currentUserData) throw new Error('User not found');
 
             const updatedPermissions = {
-                canAccessQBO: field === 'can_access_qbo' ? value : currentUserData.can_access_qbo,
-                canAccessXero: field === 'can_access_xero' ? value : currentUserData.can_access_xero,
-                canRefreshTokens: field === 'can_refresh_tokens' ? value : currentUserData.can_refresh_tokens,
                 accessLevel: field === 'access_level' ? value : currentUserData.access_level,
             };
 
@@ -302,9 +296,6 @@ const UsersManagement = () => {
                                 <TableRow sx={{ bgcolor: 'grey.50' }}>
                                     <TableCell sx={{ fontWeight: 600 }}>User Information</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 600 }}>Admin Status</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600 }}>QBO Access</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600 }}>Xero Access</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600 }}>Token Refresh</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 600 }}>Access Level</TableCell>
                                     <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
                                 </TableRow>
@@ -312,7 +303,7 @@ const UsersManagement = () => {
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={7}>
+                                        <TableCell colSpan={4}>
                                             <UserTableSkeleton />
                                         </TableCell>
                                     </TableRow>

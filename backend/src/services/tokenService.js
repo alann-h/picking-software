@@ -2,7 +2,6 @@ import { query, encryptToken, decryptToken } from '../helpers.js';
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
 import { authSystem } from './authSystem.js';
 import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
-import { permissionService } from './permissionService.js';
 import { auditService } from './auditService.js';
 
 class TokenService {
@@ -39,15 +38,7 @@ class TokenService {
 
   async getValidToken(companyId, connectionType = 'qbo', userId = null) {
     if (!companyId) throw new Error('Company ID is required');
-    
-    // Check user permissions if userId is provided
-    if (userId) {
-      const permission = await permissionService.checkUserPermission(userId, companyId, connectionType, 'read');
-      if (!permission.hasAccess) {
-        throw new AccessError(`User does not have permission to access ${connectionType.toUpperCase()}`);
-      }
-    }
-    
+       
     const handler = this.connectionHandlers.get(connectionType);
     if (!handler) throw new Error(`Unsupported connection type: ${connectionType}`);
 

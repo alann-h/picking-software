@@ -84,15 +84,13 @@ CREATE TABLE public.user_permissions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     company_id uuid NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
-    can_access_qbo boolean NOT NULL DEFAULT false,
-    can_access_xero boolean NOT NULL DEFAULT false,
-    can_refresh_tokens boolean NOT NULL DEFAULT false,
     access_level access_level NOT NULL DEFAULT 'read',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE(user_id, company_id)
 );
-COMMENT ON TABLE public.user_permissions IS 'Stores user-specific permissions for company connections.';
+COMMENT ON TABLE public.user_permissions IS 'Stores user-specific permissions for company operations.';
+COMMENT ON COLUMN public.user_permissions.access_level IS 'User access level: read (basic access), write (can modify data), admin (full access + user management)';
 CREATE INDEX ON public.user_permissions(user_id);
 CREATE INDEX ON public.user_permissions(company_id);
 

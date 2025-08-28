@@ -3,9 +3,9 @@ import { AccessError } from '../middlewares/errorHandler.js';
 
 class PermissionService {
   /**
-   * Check if a user has permission to access a specific connection type
+   * Check if a user has permission to perform operations at a specific access level
    */
-  async checkUserPermission(userId, companyId, connectionType, requiredLevel = 'read') {
+  async checkUserPermission(userId, companyId, requiredLevel = 'read') {
     try {
       const result = await query(`
         SELECT up.*, u.is_admin 
@@ -28,13 +28,7 @@ class PermissionService {
       }
 
       const permission = result[0];
-      const hasConnectionAccess = connectionType === 'qbo' ? 
-        permission.can_access_qbo : permission.can_access_xero;
-
-      if (!hasConnectionAccess) {
-        return { hasAccess: false, level: 'none', isAdmin: permission.is_admin };
-      }
-
+      
       // Check access level
       const accessLevels = { 'read': 1, 'write': 2, 'admin': 3 };
       const requiredLevelNum = accessLevels[requiredLevel] || 1;
@@ -43,8 +37,7 @@ class PermissionService {
       return {
         hasAccess: userLevelNum >= requiredLevelNum,
         level: permission.access_level,
-        isAdmin: permission.is_admin,
-        canRefreshTokens: permission.can_refresh_tokens
+        isAdmin: permission.is_admin
       };
     } catch (error) {
       console.error('Error checking user permission:', error);
@@ -58,25 +51,19 @@ class PermissionService {
   async grantUserPermission(userId, companyId, permissions) {
     try {
       const {
-        canAccessQBO = false,
-        canAccessXero = false,
-        canRefreshTokens = false,
         accessLevel = 'read'
       } = permissions;
 
       const result = await query(`
         INSERT INTO user_permissions 
-        (user_id, company_id, can_access_qbo, can_access_xero, can_refresh_tokens, access_level)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        (user_id, company_id, access_level)
+        VALUES ($1, $2, $3)
         ON CONFLICT (user_id, company_id) 
         DO UPDATE SET
-          can_access_qbo = EXCLUDED.can_access_qbo,
-          can_access_xero = EXCLUDED.can_access_xero,
-          can_refresh_tokens = EXCLUDED.can_refresh_tokens,
           access_level = EXCLUDED.access_level,
           updated_at = NOW()
         RETURNING *
-      `, [userId, companyId, canAccessQBO, canAccessXero, canRefreshTokens, accessLevel]);
+      `, [userId, companyId, accessLevel]);
 
       return result[0];
     } catch (error) {
@@ -111,7 +98,7 @@ class PermissionService {
       const result = await query(`
         SELECT 
           u.id, u.display_email, u.given_name, u.family_name, u.is_admin,
-          up.can_access_qbo, up.can_access_xero, up.can_refresh_tokens, up.access_level,
+          up.access_level,
           up.created_at as permission_created_at
         FROM users u
         LEFT JOIN user_permissions up ON u.id = up.user_id AND up.company_id = $1
@@ -131,9 +118,6 @@ class PermissionService {
   async setDefaultPermissions(userId, companyId, isAdmin = false) {
     try {
       const defaultPermissions = {
-        canAccessQBO: isAdmin, // Only admins get QBO access by default
-        canAccessXero: isAdmin, // Only admins get Xero access by default
-        canRefreshTokens: false, // No one gets token refresh by default
         accessLevel: isAdmin ? 'admin' : 'read'
       };
 
@@ -141,18 +125,6 @@ class PermissionService {
     } catch (error) {
       console.error('Error setting default permissions:', error);
       throw new AccessError('Failed to set default permissions');
-    }
-  }
-
-  /**
-   * Check if user can refresh tokens for a company
-   */
-  async canRefreshTokens(userId, companyId) {
-    try {
-      const permission = await this.checkUserPermission(userId, companyId, 'qbo', 'admin');
-      return permission.canRefreshTokens || permission.isAdmin;
-    } catch (error) {
-      return false;
     }
   }
 }

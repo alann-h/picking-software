@@ -60,9 +60,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (currentUserPermissions) {
         setPermissions({
-          canAccessQBO: Boolean(currentUserPermissions.can_access_qbo),
-          canAccessXero: Boolean(currentUserPermissions.can_access_xero),
-          canRefreshTokens: Boolean(currentUserPermissions.can_refresh_tokens),
           accessLevel: currentUserPermissions.access_level as 'read' | 'write' | 'admin',
         });
       }
@@ -70,9 +67,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Failed to load user permissions:', error);
       // Set default permissions based on admin status
       setPermissions({
-        canAccessQBO: isAdmin,
-        canAccessXero: isAdmin,
-        canRefreshTokens: isAdmin,
         accessLevel: isAdmin ? 'admin' : 'read',
       });
     } finally {
@@ -99,8 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const canAccessService = (service: 'qbo' | 'xero'): boolean => {
-    if (!permissions) return false;
-    return service === 'qbo' ? permissions.canAccessQBO : permissions.canAccessXero;
+    // All users can access QBO/Xero services since they're essential for the picking software
+    return true;
   };
 
   // Admin functions

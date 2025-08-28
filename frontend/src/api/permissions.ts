@@ -1,11 +1,9 @@
 import { apiCallGet, apiCallPost, apiCallDelete } from '../utils/apiHelpers';
-import { PERMISSIONS_BASE } from './config';
+
+const PERMISSIONS_BASE = 'api/permissions';
 
 // --- Types ---
 export interface UserPermissions {
-  canAccessQBO: boolean;
-  canAccessXero: boolean;
-  canRefreshTokens: boolean;
   accessLevel: 'read' | 'write' | 'admin';
 }
 
@@ -20,9 +18,6 @@ export interface CompanyUserPermission {
   given_name: string;
   family_name: string;
   is_admin: boolean;
-  can_access_qbo: boolean;
-  can_access_xero: boolean;
-  can_refresh_tokens: boolean;
   access_level: 'read' | 'write' | 'admin';
   permission_created_at: string;
 }
@@ -36,12 +31,9 @@ export interface AuditLog {
   request_method: string;
   response_status: number;
   error_message?: string;
-  ip_address: string;
-  user_agent: string;
+  ip_address?: string;
+  user_agent?: string;
   timestamp: string;
-  display_email?: string;
-  given_name?: string;
-  family_name?: string;
 }
 
 export interface ConnectionHealth {
@@ -54,92 +46,44 @@ export interface ConnectionHealth {
   failure_count: number;
   last_error_message?: string;
   next_check_due: string;
+  created_at: string;
+  updated_at: string;
 }
 
-// --- Company User Permissions ---
+// --- API Functions ---
 
-/**
- * Get all users and their permissions for a company
- */
 export const getCompanyUserPermissions = async (companyId: string): Promise<CompanyUserPermission[]> => {
-  const response = await apiCallGet(`${PERMISSIONS_BASE}/company/${companyId}`);
-  return response;
-};
-
-/**
- * Update user permissions for a company
- */
-export const updateUserPermissions = async (userId: string, request: PermissionUpdateRequest): Promise<any> => {
-  const response = await apiCallPost(`${PERMISSIONS_BASE}/user/${userId}`, request);
-  return response;
-};
-
-/**
- * Revoke all permissions for a user in a company
- */
-export const revokeUserPermissions = async (userId: string): Promise<any> => {
-  const response = await apiCallDelete(`${PERMISSIONS_BASE}/user/${userId}`);
-  return response;
-};
-
-// --- Audit and Monitoring ---
-
-/**
- * Get company audit logs with optional filtering
- */
-export const getCompanyAuditLogs = async (
-  companyId: string, 
-  limit: number = 100, 
-  offset: number = 0
-): Promise<AuditLog[]> => {
-  const params = new URLSearchParams();
-  if (limit !== 100) params.append('limit', limit.toString());
-  if (offset !== 0) params.append('offset', offset.toString());
-  
-  const queryString = params.toString();
-  const url = queryString ? `${PERMISSIONS_BASE}/audit/${companyId}?${queryString}` : `${PERMISSIONS_BASE}/audit/${companyId}`;
-  
+  const url = `${PERMISSIONS_BASE}/company/${companyId}`;
   const response = await apiCallGet(url);
   return response;
 };
 
-/**
- * Get user-specific audit logs
- */
-export const getUserAuditLogs = async (
-  userId: string, 
-  limit: number = 50, 
-  offset: number = 0
-): Promise<AuditLog[]> => {
-  const params = new URLSearchParams();
-  if (limit !== 50) params.append('limit', limit.toString());
-  if (offset !== 0) params.append('offset', offset.toString());
-  
-  const queryString = params.toString();
-  const url = queryString ? `api/permissions/user-audit/${userId}?${queryString}` : `api/permissions/user-audit/${userId}`;
-  
+export const updateUserPermissions = async (request: PermissionUpdateRequest): Promise<any> => {
+  const url = `${PERMISSIONS_BASE}/user/${request.companyId}`;
+  const response = await apiCallPost(url, request);
+  return response;
+};
+
+export const revokeUserPermissions = async (userId: string, companyId: string): Promise<any> => {
+  const url = `${PERMISSIONS_BASE}/user/${userId}?companyId=${companyId}`;
+  const response = await apiCallDelete(url);
+  return response;
+};
+
+export const getCompanyAuditLogs = async (companyId: string): Promise<AuditLog[]> => {
+  const url = `${PERMISSIONS_BASE}/audit/company/${companyId}`;
   const response = await apiCallGet(url);
   return response;
 };
 
-/**
- * Get connection health for a company
- */
 export const getConnectionHealth = async (companyId: string): Promise<ConnectionHealth[]> => {
-  const response = await apiCallGet(`api/permissions/health/${companyId}`);
+  const url = `${PERMISSIONS_BASE}/connection-health/company/${companyId}`;
+  const response = await apiCallGet(url);
   return response;
 };
 
-/**
- * Get failed API calls for monitoring (last 24 hours by default)
- */
-export const getFailedApiCalls = async (companyId: string, hours: number = 24): Promise<AuditLog[]> => {
-  const params = new URLSearchParams();
-  if (hours !== 24) params.append('hours', hours.toString());
-  
-  const queryString = params.toString();
-  const url = queryString ? `api/permissions/failed-calls/${companyId}?${queryString}` : `api/permissions/failed-calls/${companyId}`;
-  
+export const getFailedApiCalls = async (companyId: string): Promise<AuditLog[]> => {
+  const url = `${PERMISSIONS_BASE}/audit/company/${companyId}/failed`;
   const response = await apiCallGet(url);
   return response;
 };
@@ -161,12 +105,6 @@ export const checkUserPermission = async (
     if (!userPermission) return false;
     
     switch (permission) {
-      case 'canAccessQBO':
-        return userPermission.can_access_qbo;
-      case 'canAccessXero':
-        return userPermission.can_access_xero;
-      case 'canRefreshTokens':
-        return userPermission.can_refresh_tokens;
       case 'accessLevel':
         return userPermission.access_level === 'admin';
       default:
@@ -182,8 +120,8 @@ export const checkUserPermission = async (
  * Check if user has required access level
  */
 export const checkUserAccessLevel = async (
-  userId: string, 
-  companyId: string, 
+  userId: string,
+  companyId: string,
   requiredLevel: 'read' | 'write' | 'admin'
 ): Promise<boolean> => {
   try {
@@ -193,8 +131,8 @@ export const checkUserAccessLevel = async (
     if (!userPermission) return false;
     
     const levelHierarchy = { 'read': 1, 'write': 2, 'admin': 3 };
-    const userLevel = levelHierarchy[userPermission.access_level];
-    const requiredLevelNum = levelHierarchy[requiredLevel];
+    const userLevel = levelHierarchy[userPermission.access_level] || 0;
+    const requiredLevelNum = levelHierarchy[requiredLevel] || 0;
     
     return userLevel >= requiredLevelNum;
   } catch (error) {

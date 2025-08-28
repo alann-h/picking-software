@@ -30,11 +30,10 @@ export async function updateUserPermissions(req, res, next) {
     const { companyId, permissions } = req.body;
     const currentUserId = req.session.userId;
 
-    // Check if current user can modify permissions
+    // Check if current user can modify permissions (admin level required)
     const currentUserPermission = await permissionService.checkUserPermission(
       currentUserId, 
       companyId, 
-      'qbo', 
       'admin'
     );
 

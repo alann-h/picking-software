@@ -92,38 +92,9 @@ const UserTable: React.FC<UserTableProps> = ({
 
                         {/* Admin Status */}
                         <TableCell align="center">
-                            <Chip 
-                                label={user.is_admin ? "Admin" : "User"} 
-                                size="small" 
-                                color={user.is_admin ? "primary" : "default"}
-                            />
-                        </TableCell>
-
-                        {/* QBO Access */}
-                        <TableCell align="center">
                             <Checkbox
-                                checked={user.can_access_qbo || false}
-                                onChange={(e) => onPermissionUpdate(user.id, 'can_access_qbo', e.target.checked)}
-                                color="primary"
-                                disabled={!canChangePerms || updatePermissionsMutation.isPending}
-                            />
-                        </TableCell>
-
-                        {/* Xero Access */}
-                        <TableCell align="center">
-                            <Checkbox
-                                checked={user.can_access_xero || false}
-                                onChange={(e) => onPermissionUpdate(user.id, 'can_access_xero', e.target.checked)}
-                                color="primary"
-                                disabled={!canChangePerms || updatePermissionsMutation.isPending}
-                            />
-                        </TableCell>
-
-                        {/* Token Refresh */}
-                        <TableCell align="center">
-                            <Checkbox
-                                checked={user.can_refresh_tokens || false}
-                                onChange={(e) => onPermissionUpdate(user.id, 'can_refresh_tokens', e.target.checked)}
+                                checked={user.is_admin || false}
+                                onChange={(e) => onPermissionUpdate(user.id, 'is_admin', e.target.checked)}
                                 color="primary"
                                 disabled={!canChangePerms || updatePermissionsMutation.isPending}
                             />
@@ -131,18 +102,16 @@ const UserTable: React.FC<UserTableProps> = ({
 
                         {/* Access Level */}
                         <TableCell align="center">
-                            <FormControl size="small">
+                            <FormControl size="small" fullWidth>
                                 <Select
                                     value={user.access_level || 'read'}
                                     onChange={(e) => onPermissionUpdate(user.id, 'access_level', e.target.value)}
-                                    displayEmpty
                                     disabled={!canChangePerms || updatePermissionsMutation.isPending}
+                                    size="small"
                                 >
                                     <MenuItem value="read">Read</MenuItem>
                                     <MenuItem value="write">Write</MenuItem>
-                                    <MenuItem value="admin">
-                                        Admin
-                                    </MenuItem>
+                                    <MenuItem value="admin">Admin</MenuItem>
                                 </Select>
                             </FormControl>
                         </TableCell>
