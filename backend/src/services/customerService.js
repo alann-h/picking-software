@@ -1,7 +1,25 @@
 import { tokenService } from './tokenService.js';
 import { authSystem } from './authSystem.js';
 import { AccessError } from '../middlewares/errorHandler.js';
-import { transaction } from '../helpers.js';
+import { transaction, query } from '../helpers.js';
+
+export async function fetchCustomersLocal(companyId) {
+  try {
+    // Fetch from your database instead of API
+    const result = await query(
+      'SELECT id, customer_name FROM customers WHERE company_id = $1 ORDER BY customer_name',
+      [companyId]
+    );
+    
+    return result.map(customer => ({
+      customerId: customer.id,
+      customerName: customer.customer_name
+    }));
+  } catch (error) {
+    console.error('Error fetching customers from database:', error);
+    throw new AccessError('Failed to fetch customers: ' + error.message);
+  }
+}
 
 export async function fetchCustomers(companyId, connectionType = 'qbo') {
   try {
