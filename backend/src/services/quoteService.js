@@ -120,35 +120,7 @@ async function getXeroEstimate(oauthClient, quoteId) {
     const estimate = response.body;
 
     // Transform Xero estimate to match QBO structure for compatibility
-    return {
-      QueryResponse: {
-        Estimate: [{
-          Id: estimate.quoteID,
-          CustomerRef: {
-            value: estimate.Contact?.contactID,
-            name: estimate.Contact?.name
-          },
-          Line: estimate.LineItems?.map(item => ({
-            DetailType: 'SalesItemLineDetail',
-            SalesItemLineDetail: {
-              ItemRef: {
-                value: item.ItemCode || item.Description,
-                name: item.Description
-              },
-              Qty: item.Quantity,
-              UnitPrice: item.UnitAmount
-            }
-          })) || [],
-          TotalAmt: estimate.Total,
-          MetaData: {
-            LastUpdatedTime: estimate.UpdatedDateUTC
-          },
-          CustomerMemo: {
-            value: estimate.Reference || null
-          }
-        }]
-      }
-    };
+    return estimate;
   } catch (error) {
     console.error('Error fetching Xero estimate:', error);
     throw new Error(`Failed to fetch Xero estimate: ${error.message}`);
