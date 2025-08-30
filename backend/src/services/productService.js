@@ -200,6 +200,7 @@ export async function getProductsFromDBByIds(itemIds) {
 
   const sqlQuery = `SELECT * FROM products WHERE external_item_id IN (${placeholders}) AND is_archived = FALSE`;
 
+
   let results;
   try {
     results = await query(sqlQuery, itemIds);

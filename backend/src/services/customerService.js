@@ -2,6 +2,7 @@ import { tokenService } from './tokenService.js';
 import { authSystem } from './authSystem.js';
 import { AccessError } from '../middlewares/errorHandler.js';
 import { transaction, query } from '../helpers.js';
+import { getBaseURL, getRealmId } from './authService.js';
 
 export async function fetchCustomersLocal(companyId) {
   try {
@@ -24,8 +25,8 @@ export async function fetchCustomersLocal(companyId) {
 export async function fetchCustomers(companyId, connectionType = 'qbo') {
   try {
     if (connectionType === 'qbo') {
-      const qboClient = await tokenService.getQBODataClient(companyId);
-      return await fetchQBOCustomers(qboClient);
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'qbo');
+      return await fetchQBOCustomers(oauthClient);
     } else if (connectionType === 'xero') {
       const oauthClient = await tokenService.getOAuthClient(companyId, 'xero');
       return await fetchXeroCustomers(oauthClient);
@@ -37,19 +38,26 @@ export async function fetchCustomers(companyId, connectionType = 'qbo') {
   }
 }
 
-async function fetchQBOCustomers(qboClient) {
+async function fetchQBOCustomers(oauthClient) {
   try {
-    const response = await new Promise((resolve, reject) => {
-      qboClient.findCustomers((err, data) => {
-        if (err) return reject(err);
-        resolve(data);
-      });
-    });
-    const customers = response.QueryResponse.Customer;
+    const baseURL = getBaseURL(oauthClient, 'qbo');
+    const realmId = getRealmId(oauthClient);
+    
+    const url = `${baseURL}v3/company/${realmId}/query?query=SELECT * FROM Customer&minorversion=75`;
+    
+    const response = await oauthClient.makeApiCall({ url });
+    const responseData = response.json;
+    
+    if (!responseData || !responseData.QueryResponse || !responseData.QueryResponse.Customer) {
+      return [];
+    }
+    
+    const customers = responseData.QueryResponse.Customer;
     const allCustomers = customers.map(customer => ({
       customerId: customer.Id,
       customerName: customer.DisplayName
     }));
+    
     return allCustomers;
   } catch (error) {
     console.error('Error fetching QBO customers:', error);

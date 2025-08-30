@@ -137,19 +137,20 @@ class TokenService {
   }
 
   validateQBOToken(token) {
-    if (!token?.access_token || !token.expires_in) {
+    // Ensure that a valid number timestamp exists for created_at
+    if (!token?.access_token || !token.expires_in || typeof token.created_at !== 'number') {
       return false;
     }
-
-    const createdAt = new Date(token.created_at);
-    const expiresAt = new Date(createdAt.getTime() + (token.expires_in * 1000));
-    const now = new Date();
     
-    // Add 5 minute buffer
-    const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
-    const bufferTime = new Date(now.getTime() + buffer);
+    // Calculate the expiration time in milliseconds
+    const expiresAt = token.created_at + (token.expires_in * 1000);
+    const now = Date.now();
     
-    return expiresAt > bufferTime;
+    // Add 5 minute buffer in milliseconds
+    const buffer = 5 * 60 * 1000;
+    
+    // Check if the token expires after the current time plus the buffer
+    return expiresAt > (now + buffer);
   }
 
   validateXeroToken(token) {
@@ -166,8 +167,7 @@ class TokenService {
 
     try {
       const refreshedToken = await handler.refresh(currentToken);
-      
-      // Prepare the consolidated token data
+      // Prepare the consolidated token data with the new timestamp
       let tokenDataToStore;
       if (connectionType === 'qbo') {
         tokenDataToStore = {
@@ -176,7 +176,7 @@ class TokenService {
           expires_in: refreshedToken.expires_in,
           x_refresh_token_expires_in: refreshedToken.x_refresh_token_expires_in,
           realm_id: refreshedToken.realmId,
-          created_at: new Date().toISOString()
+          created_at: Date.now() // Store as a numerical timestamp
         };
       } else {
         tokenDataToStore = {
@@ -184,7 +184,7 @@ class TokenService {
           refresh_token: refreshedToken.refresh_token,
           expires_at: refreshedToken.expires_at,
           tenant_id: refreshedToken.tenant_id,
-          created_at: new Date().toISOString()
+          created_at: Date.now() // Store as a numerical timestamp
         };
       }
 
@@ -227,19 +227,6 @@ class TokenService {
     } catch (error) {
       return error.message.includes('REAUTH_REQUIRED') || error.message.includes('REFRESH_TOKEN_EXPIRED');
     }
-  }
-
-  /**
-   * Gets a fully authenticated node-quickbooks client for data operations.
-   * @param {string} companyId - The ID of the company.
-   * @param {string} [userId=null] - Optional user ID for permission checks.
-   * @returns {Promise<QuickBooks>} An initialized node-quickbooks client instance.
-   */
-  async getQBODataClient(companyId, userId = null) {
-    const validToken = await this.getValidToken(companyId, 'qbo', userId);
-    const qboClient = authSystem.createQBOClient(validToken);
-    
-    return qboClient;
   }
 
   async getTokenStatus(companyId, connectionType = 'qbo') {
@@ -325,7 +312,7 @@ class TokenService {
           expires_in: tokenData.expires_in,
           x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in || 7776000,
           realm_id: tokenData.realmId,
-          created_at: new Date().toISOString()
+          created_at: Date.now()
         };
       } else if (connectionType === 'xero') {
         tokenDataToStore = {
@@ -333,7 +320,7 @@ class TokenService {
           refresh_token: tokenData.refresh_token,
           expires_at: tokenData.expires_at,
           tenant_id: tokenData.tenant_id,
-          created_at: new Date().toISOString()
+          created_at: Date.now()
         };
       }
 

@@ -25,7 +25,8 @@ async function getQboCustomerQuotes(oauthClient, customerId) {
   try {
     const baseURL = getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
-    
+    console.log(oauthClient.token);
+
     const queryStr = `SELECT * FROM estimate WHERE CustomerRef = '${customerId}'`;
     const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
     
@@ -95,8 +96,8 @@ export async function getEstimate(quoteId, companyId, rawDataNeeded, connectionT
   try {
     let estimate;
     if (connectionType === 'qbo') {
-      const qboClient = await tokenService.getQBODataClient(companyId);
-      estimate = await getQboEstimate(qboClient, quoteId);
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'qbo');
+      estimate = await getQboEstimate(oauthClient, quoteId);
     } else if (connectionType === 'xero') {
       const oauthClient = await tokenService.getOAuthClient(companyId, 'xero');
       estimate = await getXeroEstimate(oauthClient, quoteId);
@@ -130,23 +131,22 @@ async function getXeroEstimate(oauthClient, quoteId) {
   }
 }
 
-export async function getQboEstimate(qboClient, quoteId) {
+export async function getQboEstimate(oauthClient, quoteId) {
   try {
-    const estimateResponse = await new Promise((resolve, reject) => {
-      qboClient.getEstimate(quoteId, (err, data) => {
-        if (err) return reject(err);
-        resolve(data);
-      });
-    });
-
-    return estimateResponse;
+    const baseURL = getBaseURL(oauthClient, 'qbo');
+    const realmId = getRealmId(oauthClient);
+    
+    const url = `${baseURL}v3/company/${realmId}/estimate/${quoteId}?minorversion=75`;
+    
+    const response = await oauthClient.makeApiCall({ url });
+    return response.json;
   } catch (e) {
     throw new InputError(e.message);
   }
 }
 
 async function filterEstimates(responseData, companyId, connectionType) {
-  const estimate = responseData;
+  const estimate = responseData.Estimate;
   
   if (connectionType === 'qbo') {
     return await filterQboEstimate(estimate, companyId, connectionType);
@@ -161,7 +161,7 @@ async function filterQboEstimate(estimate, companyId, connectionType) {
   const itemIds = estimate.Line
     .filter(line => line.DetailType !== 'SubTotalLineDetail')
     .map(line => line.SalesItemLineDetail.ItemRef.value);
-
+    
   const productsFromDB = await getProductsFromDBByIds(itemIds); 
   const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
   const productInfo = {};

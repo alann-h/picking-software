@@ -1,6 +1,5 @@
 import OAuthClient from 'intuit-oauth';
 import { XeroClient } from 'xero-node';
-import QuickBooks from 'node-quickbooks';
 import crypto from 'crypto';
 
 /**
@@ -143,7 +142,6 @@ export class AuthSystem {
     async refreshQBOToken(token) {
         const oauthClient = this.initializeQBO();
         oauthClient.setToken(token);
-        console.log('refreshQBOToken', oauthClient.getToken());
         if (oauthClient.isAccessTokenValid()) {
             return token;
         }
@@ -225,26 +223,6 @@ export class AuthSystem {
      */
     getQBORealmId(oauthClient) {
         return oauthClient.getToken().realmId;
-    }
-
-        /**
-     * Creates an initialized node-quickbooks client instance
-     * @param {Object} token - A valid QBO token object from your database
-     * @returns {QuickBooks} Initialized node-quickbooks client
-     */
-    createQBOClient(token) {
-        return new QuickBooks(
-            this.qboClientId,               // consumerKey
-            this.qboClientSecret,           // consumerSecret
-            token.access_token,             // accessToken
-            false,                          // no token secret for OAuth 2.0
-            token.realmId,                  // realmId
-            this.environment === 'sandbox', // useSandbox
-            false,                          // enable debugging
-            '75',                           // minorversion
-            '2.0',                          // oAuth version
-            token.refresh_token             // refreshToken
-        );
     }
 
     /**
@@ -344,21 +322,22 @@ export class AuthSystem {
      * @returns {Promise<Object>} Company information
      */
     async getQBOCompanyInfo(token) {
-        const qboClient = this.createQBOClient(token);
         try {
+            const oauthClient = this.initializeQBO();
+            oauthClient.setToken(token);
+            
+            const baseURL = this.getQBOBaseURL(oauthClient);
             const realmId = token.realmId;
-
-            const companyInfo = await new Promise((resolve, reject) => {
-                qboClient.getCompanyInfo(token.realmId, (err, data) => {
-                    if (err) return reject(err);
-                    resolve(data);
-                });
-            });
-
+            
+            const url = `${baseURL}v3/company/${realmId}/companyinfo/${realmId}`;
+            
+            const response = await oauthClient.makeApiCall({ url });
+            const companyInfo = response.json;
+            
             if (!companyInfo || !companyInfo.CompanyName) {
                 throw new Error('No company information found');
             }
-
+    
             return {
                 companyName: companyInfo.CompanyName,
                 realmId: realmId,
