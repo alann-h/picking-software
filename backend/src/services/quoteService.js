@@ -23,17 +23,23 @@ export async function getCustomerQuotes(customerId, companyId, connectionType) {
 
 async function getQboCustomerQuotes(qboClient, customerId) {
   try {
+    const criteria = { CustomerRef: customerId };
+    
     const response = await new Promise((resolve, reject) => {
-
-      const criteria = `CustomerRef = '${customerId}'`;
       qboClient.findEstimates(criteria, (err, data) => {
-        if (err) return reject(err);
+        if (err) {
+          return reject(err);
+        }
         resolve(data);
       });
     });
-
-    const estimates = response.QueryResponse.Estimate || [];
     
+    if (!response || !response.QueryResponse) {
+      return [];
+    }
+    
+    const estimates = response.QueryResponse.Estimate || [];
+
     const customerQuotes = estimates
       .filter(quote => quote.TxnStatus !== 'Closed')
       .map(quote => ({
@@ -45,7 +51,6 @@ async function getQboCustomerQuotes(qboClient, customerId) {
     
     return customerQuotes;
   } catch (error) {
-    console.error('Error fetching QBO customer quotes:', error);
     throw new Error(`Failed to fetch QBO customer quotes: ${error.message}`);
   }
 }
@@ -136,7 +141,6 @@ export async function getQboEstimate(qboClient, quoteId) {
       });
     });
 
-    // Transform QBO response to match expected structure
     return {
       QueryResponse: {
         Estimate: [estimateResponse]
@@ -148,7 +152,8 @@ export async function getQboEstimate(qboClient, quoteId) {
 }
 
 async function filterEstimates(responseData, companyId, connectionType) {
-  const filteredEstimatesPromises = responseData.QueryResponse.Estimate.map(async (estimate) => {
+  console.log(responseData);
+  const filteredEstimatesPromises = responseData.map(async (estimate) => {
     const itemIds = estimate.Line
       .filter(line => line.DetailType !== 'SubTotalLineDetail')
       .map(line => line.SalesItemLineDetail.ItemRef.value);
