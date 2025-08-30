@@ -48,7 +48,16 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           // Fallback to cache if network fails
-          return caches.match(event.request);
+          return caches.match(event.request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Return a basic response if no cache found
+            return new Response('Network error - no cached version available', {
+              status: 503,
+              statusText: 'Service Unavailable'
+            });
+          });
         })
     );
   }
@@ -56,26 +65,32 @@ self.addEventListener('fetch', (event) => {
   // Handle JS/CSS with cache-first strategy
   else if (event.request.url.includes('/js/') || event.request.url.includes('/css/')) {
     event.respondWith(
-      caches.match(event.request).then((response) => {
+      caches.match(event.request).then((cachedResponse) => {
         // Return cached version if available
-        if (response) {
-          return response;
+        if (cachedResponse) {
+          return cachedResponse;
         }
 
         // Fetch from network if not cached
-        return fetch(event.request).then((response) => {
+        return fetch(event.request).then((networkResponse) => {
           // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+            return networkResponse;
           }
 
           // Clone the response to cache it
-          const responseToCache = response.clone();
+          const responseToCache = networkResponse.clone();
           caches.open(LANDING_PAGE_CACHE).then((cache) => {
             cache.put(event.request, responseToCache);
           });
 
-          return response;
+          return networkResponse;
+        }).catch((error) => {
+          // Return a basic error response if network fails
+          return new Response('Network error', {
+            status: 503,
+            statusText: 'Service Unavailable'
+          });
         });
       })
     );

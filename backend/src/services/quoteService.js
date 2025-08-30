@@ -141,26 +141,21 @@ export async function getQboEstimate(qboClient, quoteId) {
       });
     });
 
-    return {
-      QueryResponse: {
-        Estimate: [estimateResponse]
-      }
-    };
+    return estimateResponse;
   } catch (e) {
     throw new InputError(e.message);
   }
 }
 
 async function filterEstimates(responseData, companyId, connectionType) {
-  console.log(responseData);
-  const filteredEstimatesPromises = responseData.map(async (estimate) => {
+  const estimate = responseData;
     const itemIds = estimate.Line
       .filter(line => line.DetailType !== 'SubTotalLineDetail')
       .map(line => line.SalesItemLineDetail.ItemRef.value);
 
     const productsFromDB = await getProductsFromDBByIds(itemIds); 
 
-    const productMap = new Map(productsFromDB.map(p => [p.qbo_item_id, p]));
+    const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
 
     const productInfo = {};
      
@@ -194,20 +189,17 @@ async function filterEstimates(responseData, companyId, connectionType) {
       };
     }
 
-    return {
-      quoteId: estimate.Id,
-      customerId: estimate.CustomerRef.value,
-      customerName: estimate.CustomerRef.name,
-      productInfo,
-      totalAmount: estimate.TotalAmt,
-      orderStatus: 'pending',
-      lastModified: formatTimestampForSydney(estimate.MetaData.LastUpdatedTime),
-      companyId,
-      orderNote: estimate.CustomerMemo?.value || null
-    };
-  });
-
-  return Promise.all(filteredEstimatesPromises);
+  return {
+    quoteId: estimate.Id,
+    customerId: estimate.CustomerRef.value,
+    customerName: estimate.CustomerRef.name,
+    productInfo,
+    totalAmount: estimate.TotalAmt,
+    orderStatus: 'pending',
+    lastModified: formatTimestampForSydney(estimate.MetaData.LastUpdatedTime),
+    companyId,
+    orderNote: estimate.CustomerMemo?.value || null
+  };
 }
 
 export async function estimateToDB(quote) {
@@ -221,14 +213,14 @@ export async function estimateToDB(quote) {
       if (existingQuote.rows.length > 0) {
         // Quote exists, update it
         await client.query(
-          'UPDATE quotes SET id = $2, total_amount = $3, customer_name = $4, status = $5, order_note = $6 WHERE id = $1',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.orderNote]
+          'UPDATE quotes SET total_amount = $2, status = $3, order_note = $4 WHERE id = $1',
+          [quote.quoteId, parseFloat(quote.totalAmount), quote.orderStatus, quote.orderNote]
         );
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (id, customer_id, total_amount, customer_name, status, company_id, order_note) VALUES ($1, $2, $3, $4, $5::order_status, $6, $7)',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.customerName, quote.orderStatus, quote.companyId, quote.orderNote]
+          'INSERT INTO quotes (id, customer_id, total_amount, status, company_id, order_note) VALUES ($1, $2, $3, $4::order_status, $5, $6)',
+          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.orderStatus, quote.companyId, quote.orderNote]
         );
       }
 
@@ -238,18 +230,16 @@ export async function estimateToDB(quote) {
       // Insert new quote items
       for (const [productId, item] of Object.entries(quote.productInfo)) {
         await client.query(
-          'INSERT INTO quote_items (quote_id, product_id, barcode, product_name, picking_quantity, original_quantity, picking_status, sku, price, company_id, tax_code_ref) VALUES ($1, $2, $3, $4, $5, $6, $7::picking_status, $8, $9, $10, $11)',
+          'INSERT INTO quote_items (quote_id, product_id, product_name, picking_quantity, original_quantity, picking_status, sku, price, tax_code_ref) VALUES ($1, $2, $3, $4, $5, $6::picking_status, $7, $8, $9)',
           [
             quote.quoteId,
             productId,
-            item.barcode,
             item.productName,
             roundQuantity(item.pickingQty),
             roundQuantity(item.originalQty),
             item.pickingStatus,
             item.sku,
             roundQuantity(item.price),
-            quote.companyId,
             item.tax_code_ref
           ]
         );

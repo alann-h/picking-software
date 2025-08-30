@@ -38,8 +38,8 @@ export async function getEstimateById(req, res, next) {
       const quote = await fetchQuoteData(quoteId);
       return res.json({ source: 'database', data: quote });
     }
-    const [apiQuote] = await getEstimate(quoteId, req.session.companyId, false, req.session.connectionType);
-   if (!apiQuote) {
+    const apiQuote = await getEstimate(quoteId, req.session.companyId, false, req.session.connectionType);
+    if (!apiQuote) {
       return res.status(404).json({
         source: 'api',
         data: {

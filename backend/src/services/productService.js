@@ -23,13 +23,13 @@ export async function productIdToExternalId(productId) {
 
 export async function enrichWithQBOData(products, companyId) {
   try {
-    const oauthClient = await getOAuthClient(companyId);
+    const oauthClient = await getOAuthClient(companyId, 'qbo');
     const enriched = [];
 
     for (const product of products) {
       try {
         const query = `SELECT * FROM Item WHERE Sku = '${product.sku}'`;
-        const baseURL = getBaseURL(oauthClient);
+        const baseURL = getBaseURL(oauthClient, 'qbo');
         const realmId = getRealmId(oauthClient);
         const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(query)}&minorversion=75`;
 
@@ -204,7 +204,7 @@ export async function getProductsFromDBByIds(itemIds) {
   try {
     results = await query(sqlQuery, itemIds);
   } catch (err) {
-    console.error('Database error in getProductsFromDBByIds:', err);
+    console.log(err);
     throw new AccessError('Error accessing the database while fetching products');
   }
 
@@ -318,11 +318,11 @@ export async function addProductDb(product, companyId) {
       INSERT INTO products
         (product_name, barcode, sku, price, quantity_on_hand, external_item_id, company_id, tax_code_ref)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-      ON CONFLICT (sku) DO UPDATE
+      ON CONFLICT (company_id, sku) DO UPDATE
         SET product_name      = EXCLUDED.product_name,
             barcode          = EXCLUDED.barcode,
             price            = EXCLUDED.price,
-            external_item_id      = EXCLUDED.external_item_id,
+            external_item_id = EXCLUDED.external_item_id,
             quantity_on_hand = EXCLUDED.quantity_on_hand,
             tax_code_ref     = EXCLUDED.tax_code_ref
       RETURNING sku;
