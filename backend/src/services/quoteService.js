@@ -8,8 +8,8 @@ import { authSystem } from './authSystem.js';
 export async function getCustomerQuotes(customerId, companyId, connectionType) {
   try {
     if (connectionType === 'qbo') {
-      const qboClient = await tokenService.getQBODataClient(companyId);
-      return await getQboCustomerQuotes(qboClient, customerId);
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'qbo');
+      return await getQboCustomerQuotes(oauthClient, customerId);
     } else if (connectionType === 'xero') {
       const oauthClient = await tokenService.getOAuthClient(companyId, 'xero');
       return await getXeroCustomerQuotes(oauthClient, customerId);
@@ -21,24 +21,22 @@ export async function getCustomerQuotes(customerId, companyId, connectionType) {
   }
 }
 
-async function getQboCustomerQuotes(qboClient, customerId) {
+async function getQboCustomerQuotes(oauthClient, customerId) {
   try {
-    const criteria = { CustomerRef: customerId };
+    const baseURL = getBaseURL(oauthClient, 'qbo');
+    const realmId = getRealmId(oauthClient);
     
-    const response = await new Promise((resolve, reject) => {
-      qboClient.findEstimates(criteria, (err, data) => {
-        if (err) {
-          return reject(err);
-        }
-        resolve(data);
-      });
-    });
+    const queryStr = `SELECT * FROM estimate WHERE CustomerRef = '${customerId}'`;
+    const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
     
-    if (!response || !response.QueryResponse) {
+    const response = await oauthClient.makeApiCall({ url });
+    const responseData = response.json;
+    
+    if (!responseData || !responseData.QueryResponse) {
       return [];
     }
     
-    const estimates = response.QueryResponse.Estimate || [];
+    const estimates = responseData.QueryResponse.Estimate || [];
 
     const customerQuotes = estimates
       .filter(quote => quote.TxnStatus !== 'Closed')
@@ -121,14 +119,14 @@ async function getXeroEstimate(oauthClient, quoteId) {
   try {
     const tenantId = await authSystem.getXeroTenantId(oauthClient);
 
-    const response = await oauthClient.accountingApi.getEstimate(tenantId, quoteId);
+    const response = await oauthClient.accountingApi.getQuote(tenantId, quoteId);
     const estimate = response.body;
 
-    // Transform Xero estimate to match QBO structure for compatibility
+    // Return the Xero quote structure as-is, filterEstimates will handle it
     return estimate;
   } catch (error) {
-    console.error('Error fetching Xero estimate:', error);
-    throw new Error(`Failed to fetch Xero estimate: ${error.message}`);
+    console.error('Error fetching Xero quote:', error);
+    throw new Error(`Failed to fetch Xero quote: ${error.message}`);
   }
 }
 
@@ -149,45 +147,54 @@ export async function getQboEstimate(qboClient, quoteId) {
 
 async function filterEstimates(responseData, companyId, connectionType) {
   const estimate = responseData;
-    const itemIds = estimate.Line
-      .filter(line => line.DetailType !== 'SubTotalLineDetail')
-      .map(line => line.SalesItemLineDetail.ItemRef.value);
+  
+  if (connectionType === 'qbo') {
+    return await filterQboEstimate(estimate, companyId, connectionType);
+  } else if (connectionType === 'xero') {
+    return await filterXeroEstimate(estimate, companyId, connectionType);
+  } else {
+    throw new Error(`Unsupported connection type: ${connectionType}`);
+  }
+}
 
-    const productsFromDB = await getProductsFromDBByIds(itemIds); 
+async function filterQboEstimate(estimate, companyId, connectionType) {
+  const itemIds = estimate.Line
+    .filter(line => line.DetailType !== 'SubTotalLineDetail')
+    .map(line => line.SalesItemLineDetail.ItemRef.value);
 
-    const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
+  const productsFromDB = await getProductsFromDBByIds(itemIds); 
+  const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
+  const productInfo = {};
+   
+  for (const line of estimate.Line) {
+    if (line.DetailType === 'SubTotalLineDetail') continue;
 
-    const productInfo = {};
-     
-    for (const line of estimate.Line) {
-      if (line.DetailType === 'SubTotalLineDetail') continue;
+    const itemId = line.SalesItemLineDetail.ItemRef.value;
+    const itemLocal = productMap.get(itemId);
 
-      const itemId = line.SalesItemLineDetail.ItemRef.value;
-      const itemLocal = productMap.get(itemId);
-
-      if (!itemLocal) {
-        return {
-          error: true,
-          quoteId: estimate.Id,
-          message: `Product from ${connectionType.toUpperCase()} not found in our database.`,
-          productName: line.SalesItemLineDetail.ItemRef.name.split(':').pop().trim(),
-        };
-      }
-      
-      productInfo[itemLocal.id] = {
-        productName: itemLocal.product_name,
-        productId: itemLocal.id,
-        sku: itemLocal.sku,
-        pickingQty: line.SalesItemLineDetail?.Qty || 0,
-        originalQty: line.SalesItemLineDetail?.Qty || 0,
-        pickingStatus: 'pending',
-        price: parseFloat(itemLocal.price),
-        quantityOnHand: parseFloat(itemLocal.quantity_on_hand),
-        companyId,
-        barcode: itemLocal.barcode,
-        tax_code_ref: itemLocal.tax_code_ref
+    if (!itemLocal) {
+      return {
+        error: true,
+        quoteId: estimate.Id,
+        message: `Product from ${connectionType.toUpperCase()} not found in our database.`,
+        productName: line.SalesItemLineDetail.ItemRef.name.split(':').pop().trim(),
       };
     }
+    
+    productInfo[itemLocal.id] = {
+      productName: itemLocal.product_name,
+      productId: itemLocal.id,
+      sku: itemLocal.sku,
+      pickingQty: line.SalesItemLineDetail?.Qty || 0,
+      originalQty: line.SalesItemLineDetail?.Qty || 0,
+      pickingStatus: 'pending',
+      price: parseFloat(itemLocal.price),
+      quantityOnHand: parseFloat(itemLocal.quantity_on_hand),
+      companyId,
+      barcode: itemLocal.barcode,
+      tax_code_ref: itemLocal.tax_code_ref
+    };
+  }
 
   return {
     quoteId: estimate.Id,
@@ -199,6 +206,61 @@ async function filterEstimates(responseData, companyId, connectionType) {
     lastModified: formatTimestampForSydney(estimate.MetaData.LastUpdatedTime),
     companyId,
     orderNote: estimate.CustomerMemo?.value || null
+  };
+}
+
+async function filterXeroEstimate(estimate, companyId, connectionType) {
+  // Xero quotes have a different structure
+  const lineItems = estimate.LineItems || [];
+  
+  const itemIds = lineItems
+    .filter(item => item.ItemCode) // Filter out items without codes
+    .map(item => item.ItemCode);
+
+  const productsFromDB = await getProductsFromDBByIds(itemIds); 
+  const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
+  const productInfo = {};
+   
+  for (const lineItem of lineItems) {
+    if (!lineItem.ItemCode) continue; // Skip items without codes
+
+    const itemId = lineItem.ItemCode;
+    const itemLocal = productMap.get(itemId);
+
+    if (!itemLocal) {
+      return {
+        error: true,
+        quoteId: estimate.QuoteID,
+        message: `Product from ${connectionType.toUpperCase()} not found in our database.`,
+        productName: lineItem.Description || 'Unknown Product',
+      };
+    }
+    
+    productInfo[itemLocal.id] = {
+      productName: itemLocal.product_name,
+      productId: itemLocal.id,
+      sku: itemLocal.sku,
+      pickingQty: parseFloat(lineItem.Quantity) || 0,
+      originalQty: parseFloat(lineItem.Quantity) || 0,
+      pickingStatus: 'pending',
+      price: parseFloat(itemLocal.price),
+      quantityOnHand: parseFloat(itemLocal.quantity_on_hand),
+      companyId,
+      barcode: itemLocal.barcode,
+      tax_code_ref: itemLocal.tax_code_ref
+    };
+  }
+
+  return {
+    quoteId: estimate.QuoteID,
+    customerId: estimate.Contact?.ContactID || estimate.ContactID,
+    customerName: estimate.Contact?.Name || estimate.ContactName || 'Unknown Customer',
+    productInfo,
+    totalAmount: parseFloat(estimate.Total) || 0,
+    orderStatus: 'pending',
+    lastModified: formatTimestampForSydney(estimate.UpdatedDateUTC || estimate.Date),
+    companyId,
+    orderNote: estimate.Reference || null
   };
 }
 
@@ -747,9 +809,9 @@ export async function ensureQuotesExistInDB(quoteIds, companyId) {
         return;
     }
 
-    console.log(`Fetching ${missingIds.length} missing quotes from QuickBooks...`);
+    console.log(`Fetching ${missingIds.length} missing quotes from ${companyId.includes('xero') ? 'Xero' : 'QuickBooks'}...`);
 
-    const newQuotesData = await getQbEstimatesBulk(missingIds, companyId);
+    const newQuotesData = await getEstimatesBulk(missingIds, companyId, 'qbo'); // Default to QBO for now, can be made dynamic
     
     if (newQuotesData.length !== missingIds.length) {
         throw new InputError(`Could not find all quotes in QuickBooks. Please check IDs.`);
@@ -764,11 +826,31 @@ export async function ensureQuotesExistInDB(quoteIds, companyId) {
 
 
 /**
- * A new bulk version of getQbEstimate for efficiency.
+ * A new bulk version of getEstimate for efficiency.
+ * @param {number[]} quoteIds - An array of quote IDs to fetch.
+ * @param {string} companyId - The ID of the company.
+ * @param {string} connectionType - The connection type ('qbo' or 'xero').
+ */
+export async function getEstimatesBulk(quoteIds, companyId, connectionType) {
+    try {
+        if (connectionType === 'qbo') {
+            return await getQboEstimatesBulk(quoteIds, companyId);
+        } else if (connectionType === 'xero') {
+            return await getXeroEstimatesBulk(quoteIds, companyId);
+        } else {
+            throw new AccessError(`Unsupported connection type: ${connectionType}`);
+        }
+    } catch (e) {
+        throw new InputError(e.message);
+    }
+}
+
+/**
+ * Bulk version for QBO estimates.
  * @param {number[]} quoteIds - An array of quote IDs to fetch.
  * @param {string} companyId - The ID of the company.
  */
-export async function getQbEstimatesBulk(quoteIds, companyId) {
+async function getQboEstimatesBulk(quoteIds, companyId) {
     try {
         const oauthClient = await getOAuthClient(companyId);
         if (!oauthClient) throw new AccessError('OAuth client could not be initialised');
@@ -788,7 +870,59 @@ export async function getQbEstimatesBulk(quoteIds, companyId) {
             return [];
         }
 
-        const filteredQuotes = await filterEstimates(responseData, companyId);
+        const filteredQuotes = await filterEstimates(responseData, companyId, 'qbo');
+        return filteredQuotes;
+    } catch (e) {
+        throw new InputError(e.message);
+    }
+}
+
+/**
+ * Bulk version for Xero estimates.
+ * @param {number[]} quoteIds - An array of quote IDs to fetch.
+ * @param {string} companyId - The ID of the company.
+ */
+async function getXeroEstimatesBulk(quoteIds, companyId) {
+    try {
+        const oauthClient = await getOAuthClient(companyId);
+        if (!oauthClient) throw new AccessError('OAuth client could not be initialised');
+
+        const tenantId = await authSystem.getXeroTenantId(oauthClient);
+        
+        // Xero doesn't support bulk fetching by IDs in a single call
+        // So we need to fetch them individually
+        const estimates = [];
+        
+        for (const quoteId of quoteIds) {
+            try {
+                const response = await oauthClient.accountingApi.getQuote(tenantId, quoteId);
+                if (response.body) {
+                    estimates.push(response.body);
+                }
+            } catch (error) {
+                console.error(`Failed to fetch Xero quote ${quoteId}:`, error);
+                // Continue with other quotes
+            }
+        }
+
+        if (estimates.length === 0) {
+            return [];
+        }
+
+        // Process each estimate individually
+        const filteredQuotes = [];
+        for (const estimate of estimates) {
+            try {
+                const filteredQuote = await filterEstimates(estimate, companyId, 'xero');
+                if (filteredQuote && !filteredQuote.error) {
+                    filteredQuotes.push(filteredQuote);
+                }
+            } catch (error) {
+                console.error(`Failed to filter Xero estimate:`, error);
+                // Continue with other estimates
+            }
+        }
+
         return filteredQuotes;
     } catch (e) {
         throw new InputError(e.message);

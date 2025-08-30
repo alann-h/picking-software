@@ -175,18 +175,21 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                       placeholder="Search products..."
                     />
                   )}
-                  renderOption={(props, option) => (
-                    <Box component="li" {...props}>
-                      <Box>
-                        <Typography variant="body2" fontWeight={500}>
-                          {option.productName}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          SKU: {option.sku}
-                        </Typography>
+                  renderOption={(props, option) => {
+                    const { key, ...otherProps } = props;
+                    return (
+                      <Box component="li" key={key} {...otherProps}>
+                        <Box>
+                          <Typography variant="body2" fontWeight={500}>
+                            {option.productName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            SKU: {option.sku}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  )}
+                    );
+                  }}
                 />
               </Box>
               

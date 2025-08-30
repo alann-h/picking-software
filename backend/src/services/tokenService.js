@@ -116,14 +116,16 @@ class TokenService {
           refresh_token: tokenData.refresh_token,
           expires_in: tokenData.expires_in,
           x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
-          realmId: tokenData.realm_id
+          realmId: tokenData.realm_id,
+          created_at: tokenData.created_at
         };
       } else if (connectionType === 'xero') {
         return {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token,
           expires_at: tokenData.expires_at,
-          tenant_id: tokenData.tenant_id
+          tenant_id: tokenData.tenant_id,
+          created_at: tokenData.created_at
         };
       }
     } catch (error) {
@@ -138,9 +140,16 @@ class TokenService {
     if (!token?.access_token || !token.expires_in) {
       return false;
     }
-    // expires_in is seconds until expiry, so check if it's greater than 5 minutes (300 seconds)
-    const buffer = 5 * 60; // 5 minutes in seconds
-    return token.expires_in > buffer;
+
+    const createdAt = new Date(token.created_at);
+    const expiresAt = new Date(createdAt.getTime() + (token.expires_in * 1000));
+    const now = new Date();
+    
+    // Add 5 minute buffer
+    const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const bufferTime = new Date(now.getTime() + buffer);
+    
+    return expiresAt > bufferTime;
   }
 
   validateXeroToken(token) {
