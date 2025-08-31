@@ -25,7 +25,6 @@ async function getQboCustomerQuotes(oauthClient, customerId) {
   try {
     const baseURL = getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
-    console.log(oauthClient.token);
 
     const queryStr = `SELECT * FROM estimate WHERE CustomerRef = '${customerId}'`;
     const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
@@ -136,17 +135,20 @@ export async function getQboEstimate(oauthClient, quoteId) {
     const baseURL = getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
     
-    const url = `${baseURL}v3/company/${realmId}/estimate/${quoteId}?minorversion=75`;
-    
-    const response = await oauthClient.makeApiCall({ url });
-    return response.json;
+    const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
+
+    const estimateResponse = await oauthClient.makeApiCall({
+      url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+    });
+
+    return estimateResponse.json;
   } catch (e) {
     throw new InputError(e.message);
   }
 }
 
 async function filterEstimates(responseData, companyId, connectionType) {
-  const estimate = responseData.Estimate;
+  const estimate = responseData.QueryResponse.Estimate[0];
   
   if (connectionType === 'qbo') {
     return await filterQboEstimate(estimate, companyId, connectionType);

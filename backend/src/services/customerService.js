@@ -39,30 +39,33 @@ export async function fetchCustomers(companyId, connectionType = 'qbo') {
 }
 
 async function fetchQBOCustomers(oauthClient) {
-  try {
-    const baseURL = getBaseURL(oauthClient, 'qbo');
-    const realmId = getRealmId(oauthClient);
-    
-    const url = `${baseURL}v3/company/${realmId}/query?query=SELECT * FROM Customer&minorversion=75`;
-    
-    const response = await oauthClient.makeApiCall({ url });
+  const baseURL = getBaseURL(oauthClient, 'qbo');
+  const realmId = await getRealmId(oauthClient);
+
+  let allCustomers = [];
+  let startPosition = 1;
+  let pageSize = 100; // API limit
+  let moreRecords = true;
+
+  while (moreRecords) {
+    const response = await oauthClient.makeApiCall({
+      url: `${baseURL}v3/company/${realmId}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
+    });
     const responseData = response.json;
-    
-    if (!responseData || !responseData.QueryResponse || !responseData.QueryResponse.Customer) {
-      return [];
-    }
-    
-    const customers = responseData.QueryResponse.Customer;
-    const allCustomers = customers.map(customer => ({
+    const customers = responseData.QueryResponse.Customer || [];
+
+    allCustomers.push(...customers.map(customer => ({
       customerId: customer.Id,
       customerName: customer.DisplayName
-    }));
-    
-    return allCustomers;
-  } catch (error) {
-    console.error('Error fetching QBO customers:', error);
-    throw new Error(`Failed to fetch QBO customers: ${error.message}`);
+    })));
+
+    if (customers.length < pageSize) {
+      moreRecords = false;
+    } else {
+      startPosition += pageSize;
+    }
   }
+  return allCustomers;
 }
 
 async function fetchXeroCustomers(oauthClient) {

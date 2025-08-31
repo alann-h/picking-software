@@ -104,7 +104,6 @@ class TokenService {
         connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED
       );
     }
-
     try {
       // Decrypt and parse the consolidated token data
       const decryptedData = decryptToken(dbRow[handler.tokenField]);
@@ -137,19 +136,17 @@ class TokenService {
   }
 
   validateQBOToken(token) {
-    // Ensure that a valid number timestamp exists for created_at
     if (!token?.access_token || !token.expires_in || typeof token.created_at !== 'number') {
       return false;
     }
     
-    // Calculate the expiration time in milliseconds
+    // expires_in is seconds remaining, so calculate actual expiration time
     const expiresAt = token.created_at + (token.expires_in * 1000);
     const now = Date.now();
+    const buffer = 5 * 60 * 1000; // 5 minutes
+
+    console.log('Expires at:', expiresAt, 'Current time + buffer:', now + buffer, 'Is valid:', expiresAt > (now + buffer));
     
-    // Add 5 minute buffer in milliseconds
-    const buffer = 5 * 60 * 1000;
-    
-    // Check if the token expires after the current time plus the buffer
     return expiresAt > (now + buffer);
   }
 
@@ -167,6 +164,7 @@ class TokenService {
 
     try {
       const refreshedToken = await handler.refresh(currentToken);
+      
       // Prepare the consolidated token data with the new timestamp
       let tokenDataToStore;
       if (connectionType === 'qbo') {
@@ -176,7 +174,7 @@ class TokenService {
           expires_in: refreshedToken.expires_in,
           x_refresh_token_expires_in: refreshedToken.x_refresh_token_expires_in,
           realm_id: refreshedToken.realmId,
-          created_at: Date.now() // Store as a numerical timestamp
+          created_at: refreshedToken.createdAt
         };
       } else {
         tokenDataToStore = {
@@ -312,7 +310,7 @@ class TokenService {
           expires_in: tokenData.expires_in,
           x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in || 7776000,
           realm_id: tokenData.realmId,
-          created_at: Date.now()
+          created_at: tokenData.createdAt
         };
       } else if (connectionType === 'xero') {
         tokenDataToStore = {
@@ -320,7 +318,7 @@ class TokenService {
           refresh_token: tokenData.refresh_token,
           expires_at: tokenData.expires_at,
           tenant_id: tokenData.tenant_id,
-          created_at: Date.now()
+          created_at: tokenData.created_at
         };
       }
 

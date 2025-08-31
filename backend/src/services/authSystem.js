@@ -153,6 +153,7 @@ export class AuthSystem {
         try {
             const response = await oauthClient.refreshUsingToken(token.refresh_token);
             const tokenData = response.getToken();
+            console.log('QBO token refreshed!');
             return tokenData;
         } catch (error) {
             if (error.error === 'invalid_grant') {
@@ -326,20 +327,25 @@ export class AuthSystem {
             const oauthClient = this.initializeQBO();
             oauthClient.setToken(token);
             
-            const baseURL = this.getQBOBaseURL(oauthClient);
+
             const realmId = token.realmId;
+            const baseURL = this.getQBOBaseURL(oauthClient);
+            const queryStr = `SELECT * FROM CompanyInfo`;
             
-            const url = `${baseURL}v3/company/${realmId}/companyinfo/${realmId}`;
+            const response = await oauthClient.makeApiCall({
+                url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+            });
+
+            const responseJSON  = response.json;
+
+            const companyInfoFull = responseJSON.QueryResponse.CompanyInfo[0];
             
-            const response = await oauthClient.makeApiCall({ url });
-            const companyInfo = response.json;
-            
-            if (!companyInfo || !companyInfo.CompanyName) {
+            if (!companyInfoFull || !companyInfoFull.CompanyName) {
                 throw new Error('No company information found');
             }
     
             return {
-                companyName: companyInfo.CompanyName,
+                companyName: companyInfoFull.CompanyName,
                 realmId: realmId,
             };
         } catch (error) {
