@@ -113,7 +113,7 @@ class TokenService {
         return {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token,
-          expires_in: tokenData.expires_in,
+          expires_in: 0,
           x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
           realmId: tokenData.realm_id,
           created_at: tokenData.created_at
@@ -140,10 +140,10 @@ class TokenService {
       return false;
     }
     
-    // expires_in is seconds remaining, so calculate actual expiration time
+    // created_at is in milliseconds, expires_in is in seconds, so convert expires_in to milliseconds
     const expiresAt = token.created_at + (token.expires_in * 1000);
-    const now = Date.now();
-    const buffer = 5 * 60 * 1000; // 5 minutes
+    const now = Date.now(); // Current time in milliseconds
+    const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
 
     console.log('Expires at:', expiresAt, 'Current time + buffer:', now + buffer, 'Is valid:', expiresAt > (now + buffer));
     
@@ -174,7 +174,7 @@ class TokenService {
           expires_in: refreshedToken.expires_in,
           x_refresh_token_expires_in: refreshedToken.x_refresh_token_expires_in,
           realm_id: refreshedToken.realmId,
-          created_at: refreshedToken.createdAt
+          created_at: refreshedToken.createdAt || Date.now()
         };
       } else {
         tokenDataToStore = {
@@ -182,7 +182,7 @@ class TokenService {
           refresh_token: refreshedToken.refresh_token,
           expires_at: refreshedToken.expires_at,
           tenant_id: refreshedToken.tenant_id,
-          created_at: Date.now() // Store as a numerical timestamp
+          created_at: Date.now() // Store as a numerical timestamp in milliseconds
         };
       }
 
@@ -310,7 +310,7 @@ class TokenService {
           expires_in: tokenData.expires_in,
           x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in || 7776000,
           realm_id: tokenData.realmId,
-          created_at: tokenData.createdAt
+          created_at: tokenData.createdAt || Date.now()
         };
       } else if (connectionType === 'xero') {
         tokenDataToStore = {
@@ -318,7 +318,7 @@ class TokenService {
           refresh_token: tokenData.refresh_token,
           expires_at: tokenData.expires_at,
           tenant_id: tokenData.tenant_id,
-          created_at: tokenData.created_at
+          created_at: tokenData.created_at || Date.now()
         };
       }
 

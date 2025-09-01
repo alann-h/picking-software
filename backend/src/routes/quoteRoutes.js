@@ -16,6 +16,12 @@ import {
 } from '../controllers/quoteController.js';
 
 import {
+  uploadKyteCSV,
+  getCustomersForMapping,
+  createQuickBooksEstimates
+} from '../controllers/kyteConverterController.js';
+
+import {
   validate,
   customerIdRule,
   quoteIdRule,
@@ -28,8 +34,19 @@ import {
   bulkDeleteRules,
 } from '../validators/quoteValidator.js';
 
+import {
+  csvContentRule,
+  ordersRule,
+  orderCustomerRule,
+} from '../validators/kyteConverterValidator.js';
+
 const router = Router();
 router.use(isAuthenticated);
+
+// Kyte to QuickBooks Converter endpoints
+router.post('/kyte-upload', csvContentRule(), validate, asyncHandler(uploadKyteCSV));
+router.get('/kyte-customers', asyncHandler(getCustomersForMapping));
+router.post('/kyte-create-estimates', [ordersRule(), orderCustomerRule()], validate, asyncHandler(createQuickBooksEstimates));
 
 // Estimate endpoints
 router.get('/customer/:customerId', customerIdRule(), validate, asyncHandler(getEstimates));

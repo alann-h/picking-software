@@ -42,6 +42,7 @@ async function getQboCustomerQuotes(oauthClient, customerId) {
       .filter(quote => quote.TxnStatus !== 'Closed')
       .map(quote => ({
         id: Number(quote.Id),
+        quoteNumber: quote.DocNumber,
         totalAmount: quote.TotalAmt,
         customerName: quote.CustomerRef.name,
         lastModified: quote.MetaData.LastUpdatedTime,
@@ -79,7 +80,7 @@ async function getXeroCustomerQuotes(oauthClient, customerId) {
     
     return quotes.map(quote => ({
       id: Number(quote.quoteID),
-      quoteNumber: quote.QuoteNumber,
+      quoteNumber: quote.QuoteNumber || quote.QuoteNumber,
       totalAmount: quote.Total || 0,
       customerName: quote.Contact?.name || 'Unknown Customer',
       lastModified: quote.UpdatedDateUTC,

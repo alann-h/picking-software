@@ -11,7 +11,6 @@ export async function fetchCustomersLocal(companyId) {
       'SELECT id, customer_name FROM customers WHERE company_id = $1 ORDER BY customer_name',
       [companyId]
     );
-    
     return result.map(customer => ({
       customerId: customer.id,
       customerName: customer.customer_name

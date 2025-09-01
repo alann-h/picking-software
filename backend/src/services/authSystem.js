@@ -187,7 +187,8 @@ export class AuthSystem {
                     access_token: newTokenSet.access_token,
                     refresh_token: newTokenSet.refresh_token,
                     expires_at: newTokenSet.expires_at,
-                    tenant_id: token.tenant_id
+                    tenant_id: token.tenant_id,
+                    created_at: Date.now() // Set new creation time for refreshed token
                 };
             }
             

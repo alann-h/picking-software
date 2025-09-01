@@ -26,6 +26,7 @@ const AboutUs = React.lazy(() => import('./components/AboutUs'));
 const PublicLayout = React.lazy(() => import('./components/PublicLayout'));
 const ErrorBoundary = React.lazy(() => import('./components/ErrorBoundary'));
 const OrderHistory = React.lazy(() => import('./components/OrderHistory'));
+const KyteToQuickBooksConverter = React.lazy(() => import('./components/KyteToQuickBooksConverter'));
 
 
 const App: React.FC = () => {
@@ -144,6 +145,11 @@ const App: React.FC = () => {
                   <Route path="/run" element={
                     <Suspense fallback={<LoadingSpinner />}>
                       <Runs />
+                    </Suspense>
+                  } />
+                  <Route path="/kyte-converter" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <KyteToQuickBooksConverter />
                     </Suspense>
                   } />
                 </Route>

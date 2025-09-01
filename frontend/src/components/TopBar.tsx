@@ -30,7 +30,8 @@ import {
   DevicesOther as DevicesOtherIcon,
   Menu as MenuIcon,
   History as HistoryIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  Sync as SyncIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -108,6 +109,15 @@ const AdminMenuContent: React.FC<{ onMenuItemClick: (path: string) => void; onCl
             >
                 <ListItemIcon><HistoryIcon fontSize="small" /></ListItemIcon>
                 <ListItemText>Order History</ListItemText>
+            </MenuItem>
+            <MenuItem 
+              onClick={() => handleClick('/kyte-converter')}
+              sx={{
+                '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+              }}
+            >
+                <ListItemIcon><SyncIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Kyte to QuickBooks</ListItemText>
             </MenuItem>
         </div>
     );
