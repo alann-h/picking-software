@@ -103,11 +103,12 @@ const App: React.FC = () => {
                       <TermsOfService />
                     </Suspense>
                   } />
-                  <Route path="/about" element={
+                  <Route path="/about-us" element={
                     <Suspense fallback={<LoadingSpinner />}>
                       <AboutUs />
                     </Suspense>
                   } />
+                  <Route path="/about" element={<Navigate to="/about-us" replace />} />
                 </Route>
                 {/* Protected Routes */}
                 <Route element={

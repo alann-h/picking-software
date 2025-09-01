@@ -49,7 +49,7 @@ const LearnMoreSection = () => {
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => navigate("/about")}
+                onClick={() => navigate("/about-us")}
                 endIcon={<ArrowForward />}
                 sx={{
                   mt: 3,

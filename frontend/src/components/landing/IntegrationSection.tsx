@@ -69,7 +69,7 @@ const IntegrationSection = () => {
                 <Button 
                   variant="outlined" 
                   size="large" 
-                  onClick={() => navigate("/about")}
+                  onClick={() => navigate("/about-us")}
                   sx={{ 
                     borderColor: 'rgba(255,255,255,0.4)',
                     color: 'white',

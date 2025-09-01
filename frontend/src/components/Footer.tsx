@@ -160,7 +160,7 @@ const Footer: React.FC = () => {
                 </Link>
                 <Link
                   component={RouterLink}
-                  to="/about"
+                  to="/about-us"
                   color="grey.300"
                   sx={{
                     '&:hover': {

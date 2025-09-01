@@ -268,7 +268,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
             <>
               <Button 
                 color="primary" 
-                onClick={() => navigate('/about')}
+                onClick={() => navigate('/about-us')}
                 sx={{ 
                   textTransform: 'none',
                   fontWeight: 500,
