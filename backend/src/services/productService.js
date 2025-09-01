@@ -2,7 +2,7 @@ import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query } from '../helpers.js';
 import { getBaseURL, getOAuthClient, getRealmId } from './authService.js';
 import he from 'he';
-import authSystem from '../authSystem.js';
+import authSystem from './authSystem.js';
 
 
 export async function productIdToExternalId(productId) {
