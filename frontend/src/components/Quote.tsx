@@ -29,7 +29,7 @@ const useQuery = () => new URLSearchParams(useLocation().search);
 
 const Quote: React.FC = () => {
   const query = useQuery();
-      const quoteId = query.get('id') || '';
+  const quoteId = query.get('id') || '';
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { modalState, closeModal, openModal } = useModalState();
@@ -109,7 +109,7 @@ const Quote: React.FC = () => {
 
   return (
     <Paper elevation={3} sx={{ padding: { xs: 1, sm: 2, md: 3 }, margin: { xs: 1, sm: 2 } }}>
-      <title>{`Smart Picker | Quote: ${quoteId}`}</title>
+                <title>{`Smart Picker | Quote: ${quoteData.quoteNumber || quoteId}`}</title>
       
       {/* Modals now receive actions directly from the hook */}
       <BarcodeListener onBarcodeScanned={actions.handleBarcodeScan} disabled={modalState.isOpen} />
@@ -126,7 +126,7 @@ const Quote: React.FC = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
-            Quote no.{quoteId}
+            Quote no.{quoteData.quoteNumber || quoteId}
           </Typography>
           
           {/* Progress Indicator */}

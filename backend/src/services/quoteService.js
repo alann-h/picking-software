@@ -79,6 +79,7 @@ async function getXeroCustomerQuotes(oauthClient, customerId) {
     
     return quotes.map(quote => ({
       id: Number(quote.quoteID),
+      quoteNumber: quote.QuoteNumber,
       totalAmount: quote.Total || 0,
       customerName: quote.Contact?.name || 'Unknown Customer',
       lastModified: quote.UpdatedDateUTC,
@@ -148,12 +149,11 @@ export async function getQboEstimate(oauthClient, quoteId) {
 }
 
 async function filterEstimates(responseData, companyId, connectionType) {
-  const estimate = responseData.QueryResponse.Estimate[0];
-  
   if (connectionType === 'qbo') {
+    const estimate = responseData.QueryResponse.Estimate[0];
     return await filterQboEstimate(estimate, companyId, connectionType);
   } else if (connectionType === 'xero') {
-    return await filterXeroEstimate(estimate, companyId, connectionType);
+    return await filterXeroEstimate(responseData, companyId, connectionType);
   } else {
     throw new Error(`Unsupported connection type: ${connectionType}`);
   }
@@ -200,6 +200,7 @@ async function filterQboEstimate(estimate, companyId, connectionType) {
 
   return {
     quoteId: estimate.Id,
+    quoteNumber: estimate.DocNumber,
     customerId: estimate.CustomerRef.value,
     customerName: estimate.CustomerRef.name,
     productInfo,
@@ -211,12 +212,11 @@ async function filterQboEstimate(estimate, companyId, connectionType) {
   };
 }
 
-async function filterXeroEstimate(estimate, companyId, connectionType) {
-  // Xero quotes have a different structure
-  const lineItems = estimate.LineItems || [];
+async function filterXeroEstimate(quote, companyId, connectionType) {
+  const lineItems = quote.LineItems || [];
   
   const itemIds = lineItems
-    .filter(item => item.ItemCode) // Filter out items without codes
+    .filter(item => item.ItemCode)
     .map(item => item.ItemCode);
 
   const productsFromDB = await getProductsFromDBByIds(itemIds); 
@@ -224,7 +224,7 @@ async function filterXeroEstimate(estimate, companyId, connectionType) {
   const productInfo = {};
    
   for (const lineItem of lineItems) {
-    if (!lineItem.ItemCode) continue; // Skip items without codes
+    if (!lineItem.ItemCode) continue;
 
     const itemId = lineItem.ItemCode;
     const itemLocal = productMap.get(itemId);
@@ -232,7 +232,7 @@ async function filterXeroEstimate(estimate, companyId, connectionType) {
     if (!itemLocal) {
       return {
         error: true,
-        quoteId: estimate.QuoteID,
+        quoteId: quote.QuoteID, 
         message: `Product from ${connectionType.toUpperCase()} not found in our database.`,
         productName: lineItem.Description || 'Unknown Product',
       };
@@ -254,15 +254,16 @@ async function filterXeroEstimate(estimate, companyId, connectionType) {
   }
 
   return {
-    quoteId: estimate.QuoteID,
-    customerId: estimate.Contact?.ContactID || estimate.ContactID,
-    customerName: estimate.Contact?.Name || estimate.ContactName || 'Unknown Customer',
+    quoteId: quote.QuoteID,
+    quoteNumber: quote.QuoteNumber,
+    customerId: quote.Contact?.ContactID || quote.ContactID,
+    customerName: quote.Contact?.Name || quote.ContactName || 'Unknown Customer',
     productInfo,
-    totalAmount: parseFloat(estimate.Total) || 0,
+    totalAmount: parseFloat(quote.Total) || 0,
     orderStatus: 'pending',
-    lastModified: formatTimestampForSydney(estimate.UpdatedDateUTC || estimate.Date),
+    lastModified: formatTimestampForSydney(quote.UpdatedDateUTC || quote.Date),
     companyId,
-    orderNote: estimate.Reference || null
+    orderNote: quote.Reference || null
   };
 }
 
@@ -277,14 +278,14 @@ export async function estimateToDB(quote) {
       if (existingQuote.rows.length > 0) {
         // Quote exists, update it
         await client.query(
-          'UPDATE quotes SET total_amount = $2, status = $3, order_note = $4 WHERE id = $1',
-          [quote.quoteId, parseFloat(quote.totalAmount), quote.orderStatus, quote.orderNote]
+          'UPDATE quotes SET total_amount = $2, status = $3, order_note = $4, quote_number = $5 WHERE id = $1',
+          [quote.quoteId, parseFloat(quote.totalAmount), quote.orderStatus, quote.orderNote, quote.quoteNumber]
         );
       } else {
         // Quote doesn't exist, insert it
         await client.query(
-          'INSERT INTO quotes (id, customer_id, total_amount, status, company_id, order_note) VALUES ($1, $2, $3, $4::order_status, $5, $6)',
-          [quote.quoteId, quote.customerId, parseFloat(quote.totalAmount), quote.orderStatus, quote.companyId, quote.orderNote]
+          'INSERT INTO quotes (id, quote_number, customer_id, total_amount, status, company_id, order_note) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [quote.quoteId, quote.quoteNumber, quote.customerId, parseFloat(quote.totalAmount), quote.orderStatus, quote.companyId, quote.orderNote]
         );
       }
 
@@ -343,6 +344,7 @@ export async function fetchQuoteData(quoteId) {
 
     const quote = {
       quoteId: result[0].id,
+      quoteNumber: result[0].quote_number,
       customerId: result[0].customer_id,
       customerName: result[0].customer_name,
       totalAmount: result[0].total_amount,
@@ -596,6 +598,7 @@ export async function getQuotesWithStatus(status) {
 
       return {
         id: quote.id,
+        quoteNumber: quote.quote_number,
         customerId: quote.id,
         customerName: quote.customer_name,
         totalAmount: parseFloat(quote.total_amount),

@@ -53,7 +53,7 @@ CREATE TABLE public.companies (
 );
 COMMENT ON TABLE public.companies IS 'Stores information about customer companies and their accounting software connections.';
 COMMENT ON COLUMN public.companies.connection_type IS 'Type of accounting software connection (none, qbo, xero).';
-COMMENT ON COLUMN public.companies.qb_realm_id IS 'QuickBooks Realm ID, used as the primary identifier for a company.';
+COMMENT ON COLUMN public.companies.qbo_realm_id IS 'QuickBooks Realm ID, used as the primary identifier for a company.';
 COMMENT ON COLUMN public.companies.xero_tenant_id IS 'Xero Tenant ID, used as the primary identifier for a company.';
 
 CREATE TABLE public.users (

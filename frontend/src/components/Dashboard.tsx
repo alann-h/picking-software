@@ -194,7 +194,7 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Stack direction="row" alignItems="center" spacing={1}>
             <Typography variant="h6" color="primary.main" fontWeight="bold">
-              Quote #{quote.id}
+              Quote #{quote.quoteNumber}
             </Typography>
           </Stack>
         </Stack>

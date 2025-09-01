@@ -15,15 +15,18 @@ export interface ProductInfo {
 }
   
 export interface QuoteData {
-    customerName: string;
-    productInfo: ProductInfo;
-    totalAmount: number;
-    timeStarted: string;
-    lastModified: string;
-    orderStatus: string;
-    orderNote: string;
-    pickerNote: string;
-    quoteId: string;
+  quoteId: string;
+  quoteNumber: string;
+  customerId: string;
+  customerName: string;
+  productInfo: Record<string, ProductDetail>;
+  totalAmount: number;
+  orderStatus: string;
+  lastModified: string;
+  timeStarted?: string;
+  companyId: string;
+  pickerNote?: string;
+  orderNote?: string;
 }
 
 export interface BarcodeListenerProps {
@@ -76,6 +79,7 @@ export interface UserUpdateData {
 
 export interface QuoteSummary {
     id: string;
+    quoteNumber: string;
     totalAmount: number;
     customerName: string;
     customerId: string;

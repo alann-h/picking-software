@@ -2,6 +2,7 @@ import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { query } from '../helpers.js';
 import { getBaseURL, getOAuthClient, getRealmId } from './authService.js';
 import he from 'he';
+import authSystem from '../authSystem.js';
 
 
 export async function productIdToExternalId(productId) {
@@ -66,6 +67,81 @@ export async function enrichWithQBOData(products, companyId) {
     return enriched;
   } catch (error) {
     console.error('Error enriching products with QBO data:', error);
+    // Return products without enrichment if there's an error
+    return products.map(product => ({
+      ...product,
+      price: product.price || 0,
+      quantity_on_hand: product.quantity_on_hand || 0,
+      external_item_id: null,
+      tax_code_ref: null
+    }));
+  }
+}
+
+export async function enrichWithXeroData(products, companyId) {
+  try {
+    const oauthClient = await getOAuthClient(companyId, 'xero');
+    const enriched = [];
+
+    for (const product of products) {
+      try {
+        // Get tenant ID for Xero API calls
+        const tenantId = await authSystem.getXeroTenantId(oauthClient);
+        
+        // Query Xero items by Code (equivalent to SKU)
+        const response = await oauthClient.accountingApi.getItems(
+          tenantId,
+          undefined,  // ifModifiedSince
+          `Code == "${product.sku}"`, // where filter
+          undefined,  // order
+          undefined,  // iDs
+          1,          // page
+          false,      // includeArchived
+          undefined,  // searchTerm
+          1           // pageSize
+        );
+
+        const items = response.body.items || [];
+        const itemData = items[0]; // Get first matching item
+
+        if (!itemData || !itemData.IsSold) continue;
+
+        // For tracked inventory items, get quantity on hand
+        let quantityOnHand = 0;
+        if (itemData.IsTrackedAsInventory && itemData.QuantityOnHand !== undefined) {
+          quantityOnHand = parseFloat(itemData.QuantityOnHand);
+          if (!isFinite(quantityOnHand)) {
+            console.warn(`Invalid quantity for SKU ${product.sku}`);
+            quantityOnHand = 0;
+          }
+        }
+
+        // Get price from SalesDetails
+        const price = itemData.SalesDetails?.UnitPrice || 0;
+
+        enriched.push({
+          ...product,
+          price: price,
+          quantity_on_hand: quantityOnHand,
+          external_item_id: itemData.ItemID,
+          tax_code_ref: itemData.SalesDetails?.TaxType || null
+        });
+      } catch (err) {
+        console.warn(`Failed Xero lookup for SKU ${product.sku}: ${err.message}`);
+        // Add product without enrichment if Xero lookup fails
+        enriched.push({
+          ...product,
+          price: product.price || 0,
+          quantity_on_hand: product.quantity_on_hand || 0,
+          external_item_id: null,
+          tax_code_ref: null
+        });
+      }
+    }
+
+    return enriched;
+  } catch (error) {
+    console.error('Error enriching products with Xero data:', error);
     // Return products without enrichment if there's an error
     return products.map(product => ({
       ...product,
@@ -292,9 +368,17 @@ export async function setProductArchiveStatusDb(productId, isArchived) {
   return result[0];
 }
 
-export async function addProductDb(product, companyId) {
+export async function addProductDb(product, companyId, connectionType = 'qbo') {
   try{
-    const enrichedProduct = await enrichWithQBOData(product, companyId);
+    let enrichedProduct;
+    if (connectionType === 'qbo') {
+      enrichedProduct = await enrichWithQBOData(product, companyId);
+    } else if (connectionType === 'xero') {
+      enrichedProduct = await enrichWithXeroData(product, companyId);
+    } else {
+      // Default to QBO if connection type is not specified or unsupported
+      enrichedProduct = await enrichWithQBOData(product, companyId);
+    }
 
     let { productName, barcode, sku } = product[0];
 

@@ -117,9 +117,10 @@ export async function getExternalId(req, res, next) {
 export async function addProduct(req, res, next) {
   try {
     const { productName, sku, barcode } = req.body;
+    const connectionType = req.session.connectionType || 'qbo';
     
     const productArr = [{ productName, sku, barcode }];
-    const result = await addProductDb(productArr, req.session.companyId);
+    const result = await addProductDb(productArr, req.session.companyId, connectionType);
     res.json(result);
   } catch (err) {
     next(err);
