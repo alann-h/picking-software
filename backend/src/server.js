@@ -228,7 +228,11 @@ app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(as
       );
       const jobId = dbResponse.rows[0].id;
 
-      const oauthClient = await getOAuthClient(req.session.companyId);
+      // Get company connection type
+      const companyResult = await pool.query('SELECT connection_type FROM companies WHERE id = $1', [req.session.companyId]);
+      const connectionType = companyResult.rows[0]?.connection_type || 'qbo';
+      
+      const oauthClient = await getOAuthClient(req.session.companyId, connectionType);
       const freshTokenForLambda = oauthClient.getToken();
 
       // 3. Prepare the payload for the Lambda function
@@ -237,6 +241,7 @@ app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(as
         s3Key: s3Key,
         companyId: req.session.companyId,
         token: freshTokenForLambda,
+        connectionType: connectionType,
       };
 
       // 4. Invoke the Lambda function asynchronously
