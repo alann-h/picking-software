@@ -11,7 +11,7 @@ import { fetchCustomersLocal } from './customerService.js';
 export async function parseKyteCSV(csvContent) {
   try {
     const lines = csvContent.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
     
     // Find required column indices
     const numberIndex = headers.findIndex(h => h.toLowerCase().includes('number'));
