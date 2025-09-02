@@ -103,7 +103,7 @@ const baseConfig = {
 
   // AWS configuration
   aws: {
-    region: process.env.AWS_REGION || 'us-east-1',
+    region: process.env.AWS_REGION || 'ap-southeast-1',
     bucketName: process.env.AWS_BUCKET_NAME,
     lambda: {
       functionName: process.env.AWS_LAMBDA_FUNCTION || 'product-processor'
