@@ -27,7 +27,7 @@ import {
   Error as ErrorIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
-import { uploadKyteCSV, getCustomersForMapping, createQuickBooksEstimates } from '../api/kyteConverter';
+import { uploadKyteCSV, getCustomersForMapping, createQuickBooksEstimates, getConversionHistory } from '../api/kyteConverter';
 import ItemDescription from './ItemDescription';
 
 interface Customer {
@@ -62,6 +62,16 @@ interface ProcessingResult {
   message: string;
   estimateId?: string;
   estimateNumber?: string;
+  quickbooksUrl?: string;
+}
+
+interface ConversionHistoryItem {
+  orderNumber: string;
+  estimateId?: string;
+  quickbooksUrl?: string;
+  status: 'success' | 'failed';
+  errorMessage?: string;
+  createdAt: string;
 }
 
 const KyteToQuickBooksConverter: React.FC = () => {
@@ -74,9 +84,12 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [results, setResults] = useState<ProcessingResult[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [conversionHistory, setConversionHistory] = useState<ConversionHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     loadCustomers();
+    loadConversionHistory();
   }, []);
 
   const loadCustomers = async () => {
@@ -89,6 +102,18 @@ const KyteToQuickBooksConverter: React.FC = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadConversionHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const response = await getConversionHistory(20); // Load last 20 conversions
+      setConversionHistory(response.history);
+    } catch (err) {
+      console.error('Failed to load conversion history:', err);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -148,6 +173,9 @@ const KyteToQuickBooksConverter: React.FC = () => {
       const response = await createQuickBooksEstimates(orders);
       setResults(response.results);
       setSuccess(response.message);
+      
+      // Refresh conversion history after successful conversion
+      await loadConversionHistory();
     } catch (err: any) {
       setError(err.message || 'Failed to create estimates');
     } finally {
@@ -168,11 +196,25 @@ const KyteToQuickBooksConverter: React.FC = () => {
 
   const allCustomersMapped = orders.length > 0 && orders.every(order => order.customerId);
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Kyte to QuickBooks Converter
-      </Typography>
+      return (
+      <Box sx={{ p: 3 }}>
+        <title>Smart Picker | Kyte Converter</title>
+        <Box sx={{ 
+          textAlign: 'center', 
+          mb: 4, 
+          p: 3, 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: 2,
+          color: 'white',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+        }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+            Smart Picker
+          </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 400, opacity: 0.9 }}>
+            Kyte Converter
+          </Typography>
+        </Box>
       
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
@@ -345,22 +387,83 @@ const KyteToQuickBooksConverter: React.FC = () => {
                   <TableCell>Order #</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Message</TableCell>
-                  <TableCell>Estimate #</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+                                <TableBody>
+                    {results.map((result) => (
+                      <TableRow key={result.orderNumber}>
+                        <TableCell>{result.orderNumber}</TableCell>
+                        <TableCell>
+                          {result.success ? (
+                            <Chip icon={<CheckCircleIcon />} label="Success" color="success" size="small" />
+                          ) : (
+                            <Chip icon={<ErrorIcon />} label="Failed" color="error" size="small" />
+                          )}
+                        </TableCell>
+                        <TableCell>{result.message}</TableCell>
+                        <TableCell>
+                          {result.success && result.quickbooksUrl && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => window.open(result.quickbooksUrl, '_blank')}
+                              startIcon={<CheckCircleIcon />}
+                            >
+                              View in QuickBooks
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
+
+      {conversionHistory.length > 0 && (
+        <Paper sx={{ p: 3, mt: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Conversion History
+          </Typography>
+          
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Order #</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Created At</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {results.map((result) => (
-                  <TableRow key={result.orderNumber}>
-                    <TableCell>{result.orderNumber}</TableCell>
+                {conversionHistory.map((item) => (
+                  <TableRow key={`${item.orderNumber}-${item.createdAt}`}>
+                    <TableCell>{item.orderNumber}</TableCell>
                     <TableCell>
-                      {result.success ? (
+                      {item.status === 'success' ? (
                         <Chip icon={<CheckCircleIcon />} label="Success" color="success" size="small" />
                       ) : (
                         <Chip icon={<ErrorIcon />} label="Failed" color="error" size="small" />
                       )}
                     </TableCell>
-                    <TableCell>{result.message}</TableCell>
-                    <TableCell>{result.estimateNumber || '-'}</TableCell>
+                    <TableCell>
+                      {new Date(item.createdAt).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      {item.status === 'success' && item.quickbooksUrl && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => window.open(item.quickbooksUrl, '_blank')}
+                          startIcon={<CheckCircleIcon />}
+                        >
+                          View in QuickBooks
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

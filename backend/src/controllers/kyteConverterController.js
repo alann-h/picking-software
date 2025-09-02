@@ -1,4 +1,4 @@
-import { parseKyteCSV, matchProductsToDatabase, getAvailableCustomers, processKyteToQuickBooks } from '../services/kyteConverterService.js';
+import { parseKyteCSV, matchProductsToDatabase, getAvailableCustomers, processKyteToQuickBooks, getConversionHistory } from '../services/kyteConverterService.js';
 
 /**
  * Upload and process Kyte CSV file
@@ -105,6 +105,33 @@ export async function createQuickBooksEstimates(req, res) {
 
   } catch (error) {
     console.error('Error creating QuickBooks estimates:', error);
+    res.status(400).json({ error: error.message });
+  }
+}
+
+/**
+ * Get conversion history for the company
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+export async function getConversionHistoryController(req, res) {
+  try {
+    const companyId = req.session.companyId;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const history = await getConversionHistory(companyId, limit);
+    
+    res.status(200).json({
+      history,
+      summary: {
+        total: history.length,
+        successful: history.filter(h => h.status === 'success').length,
+        failed: history.filter(h => h.status === 'failed').length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching conversion history:', error);
     res.status(400).json({ error: error.message });
   }
 }

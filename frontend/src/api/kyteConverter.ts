@@ -15,3 +15,9 @@ export const createQuickBooksEstimates = async (orders: any[]) => {
   const response = await apiCallPost(`${QUOTES_BASE}/kyte-create-estimates`, { orders });
   return response;
 };
+
+export const getConversionHistory = async (limit?: number) => {
+  const params = limit ? `?limit=${limit}` : '';
+  const response = await apiCallGet(`${QUOTES_BASE}/kyte-history${params}`);
+  return response;
+};

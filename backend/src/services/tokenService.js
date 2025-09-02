@@ -64,9 +64,8 @@ class TokenService {
         if (tokenError instanceof AuthenticationError) throw tokenError;
         throw new AuthenticationError(connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
       }
-      
       if (handler.validate(currentToken)) return currentToken;
-
+      console.log('Refreshing token');
       const refreshPromise = this.refreshCompanyToken(companyId, currentToken, connectionType);
       this.tokenRefreshPromises.set(cacheKey, refreshPromise);
 
@@ -113,7 +112,7 @@ class TokenService {
         return {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token,
-          expires_in: 0,
+          expires_in: tokenData.expires_in,
           x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
           realmId: tokenData.realm_id,
           created_at: tokenData.created_at
@@ -141,6 +140,7 @@ class TokenService {
     }
     
     // created_at is in milliseconds, expires_in is in seconds, so convert expires_in to milliseconds
+    console.log('Created at:', token.created_at, 'Expires in:', token.expires_in);
     const expiresAt = token.created_at + (token.expires_in * 1000);
     const now = Date.now(); // Current time in milliseconds
     const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -164,8 +164,8 @@ class TokenService {
 
     try {
       const refreshedToken = await handler.refresh(currentToken);
-      
       // Prepare the consolidated token data with the new timestamp
+      console.log('Refreshed token:', JSON.stringify(refreshedToken, null, 2));
       let tokenDataToStore;
       if (connectionType === 'qbo') {
         tokenDataToStore = {

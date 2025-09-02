@@ -19,6 +19,7 @@ export async function parseKyteCSV(csvContent) {
     const statusIndex = headers.findIndex(h => h.toLowerCase().includes('status'));
     const itemsIndex = headers.findIndex(h => h.toLowerCase().includes('items') || h.toLowerCase().includes('description'));
     const totalIndex = headers.findIndex(h => h.toLowerCase().trim() === 'total');
+    const observationIndex = headers.findIndex(h => h.toLowerCase().includes('observation'));
 
     if (numberIndex === -1 || dateIndex === -1 || statusIndex === -1 || itemsIndex === -1 || totalIndex === -1) {
       throw new InputError('CSV file is missing required columns: Number, Date, Status, Items Description, Total');
@@ -37,7 +38,8 @@ export async function parseKyteCSV(csvContent) {
           itemsDescription: values[itemsIndex]?.trim(),
           total: parseFloat(values[totalIndex]) || 0,
           customerId: null, // Will be set by user
-          lineItems: parseItemsDescription(values[itemsIndex]?.trim() || '')
+          lineItems: parseItemsDescription(values[itemsIndex]?.trim() || ''),
+          observation: values[observationIndex]?.trim() || ''
         };
         
         pendingOrders.push(order);
@@ -133,7 +135,7 @@ export async function matchProductsToDatabase(lineItems, companyId) {
     for (const item of lineItems) {
       // Try to find product by name (fuzzy match)
       const result = await query(
-        `SELECT id, product_name, sku, barcode, price, external_item_id 
+        `SELECT id, product_name, sku, barcode, price, external_item_id, tax_code_ref 
          FROM products 
          WHERE company_id = $1 
          AND (LOWER(product_name) LIKE LOWER($2) 
@@ -152,6 +154,7 @@ export async function matchProductsToDatabase(lineItems, companyId) {
           barcode: product.barcode,
           price: parseFloat(product.price) || 0,
           externalItemId: product.external_item_id,
+          taxCodeRef: product.tax_code_ref,
           matched: true
         });
       } else {
@@ -163,6 +166,7 @@ export async function matchProductsToDatabase(lineItems, companyId) {
           barcode: null,
           price: 0,
           externalItemId: null,
+          taxCodeRef: null,
           matched: false
         });
       }
@@ -189,6 +193,42 @@ export async function getAvailableCustomers(companyId) {
 }
 
 /**
+ * Get conversion history for a company
+ * @param {string} companyId - Company ID
+ * @param {number} limit - Number of records to return (default: 50)
+ * @returns {Array} Array of conversion records
+ */
+export async function getConversionHistory(companyId, limit = 50) {
+  try {
+    const result = await query(
+      `SELECT 
+        kyte_order_number,
+        quickbooks_estimate_id,
+        quickbooks_url,
+        status,
+        error_message,
+        created_at
+       FROM kyte_conversions 
+       WHERE company_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT $2`,
+      [companyId, limit]
+    );
+    
+    return result.map(record => ({
+      orderNumber: record.kyte_order_number,
+      estimateId: record.quickbooks_estimate_id,
+      quickbooksUrl: record.quickbooks_url,
+      status: record.status,
+      errorMessage: record.error_message,
+      createdAt: record.created_at
+    }));
+  } catch (error) {
+    throw new AccessError(`Failed to fetch conversion history: ${error.message}`);
+  }
+}
+
+/**
  * Create QuickBooks estimate from processed order data
  * @param {Object} orderData - Processed order data
  * @param {string} companyId - Company ID
@@ -200,14 +240,13 @@ export async function createQuickBooksEstimate(orderData, companyId) {
     const baseURL = getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
     
-    // Filter out unmatched items
     const matchedItems = orderData.lineItems.filter(item => item.matched && item.externalItemId);
+    // console.log('Matched items:', JSON.stringify(matchedItems, null, 2));
     
     if (matchedItems.length === 0) {
-      throw new InputError('No matched products found for QuickBooks estimate');
+      throw new InputError('No matched products found to create a QuickBooks estimate.');
     }
     
-    // Build line items for QuickBooks
     const lineItems = matchedItems.map(item => ({
       DetailType: 'SalesItemLineDetail',
       Amount: item.quantity * item.price,
@@ -216,72 +255,99 @@ export async function createQuickBooksEstimate(orderData, companyId) {
           value: item.externalItemId
         },
         Qty: item.quantity,
-        UnitPrice: item.price
+        UnitPrice: item.price,
+        TaxCodeRef: {
+          value: item.taxCodeRef || "4"
+        }
       }
     }));
     
-    // Add subtotal line
-    const subtotal = matchedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    
-    // Convert date to ISO format for QuickBooks
     const txnDate = new Date(orderData.date).toISOString().split('T')[0];
     
     const estimatePayload = {
       CustomerRef: {
         value: orderData.customerId
       },
-      CurrencyRef: {
-        value: 'AUD'
-      },
-      ProjectRef: {
-        value: '1'  // Default project ID - you may need to get this from QBO
-      },
       CustomerMemo: {
         value: orderData.observation || `Imported from Kyte - Order ${orderData.number}`
       },
       Line: [
-        ...lineItems,
-        {
-          DetailType: 'SubtotalLineDetail',
-          Amount: subtotal,
-          SubtotalLineDetail: {}
-        }
+        ...lineItems
       ],
       DocNumber: orderData.number,
       TxnDate: txnDate,
       PrivateNote: `Imported from Kyte - Order ${orderData.number}`
     };
 
-    const url = `${baseURL}v3/company/${realmId}/estimate?minorversion=75`;
-    
-    console.log('Making API call to:', url);
-    
     const response = await oauthClient.makeApiCall({
-      url,
+      url: `${baseURL}v3/company/${realmId}/estimate?minorversion=75`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(estimatePayload)
     });
-
-    console.log('API call completed, response received');
-    console.log('Response:', JSON.stringify(response.json, null, 2));
     if (response.json?.Fault) {
-      const errorMessage = response.json.Fault.Error?.[0]?.Message || 'Unknown QuickBooks error';
-      const errorCode = response.json.Fault.Error?.[0]?.code || 'Unknown';
+      const errorDetail = response.json.Fault.Error?.[0] || {};
+      const errorMessage = errorDetail.Message || 'Unknown QuickBooks error';
+      const errorCode = errorDetail.code || 'Unknown';
       throw new Error(`QuickBooks API Error (${errorCode}): ${errorMessage}`);
     }
+    
+    const webUrl = baseURL.includes('sandbox') 
+      ? 'https://sandbox.qbo.intuit.com/app/'
+      : 'https://qbo.intuit.com/app/';
+    const quickbooksUrl = `${webUrl}estimate?txnId=${response.json?.Estimate?.Id}`;
     
     return {
       success: true,
       estimateId: response.json?.Estimate?.Id,
       estimateNumber: response.json?.Estimate?.DocNumber,
+      quickbooksUrl: quickbooksUrl,
       message: 'Estimate created successfully'
     };
     
   } catch (error) {
     throw new InputError(`Failed to create QuickBooks estimate: ${error.message}`);
+  }
+}
+
+/**
+ * Save conversion result to database
+ * @param {Object} conversionData - Conversion data to save
+ * @param {string} companyId - Company ID
+ * @returns {Object} Saved conversion record
+ */
+export async function saveConversionToDatabase(conversionData, companyId) {
+  try {
+    const {
+      kyteOrderNumber,
+      quickbooksEstimateId,
+      quickbooksUrl,
+      status,
+      errorMessage
+    } = conversionData;
+
+    const result = await query(
+      `INSERT INTO kyte_conversions (
+        company_id, kyte_order_number, quickbooks_estimate_id, 
+        quickbooks_url, status, error_message
+      ) VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (company_id, kyte_order_number) 
+      DO UPDATE SET
+        quickbooks_estimate_id = EXCLUDED.quickbooks_estimate_id,
+        quickbooks_url = EXCLUDED.quickbooks_url,
+        status = EXCLUDED.status,
+        error_message = EXCLUDED.error_message
+      RETURNING *`,
+      [companyId, kyteOrderNumber, quickbooksEstimateId, quickbooksUrl, status, errorMessage]
+    );
+
+    return result[0];
+  } catch (error) {
+    console.error('Failed to save conversion to database:', error);
+    // Don't throw error to avoid breaking the conversion process
+    return null;
   }
 }
 
@@ -307,15 +373,35 @@ export async function processKyteToQuickBooks(orders, companyId) {
         }
         
         const result = await createQuickBooksEstimate(order, companyId);
+        
+        // Save successful conversion to database
+        await saveConversionToDatabase({
+          kyteOrderNumber: order.number,
+          quickbooksEstimateId: result.estimateId,
+          quickbooksUrl: result.quickbooksUrl,
+          status: 'success',
+          errorMessage: null
+        }, companyId);
+        
         results.push({
           orderNumber: order.number,
           success: true,
           estimateId: result.estimateId,
           estimateNumber: result.estimateNumber,
+          quickbooksUrl: result.quickbooksUrl,
           message: result.message
         });
         
       } catch (error) {
+        // Save failed conversion to database
+        await saveConversionToDatabase({
+          kyteOrderNumber: order.number,
+          quickbooksEstimateId: null,
+          quickbooksUrl: null,
+          status: 'failed',
+          errorMessage: error.message
+        }, companyId);
+        
         results.push({
           orderNumber: order.number,
           success: false,

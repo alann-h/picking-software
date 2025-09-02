@@ -18,7 +18,8 @@ import {
 import {
   uploadKyteCSV,
   getCustomersForMapping,
-  createQuickBooksEstimates
+  createQuickBooksEstimates,
+  getConversionHistoryController
 } from '../controllers/kyteConverterController.js';
 
 import {
@@ -46,6 +47,7 @@ router.use(isAuthenticated);
 // Kyte to QuickBooks Converter endpoints
 router.post('/kyte-upload', csvContentRule(), validate, asyncHandler(uploadKyteCSV));
 router.get('/kyte-customers', asyncHandler(getCustomersForMapping));
+router.get('/kyte-history', asyncHandler(getConversionHistoryController));
 router.post('/kyte-create-estimates', [ordersRule(), orderCustomerRule()], validate, asyncHandler(createQuickBooksEstimates));
 
 // Estimate endpoints
