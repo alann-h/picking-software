@@ -15,7 +15,7 @@ export async function parseKyteCSV(csvContent) {
     
     // Find required column indices
     const numberIndex = headers.findIndex(h => h.toLowerCase().includes('number'));
-    const dateIndex = headers.findIndex(h => h.toLowerCase().includes('date'));
+    const dateIndex = headers.findIndex(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('datetime'));
     const statusIndex = headers.findIndex(h => h.toLowerCase().includes('status'));
     const itemsIndex = headers.findIndex(h => h.toLowerCase().includes('items') || h.toLowerCase().includes('description'));
     const totalIndex = headers.findIndex(h => h.toLowerCase().trim() === 'total');
@@ -29,9 +29,9 @@ export async function parseKyteCSV(csvContent) {
     
     for (let i = 1; i < lines.length; i++) {
       const values = parseCSVLine(lines[i]);
-      const status = values[statusIndex]?.trim().toLowerCase();
+      const status = values[statusIndex]?.trim();
       
-      if (status === 'pending order') {
+      if (status.toLowerCase() === 'pending order') {
         const order = {
           number: values[numberIndex]?.trim(),
           date: values[dateIndex]?.trim(),
