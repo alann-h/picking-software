@@ -142,10 +142,7 @@ export class AuthSystem {
     async refreshQBOToken(token) {
         const oauthClient = this.initializeQBO();
         oauthClient.setToken(token);
-        if (oauthClient.isAccessTokenValid()) {
-            return token;
-        }
-
+        
         if (!oauthClient.token.isRefreshTokenValid()) {
             throw new Error('QBO refresh token has expired, please reauthenticate');
         }

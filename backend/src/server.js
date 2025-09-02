@@ -193,6 +193,77 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
   });
 }));
 
+// File upload route (before CSRF protection due to FormData issues)
+const upload = multer({ dest: '/tmp/' });
+app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(async (req, res) => {
+    if (!req.file?.path) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    if (req.file.mimetype !== 'text/csv') {
+      await unlinkAsync(req.file.path);
+      return res.status(400).json({ error: 'Invalid file format. Please upload a CSV file.' });
+    }
+    
+    const localFilePath = req.file.path;
+    const originalFileName = req.file.originalname;
+    const s3Key = `uploads/${Date.now()}-${originalFileName}`;
+
+    try {
+      // 1. Upload the file to S3
+      const fileStream = createReadStream(localFilePath);
+      const uploadParams = {
+        Bucket: S3_BUCKET_NAME,
+        Key: s3Key,
+        Body: fileStream,
+        ContentType: req.file.mimetype,
+      };
+      await s3Client.send(new PutObjectCommand(uploadParams));
+      console.log(`Successfully uploaded ${s3Key} to S3.`);
+
+      // 2. Create a job record in your database
+      const dbResponse = await pool.query(
+        `INSERT INTO jobs (s3_key, company_id) VALUES ($1, $2) RETURNING id`,
+        [s3Key, req.session.companyId]
+      );
+      const jobId = dbResponse.rows[0].id;
+
+      const oauthClient = await getOAuthClient(req.session.companyId);
+      const freshTokenForLambda = oauthClient.getToken();
+
+      // 3. Prepare the payload for the Lambda function
+      const lambdaPayload = {
+        jobId: jobId,
+        s3Key: s3Key,
+        companyId: req.session.companyId,
+        token: freshTokenForLambda,
+      };
+
+      // 4. Invoke the Lambda function asynchronously
+      const invokeCommand = new InvokeCommand({
+        FunctionName: config.aws.lambda.functionName,
+        InvocationType: 'Event',
+        Payload: JSON.stringify(lambdaPayload),
+      });
+      await lambdaClient.send(invokeCommand);
+
+      // 5. Respond to the client with the new job ID from the database
+      res.status(202).json({ message: 'File queued for processing', jobId: jobId });
+
+    } catch (error) {
+      console.error('Error during file upload or Lambda invocation:', error);
+      res.status(500).json({ error: 'Failed to process file upload.' });
+    } finally {
+      try {
+        await unlinkAsync(localFilePath);
+        console.log(`Cleaned up temporary local file: ${localFilePath}`);
+      } catch (cleanupError) {
+        console.warn(`Failed to clean up temporary file ${localFilePath}:`, cleanupError);
+      }
+    }
+  })
+);
+
 app.use(doubleCsrfProtection);
 
 // Rate limiting for security
@@ -579,76 +650,7 @@ app.get('/api/user-status', isAuthenticated, asyncHandler(async (req, res) => {
   });
 }));
 
-// File upload route
-const upload = multer({ dest: '/tmp/' });
-app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(async (req, res) => {
-    if (!req.file?.path) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
 
-    if (req.file.mimetype !== 'text/csv') {
-      await unlinkAsync(req.file.path);
-      return res.status(400).json({ error: 'Invalid file format. Please upload a CSV file.' });
-    }
-    
-    const localFilePath = req.file.path;
-    const originalFileName = req.file.originalname;
-    const s3Key = `uploads/${Date.now()}-${originalFileName}`;
-
-    try {
-      // 1. Upload the file to S3
-      const fileStream = createReadStream(localFilePath);
-      const uploadParams = {
-        Bucket: S3_BUCKET_NAME,
-        Key: s3Key,
-        Body: fileStream,
-        ContentType: req.file.mimetype,
-      };
-      await s3Client.send(new PutObjectCommand(uploadParams));
-      console.log(`Successfully uploaded ${s3Key} to S3.`);
-
-      // 2. Create a job record in your database
-      const dbResponse = await pool.query(
-        `INSERT INTO jobs (s3_key, id) VALUES ($1, $2) RETURNING id`,
-        [s3Key, req.session.companyId]
-      );
-      const jobId = dbResponse.rows[0].id;
-
-      const oauthClient = await getOAuthClient(req.session.companyId);
-      const freshTokenForLambda = oauthClient.getToken();
-
-      // 3. Prepare the payload for the Lambda function
-      const lambdaPayload = {
-        jobId: jobId,
-        s3Key: s3Key,
-        companyId: req.session.companyId,
-        token: freshTokenForLambda,
-      };
-
-      // 4. Invoke the Lambda function asynchronously
-      const invokeCommand = new InvokeCommand({
-        FunctionName: config.aws.lambda.functionName,
-        InvocationType: 'Event',
-        Payload: JSON.stringify(lambdaPayload),
-      });
-      await lambdaClient.send(invokeCommand);
-
-      // 5. Respond to the client with the new job ID from the database
-      res.status(202).json({ message: 'File queued for processing', jobId: jobId });
-
-    } catch (error) {
-      console.error('Error during file upload or Lambda invocation:', error);
-      res.status(500).json({ error: 'Failed to process file upload.' });
-    } finally {
-      try {
-        await unlinkAsync(localFilePath);
-        console.log(`Cleaned up temporary local file: ${localFilePath}`);
-      } catch (cleanupError) {
-        console.warn(`Failed to clean up temporary file ${localFilePath}:`, cleanupError);
-      }
-    }
-  })
-);
 
 // — Swagger docs
 const __filename = fileURLToPath(import.meta.url);
