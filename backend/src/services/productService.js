@@ -1,5 +1,5 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query } from '../helpers.js';
+import { query, transaction } from '../helpers.js';
 import { getBaseURL, getOAuthClient, getRealmId } from './authService.js';
 import he from 'he';
 import { authSystem }from './authSystem.js';
@@ -158,11 +158,7 @@ export async function upsertProducts(products, companyId) {
     return;
   }
 
-  const client = await query.getClient();
-  
-  await client.query('BEGIN');
-
-  try {
+  return await transaction(async (client) => {
     // Process products in batches for better performance
     const batchSize = 100;
     let processedCount = 0;
@@ -211,14 +207,9 @@ export async function upsertProducts(products, companyId) {
       processedCount += batch.length;
     }
 
-    await client.query('COMMIT');
     console.log(`✅ Successfully processed ${processedCount} products using efficient upsert.`);
-
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('❌ Upsert failed. Rolling back.', err);
-    throw err;
-  }
+    return processedCount;
+  });
 }
 
 export async function getProductName(barcode, companyId) {
