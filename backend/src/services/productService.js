@@ -182,6 +182,7 @@ export async function upsertProducts(products, companyId) {
         p.tax_code_ref,
         p.price,
         p.quantity_on_hand,
+        p.is_archived ?? false,
       ]);
 
       // Simple upsert - let PostgreSQL handle conflicts based on unique constraints
