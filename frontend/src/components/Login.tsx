@@ -11,7 +11,11 @@ import {
   Stack,
   Divider,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { 
   Visibility, 
@@ -59,22 +63,32 @@ const Login: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [currentUser, setCurrentUser] = useState<{ email: string; name?: string } | null>(null);
   const [showSwitchAccount, setShowSwitchAccount] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
     verifyUser()
       .then((response) => {
         if (response.isValid && response.user && response.user.userId) {
+          // Check if user has explicitly chosen to auto-login
           const hasRememberMe = localStorage.getItem('rememberMe') === 'true';
-          
+
+          console.log('hasRememberMe', hasRememberMe);
           if (hasRememberMe) {
+            // Only auto-login if user explicitly chose "Remember Me"
             navigate('/dashboard');
           } else {
+            // Show login form with auto-filled email for convenience
+            setFormData(prev => ({
+              ...prev,
+              email: response.user.email || ''
+            }));
             setCurrentUser({
               email: response.user.email || 'Unknown User',
               name: response.user.name
             });
-            setShowSwitchAccount(true);
             setLoading(false);
           }
         } else {
@@ -89,8 +103,9 @@ const Login: React.FC = () => {
   }, [navigate]);
 
   const handleSwitchAccount = () => {
-    setShowSwitchAccount(false);
+    setShowSwitchAccount(true);
     setCurrentUser(null);
+    setFormData({ email: '', password: '' });
     localStorage.removeItem('rememberMe');
   };
 
@@ -107,8 +122,43 @@ const Login: React.FC = () => {
       localStorage.removeItem('rememberMe');
       setShowSwitchAccount(false);
       setCurrentUser(null);
+      setFormData({ email: '', password: '' });
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    setResetEmail(formData.email);
+    setShowForgotPassword(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetEmail) {
+      handleOpenSnackbar('Please enter your email address', 'error');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      // TODO: Implement password reset API call
+      // await resetPassword(resetEmail);
+      
+      // For now, simulate the API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      handleOpenSnackbar('Password reset link sent to your email', 'success');
+      setShowForgotPassword(false);
+      setResetEmail('');
+    } catch (error) {
+      handleOpenSnackbar('Failed to send reset link. Please try again.', 'error');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const handleCloseForgotPassword = () => {
+    setShowForgotPassword(false);
+    setResetEmail('');
   };
 
   const handleQuickBooksLogin = () => {
@@ -261,65 +311,34 @@ const Login: React.FC = () => {
                   boxShadow: '0 20px 40px rgba(30, 64, 175, 0.15)'
                 }}
               >
-                {/* Current User Info - Show when user is authenticated but wants to switch */}
-                {showSwitchAccount && currentUser && (
-                  <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(59, 130, 246, 0.08)', borderRadius: 2, border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Person sx={{ color: '#3B82F6', mr: 1 }} />
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E40AF' }}>
-                        Currently signed in as:
-                      </Typography>
-                    </Box>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        {currentUser.name || 'User'}
-                      </Typography>
+
+
+                {/* Auto-filled email indicator */}
+                {currentUser && !showSwitchAccount && (
+                  <Box sx={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    borderRadius: 2,
+                    padding: 2,
+                    mb: 3,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Person sx={{ color: 'primary.main', fontSize: 20 }} />
                       <Typography variant="body2" color="text.secondary">
-                        {currentUser.email}
+                        Signed in as <strong>{currentUser.email}</strong>
                       </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Button
-                        variant="contained"
-                        onClick={handleContinueAsCurrentUser}
-                        sx={{
-                          background: 'linear-gradient(135deg, #10B981, #059669)',
-                          color: 'white',
-                          '&:hover': {
-                            background: 'linear-gradient(135deg, #059669, #047857)',
-                          }
-                        }}
-                      >
-                        Continue as Current User
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<SwitchAccount />}
-                        onClick={handleSwitchAccount}
-                        sx={{
-                          borderColor: '#3B82F6',
-                          color: '#3B82F6',
-                          '&:hover': {
-                            borderColor: '#1E40AF',
-                            backgroundColor: 'rgba(59, 130, 246, 0.04)',
-                          }
-                        }}
-                      >
-                        Switch Account
-                      </Button>
-                      <Button
-                        variant="text"
-                        color="error"
-                        onClick={handleForceLogout}
-                        sx={{
-                          '&:hover': {
-                            backgroundColor: 'rgba(239, 68, 68, 0.04)',
-                          }
-                        }}
-                      >
-                        Force Logout
-                      </Button>
-                    </Box>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={handleSwitchAccount}
+                      sx={{ color: 'primary.main', textTransform: 'none' }}
+                    >
+                      Switch Account
+                    </Button>
                   </Box>
                 )}
 
@@ -339,7 +358,7 @@ const Login: React.FC = () => {
                     {showSwitchAccount ? 'Switch Account' : 'Welcome Back'}
                   </Typography>
                   <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
-                    {showSwitchAccount ? 'Sign in with different credentials' : 'Sign in to Smart Picker'}
+                    {showSwitchAccount ? 'Sign in with different credentials' : 'Enter your password to continue'}
                   </Typography>
                 </Box>
 
@@ -408,6 +427,25 @@ const Login: React.FC = () => {
                       }}
                     />
 
+                    {/* Forgot Password Link */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={() => handleForgotPassword()}
+                        sx={{
+                          color: '#3B82F6',
+                          textTransform: 'none',
+                          fontSize: '0.875rem',
+                          '&:hover': {
+                            backgroundColor: 'rgba(59, 130, 246, 0.04)',
+                          }
+                        }}
+                      >
+                        Forgot Password?
+                      </Button>
+                    </Box>
+
                     {/* Remember Me Checkbox */}
                     <FormControlLabel
                       control={
@@ -455,7 +493,7 @@ const Login: React.FC = () => {
                         }
                       }}
                     >
-                      {isSubmitting ? 'Signing In...' : (showSwitchAccount ? 'Switch Account' : 'Sign In')}
+                      {isSubmitting ? 'Signing In...' : (showSwitchAccount ? 'Switch Account' : 'Continue')}
                     </Button>
                   </Stack>
                 </Box>
@@ -538,6 +576,69 @@ const Login: React.FC = () => {
           </Container>
         </Box>
       </LoadingWrapper>
+
+      {/* Password Reset Modal */}
+      <Dialog 
+        open={showForgotPassword} 
+        onClose={handleCloseForgotPassword}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          textAlign: 'center', 
+          fontWeight: 600,
+          background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          Reset Password
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Enter your email address and we'll send you a link to reset your password.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Email Address"
+            type="email"
+            value={resetEmail}
+            onChange={(e) => setResetEmail(e.target.value)}
+            variant="outlined"
+            disabled={isResettingPassword}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={handleCloseForgotPassword}
+            disabled={isResettingPassword}
+            sx={{ color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleResetPassword}
+            variant="contained"
+            disabled={!resetEmail || isResettingPassword}
+            sx={{
+              background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #3B82F6, #1E40AF)',
+              },
+              '&:disabled': {
+                background: '#E5E7EB',
+                color: '#9CA3AF',
+              }
+            }}
+          >
+            {isResettingPassword ? 'Sending...' : 'Send Reset Link'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
