@@ -168,8 +168,8 @@ export async function upsertProducts(products, companyId) {
       
       // Build the upsert query for this batch
       const values = batch.map((p, index) => {
-        const start = index * 9;
-        return `($${start + 1},$${start + 2},$${start + 3},$${start + 4},$${start + 5},$${start + 6},$${start + 7},$${start + 8},$${start + 9})`;
+        const start = index * 10;
+        return `($${start + 1},$${start + 2},$${start + 3},$${start + 4},$${start + 5},$${start + 6},$${start + 7},$${start + 8},$${start + 9},$${start + 10})`;
       }).join(', ');
 
       const params = batch.flatMap(p => [
