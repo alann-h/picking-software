@@ -140,13 +140,10 @@ class TokenService {
     }
     
     // created_at is in milliseconds, expires_in is in seconds, so convert expires_in to milliseconds
-    console.log('Created at:', token.created_at, 'Expires in:', token.expires_in);
     const expiresAt = token.created_at + (token.expires_in * 1000);
     const now = Date.now(); // Current time in milliseconds
     const buffer = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-    console.log('Expires at:', expiresAt, 'Current time + buffer:', now + buffer, 'Is valid:', expiresAt > (now + buffer));
-    
     return expiresAt > (now + buffer);
   }
 
