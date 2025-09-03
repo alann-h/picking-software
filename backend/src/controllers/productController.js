@@ -15,7 +15,7 @@ import {
 // GET /products/barcode/:barcode
 export async function barcodeToName(req, res, next) {
   try {
-    const productName = await getProductName(req.params.barcode);
+    const productName = await getProductName(req.params.barcode, req.session.companyId);
     res.json({ productName });
   } catch (err) {
     next(err);
@@ -27,7 +27,7 @@ export async function getProduct(req, res, next) {
   try {
     const { productId } = req.params;
     const externalId = await productIdToExternalId(parseInt(productId, 10));
-    const productData = await getProductsFromDBByIds([externalId]);
+    const productData = await getProductsFromDBByIds([externalId], req.session.companyId);
     res.json(productData[0]);
   } catch (err) {
     next(err);

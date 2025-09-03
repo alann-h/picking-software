@@ -153,106 +153,77 @@ export async function enrichWithXeroData(products, companyId) {
   }
 }
 
-export async function insertProductsTempTable(products, companyId, client) {
+export async function upsertProducts(products, companyId) {
   if (products.length === 0) {
     return;
   }
 
+  const client = await query.getClient();
+  
   await client.query('BEGIN');
 
   try {
-    // 1. Create a temporary table to hold the incoming data
-    await client.query(`
-      CREATE TEMP TABLE temp_products (
-        category VARCHAR,
-        product_name VARCHAR,
-        barcode VARCHAR,
-        sku VARCHAR,
-        price NUMERIC,
-        quantity_on_hand NUMERIC,
-        external_item_id VARCHAR,
-        id VARCHAR,
-        tax_code_ref VARCHAR
-      ) ON COMMIT DROP;
-    `);
+    // Process products in batches for better performance
+    const batchSize = 100;
+    let processedCount = 0;
 
-    // 2. Insert all products into the temporary table
-    const values = products.map((p, index) => {
-      const start = index * 9;
-      return `$${start + 1},$${start + 2},$${start + 3},$${start + 4},$${start + 5},$${start + 6},$${start + 7},$${start + 8},$${start + 9}`;
-    }).join('), (');
+    for (let i = 0; i < products.length; i += batchSize) {
+      const batch = products.slice(i, i + batchSize);
+      
+      // Build the upsert query for this batch
+      const values = batch.map((p, index) => {
+        const start = index * 9;
+        return `($${start + 1},$${start + 2},$${start + 3},$${start + 4},$${start + 5},$${start + 6},$${start + 7},$${start + 8},$${start + 9})`;
+      }).join(', ');
 
-    const params = products.flatMap(p => [
-      p.category,
-      p.productName,
-      p.barcode ?? null,
-      p.sku,
-      p.price,
-      p.quantity_on_hand,
-      p.external_item_id,
-      companyId,
-      p.tax_code_ref,
-    ]);
+      const params = batch.flatMap(p => [
+        companyId,
+        p.productName,
+        p.sku,
+        p.barcode ?? null,
+        p.external_item_id,
+        p.category,
+        p.tax_code_ref,
+        p.price,
+        p.quantity_on_hand,
+      ]);
 
-    await client.query(`INSERT INTO temp_products VALUES (${values})`, params);
+      // Simple upsert - let PostgreSQL handle conflicts based on unique constraints
+      // This will update existing products and insert new ones in one operation
+      await client.query(`
+        INSERT INTO products (
+          company_id, product_name, sku, barcode, external_item_id, category, tax_code_ref, price, quantity_on_hand, is_archived
+        )
+        VALUES ${values}
+        ON CONFLICT (company_id, sku) 
+        DO UPDATE SET
+          product_name = EXCLUDED.product_name,
+          barcode = EXCLUDED.barcode,
+          external_item_id = EXCLUDED.external_item_id,
+          category = EXCLUDED.category,
+          tax_code_ref = EXCLUDED.tax_code_ref,
+          price = EXCLUDED.price,
+          quantity_on_hand = EXCLUDED.quantity_on_hand,
+          is_archived = EXCLUDED.is_archived,
+          updated_at = NOW()
+      `, params);
 
-    // 3. Update existing products based on external_item_id
-    await client.query(`
-      UPDATE products AS p
-      SET 
-        product_name     = tp.product_name,
-        category         = tp.category,
-        barcode          = tp.barcode,
-        sku              = tp.sku,
-        price            = tp.price,
-        quantity_on_hand = tp.quantity_on_hand,
-        tax_code_ref     = tp.tax_code_ref
-      FROM temp_products AS tp
-      WHERE p.external_item_id = tp.external_item_id AND p.id = tp.id;
-    `);
-
-    // 4. Update existing products based on barcode
-    // This handles the case where the barcode changes but external_item_id doesn't
-    await client.query(`
-      UPDATE products AS p
-      SET 
-        product_name     = tp.product_name,
-        category         = tp.category,
-        sku              = tp.sku,
-        price            = tp.price,
-        quantity_on_hand = tp.quantity_on_hand,
-        tax_code_ref     = tp.tax_code_ref,
-        external_item_id      = tp.external_item_id
-      FROM temp_products AS tp
-              WHERE p.barcode = tp.barcode AND p.id = tp.id AND p.external_item_id IS NULL;
-    `);
-
-    // 5. Insert new products
-    await client.query(`
-      INSERT INTO products (
-        category, product_name, barcode, sku, price, quantity_on_hand, external_item_id, id, tax_code_ref
-      )
-      SELECT 
-        tp.category, tp.product_name, tp.barcode, tp.sku, tp.price, tp.quantity_on_hand, tp.external_item_id, tp.id, tp.tax_code_ref
-      FROM temp_products AS tp
-      LEFT JOIN products AS p
-        ON tp.external_item_id = p.external_item_id AND tp.id = p.id
-      WHERE p.external_item_id IS NULL;
-    `);
+      processedCount += batch.length;
+    }
 
     await client.query('COMMIT');
-    console.log(`✅ Successfully processed ${products.length} products using a temporary table.`);
+    console.log(`✅ Successfully processed ${processedCount} products using efficient upsert.`);
 
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('❌ Temporary table upsert failed. Rolling back.', err);
+    console.error('❌ Upsert failed. Rolling back.', err);
     throw err;
   }
 }
 
-export async function getProductName(barcode) {
+export async function getProductName(barcode, companyId) {
   try {
-    const result = await query('SELECT product_name FROM products WHERE barcode = $1', [barcode]);
+    const result = await query('SELECT product_name FROM products WHERE barcode = $1 AND company_id = $2', [barcode, companyId]);
     if (result.length === 0) {
       throw new InputError('This product does not exist within the database');
     }
@@ -265,21 +236,22 @@ export async function getProductName(barcode) {
 /**
  * Fetches multiple products from the database based on an array of external Item IDs.
  * @param {string[]} itemIds - An array of external item IDs to fetch.
+ * @param {string} companyId - The company ID to filter products by.
  * @returns {Promise<object[]>} A promise that resolves to an array of any product objects found.
  */
-export async function getProductsFromDBByIds(itemIds) {
+export async function getProductsFromDBByIds(itemIds, companyId) {
   if (!itemIds || itemIds.length === 0) {
     return [];
   }
 
   const placeholders = itemIds.map((_, index) => `$${index + 1}`).join(', ');
 
-  const sqlQuery = `SELECT * FROM products WHERE external_item_id IN (${placeholders}) AND is_archived = FALSE`;
+  const sqlQuery = `SELECT * FROM products WHERE external_item_id IN (${placeholders}) AND company_id = $${itemIds.length + 1} AND is_archived = FALSE`;
 
 
   let results;
   try {
-    results = await query(sqlQuery, itemIds);
+    results = await query(sqlQuery, [...itemIds, companyId]);
   } catch (err) {
     console.log(err);
     throw new AccessError('Error accessing the database while fetching products');
@@ -390,26 +362,31 @@ export async function addProductDb(product, companyId, connectionType = 'qbo') {
     const { price, quantity_on_hand, external_item_id, tax_code_ref } = enrichedProduct[0];
 
     const values = [
-      productName,       // $1 → product_name
-      barcodeValue,      // $2 → barcode
-      sku,               // $3 → sku
-      price || 0,        // $4 → price
-      quantity_on_hand || 0,  // $5 → quantity_on_hand
-      external_item_id,       // $6 → external_item_id
-      companyId,         // $7 → company_id
-      tax_code_ref       // $8 → tax_code_ref
+      companyId,         // $1 → company_id
+      productName,        // $2 → product_name
+      sku,                // $3 → sku
+      barcodeValue,       // $4 → barcode
+      external_item_id,   // $5 → external_item_id
+      null,               // $6 → category (not provided in this function)
+      tax_code_ref,       // $7 → tax_code_ref
+      price || 0,         // $8 → price
+      quantity_on_hand || 0,  // $9 → quantity_on_hand
+      false               // $10 → is_archived (default to false)
     ];
     const text = `
       INSERT INTO products
-        (product_name, barcode, sku, price, quantity_on_hand, external_item_id, company_id, tax_code_ref)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        (company_id, product_name, sku, barcode, external_item_id, category, tax_code_ref, price, quantity_on_hand, is_archived)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       ON CONFLICT (company_id, sku) DO UPDATE
         SET product_name      = EXCLUDED.product_name,
             barcode          = EXCLUDED.barcode,
-            price            = EXCLUDED.price,
             external_item_id = EXCLUDED.external_item_id,
+            category         = EXCLUDED.category,
+            tax_code_ref     = EXCLUDED.tax_code_ref,
+            price            = EXCLUDED.price,
             quantity_on_hand = EXCLUDED.quantity_on_hand,
-            tax_code_ref     = EXCLUDED.tax_code_ref
+            is_archived      = EXCLUDED.is_archived,
+            updated_at       = NOW()
       RETURNING sku;
     `;
 

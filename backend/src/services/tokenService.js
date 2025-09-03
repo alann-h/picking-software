@@ -165,7 +165,6 @@ class TokenService {
     try {
       const refreshedToken = await handler.refresh(currentToken);
       // Prepare the consolidated token data with the new timestamp
-      console.log('Refreshed token:', JSON.stringify(refreshedToken, null, 2));
       let tokenDataToStore;
       if (connectionType === 'qbo') {
         tokenDataToStore = {

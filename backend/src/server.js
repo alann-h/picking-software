@@ -34,8 +34,7 @@ import webhookRoutes from './routes/webhookRoutes.js';
 import asyncHandler from './middlewares/asyncHandler.js';
 import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
-import { transaction } from './helpers.js';
-import { insertProductsTempTable } from './services/productService.js';
+import { upsertProducts } from './services/productService.js';
 import { getOAuthClient } from './services/authService.js';
 import pool from './db.js';
 
@@ -144,15 +143,8 @@ app.post('/internal/process-s3-job', verifyInternalRequest, asyncHandler(async (
   const { products } = JSON.parse(bodyContents);
 
   // 3. Insert products into the database using your existing logic
-  const client = await pool.connect();
-  try {
-    await transaction(async (transactionClient) => {
-      await insertProductsTempTable(products, companyId, transactionClient);
-    });
-    res.status(200).json({ message: `Successfully processed and saved products from S3 key: ${processedDataS3Key}` });
-  } finally {
-    client.release();
-  }
+  await upsertProducts(products, companyId);
+  res.status(200).json({ message: `Successfully processed and saved products from S3 key: ${processedDataS3Key}` });
 }));
 
 app.post('/internal/jobs/:jobId/progress', verifyInternalRequest, asyncHandler(async (req, res) => {
@@ -349,110 +341,6 @@ app.get('/api/verifyUser', asyncHandler(async (req, res) => {
     });
   } else {
     res.json({ isValid: false, user: null });
-  }
-}));
-
-// Debug endpoint to troubleshoot session issues
-app.get('/debug/session', asyncHandler(async (req, res) => {
-  res.json({
-    sessionExists: !!req.session,
-    sessionId: req.session?.id,
-    sessionData: req.session,
-    cookies: req.headers.cookie
-  });
-}));
-
-// CSRF Flow Test Endpoint - Railway-friendly debugging
-app.get('/debug/csrf-flow', asyncHandler(async (req, res) => {
-  const debugInfo = {
-    timestamp: new Date().toISOString(),
-    environment: config.currentEnv,
-    session: {
-      exists: !!req.session,
-      id: req.session?.id,
-      csrfSessionEnsured: req.session?.csrfSessionEnsured,
-      userId: req.session?.userId,
-      companyId: req.session?.companyId
-    },
-    headers: {
-      'x-csrf-token': req.headers['x-csrf-token'] ? 'present' : 'missing',
-      'cookie': req.headers.cookie ? 'present' : 'missing',
-      'user-agent': req.headers['user-agent'],
-      'origin': req.headers.origin,
-      'referer': req.headers.referer
-    },
-    csrf: {
-      cookieName: config.security.csrf.cookieName,
-      cookieDomain: config.session.cookie.domain || 'localhost',
-      secure: config.session.cookie.secure,
-      sameSite: config.session.cookie.sameSite
-    },
-    environment_vars: {
-      VITE_APP_ENV: config.currentEnv,
-      SESSION_SECRET: config.session.secret ? 'set' : 'missing',
-      VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || 'not set'
-    }
-  };
-
-  // Test CSRF token generation
-  try {
-    if (req.session && req.session.id) {
-      const csrfToken = generateCsrfToken(req, res);
-      debugInfo.csrf.tokenGenerated = true;
-      debugInfo.csrf.tokenLength = csrfToken.length;
-      debugInfo.csrf.tokenPreview = csrfToken.substring(0, 8) + '...';
-    } else {
-      debugInfo.csrf.tokenGenerated = false;
-      debugInfo.csrf.error = 'No valid session for token generation';
-    }
-  } catch (error) {
-    debugInfo.csrf.tokenGenerated = false;
-    debugInfo.csrf.error = error.message;
-  }
-
-  res.json(debugInfo);
-}));
-
-// Simple CSRF Test Endpoint - Easy to test from browser
-app.post('/debug/test-csrf', asyncHandler(async (req, res) => {
-  const testResult = {
-    success: true,
-    message: 'CSRF validation passed!',
-    timestamp: new Date().toISOString(),
-    sessionId: req.session?.id,
-    method: req.method,
-    path: req.path
-  };
-  
-  res.json(testResult);
-}));
-
-// QBO Token Status Endpoint - Check if QBO token issues are causing problems
-app.get('/debug/qbo-token-status', asyncHandler(async (req, res) => {
-  if (!req.session || !req.session.companyId) {
-    return res.status(401).json({ error: 'No company ID in session' });
-  }
-
-  try {
-    const { tokenService } = await import('./services/tokenService.js');
-    const tokenStatus = await tokenService.getTokenStatus(req.session.companyId, 'qbo');
-    
-    res.json({
-      companyId: req.session.companyId,
-      userId: req.session.userId,
-      timestamp: new Date().toISOString(),
-      qboToken: tokenStatus,
-      session: {
-        id: req.session.id,
-        csrfSessionEnsured: req.session.csrfSessionEnsured
-      }
-    });
-  } catch (error) {
-    console.error('Error checking QBO token status:', error);
-    res.status(500).json({ 
-      error: 'Failed to check QBO token status',
-      message: error.message 
-    });
   }
 }));
 

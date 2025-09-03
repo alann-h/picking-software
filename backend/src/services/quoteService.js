@@ -165,7 +165,7 @@ async function filterQboEstimate(estimate, companyId, connectionType) {
     .filter(line => line.DetailType !== 'SubTotalLineDetail')
     .map(line => line.SalesItemLineDetail.ItemRef.value);
     
-  const productsFromDB = await getProductsFromDBByIds(itemIds); 
+  const productsFromDB = await getProductsFromDBByIds(itemIds, companyId); 
   const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
   const productInfo = {};
    
@@ -220,7 +220,7 @@ async function filterXeroEstimate(quote, companyId, connectionType) {
     .filter(item => item.ItemCode)
     .map(item => item.ItemCode);
 
-  const productsFromDB = await getProductsFromDBByIds(itemIds); 
+  const productsFromDB = await getProductsFromDBByIds(itemIds, companyId); 
   const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
   const productInfo = {};
    
