@@ -192,25 +192,73 @@ export async function upsertProducts(products, companyId) {
         p.is_archived ?? false,
       ]);
 
-      // Simple upsert - let PostgreSQL handle conflicts based on unique constraints
-      // This will update existing products and insert new ones in one operation
-      await client.query(`
-        INSERT INTO products (
-          company_id, product_name, sku, barcode, external_item_id, category, tax_code_ref, price, quantity_on_hand, is_archived
-        )
-        VALUES ${values}
-        ON CONFLICT (company_id, sku) 
-        DO UPDATE SET
-          product_name = EXCLUDED.product_name,
-          barcode = EXCLUDED.barcode,
-          external_item_id = EXCLUDED.external_item_id,
-          category = EXCLUDED.category,
-          tax_code_ref = EXCLUDED.tax_code_ref,
-          price = EXCLUDED.price,
-          quantity_on_hand = EXCLUDED.quantity_on_hand,
-          is_archived = EXCLUDED.is_archived,
-          updated_at = NOW()
-      `, params);
+      // Handle upserts for each product individually to manage multiple unique constraints
+      for (const product of batch) {
+        const productParams = [
+          companyId,
+          product.productName,
+          product.sku,
+          product.barcode ?? null,
+          product.external_item_id,
+          product.category,
+          product.tax_code_ref,
+          product.price,
+          product.quantity_on_hand,
+          product.is_archived ?? false,
+        ];
+
+        // First try to update by SKU (most common case)
+        const skuUpdateResult = await client.query(`
+          UPDATE products SET
+            product_name = $2,
+            barcode = $4,
+            external_item_id = $5,
+            category = $6,
+            tax_code_ref = $7,
+            price = $8,
+            quantity_on_hand = $9,
+            is_archived = $10,
+            updated_at = NOW()
+          WHERE company_id = $1 AND sku = $3
+          RETURNING id
+        `, productParams);
+
+        // If no row was updated by SKU, try to update by barcode (if barcode exists)
+        if (skuUpdateResult.rowCount === 0 && product.barcode && product.barcode.trim() !== '') {
+          const barcodeUpdateResult = await client.query(`
+            UPDATE products SET
+              product_name = $2,
+              sku = $3,
+              external_item_id = $5,
+              category = $6,
+              tax_code_ref = $7,
+              price = $8,
+              quantity_on_hand = $9,
+              is_archived = $10,
+              updated_at = NOW()
+            WHERE company_id = $1 AND barcode = $4
+            RETURNING id
+          `, productParams);
+
+          // If no row was updated by barcode either, insert new product
+          if (barcodeUpdateResult.rowCount === 0) {
+            await client.query(`
+              INSERT INTO products (
+                company_id, product_name, sku, barcode, external_item_id, category, tax_code_ref, price, quantity_on_hand, is_archived
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `, productParams);
+          }
+        } else if (skuUpdateResult.rowCount === 0) {
+          // No update by SKU and no barcode, insert new product
+          await client.query(`
+            INSERT INTO products (
+              company_id, product_name, sku, barcode, external_item_id, category, tax_code_ref, price, quantity_on_hand, is_archived
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          `, productParams);
+        }
+      }
 
       processedCount += batch.length;
     }
