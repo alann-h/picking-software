@@ -159,12 +159,19 @@ export async function upsertProducts(products, companyId) {
   }
 
   return await transaction(async (client) => {
+    // Deduplicate products by SKU - keep the last occurrence to override previous ones
+    const skuMap = new Map();
+    products.forEach(product => {
+      skuMap.set(product.sku, product);
+    });
+    const deduplicatedProducts = Array.from(skuMap.values());
+
     // Process products in batches for better performance
     const batchSize = 100;
     let processedCount = 0;
 
-    for (let i = 0; i < products.length; i += batchSize) {
-      const batch = products.slice(i, i + batchSize);
+    for (let i = 0; i < deduplicatedProducts.length; i += batchSize) {
+      const batch = deduplicatedProducts.slice(i, i + batchSize);
       
       // Build the upsert query for this batch
       const values = batch.map((p, index) => {
@@ -208,7 +215,7 @@ export async function upsertProducts(products, companyId) {
       processedCount += batch.length;
     }
 
-    console.log(`✅ Successfully processed ${processedCount} products using efficient upsert.`);
+    console.log(`✅ Successfully processed ${processedCount} products using efficient upsert (${products.length - deduplicatedProducts.length} duplicates removed).`);
     return processedCount;
   });
 }
