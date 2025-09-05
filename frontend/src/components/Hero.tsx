@@ -126,7 +126,7 @@ const Hero: React.FC = () => {
                 fontWeight: 'bold'
               }}
             >
-              Goodbye spreadsheets,<br />
+              Goodbye mistakes,<br />
               <motion.span
                 style={{
                   background: "linear-gradient(45deg, #FFD700, #FFA500, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4, #FFD700)",

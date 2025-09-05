@@ -450,10 +450,11 @@ const GoldenShoreCaseStudy: React.FC = () => {
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, fontStyle: 'italic' }}>
-                "Smart Picker transformed our warehouse operations completely. We went from struggling with 
-                illegible handwritten orders to having a streamlined, digital process that's 40% faster 
-                and 100% accurate. Our team loves the barcode scanning and the ability to communicate 
-                through notes. It's been a game-changer for our business."
+                "Smart Picker transformed our warehouse operations completely. We went from preparing orders 
+                with constant mistakes and workers unable to tell if we had stock or not, to having a 
+                streamlined, digital process that's 40% faster and 100% accurate. The run system allows 
+                our workers to know exactly which orders to do, with the priority system telling them 
+                the most important ones first. It's been a game-changer for our business."
               </Typography>
               <Box display="flex" alignItems="center" mt={3}>
                 <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
