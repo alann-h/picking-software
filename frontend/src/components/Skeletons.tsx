@@ -1,4 +1,108 @@
-import { Box, Grid, Paper, Skeleton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useTheme, useMediaQuery } from "@mui/material";
+import { Box, Grid, Paper, Skeleton, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useTheme, useMediaQuery, Container } from "@mui/material";
+
+// Login-specific skeletons
+export const LoginFormSkeleton = () => (
+  <Stack spacing={3}>
+    <Skeleton variant="text" width="60%" height={40} sx={{ mx: 'auto' }} />
+    <Skeleton variant="text" width="80%" height={24} sx={{ mx: 'auto' }} />
+    
+    {/* Email field */}
+    <Skeleton variant="rounded" height={56} />
+    
+    {/* Password field */}
+    <Skeleton variant="rounded" height={56} />
+    
+    {/* Forgot password link */}
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <Skeleton variant="text" width={120} height={20} />
+    </Box>
+    
+    {/* Remember me checkbox */}
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Skeleton variant="circular" width={20} height={20} sx={{ mr: 1 }} />
+      <Skeleton variant="text" width={150} height={20} />
+    </Box>
+    
+    {/* Login button */}
+    <Skeleton variant="rounded" height={48} />
+  </Stack>
+);
+
+export const SocialLoginButtonsSkeleton = () => (
+  <Stack spacing={2}>
+    {/* Divider */}
+    <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
+      <Skeleton variant="rectangular" height={1} sx={{ flex: 1 }} />
+      <Skeleton variant="text" width={120} height={20} sx={{ mx: 2 }} />
+      <Skeleton variant="rectangular" height={1} sx={{ flex: 1 }} />
+    </Box>
+    
+    {/* QuickBooks button */}
+    <Skeleton variant="rounded" height={48} />
+    
+    {/* Xero button */}
+    <Skeleton variant="rounded" height={48} />
+  </Stack>
+);
+
+export const LoginPageSkeleton = () => (
+  <Box
+    sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      py: 4,
+      px: 2
+    }}
+  >
+    <Container component="main" maxWidth="sm">
+      <Paper
+        elevation={8}
+        sx={{
+          p: { xs: 3, sm: 4 },
+          borderRadius: 3,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0 20px 40px rgba(30, 64, 175, 0.15)'
+        }}
+      >
+        {/* Header skeleton */}
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Skeleton variant="text" width="60%" height={48} sx={{ mx: 'auto', mb: 1 }} />
+          <Skeleton variant="text" width="80%" height={24} sx={{ mx: 'auto' }} />
+        </Box>
+        
+        {/* Form skeleton */}
+        <LoginFormSkeleton />
+        
+        {/* Social buttons skeleton */}
+        <SocialLoginButtonsSkeleton />
+      </Paper>
+    </Container>
+  </Box>
+);
+
+export const UserSessionIndicatorSkeleton = () => (
+  <Box sx={{
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    border: '1px solid rgba(59, 130, 246, 0.2)',
+    borderRadius: 2,
+    padding: 2,
+    mb: 3,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Skeleton variant="circular" width={20} height={20} />
+      <Skeleton variant="text" width={200} height={20} />
+    </Box>
+    <Skeleton variant="text" width={100} height={20} />
+  </Box>
+);
 
 export const RunListSkeleton = () => (
     <Stack spacing={2} sx={{ mt: 2 }}>
