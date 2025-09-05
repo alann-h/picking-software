@@ -11,10 +11,12 @@ import {
   updateUser,
   getAllUsers,
   disconnect,
-  logout
+  logout,
+  forgotPassword,
+  resetPassword
 } from '../controllers/authController.js';
 import { isAuthenticated, isSelfOrAdmin, isAdmin } from '../middlewares/authMiddleware.js';
-import { validate, loginRules, registerRules, updateUserRules, userIdRules } from '../validators/authValidator.js';
+import { validate, loginRules, registerRules, updateUserRules, userIdRules, forgotPasswordRules, resetPasswordRules } from '../validators/authValidator.js';
 
 const router = new Router();
 
@@ -24,6 +26,8 @@ router.get('/qbo-callback', asyncHandler(callback));
 router.get('/xero-callback', asyncHandler(callback));
 router.post('/login', loginRules(), validate , asyncHandler(login));
 router.post('/logout', asyncHandler(logout));
+router.post('/forgot-password', forgotPasswordRules(), validate, asyncHandler(forgotPassword));
+router.post('/reset-password', resetPasswordRules(), validate, asyncHandler(resetPassword));
 
 router.use(isAuthenticated);
 

@@ -8,6 +8,7 @@ import { tokenService } from './tokenService.js';
 import { authSystem } from './authSystem.js';
 import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
 import { permissionService } from './permissionService.js';
+import { sendPasswordResetEmail, sendPasswordResetConfirmationEmail } from './emailService.js';
 
 // Generic OAuth client initialization - supports both QBO and Xero
 export function initializeOAuthClient(connectionType) {
@@ -125,7 +126,7 @@ export async function login(email, password, ipAddress = null, userAgent = null)
 
     const user = result[0];
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       // Increment failed attempts for invalid password
       await incrementFailedAttempts(email, ipAddress, userAgent);
@@ -438,4 +439,96 @@ export async function revokeToken(token, connectionType = 'qbo') {
 // Keep backward compatibility
 export async function revokeQuickBooksToken(token) {
   return revokeToken(token, 'qbo');
+}
+
+/**
+ * Request password reset - generates token and sends email
+ * @param {string} email - User's email address
+ * @returns {Promise<Object>} Success response
+ */
+export async function requestPasswordReset(email) {
+  try {
+    const normalisedEmail = validator.normalizeEmail(email);
+    
+    // Check if user exists
+    const result = await query(
+      'SELECT id, display_email, given_name, family_name FROM users WHERE normalised_email = $1',
+      [normalisedEmail]
+    );
+
+    if (result.length === 0) {
+      // Don't reveal if user exists or not for security
+      return { message: 'If an account with that email exists, a password reset link has been sent.' };
+    }
+
+    const user = result[0];
+    
+    // Generate secure reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+    
+    // Store reset token in database
+    await query(
+      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
+      [resetToken, tokenExpiry, user.id]
+    );
+
+    // Send password reset email
+    const userName = `${user.given_name} ${user.family_name}`.trim();
+    await sendPasswordResetEmail(user.display_email, resetToken, userName);
+
+    return { message: 'If an account with that email exists, a password reset link has been sent.' };
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to process password reset request');
+  }
+}
+
+/**
+ * Reset password using token
+ * @param {string} token - Password reset token
+ * @param {string} newPassword - New password
+ * @returns {Promise<Object>} Success response
+ */
+export async function resetPassword(token, newPassword) {
+  try {
+    // Find user with valid reset token
+    const result = await query(
+      'SELECT id, display_email, given_name, family_name, password_reset_expires FROM users WHERE password_reset_token = $1',
+      [token]
+    );
+
+    if (result.length === 0) {
+      throw new AuthenticationError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'Invalid or expired reset token');
+    }
+
+    const user = result[0];
+
+    // Check if token is expired
+    if (new Date() > new Date(user.password_reset_expires)) {
+      throw new AuthenticationError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'Reset token has expired');
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password and clear reset token
+    await query(
+      'UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2',
+      [hashedPassword, user.id]
+    );
+
+    // Send confirmation email
+    const userName = `${user.given_name} ${user.family_name}`.trim();
+    await sendPasswordResetConfirmationEmail(user.display_email, userName);
+
+    return { message: 'Password has been successfully reset' };
+  } catch (error) {
+    if (error instanceof AuthenticationError) {
+      throw error;
+    }
+    console.error('Error resetting password:', error);
+    throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to reset password');
+  }
 }

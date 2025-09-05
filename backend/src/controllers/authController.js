@@ -322,3 +322,59 @@ export async function logout(req, res, next) {
     next(err);
   }
 }
+
+// POST /auth/forgot-password
+export async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body;
+    const result = await authService.requestPasswordReset(email);
+    
+    // Log security event
+    try {
+      await logSecurityEvent({
+        userId: null,
+        event: 'PASSWORD_RESET_REQUEST',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        timestamp: new Date(),
+        metadata: {
+          email: email
+        }
+      });
+    } catch (logError) {
+      console.warn('Failed to log security event:', logError);
+    }
+    
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /auth/reset-password
+export async function resetPassword(req, res, next) {
+  try {
+    const { token, password } = req.body;
+    const result = await authService.resetPassword(token, password);
+    
+    // Log security event
+    try {
+      await logSecurityEvent({
+        userId: null,
+        event: 'PASSWORD_RESET_SUCCESS',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        timestamp: new Date(),
+        metadata: {
+          token: token.substring(0, 8) + '...' // Only log partial token for security
+        }
+      });
+    } catch (logError) {
+      console.warn('Failed to log security event:', logError);
+    }
+    
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}

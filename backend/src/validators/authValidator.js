@@ -79,3 +79,22 @@ export const companyIdBodyRule = () => [
     .exists().withMessage('Company ID is required.')
     .isUUID().withMessage('Company ID must be a valid UUID.')
 ];
+
+export const forgotPasswordRules = () => [
+  body('email')
+    .isEmail().withMessage('Must be a valid email address')
+    .trim().normalizeEmail(),
+];
+
+export const resetPasswordRules = () => [
+  body('token')
+    .notEmpty().withMessage('Reset token is required')
+    .isLength({ min: 64, max: 64 }).withMessage('Invalid reset token format')
+    .matches(/^[a-f0-9]+$/i).withMessage('Invalid reset token format'),
+  body('password')
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+    .matches(/\d/).withMessage('Password must contain a number')
+    .matches(/[A-Z]/).withMessage('Password must contain an uppercase letter')
+    .matches(/[^A-Za-z0-9]/).withMessage('Password must contain a symbol')
+    .trim(),
+];

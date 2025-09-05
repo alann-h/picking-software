@@ -74,3 +74,19 @@ export const disconnectQB = async() => {
   const response = await apiCallDelete(`${AUTH_BASE}/disconnect`);
   return response;
 }
+
+/**
+ * Request password reset
+ */
+export const requestPasswordReset = async (email: string) => {
+  const response = await apiCallPost(`${AUTH_BASE}/forgot-password`, { email });
+  return response;
+};
+
+/**
+ * Reset password with token
+ */
+export const resetPassword = async (token: string, password: string) => {
+  const response = await apiCallPost(`${AUTH_BASE}/reset-password`, { token, password });
+  return response;
+};

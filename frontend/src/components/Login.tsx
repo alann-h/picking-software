@@ -5,7 +5,7 @@ import {
   Container, 
   Paper
 } from '@mui/material';
-import { loginWithCredentials, verifyUser, logout } from '../api/auth';
+import { loginWithCredentials, verifyUser, requestPasswordReset } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
@@ -83,16 +83,12 @@ const Login: React.FC = () => {
 
   const handleResetPassword = async (email: string) => {
     try {
-      // TODO: Implement password reset API call
-      // await resetPassword(email);
-      
-      // For now, simulate the API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      handleOpenSnackbar('Password reset link sent to your email', 'success');
+      await requestPasswordReset(email);
+      handleOpenSnackbar('Password reset link sent! Check your email.', 'success');
       setShowForgotPassword(false);
     } catch (error) {
-      handleOpenSnackbar('Failed to send reset link. Please try again.', 'error');
+      console.error('Password reset error:', error);
+      handleOpenSnackbar('Failed to send password reset link. Please try again.', 'error');
     }
   };
 

@@ -68,6 +68,8 @@ CREATE TABLE public.users (
     failed_attempts integer NOT NULL DEFAULT 0,
     last_failed_attempt timestamptz,
     locked_until timestamptz,
+    password_reset_token text,
+    password_reset_expires timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );

@@ -13,6 +13,7 @@ import { getPageStructuredData } from './utils/structuredData';
 // Lazy load components
 const LandingPage = React.lazy(() => import('./components/LandingPage'));
 const Login = React.lazy(() => import('./components/Login'));
+const ResetPassword = React.lazy(() => import('./components/ResetPassword'));
 const OAuthCallbackHandler = React.lazy(() => import('./components/OAuthCallbackHandler'));
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const Settings = React.lazy(() => import('./components/Settings'));
@@ -87,6 +88,11 @@ const App: React.FC = () => {
                   <Route path="/login" element={
                     <Suspense fallback={<LoadingSpinner />}>
                       <Login />
+                    </Suspense>
+                  } />
+                  <Route path="/reset-password" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ResetPassword />
                     </Suspense>
                   } />
                   <Route path="/oauth/callback" element={
