@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -24,6 +24,11 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 }) => {
   const [email, setEmail] = useState(initialEmail);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update email when initialEmail prop changes
+  useEffect(() => {
+    setEmail(initialEmail);
+  }, [initialEmail]);
 
   const handleSubmit = async () => {
     if (!email) return;
