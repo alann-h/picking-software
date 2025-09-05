@@ -134,11 +134,14 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
 
   return (
     <StyledDialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h6" fontWeight={600} color="primary">
-          Adjust Quantity
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+      <DialogTitle sx={{ pb: 1, fontWeight: 600 }} color="primary.main">
+        Adjust Quantity
+        <Typography 
+          variant="body2" 
+          component="p" // Renders a <p> tag, which is valid here
+          color="text.secondary" 
+          sx={{ mt: 0.5, fontWeight: 'normal' }} // Reset font weight
+        >
           {productName}
         </Typography>
       </DialogTitle>
@@ -147,9 +150,9 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
       
       <DialogContent sx={{ pt: 3, pb: 2 }}>
         <Box sx={{ mb: 3 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Current Quantity: <Chip label={currentQty} size="small" color="primary" variant="outlined" />
-          </Typography>
+        <Typography component="div" variant="body2" color="text.secondary" gutterBottom>
+          Current Quantity: <Chip label={currentQty} size="small" color="primary" variant="outlined" />
+        </Typography>
         </Box>
 
         <Box sx={{ mb: 3 }}>
