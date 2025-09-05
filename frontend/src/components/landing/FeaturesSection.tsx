@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { Smartphone, CloudSync, Assignment } from '@mui/icons-material';
 import AnimatedSection from './AnimatedSection';
+import StaggerAnimation from './StaggerAnimation';
 import FeatureCard from './FeatureCard';
 
 const FeaturesSection = () => (
@@ -23,32 +24,31 @@ const FeaturesSection = () => (
         </Box>
       </AnimatedSection>
 
-      <Grid container spacing={4}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <FeatureCard
-            icon={<Smartphone />}
-            title="Mobile-First Design"
-            description="Scan barcodes and manage inventory directly from your smartphone or tablet. No more paper-based processes."
-            delay={0.2}
-          />
+      <StaggerAnimation staggerDelay={0.2} direction="up">
+        <Grid container spacing={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <FeatureCard
+              icon={<Smartphone />}
+              title="Mobile-First Design"
+              description="Scan barcodes and manage inventory directly from your smartphone or tablet. No more paper-based processes."
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <FeatureCard
+              icon={<CloudSync />}
+              title="Real-Time Sync"
+              description="All your data syncs instantly across devices and integrates seamlessly with QuickBooks Online."
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <FeatureCard
+              icon={<Assignment />}
+              title="Run-Based System"
+              description="Group orders into efficient 'runs' for pickers to prepare multiple orders simultaneously, maximizing warehouse productivity."
+            />
+          </Grid>
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <FeatureCard
-            icon={<CloudSync />}
-            title="Real-Time Sync"
-            description="All your data syncs instantly across devices and integrates seamlessly with QuickBooks Online."
-            delay={0.4}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <FeatureCard
-            icon={<Assignment />}
-            title="Run-Based System"
-            description="Group orders into efficient 'runs' for pickers to prepare multiple orders simultaneously, maximizing warehouse productivity."
-            delay={0.6}
-          />
-        </Grid>
-      </Grid>
+      </StaggerAnimation>
     </Container>
   </Box>
 );

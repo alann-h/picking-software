@@ -23,20 +23,28 @@ const IntegrationSection = () => {
         <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
           <Grid size={{ xs: 12, md: 6 }}>
             <AnimatedSection>
-              <Box
-                component="img"
-                src="/quickbooks-logo.png"
-                alt="QuickBooks Integration"
-                sx={{
-                  width: '100%',
-                  maxWidth: 300,
-                  height: 'auto',
-                  filter: 'brightness(0) invert(1)',
-                  opacity: 0.9,
-                  mx: 'auto',
-                  display: 'block'
-                }}
-              />
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                <Box
+                  component="img"
+                  src="/quickbooks-logo.svg"
+                  alt="QuickBooks Integration"
+                  sx={{
+                    maxWidth: 200,
+                    height: 'auto',
+                    opacity: 0.9,
+                  }}
+                />
+                <Box
+                  component="img"
+                  src="/xero-logo.svg"
+                  alt="Xero Integration"
+                  sx={{
+                    maxWidth: 200,
+                    height: 'auto',
+                    opacity: 0.9,
+                  }}
+                />
+              </Box>
             </AnimatedSection>
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -50,7 +58,7 @@ const IntegrationSection = () => {
                   textAlign: { xs: 'center', md: 'left' }
                 }}
               >
-                Seamless QuickBooks Integration
+                Seamless Accounting Integration
               </Typography>
               <Typography 
                 variant="h6" 
@@ -62,7 +70,7 @@ const IntegrationSection = () => {
                   textAlign: { xs: 'center', md: 'left' }
                 }}
               >
-                SmartPicker automatically syncs with QuickBooks Online, keeping your inventory,
+                SmartPicker automatically syncs with both QuickBooks Online and Xero, keeping your inventory,
                 orders, and financial data perfectly aligned. No more manual data entry or reconciliation.
               </Typography>
               <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>

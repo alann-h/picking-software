@@ -19,7 +19,9 @@ import {
   Business,
   Support,
   Info,
-  Security
+  Security,
+  Help,
+  Article
 } from '@mui/icons-material';
 
 const Footer: React.FC = () => {
@@ -70,7 +72,7 @@ const Footer: React.FC = () => {
             >
               Professional inventory management and order picking software.
               Streamline your warehouse operations with barcode scanning and
-              seamless QuickBooks integration.
+              seamless QuickBooks & Xero integration.
             </Typography>
             
             {/* Contact & Social */}
@@ -122,7 +124,7 @@ const Footer: React.FC = () => {
                 Professional inventory management solutions
               </Typography>
               <Typography variant="body2" color="grey.300">
-                QuickBooks integration specialists
+                QuickBooks & Xero integration specialists
               </Typography>
             </Box>
           </Box>
@@ -195,6 +197,44 @@ const Footer: React.FC = () => {
                 >
                   <Support sx={{ fontSize: 18 }} />
                   Login
+                </Link>
+                <Link
+                  component={RouterLink}
+                  to="/faq"
+                  color="grey.300"
+                  sx={{
+                    '&:hover': {
+                      color: theme.palette.primary.main,
+                      textDecoration: 'none'
+                    },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    transition: 'color 0.2s ease',
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  <Help sx={{ fontSize: 18 }} />
+                  FAQ
+                </Link>
+                <Link
+                  component={RouterLink}
+                  to="/blog"
+                  color="grey.300"
+                  sx={{
+                    '&:hover': {
+                      color: theme.palette.primary.main,
+                      textDecoration: 'none'
+                    },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    transition: 'color 0.2s ease',
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  <Article sx={{ fontSize: 18 }} />
+                  Blog & Resources
                 </Link>
               </Stack>
             </Box>

@@ -64,9 +64,9 @@ const AboutUs: React.FC = () => {
     },
     {
       icon: <IntegrationInstructions sx={{ fontSize: 40, color: 'primary.main' }} />,
-      title: 'Seamless QuickBooks Integration',
-      description: 'Direct OAuth 2.0 connection to QuickBooks. Pull quotes, push estimates, and maintain perfect sync between systems.',
-      benefits: ['OAuth 2.0 security', 'Real-time sync', 'Automated workflows']
+      title: 'Seamless Accounting Integration',
+      description: 'Direct OAuth 2.0 connection to QuickBooks and Xero. Pull quotes, push estimates, and maintain perfect sync between systems.',
+      benefits: ['OAuth 2.0 security', 'Real-time sync', 'Automated workflows', 'Dual platform support']
     }
   ];
 
@@ -83,9 +83,9 @@ const AboutUs: React.FC = () => {
   return (
     <>
       <SEO 
-        title="About Smart Picker | Warehouse Management & QuickBooks Integration"
-        description="Learn how Smart Picker transforms warehouse operations with barcode scanning, digital workflows, and seamless QuickBooks integration. Discover our features and solutions."
-        keywords="warehouse management, QuickBooks integration, barcode scanning, digital workflows, order fulfillment, inventory management, Smart Picker features"
+        title="About Smart Picker | Warehouse Management & Accounting Integration"
+        description="Learn how Smart Picker transforms warehouse operations with barcode scanning, digital workflows, and seamless QuickBooks & Xero integration. Discover our features and solutions."
+        keywords="warehouse management, QuickBooks integration, Xero integration, barcode scanning, digital workflows, order fulfillment, inventory management, Smart Picker features"
         structuredData={getPageStructuredData('faq')}
       />
       <Box sx={{ 
@@ -120,7 +120,7 @@ const AboutUs: React.FC = () => {
                 px: { xs: 1, sm: 0 }
               }}
             >
-              Warehouse Accuracy Platform for QuickBooks
+              Warehouse Accuracy Platform for QuickBooks & Xero
             </Typography>
             <Typography
               variant="h3"
@@ -148,7 +148,7 @@ const AboutUs: React.FC = () => {
                   The Problem We Solve
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, textAlign: { xs: 'center', md: 'left' } }}>
-                  For businesses using QuickBooks, the gap between creating sales quotes and 
+                  For businesses using QuickBooks or Xero, the gap between creating sales quotes and 
                   physically preparing orders is often manual, inefficient, and prone to costly errors.
                 </Typography>
                 <Stack spacing={1} sx={{ alignItems: { xs: 'center', md: 'flex-start' } }}>
@@ -166,7 +166,7 @@ const AboutUs: React.FC = () => {
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.7, textAlign: { xs: 'center', md: 'left' } }}>
                   Smart Picker transforms this workflow with digital processes, barcode validation, 
-                  and seamless QuickBooks integration.
+                  and seamless QuickBooks & Xero integration.
                 </Typography>
                 <Stack spacing={1} sx={{ alignItems: { xs: 'center', md: 'flex-start' } }}>
                   {['100% picking accuracy', 'Digital audit trails', 'Real-time validation', 'Secure role-based access'].map((item, index) => (
@@ -238,7 +238,7 @@ const AboutUs: React.FC = () => {
                 {
                   step: '1',
                   title: 'Setup & Integration',
-                  description: 'Connect QuickBooks and upload your product catalog. Our system automatically enriches product data with live information.',
+                  description: 'Connect QuickBooks or Xero and upload your product catalog. Our system automatically enriches product data with live information.',
                   icon: <CloudQueue sx={{ fontSize: 30, color: 'primary.main' }} />
                 },
                 {
@@ -261,8 +261,8 @@ const AboutUs: React.FC = () => {
                 },
                 {
                   step: '5',
-                  title: 'QuickBooks Sync',
-                  description: 'Upon approval, updated estimates are automatically created in QuickBooks, ready for invoicing.',
+                  title: 'Accounting Sync',
+                  description: 'Upon approval, updated estimates are automatically created in QuickBooks or Xero, ready for invoicing.',
                   icon: <IntegrationInstructions sx={{ fontSize: 30, color: 'primary.main' }} />
                 }
               ].map((step, index) => (
@@ -314,6 +314,7 @@ const AboutUs: React.FC = () => {
                   { name: 'PostgreSQL', color: 'primary' },
                   { name: 'AWS Lambda', color: 'secondary' },
                   { name: 'QuickBooks API', color: 'primary' },
+                  { name: 'Xero API', color: 'secondary' },
                   { name: 'OAuth 2.0', color: 'secondary' }
                 ].map((tech, index) => (
                   <Grid key={index}>
@@ -360,7 +361,7 @@ const AboutUs: React.FC = () => {
                   sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '1rem' }}
                 />
                 <Chip
-                  label="QuickBooks Native"
+                  label="QuickBooks & Xero Native"
                   sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '1rem' }}
                 />
                 <Chip

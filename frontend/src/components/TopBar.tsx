@@ -31,7 +31,11 @@ import {
   Menu as MenuIcon,
   History as HistoryIcon,
   Security as SecurityIcon,
-  Sync as SyncIcon
+  Sync as SyncIcon,
+  Info as InfoIcon,
+  Help as HelpIcon,
+  Article as ArticleIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -132,11 +136,13 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
   const [adminMenuAnchor, setAdminMenuAnchor] = useState<null | HTMLElement>(null);
+  const [publicMenuAnchor, setPublicMenuAnchor] = useState<null | HTMLElement>(null);
   const [logoutAllDialogOpen, setLogoutAllDialogOpen] = useState(false);
   
   const open = Boolean(anchorEl);
   const mobileMenuOpen = Boolean(mobileMenuAnchor);
   const adminMenuOpen = Boolean(adminMenuAnchor);
+  const publicMenuOpen = Boolean(publicMenuAnchor);
 
   const authData = disableTopBar ? null : useAuth();
   const userName = authData?.userName || null;
@@ -147,6 +153,8 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const handleMobileMenuClose = () => setMobileMenuAnchor(null);
   const handleAdminMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setAdminMenuAnchor(event.currentTarget);
   const handleAdminMenuClose = () => setAdminMenuAnchor(null);
+  const handlePublicMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => setPublicMenuAnchor(event.currentTarget);
+  const handlePublicMenuClose = () => setPublicMenuAnchor(null);
   const handleTitleClick = () => navigate(disableTopBar ? '/' : '/dashboard');
   const handleMenuItemClick = (path: string) => {
     if (path === '/logout') {
@@ -165,6 +173,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
     }
     handleMenuClose();
     handleMobileMenuClose();
+    handlePublicMenuClose();
   };
 
   const handleLogoutAllDevices = async () => {
@@ -294,6 +303,24 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                 About
               </Button>
               <Button 
+                color="primary" 
+                onClick={handlePublicMenuClick}
+                endIcon={<ExpandMoreIcon />}
+                sx={{ 
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  borderRadius: 2,
+                  px: 2,
+                  '&:hover': { 
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    transform: 'translateY(-1px)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Resources
+              </Button>
+              <Button 
                 variant="contained" 
                 color="primary" 
                 onClick={() => navigate('/login')}
@@ -314,6 +341,61 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
               >
                 Login
               </Button>
+              
+              {/* Public Resources Menu */}
+              <Menu 
+                id="public-menu" 
+                anchorEl={publicMenuAnchor} 
+                open={publicMenuOpen} 
+                onClose={handlePublicMenuClose}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      borderRadius: 2,
+                      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                      border: '1px solid rgba(59,130,246,0.1)',
+                      minWidth: 200
+                    }
+                  }
+                }}
+              >
+                <MenuItem 
+                  onClick={() => handleMenuItemClick('/faq')}
+                  sx={{
+                    '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+                  }}
+                >
+                  <ListItemIcon><HelpIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>FAQ</ListItemText>
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => handleMenuItemClick('/blog')}
+                  sx={{
+                    '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+                  }}
+                >
+                  <ListItemIcon><ArticleIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Blog & Resources</ListItemText>
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => handleMenuItemClick('/privacy-policy')}
+                  sx={{
+                    '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+                  }}
+                >
+                  <ListItemIcon><SecurityIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Privacy Policy</ListItemText>
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => handleMenuItemClick('/terms-of-service')}
+                  sx={{
+                    '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+                  }}
+                >
+                  <ListItemIcon><SecurityIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Terms of Service</ListItemText>
+                </MenuItem>
+              </Menu>
             </>
           ) : (
             // Protected route navigation items

@@ -21,7 +21,7 @@ const LandingPage: React.FC = () => {
       <SEO 
         title="Smart Picker - Efficient Order Preparation | Barcode Scanning App"
         description="Boost efficiency with Smart Picker. The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately. Perfect for warehouses and distribution centers."
-        keywords="order picking, barcode scanning, warehouse management, inventory management, QuickBooks integration, mobile app, efficiency, digital lists"
+        keywords="order picking, barcode scanning, warehouse management, inventory management, QuickBooks integration, Xero integration, mobile app, efficiency, digital lists"
         structuredData={getPageStructuredData('webPage')}
       />
       

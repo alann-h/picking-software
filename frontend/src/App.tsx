@@ -24,6 +24,11 @@ const AuthLayout = React.lazy(() => import('./components/AuthLayout'));
 const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
 const AboutUs = React.lazy(() => import('./components/AboutUs'));
+const FAQ = React.lazy(() => import('./components/FAQ'));
+const Blog = React.lazy(() => import('./components/Blog'));
+const WarehouseEfficiencyGuide = React.lazy(() => import('./components/blog/WarehouseEfficiencyGuide'));
+const GoldenShoreCaseStudy = React.lazy(() => import('./components/blog/GoldenShoreCaseStudy'));
+const SystemSetupGuide = React.lazy(() => import('./components/blog/SystemSetupGuide'));
 const PublicLayout = React.lazy(() => import('./components/PublicLayout'));
 const ErrorBoundary = React.lazy(() => import('./components/ErrorBoundary'));
 const OrderHistory = React.lazy(() => import('./components/OrderHistory'));
@@ -113,6 +118,31 @@ const App: React.FC = () => {
                   <Route path="/about-us" element={
                     <Suspense fallback={<LoadingSpinner />}>
                       <AboutUs />
+                    </Suspense>
+                  } />
+                  <Route path="/faq" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <FAQ />
+                    </Suspense>
+                  } />
+                  <Route path="/blog" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Blog />
+                    </Suspense>
+                  } />
+                  <Route path="/blog/warehouse-efficiency-guide" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <WarehouseEfficiencyGuide />
+                    </Suspense>
+                  } />
+                  <Route path="/blog/golden-shore-case-study" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <GoldenShoreCaseStudy />
+                    </Suspense>
+                  } />
+                  <Route path="/blog/system-setup-guide" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <SystemSetupGuide />
                     </Suspense>
                   } />
                   <Route path="/about" element={<Navigate to="/about-us" replace />} />

@@ -9,7 +9,9 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import AnimatedSection from './landing/AnimatedSection';
+import InteractiveButton from './landing/InteractiveButton';
 
 const Hero: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +29,76 @@ const Hero: React.FC = () => {
         justifyContent: 'center'
       }}
     >
-      <Container maxWidth="lg" sx={{ height: '100vh', display: 'flex', alignItems: 'center' }}>
+      {/* Floating Background Elements */}
+      <motion.div
+        style={{
+          position: 'absolute',
+          top: '10%',
+          left: '10%',
+          width: '100px',
+          height: '100px',
+          background: 'rgba(255,255,255,0.1)',
+          borderRadius: '50%',
+          zIndex: 1
+        }}
+        animate={{
+          y: [0, -20, 0],
+          x: [0, 10, 0],
+          scale: [1, 1.1, 1]
+        }}
+        transition={{
+          duration: 6,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      <motion.div
+        style={{
+          position: 'absolute',
+          top: '20%',
+          right: '15%',
+          width: '60px',
+          height: '60px',
+          background: 'rgba(255,255,255,0.08)',
+          borderRadius: '50%',
+          zIndex: 1
+        }}
+        animate={{
+          y: [0, 15, 0],
+          x: [0, -8, 0],
+          scale: [1, 0.9, 1]
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1
+        }}
+      />
+      <motion.div
+        style={{
+          position: 'absolute',
+          bottom: '15%',
+          left: '20%',
+          width: '80px',
+          height: '80px',
+          background: 'rgba(255,255,255,0.06)',
+          borderRadius: '50%',
+          zIndex: 1
+        }}
+        animate={{
+          y: [0, -25, 0],
+          x: [0, 12, 0],
+          scale: [1, 1.2, 1]
+        }}
+        transition={{
+          duration: 7,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 2
+        }}
+      />
+      <Container maxWidth="lg" sx={{ height: '100vh', display: 'flex', alignItems: 'center', position: 'relative', zIndex: 2 }}>
         <Box sx={{ textAlign: 'center', color: 'white', width: '100%' }}>
           <AnimatedSection>
             <Chip
@@ -56,9 +127,27 @@ const Hero: React.FC = () => {
               }}
             >
               Goodbye spreadsheets,<br />
-              <Box component="span" sx={{ background: 'linear-gradient(45deg, #FFD700, #FFA500)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <motion.span
+                style={{
+                  background: "linear-gradient(45deg, #FFD700, #FFA500, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4, #FFD700)",
+                  backgroundSize: "400% 400%",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  color: "transparent",
+                  display: "inline-block"
+                }}
+                animate={{
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"]
+                }}
+                transition={{ 
+                  duration: 8, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                }}
+              >
                 hello Smart Picker
-              </Box>
+              </motion.span>
             </Typography>
           </AnimatedSection>
 
@@ -86,11 +175,13 @@ const Hero: React.FC = () => {
               justifyContent="center"
               alignItems="center"
             >
-              <Button
+              <InteractiveButton
                 variant="contained"
                 size="large"
                 onClick={() => navigate("/login")}
                 endIcon={<ArrowForward />}
+                animationType="bounce"
+                intensity="medium"
                 sx={{
                   background: 'rgba(255,255,255,0.9)',
                   color: '#1E40AF',
@@ -103,16 +194,17 @@ const Hero: React.FC = () => {
                   border: '1px solid rgba(255,255,255,0.3)',
                   '&:hover': {
                     background: 'rgba(255,255,255,1)',
-                    transform: 'translateY(-2px)',
                     boxShadow: '0 12px 35px rgba(255,255,255,0.3)',
                   }
                 }}
               >
                 Get Started Free
-              </Button>
-              <Button
+              </InteractiveButton>
+              <InteractiveButton
                 variant="outlined"
                 size="large"
+                animationType="glow"
+                intensity="subtle"
                 sx={{
                   borderColor: 'rgba(255,255,255,0.4)',
                   color: 'white',
@@ -128,7 +220,7 @@ const Hero: React.FC = () => {
                 }}
               >
                 Watch Demo
-              </Button>
+              </InteractiveButton>
             </Stack>
           </AnimatedSection>
         </Box>
