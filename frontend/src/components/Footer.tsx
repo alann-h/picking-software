@@ -283,10 +283,6 @@ const Footer: React.FC = () => {
           <Typography variant="body2" color="grey.400" sx={{ fontWeight: 500 }}>
             © {currentYear} Smart Picker. All rights reserved.
           </Typography>
-
-          <Typography variant="body2" color="grey.400" sx={{ fontStyle: 'italic' }}>
-            Made with ❤️ in NSW, Australia
-          </Typography>
         </Box>
       </Container>
     </Box>
