@@ -24,6 +24,14 @@
     <priority>0.7</priority>
   </url>
   
+  <!-- Technology Stack -->
+  <url>
+    <loc>https://smartpicker.au/technology</loc>
+    <lastmod>2025-01-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
   <!-- Blog -->
   <url>
     <loc>https://smartpicker.au/blog</loc>

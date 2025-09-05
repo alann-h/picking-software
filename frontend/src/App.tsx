@@ -29,6 +29,7 @@ const Blog = React.lazy(() => import('./components/Blog'));
 const WarehouseEfficiencyGuide = React.lazy(() => import('./components/blog/WarehouseEfficiencyGuide'));
 const GoldenShoreCaseStudy = React.lazy(() => import('./components/blog/GoldenShoreCaseStudy'));
 const SystemSetupGuide = React.lazy(() => import('./components/blog/SystemSetupGuide'));
+const TechnologyStack = React.lazy(() => import('./components/TechnologyStack'));
 const PublicLayout = React.lazy(() => import('./components/PublicLayout'));
 const ErrorBoundary = React.lazy(() => import('./components/ErrorBoundary'));
 const OrderHistory = React.lazy(() => import('./components/OrderHistory'));
@@ -123,6 +124,11 @@ const App: React.FC = () => {
                   <Route path="/faq" element={
                     <Suspense fallback={<LoadingSpinner />}>
                       <FAQ />
+                    </Suspense>
+                  } />
+                  <Route path="/technology" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <TechnologyStack />
                     </Suspense>
                   } />
                   <Route path="/blog" element={
