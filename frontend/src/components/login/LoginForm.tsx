@@ -1,27 +1,18 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  Button, 
-  TextField, 
-  Box, 
-  Stack,
-  FormControlLabel,
-  Checkbox,
-  InputAdornment,
-  IconButton,
-  Typography
-} from '@mui/material';
-import { 
-  Visibility, 
-  VisibilityOff, 
-  Email 
-} from '@mui/icons-material';
 import { z } from 'zod';
+import {
+  Mail,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
 
 const loginSchema = z.object({
-  email: z.email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  password: z.string().min(1, { message: 'Password is required.' }),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -45,7 +36,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
   onForgotPassword,
   preFilledEmail = '',
   showSwitchAccount = false,
-  error
+  error,
 }) => {
   const [showPassword, setShowPassword] = React.useState(false);
 
@@ -54,187 +45,164 @@ const LoginForm: React.FC<LoginFormProps> = ({
     handleSubmit,
     formState: { errors, isValid },
     setValue,
-    watch
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
     defaultValues: {
       email: preFilledEmail,
-      password: ''
-    }
+      password: '',
+    },
   });
 
-  // Update form when preFilledEmail changes
   React.useEffect(() => {
     if (preFilledEmail) {
       setValue('email', preFilledEmail);
     }
   }, [preFilledEmail, setValue]);
 
-  const emailValue = watch('email');
-  const passwordValue = watch('password');
-
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <Stack spacing={3}>
+    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <div className="space-y-6">
         {/* Global Error Display */}
         {error && (
-          <Box sx={{
-            p: 2,
-            backgroundColor: 'error.light',
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'error.main'
-          }}>
-            <Typography variant="body2" color="error.dark" sx={{ fontWeight: 500 }}>
+          <div className="flex items-start gap-3 rounded-lg border border-red-600 bg-red-100 p-4">
+            <AlertCircle
+              className="h-5 w-5 flex-shrink-0 text-red-700"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-medium text-red-800">
               {error.message}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
-        <TextField
-          {...register('email')}
-          required
-          fullWidth
-          id="email"
-          label="Email Address"
-          name="email"
-          autoComplete="email"
-          autoFocus={!preFilledEmail}
-          error={!!errors.email}
-          helperText={errors.email?.message}
-          variant="outlined"
-          disabled={isSubmitting}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email sx={{ color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#3B82F6',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#1E40AF',
-              },
-            },
-          }}
-        />
-        
-        <TextField
-          {...register('password')}
-          fullWidth
-          label="Password"
-          type={showPassword ? 'text' : 'password'}
-          autoComplete="current-password"
-          error={!!errors.password}
-          helperText={errors.password?.message}
-          disabled={isSubmitting}
-          slotProps={{
-            input: {
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                    disabled={isSubmitting}
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#3B82F6',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#1E40AF',
-              },
-            },
-          }}
-        />
 
-        {/* Forgot Password Link */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-          <Button
-            variant="text"
-            size="small"
-            onClick={onForgotPassword}
-            disabled={isSubmitting}
-            sx={{
-              color: '#3B82F6',
-              textTransform: 'none',
-              fontSize: '0.875rem',
-              '&:hover': {
-                backgroundColor: 'rgba(59, 130, 246, 0.04)',
-              }
-            }}
+        {/* Email Input */}
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium leading-6 text-gray-900"
           >
-            Forgot Password?
-          </Button>
-        </Box>
+            Email Address
+          </label>
+          <div className="relative mt-2">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
+            </div>
+            <input
+              {...register('email')}
+              id="email"
+              type="email"
+              autoComplete="email"
+              autoFocus={!preFilledEmail}
+              disabled={isSubmitting}
+              className={`block w-full rounded-lg border-0 py-2.5 pl-10 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 ${
+                errors.email
+                  ? 'ring-red-500 focus:ring-red-500'
+                  : 'ring-gray-300 focus:ring-blue-600'
+              }`}
+            />
+          </div>
+          {errors.email && (
+            <p className="mt-2 text-sm text-red-600">
+              {errors.email.message}
+            </p>
+          )}
+        </div>
 
-        {/* Remember Me Checkbox */}
-        <FormControlLabel
-          control={
-            <Checkbox
+        {/* Password Input */}
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium leading-6 text-gray-900"
+          >
+            Password
+          </label>
+          <div className="relative mt-2">
+            <input
+              {...register('password')}
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              disabled={isSubmitting}
+              className={`block w-full rounded-lg border-0 py-2.5 pr-10 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 ${
+                errors.password
+                  ? 'ring-red-500 focus:ring-red-500'
+                  : 'ring-gray-300 focus:ring-blue-600'
+              }`}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isSubmitting}
+                className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+              >
+                <span className="sr-only">
+                  {showPassword ? 'Hide password' : 'Show password'}
+                </span>
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          </div>
+          {errors.password && (
+            <p className="mt-2 text-sm text-red-600">
+              {errors.password.message}
+            </p>
+          )}
+        </div>
+
+        {/* Options Row: Remember Me & Forgot Password */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
               checked={rememberMe}
               onChange={(e) => onRememberMeChange(e.target.checked)}
               disabled={isSubmitting}
-              sx={{
-                color: '#3B82F6',
-                '&.Mui-checked': {
-                  color: '#1E40AF',
-                },
-              }}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
             />
-          }
-          label={
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-              Remember me for 30 days
-            </Typography>
-          }
-        />
+            <label
+              htmlFor="remember-me"
+              className="ml-2 block text-sm text-gray-700"
+            >
+              Remember me
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            disabled={isSubmitting}
+            className="text-sm font-medium text-blue-600 hover:text-blue-500 focus:outline-none cursor-pointer"
+          >
+            Forgot password?
+          </button>
+        </div>
 
-        <Button
+        {/* Submit Button */}
+        <button
           type="submit"
-          fullWidth
-          variant="contained"
           disabled={!isValid || isSubmitting}
-          sx={{
-            py: 1.5,
-            borderRadius: 2,
-            background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            textTransform: 'none',
-            boxShadow: '0 8px 25px rgba(30, 64, 175, 0.3)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #3B82F6, #1E40AF)',
-              transform: 'translateY(-2px)',
-              boxShadow: '0 12px 35px rgba(30, 64, 175, 0.4)',
-            },
-            '&:disabled': {
-              background: '#E5E7EB',
-              color: '#9CA3AF',
-              transform: 'none',
-              boxShadow: 'none',
-            }
-          }}
+          className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:from-blue-600 hover:to-blue-400 hover:shadow-md hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:transform-none disabled:shadow-none cursor-pointer"
         >
-          {isSubmitting ? 'Signing In...' : (showSwitchAccount ? 'Switch Account' : 'Continue')}
-        </Button>
-      </Stack>
-    </Box>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Signing In...
+            </>
+          ) : showSwitchAccount ? (
+            'Switch Account'
+          ) : (
+            'Continue'
+          )}
+        </button>
+      </div>
+    </form>
   );
 };
 

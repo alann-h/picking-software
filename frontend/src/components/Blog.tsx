@@ -1,107 +1,112 @@
 import React from 'react';
-import {
-  Container,
-  Typography,
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  CardMedia,
-  Chip,
-  Stack,
-  Button,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import {
-  TrendingUp,
-  Speed,
-  Analytics,
-  Star
-} from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import SEO from './SEO';
 import BreadcrumbNavigation from './BreadcrumbNavigation';
+import { TrendingUp, Gauge, BarChart3, Star, Clock, ArrowRight } from 'lucide-react';
 
+// --- Blog Data ---
+const blogPosts = [
+  {
+    id: 1,
+    title: '10 Ways to Improve Warehouse Efficiency with Smart Picker',
+    excerpt: "Discover proven strategies to boost your warehouse productivity using Smart Picker's advanced features and best practices.",
+    content: "Warehouse efficiency is crucial for maintaining competitive advantage in today's fast-paced market. Smart Picker offers numerous features designed to streamline operations and reduce errors...",
+    category: 'Efficiency Tips',
+    readTime: '5 min read',
+    publishDate: '2025-09-05',
+    image: 'https://media.istockphoto.com/id/892827582/photo/male-warehouse-worker-with-barcode-scanner.jpg?s=2048x2048&w=is&k=20&c=Vt0cx-AmGWabmuqQXziG0FPIceqq2JlADfdoH6k0g6s=',
+    featured: true,
+    tags: ['warehouse management', 'efficiency', 'productivity', 'best practices'],
+    slug: 'warehouse-efficiency-guide'
+  },
+  {
+    id: 4,
+    title: 'Case Study: How Golden Shore Products Increased Picking Speed by 40%',
+    excerpt: 'Real-world example of how Golden Shore Products implemented Smart Picker and achieved remarkable efficiency gains.',
+    content: 'Golden Shore Products, a mid-sized manufacturing company, was struggling with manual picking processes that were prone to errors and delays...',
+    category: 'Case Study',
+    readTime: '7 min read',
+    publishDate: '2025-09-05',
+    featured: true,
+    image: 'https://media.istockphoto.com/id/2198930975/photo/professionals-examining-inventory-in-a-busy-distribution-warehouse-in-sydney-australia-during.jpg?s=2048x2048&w=is&k=20&c=ajuLH6XIELgaFxFkTPLcQ-u4g6gV6Yblymk0mrcwBT4=',
+    tags: ['case study', 'success story', 'ROI', 'implementation'],
+    slug: 'golden-shore-case-study'
+  },
+  {
+    id: 5,
+    title: 'Complete System Setup Guide: QuickBooks, Xero & User Management',
+    excerpt: 'Step-by-step guide to setting up Smart Picker with your accounting software and managing multiple users.',
+    content: 'Setting up Smart Picker is straightforward and can be completed in just a few minutes. The system integrates seamlessly with either QuickBooks Online or Xero, and includes comprehensive user management features...',
+    category: 'Setup Guide',
+    readTime: '5 min read',
+    publishDate: '2025-09-05',
+    image: '/quickbooks-logo.png',
+    featured: false,
+    tags: ['setup', 'QuickBooks', 'Xero', 'user management', 'configuration'],
+    slug: 'system-setup-guide'
+  },
+];
+
+// --- Helper Badge Component ---
+const KeywordBadge: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+  <motion.span 
+    className="inline-flex cursor-default items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-800"
+    whileHover={{ scale: 1.08, y: -3 }}
+    transition={{ type: 'spring', stiffness: 300 }}
+  >
+    {icon}
+    {label}
+  </motion.span>
+);
+
+// --- Animation Variants ---
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.6,
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5 }
+  }
+};
+
+// Image hover variants
+const imageHoverVariants = {
+  rest: { scale: 1 },
+  hover: { scale: 1.1 }
+};
+
+// Arrow hover variants
+const arrowHoverVariants = {
+  rest: { x: 0, opacity: 0 },
+  hover: { x: 4, opacity: 1 }
+};
+
+// --- Main Blog Component ---
 const Blog: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
-
-  const blogPosts = [
-    {
-      id: 1,
-      title: '10 Ways to Improve Warehouse Efficiency with Smart Picker',
-      excerpt: 'Discover proven strategies to boost your warehouse productivity using Smart Picker\'s advanced features and best practices.',
-      content: 'Warehouse efficiency is crucial for maintaining competitive advantage in today\'s fast-paced market. Smart Picker offers numerous features designed to streamline operations and reduce errors...',
-      category: 'Efficiency Tips',
-      readTime: '5 min read',
-      publishDate: '2025-09-05',
-      image: 'https://media.istockphoto.com/id/892827582/photo/male-warehouse-worker-with-barcode-scanner.jpg?s=2048x2048&w=is&k=20&c=Vt0cx-AmGWabmuqQXziG0FPIceqq2JlADfdoH6k0g6s=',
-      featured: true,
-      tags: ['warehouse management', 'efficiency', 'productivity', 'best practices'],
-      slug: 'warehouse-efficiency-guide'
-    },
-
-    {
-      id: 4,
-      title: 'Case Study: How Golden Shore Products Increased Picking Speed by 40%',
-      excerpt: 'Real-world example of how Golden Shore Products implemented Smart Picker and achieved remarkable efficiency gains.',
-      content: 'Golden Shore Products, a mid-sized manufacturing company, was struggling with manual picking processes that were prone to errors and delays...',
-      category: 'Case Study',
-      readTime: '7 min read',
-      publishDate: '2025-09-05',
-      featured: true,
-      image: 'https://media.istockphoto.com/id/2198930975/photo/professionals-examining-inventory-in-a-busy-distribution-warehouse-in-sydney-australia-during.jpg?s=2048x2048&w=is&k=20&c=ajuLH6XIELgaFxFkTPLcQ-u4g6gV6Yblymk0mrcwBT4=',
-      tags: ['case study', 'success story', 'ROI', 'implementation'],
-      slug: 'golden-shore-case-study'
-    },
-    {
-      id: 5,
-      title: 'Complete System Setup Guide: QuickBooks, Xero & User Management',
-      excerpt: 'Step-by-step guide to setting up Smart Picker with your accounting software and managing multiple users.',
-      content: 'Setting up Smart Picker is straightforward and can be completed in just a few minutes. The system integrates seamlessly with either QuickBooks Online or Xero, and includes comprehensive user management features...',
-      category: 'Setup Guide',
-      readTime: '5 min read',
-      publishDate: '2025-09-05',
-      image: '/quickbooks-logo.png',
-      featured: false,
-      tags: ['setup', 'QuickBooks', 'Xero', 'user management', 'configuration'],
-      slug: 'system-setup-guide'
-    },
-  ];
-
-  const categories = [
-    { name: 'All', count: blogPosts.length },
-    { name: 'Efficiency Tips', count: blogPosts.filter(post => post.category === 'Efficiency Tips').length },
-    { name: 'Integration', count: blogPosts.filter(post => post.category === 'Integration').length },
-    { name: 'Case Study', count: blogPosts.filter(post => post.category === 'Case Study').length },
-    { name: 'Setup Guide', count: blogPosts.filter(post => post.category === 'Setup Guide').length }
-  ];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        duration: 0.6,
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 }
-    }
-  };
 
   const featuredPosts = blogPosts.filter(post => post.featured);
   const regularPosts = blogPosts.filter(post => !post.featured);
+  
+  const handleNavigate = (slug: string | undefined) => {
+    if (slug) {
+      navigate(`/blog/${slug}`);
+    } else {
+      console.log('No detailed post available');
+    }
+  };
 
   return (
     <>
@@ -129,297 +134,187 @@ const Blog: React.FC = () => {
               "@type": "Organization",
               "name": "Smart Picker Team"
             },
-            "url": `https://smartpicker.au/blog/${post.id}`
+            "url": `https://smartpicker.au/blog/${post.slug}`
           }))
         }}
       />
       
       <BreadcrumbNavigation />
       
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
-          <motion.div variants={itemVariants}>
-            <Box textAlign="center" mb={6}>
-              <Typography
-                variant={isMobile ? "h4" : "h3"}
-                component="h1"
-                gutterBottom
-                sx={{
-                  fontWeight: 700,
-                  color: 'text.primary',
-                  mb: 2
-                }}
-              >
-                Blog & Resources
-              </Typography>
-              <Typography
-                variant="h6"
-                color="text.secondary"
-                sx={{ maxWidth: 600, mx: 'auto', mb: 3 }}
-              >
-                Expert insights, tips, and case studies for warehouse management excellence
-              </Typography>
-              
-              <Stack
-                direction="row"
-                spacing={1}
-                justifyContent="center"
-                flexWrap="wrap"
-                sx={{ gap: 1 }}
-              >
-                <Chip
-                  icon={<TrendingUp />}
-                  label="Industry Insights"
-                  variant="outlined"
-                  color="primary"
-                />
-                <Chip
-                  icon={<Speed />}
-                  label="Efficiency Tips"
-                  variant="outlined"
-                  color="primary"
-                />
-                <Chip
-                  icon={<Analytics />}
-                  label="Case Studies"
-                  variant="outlined"
-                  color="primary"
-                />
-              </Stack>
-            </Box>
-          </motion.div>
+          {/* Hero Section */}
+          <motion.section variants={itemVariants} className="mb-12 text-center lg:mb-16">
+            <h1 className="mb-4 text-3xl font-extrabold text-slate-900 sm:text-4xl lg:text-5xl">
+              Blog & Resources
+            </h1>
+            <p className="mx-auto mb-6 max-w-2xl text-lg text-slate-600">
+              Expert insights, tips, and case studies for warehouse management excellence.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <KeywordBadge icon={<TrendingUp size={16} />} label="Industry Insights" />
+              <KeywordBadge icon={<Gauge size={16} />} label="Efficiency Tips" />
+              <KeywordBadge icon={<BarChart3 size={16} />} label="Case Studies" />
+            </div>
+          </motion.section>
 
           {/* Featured Posts */}
-          <motion.div variants={itemVariants}>
-            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+          <motion.section className="mb-12 lg:mb-16">
+            <motion.h2 
+              variants={itemVariants}
+              className="mb-6 text-2xl font-semibold text-slate-900 lg:text-3xl"
+            >
               Featured Articles
-            </Typography>
-            <Grid container spacing={3} sx={{ mb: 6 }}>
+            </motion.h2>
+            <motion.div 
+              variants={containerVariants}
+              className="grid grid-cols-1 gap-8 md:grid-cols-2"
+            >
               {featuredPosts.map((post) => (
-                <Grid size={{ xs: 12, md: 6 }} key={post.id}>
-                  <Card
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      boxShadow: 3,
-                      '&:hover': {
-                        boxShadow: 6,
-                        transform: 'translateY(-4px)',
-                        transition: 'all 0.3s ease-in-out'
-                      }
-                    }}
-                  >
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={post.image}
+                <motion.article
+                  key={post.id}
+                  variants={itemVariants}
+                  initial="rest"
+                  whileHover="hover"
+                  animate="rest"
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  className="flex flex-col overflow-hidden rounded-lg bg-white shadow-lg"
+                >
+                  <div className="relative h-52 w-full overflow-hidden">
+                    <motion.img
+                      variants={imageHoverVariants}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      src={post.image}
                       alt={post.title}
-                      sx={{ objectFit: 'cover' }}
+                      className="h-full w-full object-cover"
                     />
-                    <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <Chip
-                          label={post.category}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          sx={{ mr: 1 }}
-                        />
-                        <Chip
-                          icon={<Star />}
-                          label="Featured"
-                          size="small"
-                          color="secondary"
-                          variant="filled"
-                        />
-                      </Box>
-                      
-                      <Typography
-                        variant="h6"
-                        component="h3"
-                        gutterBottom
-                        sx={{
-                          fontWeight: 600,
-                          color: 'text.primary',
-                          mb: 2,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
-                        }}
-                      >
+                  </div>
+                  <div className="flex flex-1 flex-col p-6">
+                    <div>
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className="inline-block rounded-full bg-blue-100 px-3 py-0.5 text-sm font-medium text-blue-800">
+                          {post.category}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-0.5 text-sm font-medium text-amber-800">
+                          <Star size={14} /> Featured
+                        </span>
+                      </div>
+                      <h3 className="mb-3 text-xl font-semibold text-slate-900 line-clamp-2 hover:text-blue-700">
                         {post.title}
-                      </Typography>
-                      
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          mb: 2,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          lineHeight: 1.5
-                        }}
-                      >
+                      </h3>
+                      <p className="mb-4 text-slate-600 line-clamp-3 leading-relaxed">
                         {post.excerpt}
-                      </Typography>
-                      
-                      <Box display="flex" justifyContent="space-between" alignItems="center" mt="auto">
-                        <Typography variant="caption" color="text.secondary">
-                          {post.readTime} • {new Date(post.publishDate).toLocaleDateString()}
-                        </Typography>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          sx={{ textTransform: 'none' }}
-                          onClick={() => post.slug ? navigate(`/blog/${post.slug}`) : console.log('No detailed post available')}
-                        >
-                          Read More
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                      </p>
+                    </div>
+                    <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
+                      <span className="flex items-center gap-1.5 text-sm text-slate-500">
+                        <Clock size={14} /> {post.readTime}
+                      </span>
+                      <motion.button
+                        onClick={() => handleNavigate(post.slug)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="rounded-md border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition-colors hover:bg-blue-50 cursor-pointer"
+                      >
+                        Read More
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.article>
               ))}
-            </Grid>
-          </motion.div>
+            </motion.div>
+          </motion.section>
 
           {/* Regular Posts */}
-          <motion.div variants={itemVariants}>
-            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+          <motion.section className="mb-12 lg:mb-16">
+            <motion.h2 
+              variants={itemVariants} 
+              className="mb-6 text-2xl font-semibold text-slate-900 lg:text-3xl"
+            >
               Latest Articles
-            </Typography>
-            <Grid container spacing={3}>
+            </motion.h2>
+            <motion.div 
+              variants={containerVariants}
+              className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+            >
               {regularPosts.map((post) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={post.id}>
-                  <Card
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      boxShadow: 2,
-                      '&:hover': {
-                        boxShadow: 4,
-                        transform: 'translateY(-2px)',
-                        transition: 'all 0.3s ease-in-out'
-                      }
-                    }}
-                  >
-                    <CardMedia
-                      component="img"
-                      height="160"
-                      image={post.image}
+                <motion.article
+                  key={post.id}
+                  variants={itemVariants}
+                  initial="rest"
+                  whileHover="hover"
+                  animate="rest"
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  className="flex flex-col overflow-hidden rounded-lg bg-white shadow-lg"
+                >
+                  <div className="relative h-40 w-full overflow-hidden">
+                    <motion.img
+                      variants={imageHoverVariants}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      src={post.image}
                       alt={post.title}
-                      sx={{ objectFit: 'cover' }}
+                      className="h-full w-full object-cover"
                     />
-                    <CardContent sx={{ flexGrow: 1, p: 2 }}>
-                      <Chip
-                        label={post.category}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                        sx={{ mb: 1 }}
-                      />
-                      
-                      <Typography
-                        variant="subtitle1"
-                        component="h3"
-                        gutterBottom
-                        sx={{
-                          fontWeight: 600,
-                          color: 'text.primary',
-                          mb: 1,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          fontSize: '1rem'
-                        }}
-                      >
+                  </div>
+                  <div className="flex flex-1 flex-col p-5">
+                    <div>
+                      <span className="mb-2 inline-block rounded-full bg-blue-100 px-3 py-0.5 text-xs font-medium uppercase tracking-wide text-blue-800">
+                        {post.category}
+                      </span>
+                      <h3 className="mb-2 text-lg font-semibold text-slate-900 line-clamp-2 hover:text-blue-700">
                         {post.title}
-                      </Typography>
-                      
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          mb: 2,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          lineHeight: 1.4
-                        }}
-                      >
+                      </h3>
+                      <p className="mb-4 text-sm text-slate-600 line-clamp-2 leading-relaxed">
                         {post.excerpt}
-                      </Typography>
-                      
-                      <Box display="flex" justifyContent="space-between" alignItems="center" mt="auto">
-                        <Typography variant="caption" color="text.secondary">
-                          {post.readTime}
-                        </Typography>
-                        <Button
-                          variant="text"
-                          size="small"
-                          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-                          onClick={() => post.slug ? navigate(`/blog/${post.slug}`) : console.log('No detailed post available')}
-                        >
-                          Read More
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                      </p>
+                    </div>
+                    <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3">
+                      <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <Clock size={12} /> {post.readTime}
+                      </span>
+                      <motion.button
+                        onClick={() => handleNavigate(post.slug)}
+                        className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
+                      >
+                        Read More
+                        <motion.span variants={arrowHoverVariants} transition={{ ease: 'easeOut', duration: 0.2 }}>
+                          <ArrowRight size={14} />
+                        </motion.span>
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.article>
               ))}
-            </Grid>
-          </motion.div>
+            </motion.div>
+          </motion.section>
 
           {/* Newsletter Signup */}
-          <motion.div variants={itemVariants}>
-            <Box
-              textAlign="center"
-              mt={6}
-              p={4}
-              sx={{
-                backgroundColor: 'primary.main',
-                color: 'white',
-                borderRadius: 2
-              }}
-            >
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                Stay Updated
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 3, opacity: 0.9 }}>
-                Get the latest warehouse management tips and Smart Picker updates delivered to your inbox
-              </Typography>
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
-                justifyContent="center"
-                alignItems="center"
-              >
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  sx={{ textTransform: 'none', px: 4 }}
+          <motion.section variants={itemVariants}>
+            <div className="rounded-lg bg-gradient-to-r from-blue-700 to-blue-900 p-8 text-center text-white lg:p-12">
+              <h3 className="text-2xl font-semibold">Stay Updated</h3>
+              <p className="my-4 max-w-xl mx-auto opacity-90">
+                Get the latest warehouse management tips and Smart Picker updates delivered to your inbox.
+              </p>
+              <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                <motion.button
+                  type="button"
+                  className="w-full rounded-lg bg-white px-6 py-2.5 font-medium text-blue-800 shadow-sm sm:w-auto"
+                  whileHover={{ scale: 1.03, opacity: 0.9 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   Subscribe to Newsletter
-                </Button>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                  No spam, unsubscribe anytime
-                </Typography>
-              </Stack>
-            </Box>
-          </motion.div>
+                </motion.button>
+                <p className="text-xs opacity-80">No spam, unsubscribe anytime.</p>
+              </div>
+            </div>
+          </motion.section>
+
         </motion.div>
-      </Container>
+      </main>
     </>
   );
 };

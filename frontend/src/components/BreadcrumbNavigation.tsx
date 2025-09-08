@@ -1,7 +1,6 @@
 import React from 'react';
-import { Breadcrumbs, Link, Typography, Box } from '@mui/material';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
-import { Home, NavigateNext } from '@mui/icons-material';
+import { Home, ChevronRight } from 'lucide-react';
 
 interface BreadcrumbItem {
   label: string;
@@ -11,7 +10,7 @@ interface BreadcrumbItem {
 const BreadcrumbNavigation: React.FC = () => {
   const location = useLocation();
   
-  // Generate breadcrumbs based on current path
+  // This logic is pure JavaScript and remains unchanged.
   const generateBreadcrumbs = (): BreadcrumbItem[] => {
     const pathSegments = location.pathname.split('/').filter(segment => segment);
     const breadcrumbs: BreadcrumbItem[] = [
@@ -19,7 +18,7 @@ const BreadcrumbNavigation: React.FC = () => {
     ];
 
     let currentPath = '';
-    pathSegments.forEach((segment, index) => {
+    pathSegments.forEach((segment) => {
       currentPath += `/${segment}`;
       const label = segment
         .split('-')
@@ -38,67 +37,52 @@ const BreadcrumbNavigation: React.FC = () => {
   const breadcrumbs = generateBreadcrumbs();
 
   // Don't show breadcrumbs on homepage
-  if (location.pathname === '/') {
+  if (location.pathname === '/' || breadcrumbs.length <= 1) {
     return null;
   }
 
   return (
-    <Box sx={{ m: 2, px: { xs: 2, sm: 0 } }}>
-      <Breadcrumbs
-        separator={<NavigateNext fontSize="small" />}
-        aria-label="breadcrumb"
-        sx={{
-          '& .MuiBreadcrumbs-separator': {
-            color: 'text.secondary'
-          }
-        }}
-      >
+    <nav aria-label="breadcrumb" className="m-4 px-4 sm:px-0">
+      <ol className="flex flex-wrap items-center">
         {breadcrumbs.map((breadcrumb, index) => {
           const isLast = index === breadcrumbs.length - 1;
-          
-          if (isLast) {
-            return (
-              <Typography
-                key={breadcrumb.href}
-                color="text.primary"
-                sx={{ 
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5
-                }}
-              >
-                {index === 0 && <Home sx={{ fontSize: '1rem' }} />}
-                {breadcrumb.label}
-              </Typography>
-            );
-          }
 
           return (
-            <Link
-              key={breadcrumb.href}
-              component={RouterLink}
-              to={breadcrumb.href}
-              underline="hover"
-              color="inherit"
-              sx={{ 
-                fontSize: '0.875rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                '&:hover': {
-                  color: 'primary.main'
-                }
-              }}
-            >
-              {index === 0 && <Home sx={{ fontSize: '1rem' }} />}
-              {breadcrumb.label}
-            </Link>
+            <React.Fragment key={breadcrumb.href}>
+              {/* Add separator before every item except the first one */}
+              {index > 0 && (
+                <li className="px-2" aria-hidden="true">
+                  <ChevronRight size={18} className="shrink-0 text-slate-500" />
+                </li>
+              )}
+              
+              {/* The Breadcrumb Item */}
+              <li className="flex items-center">
+                {isLast ? (
+                  // Current page (as text)
+                  <span
+                    className="flex items-center gap-1.5 text-sm font-medium text-slate-800"
+                    aria-current="page"
+                  >
+                    {index === 0 && <Home size={16} />}
+                    {breadcrumb.label}
+                  </span>
+                ) : (
+                  // Previous pages (as links)
+                  <RouterLink
+                    to={breadcrumb.href}
+                    className="flex items-center gap-1.5 text-sm text-slate-600 transition-colors hover:text-blue-600 hover:underline"
+                  >
+                    {index === 0 && <Home size={16} />}
+                    {breadcrumb.label}
+                  </RouterLink>
+                )}
+              </li>
+            </React.Fragment>
           );
         })}
-      </Breadcrumbs>
-    </Box>
+      </ol>
+    </nav>
   );
 };
 

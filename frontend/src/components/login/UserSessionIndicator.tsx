@@ -1,46 +1,48 @@
 import React from 'react';
-import { 
-  Box, 
-  Typography,
-  Button
-} from '@mui/material';
-import { Person } from '@mui/icons-material';
+import { User } from 'lucide-react';
 
 interface UserSessionIndicatorProps {
   currentUser: { email: string; name?: string };
   onSwitchAccount: () => void;
 }
 
+/**
+ * A banner component that displays the currently logged-in user
+ * and provides a button to switch accounts.
+ */
 const UserSessionIndicator: React.FC<UserSessionIndicatorProps> = ({
   currentUser,
-  onSwitchAccount
+  onSwitchAccount,
 }) => {
   return (
-    <Box sx={{
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-      border: '1px solid rgba(59, 130, 246, 0.2)',
-      borderRadius: 2,
-      padding: 2,
-      mb: 3,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Person sx={{ color: 'primary.main', fontSize: 20 }} />
-        <Typography variant="body2" color="text.secondary">
-          Welcome back, <strong>{currentUser.email}</strong>
-        </Typography>
-      </Box>
-      <Button
-        size="small"
-        variant="text"
+    <div
+      className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4"
+      role="alert"
+    >
+      {/* Left side: Icon and Welcome Text */}
+      <div className="flex items-center gap-2">
+        <User
+          className="h-5 w-5 flex-shrink-0 text-blue-600"
+          aria-hidden="true"
+        />
+        {/* Replaced Typography with a p tag, and improved logic to show name or email */}
+        <p className="text-sm text-gray-700">
+          Welcome back,{' '}
+          <strong className="font-medium">
+            {currentUser.name || currentUser.email}
+          </strong>
+        </p>
+      </div>
+
+      {/* Right side: Switch Account Button */}
+      <button
+        type="button"
         onClick={onSwitchAccount}
-        sx={{ color: 'primary.main', textTransform: 'none' }}
+        className="flex-shrink-0 rounded text-sm font-medium text-blue-600 normal-case transition-colors hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
       >
         Switch Account
-      </Button>
-    </Box>
+      </button>
+    </div>
   );
 };
 

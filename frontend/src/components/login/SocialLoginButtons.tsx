@@ -1,13 +1,6 @@
 import React from 'react';
-import { 
-  Button, 
-  Box, 
-  Typography,
-  Divider
-} from '@mui/material';
-import { 
-  ArrowForward
-} from '@mui/icons-material';
+// Replaced MUI ArrowForward with ArrowRight from Lucide
+import { ArrowRight } from 'lucide-react';
 
 interface SocialLoginButtonsProps {
   onQuickBooksLogin: () => void;
@@ -15,127 +8,72 @@ interface SocialLoginButtonsProps {
   isSubmitting: boolean;
 }
 
+/**
+ * A component that provides branded login buttons for third-party services
+ * like QuickBooks and Xero.
+ */
 const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = ({
   onQuickBooksLogin,
   onXeroLogin,
-  isSubmitting
+  isSubmitting,
 }) => {
-  return (
-    <>
-      {/* Divider */}
-      <Box sx={{ my: 3, display: 'flex', alignItems: 'center' }}>
-        <Divider sx={{ flex: 1 }} />
-        <Typography variant="body2" color="text.secondary" sx={{ px: 2 }}>
-          or continue with
-        </Typography>
-        <Divider sx={{ flex: 1 }} />
-      </Box>
+  // Base classes for the social login buttons to reduce repetition
+  const baseButtonClasses =
+    'group inline-flex w-full items-center justify-between rounded-lg border px-4 py-3 text-base font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:transform-none';
 
-      {/* QuickBooks Login */}
-      <Button
-        fullWidth
-        variant="outlined"
+  return (
+    <div className="space-y-4">
+      {/* Divider */}
+      <div className="my-6 flex items-center">
+        <div className="flex-grow border-t border-gray-300"></div>
+        <span className="mx-4 flex-shrink text-xs font-medium text-gray-500">
+          OR CONTINUE WITH
+        </span>
+        <div className="flex-grow border-t border-gray-300"></div>
+      </div>
+
+      {/* QuickBooks Login Button */}
+      <button
+        type="button"
         onClick={onQuickBooksLogin}
         disabled={isSubmitting}
-        startIcon={
+        className={`${baseButtonClasses} border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:-translate-y-px focus-visible:ring-emerald-500 cursor-pointer`}
+      >
+        <div className="flex items-center">
           <img
             src="/quickbooks-logo.svg"
             alt="QuickBooks"
-            style={{
-              width: 24,
-              height: 24,
-              objectFit: 'contain',
-              marginRight: '8px'
-            }}
+            className="mr-3 h-6 w-6 object-contain"
           />
-        }
-        endIcon={<ArrowForward />}
-        sx={{
-          py: 1.5,
-          px: 2,
-          borderRadius: 2,
-          borderColor: '#10B981',
-          color: '#10B981',
-          fontSize: '1.1rem',
-          fontWeight: 600,
-          textTransform: 'none',
-          minHeight: '48px',
-          '& .MuiButton-startIcon': {
-            marginRight: '12px',
-            marginLeft: 0
-          },
-          '& .MuiButton-endIcon': {
-            marginLeft: '12px',
-            marginRight: 0
-          },
-          '&:hover': {
-            borderColor: '#059669',
-            backgroundColor: 'rgba(16, 185, 129, 0.04)',
-            transform: 'translateY(-1px)',
-          },
-          '&:disabled': {
-            borderColor: '#E5E7EB',
-            color: '#9CA3AF',
-            transform: 'none',
-          }
-        }}
-      >
-        Sign in with QuickBooks
-      </Button>
+          Sign in with QuickBooks
+        </div>
+        <ArrowRight
+          className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
+          aria-hidden="true"
+        />
+      </button>
 
-      {/* Xero Login */}
-      <Button
-        fullWidth
-        variant="outlined"
+      {/* Xero Login Button */}
+      <button
+        type="button"
         onClick={onXeroLogin}
         disabled={isSubmitting}
-        startIcon={
+        className={`${baseButtonClasses} border-sky-500 text-sky-600 hover:bg-sky-50 hover:-translate-y-px focus-visible:ring-sky-500 cursor-pointer`}
+      >
+        <div className="flex items-center">
           <img
             src="/xero-logo.svg"
             alt="Xero"
-            style={{
-              width: 24,
-              height: 24,
-              objectFit: 'contain',
-              marginRight: '8px'
-            }}
+            className="mr-3 h-6 w-6 object-contain"
           />
-        }
-        endIcon={<ArrowForward />}
-        sx={{
-          py: 1.5,
-          px: 2,
-          borderRadius: 2,
-          borderColor: '#13B5EA',
-          color: '#13B5EA',
-          fontSize: '1.1rem',
-          fontWeight: 600,
-          textTransform: 'none',
-          mt: 2,
-          minHeight: '48px',
-          '& .MuiButton-startIcon': {
-            marginRight: '12px',
-            marginLeft: 0
-          },
-          '& .MuiButton-endIcon': {
-            marginLeft: '12px',
-            marginRight: 0
-          },
-          '&:hover': {
-            borderColor: '#0EA5D9',
-            backgroundColor: 'rgba(19, 181, 234, 0.04)',
-            transform: 'translateY(-1px)',
-          },
-          '&:disabled': {
-            borderColor: '#E5E7EB',
-            color: '#9CA3AF',
-            transform: 'none',
-          }
-        }}
-      >
-        Sign in with Xero
-      </Button>
-    </>
+          Sign in with Xero
+        </div>
+        <ArrowRight
+          className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
+          aria-hidden="true"
+        />
+      </button>
+    </div>
   );
 };
 

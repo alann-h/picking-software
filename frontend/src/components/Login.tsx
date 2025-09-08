@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Container, 
-  Paper
-} from '@mui/material';
 import { loginWithCredentials, verifyUser, requestPasswordReset } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
 import { motion } from 'framer-motion';
+import { ScanLine, Quote } from 'lucide-react';
 
 import { QBO_AUTH_URI, XERO_AUTH_URI } from '../api/config';
 import SEO from './SEO';
@@ -26,7 +21,23 @@ interface LoginFormData {
   password: string;
 }
 
+/**
+ * Placeholder Logo Component (for mobile view)
+ */
+const Logo: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`flex items-center gap-2 ${className}`}>
+    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 p-2">
+      <ScanLine className="h-6 w-6 text-white" />
+    </div>
+    <span className="text-2xl font-bold tracking-tight text-slate-900">
+      Smart Picker
+    </span>
+  </div>
+);
+
+
 const Login: React.FC = () => {
+  // --- All Logic and State Hooks remain identical ---
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
   const { error, clearError, handleLoginError } = useLoginError();
@@ -39,18 +50,15 @@ const Login: React.FC = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [preFilledEmail, setPreFilledEmail] = useState('');
 
+  // --- All useEffect and Handler Functions remain identical ---
   useEffect(() => {
     verifyUser()
       .then((response) => {
         if (response.isValid && response.user && response.user.userId) {
-          // Check if user has explicitly chosen to auto-login
           const hasRememberMe = localStorage.getItem('rememberMe') === 'true';
-
           if (hasRememberMe) {
-            // User has active session and chose "Remember Me" - redirect directly to dashboard
             navigate('/dashboard');
           } else {
-            // User has active session but didn't choose "Remember Me" - show welcome back message
             setCurrentUser({
               email: response.user.email || 'Unknown User',
               name: response.user.name
@@ -59,7 +67,6 @@ const Login: React.FC = () => {
             setLoading(false);
           }
         } else {
-          // No valid session - show generic welcome message
           setLoading(false);
         }
       })
@@ -116,20 +123,17 @@ const Login: React.FC = () => {
 
   const handleCredentialLogin = async (data: LoginFormData) => {
     setIsSubmitting(true);
-    clearError(); // Clear any previous errors
+    clearError(); 
 
     try {
       const user = await loginWithCredentials(data.email, data.password, rememberMe);
 
       if (user.qboReAuthRequired) {
         handleOpenSnackbar('Your QuickBooks connection has expired. Redirecting to reconnect...', 'warning');
-
         setTimeout(() => {
           handleQuickBooksLogin();
         }, 3000);
-
       } else {
-        // Store remember me preference
         if (rememberMe) {
           localStorage.setItem('rememberMe', 'true');
         } else {
@@ -144,6 +148,7 @@ const Login: React.FC = () => {
     }
   };
 
+  // --- JSX Layout is Redesigned ---
   return (
     <LoginErrorBoundary>
       <SEO 
@@ -152,35 +157,40 @@ const Login: React.FC = () => {
         keywords="login, sign in, Smart Picker, order picking software, warehouse management"
       />
       <LoadingWrapper isLoading={loading} height="100vh" fallback={<LoginPageSkeleton />}>
-        <Box
-          sx={{
-            minHeight: '100vh',
-            background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            py: 4,
-            px: 2
-          }}
-        >
-          <Container component="main" maxWidth="sm">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <Paper
-                elevation={8}
-                sx={{
-                  p: { xs: 3, sm: 4 },
-                  borderRadius: 3,
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 20px 40px rgba(30, 64, 175, 0.15)'
-                }}
+        {/* New Split Screen Layout */}
+        <div className="flex min-h-screen bg-white">
+          
+          {/* 1. Brand Panel (Visible on Desktop only) */}
+          <div className="relative hidden w-0 flex-1 flex-col justify-end bg-blue-900 p-12 text-white md:flex lg:w-1/2">
+            
+            {/* Testimonial */}
+            <div className="relative z-10">
+              <Quote className="h-16 w-16 text-blue-700" />
+              <p className="mt-4 text-3xl font-medium text-white">
+                "This tool cut our picking errors to zero and saved us 10 hours a week. A total game-changer for our entire warehouse operation."
+              </p>
+              <p className="mt-6 font-semibold text-blue-200">
+                — Warehouse Manager, Golden Shore Products
+              </p>
+            </div>
+          </div>
+
+          {/* 2. Form Panel (Full width on Mobile, Half width on Desktop) */}
+          <div className="flex w-full flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:w-1/2 lg:px-20 xl:px-24">
+            <main className="mx-auto w-full max-w-sm lg:w-96">
+              
+              {/* Logo (Visible on Mobile only) */}
+              <div className="md:hidden">
+                <Logo />
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mt-8"
               >
-                {/* User Session Indicator */}
+                {/* User Session Indicator (Unchanged) */}
                 {currentUser && !showSwitchAccount ? (
                   <UserSessionIndicator
                     currentUser={currentUser}
@@ -190,32 +200,22 @@ const Login: React.FC = () => {
                   <UserSessionIndicatorSkeleton />
                 ) : null}
 
-                {/* Header */}
-                <Box sx={{ textAlign: 'center', mb: 4 }}>
-                  <Typography 
-                    component="h1" 
-                    variant="h4" 
-                    sx={{ 
-                      fontWeight: 700,
-                      background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      mb: 1
-                    }}
-                  >
+                {/* Header Text (Redesigned with solid text) */}
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                     {showSwitchAccount ? 'Switch Account' : (currentUser ? 'Welcome Back!' : 'Welcome')}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
+                  </h1>
+                  <p className="mt-2 text-lg text-slate-600">
                     {showSwitchAccount 
                       ? 'Sign in with different credentials' 
                       : currentUser 
                         ? 'Enter your password to continue' 
                         : 'Sign in to your account'
                     }
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
 
-                {/* Login Form */}
+                {/* Login Form (Unchanged Child Component) */}
                 <LoginForm
                   onSubmit={handleCredentialLogin}
                   isSubmitting={isSubmitting}
@@ -227,20 +227,19 @@ const Login: React.FC = () => {
                   error={error}
                 />
 
-                {/* Social Login Buttons */}
+                {/* Social Login Buttons (Unchanged Child Component) */}
                 <SocialLoginButtons
                   onQuickBooksLogin={handleQuickBooksLogin}
                   onXeroLogin={handleXeroLogin}
                   isSubmitting={isSubmitting}
                 />
-
-              </Paper>
-            </motion.div>
-          </Container>
-        </Box>
+              </motion.div>
+            </main>
+          </div>
+        </div>
       </LoadingWrapper>
 
-      {/* Password Reset Modal */}
+      {/* Password Reset Modal (Unchanged) */}
       <ForgotPasswordModal
         open={showForgotPassword}
         onClose={handleCloseForgotPassword}
