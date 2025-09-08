@@ -349,9 +349,10 @@ export async function checkQuoteExists(quoteId) {
 export async function fetchQuoteData(quoteId) {
   try {
     const result = await query(`
-      SELECT q.*, qi.*
+      SELECT q.*, qi.*, c.customer_name
       FROM quotes q
       LEFT JOIN quote_items qi ON q.id = qi.quote_id
+      LEFT JOIN customers c ON q.customer_id = c.id
       WHERE q.id = $1
     `, [quoteId]);
 
