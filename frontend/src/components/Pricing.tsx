@@ -233,7 +233,7 @@ const Pricing: React.FC = () => {
                              onClick={() => navigate(plan.website)}
                              whileHover={{ scale: 1.05 }}
                              whileTap={{ scale: 0.95 }}
-                             className="w-full text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300"
+                             className="w-full text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 cursor-pointer"
                            >
                              Get Started Free
                            </motion.button>
@@ -242,7 +242,7 @@ const Pricing: React.FC = () => {
                             onClick={() => window.open(plan.website, '_blank')}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="w-full text-center bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors duration-300"
+                            className="w-full text-center bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors duration-300 cursor-pointer"
                           >
                             Learn More
                           </motion.button>
@@ -269,7 +269,7 @@ const Pricing: React.FC = () => {
                         onClick={() => navigate(plan.website)}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="block w-full mt-6 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300"
+                        className="block w-full mt-6 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 cursor-pointer"
                       >
                           Get Started Free
                       </motion.button>
@@ -278,7 +278,7 @@ const Pricing: React.FC = () => {
                         onClick={() => window.open(plan.website, '_blank')}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="block w-full mt-6 bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-lg hover:bg-slate-300 transition-colors duration-300"
+                        className="block w-full mt-6 bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-lg hover:bg-slate-300 transition-colors duration-300 cursor-pointer"
                       >
                           Learn More
                       </motion.button>
@@ -318,7 +318,7 @@ const Pricing: React.FC = () => {
                 onClick={() => navigate("/faq")}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 py-3 border border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors duration-300"
+                className="px-6 py-3 border border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors duration-300 cursor-pointer"
               >
                 View FAQ
               </motion.button>
@@ -326,7 +326,7 @@ const Pricing: React.FC = () => {
                 onClick={() => navigate("/about-us")}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-300"
+                className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-300 cursor-pointer"
               >
                 Learn More
               </motion.button>
