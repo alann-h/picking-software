@@ -275,7 +275,7 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
                             relative inline-flex items-center rounded-l-md border bg-gray-50 px-3 text-gray-500
                             hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50
                             ${isTooLow ? 'border-red-300' : 'border-gray-300'}
-                            focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500
+                            focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer
                             ${
                               isTooLow &&
                               'focus:border-red-500 focus:ring-red-500'
@@ -310,7 +310,7 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
                             relative -ml-px inline-flex items-center rounded-r-md border bg-gray-50 px-3 text-gray-500
                             hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50
                             ${isTooLow ? 'border-red-300' : 'border-gray-300'}
-                            focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500
+                            focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer
                             ${
                               isTooLow &&
                               'focus:border-red-500 focus:ring-red-500'
@@ -353,7 +353,7 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
                 <div className="mt-4 flex justify-end space-x-2">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                     onClick={onClose}
                     disabled={isLoading}
                   >
@@ -361,7 +361,7 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-blue-300"
+                    className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-blue-300 cursor-pointer"
                     onClick={handleConfirm}
                     disabled={isTooLow || isInvalidFraction || isLoading}
                   >

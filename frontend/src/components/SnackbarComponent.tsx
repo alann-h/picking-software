@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import { Transition } from '@headlessui/react';
 // Assuming the context provider exists at this path
 import { useSnackbarContext } from './SnackbarContext'; 
@@ -47,6 +47,20 @@ const SnackbarComponent: React.FC = () => {
 
   // Fallback to 'info' if an unknown severity is provided
   const currentStyle = severityStyles[snackbarSeverity] || severityStyles.info;
+
+  useEffect(() => {
+    // Only auto-hide for non-critical messages
+    if (openSnackbar && (snackbarSeverity === 'success' || snackbarSeverity === 'info')) {
+      const timer = setTimeout(() => {
+        handleCloseSnackbar();
+      }, 6000); // 6-second timer
+
+      // Clear the timer if the component unmounts or the snackbar is closed manually
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [openSnackbar, snackbarSeverity, handleCloseSnackbar]);
 
   return (
     // Positioning container for the snackbar

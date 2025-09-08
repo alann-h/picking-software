@@ -86,6 +86,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
     e.preventDefault();
     if (selectedProduct && parsedQty > 0) {
       onSubmit({ productId: selectedProduct.productId, qty: parsedQty });
+      onClose();
     }
   };
 
