@@ -1,368 +1,172 @@
 import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
-  Box,
-  Container,
-  Typography,
-  Link,
-  useTheme,
-  Stack,
-  Divider,
-  IconButton
-} from '@mui/material';
-import {
-  Link as RouterLink
-} from 'react-router-dom';
-import {
-  Email,
-  GitHub,
-  Business,
-  Support,
+  Mail,
+  Github,
+  LogIn,
   Info,
-  Security,
-  Help,
-  Article
-} from '@mui/icons-material';
+  Shield,
+  HelpCircle,
+  Newspaper,
+  Home,
+  Cpu,
+  DollarSign,
+} from 'lucide-react';
+
+/**
+ * Helper component to standardize the appearance of footer links.
+ * It renders a react-router Link for internal navigation.
+ */
+const FooterLink: React.FC<{ to: string; icon: React.ReactNode; children: React.ReactNode }> = ({ to, icon, children }) => {
+  return (
+    <RouterLink
+      to={to}
+      className="group inline-flex items-center gap-3 text-sm text-slate-300 transition-colors duration-200 ease-in-out hover:text-blue-500"
+    >
+      <span className="transition-transform duration-200 ease-in-out group-hover:-translate-x-1">
+        {icon}
+      </span>
+      <span>{children}</span>
+    </RouterLink>
+  );
+};
+
+/**
+ * Helper component for external links (like mailto or target="_blank")
+ */
+const ExternalFooterLink: React.FC<{ href: string; icon: React.ReactNode; children: React.ReactNode }> = ({ href, icon, children }) => {
+  return (
+    <a
+      href={href}
+      target={href.startsWith('http') ? '_blank' : undefined}
+      rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+      className="group inline-flex items-center gap-3 text-sm text-slate-300 transition-colors duration-200 ease-in-out hover:text-blue-500"
+    >
+      <span className="transition-transform duration-200 ease-in-out group-hover:-translate-x-1">
+        {icon}
+      </span>
+      <span>{children}</span>
+    </a>
+  );
+};
+
 
 const Footer: React.FC = () => {
-  const theme = useTheme();
   const currentYear = new Date().getFullYear();
 
   return (
-    <Box
-      component="footer"
-      sx={{
-        backgroundColor: theme.palette.grey[900],
-        color: theme.palette.common.white,
-        py: { xs: 4, sm: 6 },
-        px: 2,
-        mt: 'auto',
-        width: '100%',
-        overflowX: 'hidden'
-      }}
-    >
-      <Container maxWidth="lg">
-        {/* Main Footer Content - Cleaner 2-column layout */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-            gap: { xs: 6, md: 8 },
-            mb: 6,
-            minHeight: 'fit-content'
-          }}
-        >
+    <footer className="mt-auto w-full overflow-x-hidden bg-slate-900 px-4 py-8 text-white sm:py-12">
+      <div className="mx-auto max-w-7xl">
+        {/* Main Footer Content - 2-column layout */}
+        <div className="mb-12 grid min-h-fit grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
+          
           {/* Left Column - Company Information */}
-          <Box sx={{ minHeight: 'fit-content', overflow: 'visible' }}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: 'white', mb: 3 }}>
+          <section className="min-h-fit overflow-visible">
+            <h3 className="mb-6 text-2xl font-bold text-white">
               Smart Picker
-            </Typography>
-            <Typography 
-              variant="body1" 
-              color="grey.300" 
-              sx={{ 
-                mb: 3, 
-                lineHeight: 1.7,
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word',
-                hyphens: 'auto',
-                fontSize: '1rem'
-              }}
-            >
+            </h3>
+            <p className="mb-6 break-words text-base leading-relaxed text-slate-300">
               Professional inventory management and order picking software.
               Streamline your warehouse operations with barcode scanning and
               seamless QuickBooks & Xero integration.
-            </Typography>
+            </p>
             
             {/* Contact & Social */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" color="grey.400" gutterBottom sx={{ mb: 2 }}>
+            <div className="mb-6">
+              <h4 className="mb-4 text-sm font-semibold text-slate-400">
                 Get in Touch
-              </Typography>
-              <Stack direction="row" spacing={2}>
-                <IconButton
+              </h4>
+              <div className="flex flex-row space-x-4">
+                <a
                   href="https://github.com/alann-h/picking-software"
                   target="_blank"
                   rel="noopener noreferrer"
-                  sx={{
-                    color: 'grey.400',
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      transform: 'translateY(-2px)'
-                    },
-                    transition: 'all 0.2s ease'
-                  }}
+                  aria-label="View our GitHub repository"
+                  className="text-slate-400 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:text-blue-500"
                 >
-                  <GitHub />
-                </IconButton>
-                <IconButton
+                  <Github />
+                </a>
+                <a
                   href="mailto:support@smartpicker.au"
-                  sx={{
-                    color: 'grey.400',
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      transform: 'translateY(-2px)'
-                    },
-                    transition: 'all 0.2s ease'
-                  }}
+                  aria-label="Email support"
+                  className="text-slate-400 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:text-blue-500"
                 >
-                  <Email />
-                </IconButton>
-              </Stack>
-            </Box>
+                  <Mail />
+                </a>
+              </div>
+            </div>
             
             {/* Company Details */}
-            <Box>
-              <Typography variant="subtitle2" color="grey.400" gutterBottom sx={{ mb: 2 }}>
+            <section>
+              <h4 className="mb-4 text-sm font-semibold text-slate-400">
                 Company
-              </Typography>
-              <Typography variant="body2" color="grey.300" sx={{ mb: 1 }}>
+              </h4>
+              <p className="mb-1 text-sm text-slate-300">
                 New South Wales, Australia
-              </Typography>
-              <Typography variant="body2" color="grey.300" sx={{ mb: 1 }}>
+              </p>
+              <p className="mb-1 text-sm text-slate-300">
                 Professional inventory management solutions
-              </Typography>
-              <Typography variant="body2" color="grey.300">
+              </p>
+              <p className="text-sm text-slate-300">
                 QuickBooks & Xero integration specialists
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </section>
+          </section>
 
           {/* Right Column - Quick Links */}
-          <Box>
-            <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: 'white', mb: 3 }}>
+          <section>
+            <h3 className="mb-6 text-xl font-bold text-white">
               Quick Links
-            </Typography>
+            </h3>
             
-            {/* Navigation Links */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="subtitle2" color="grey.400" gutterBottom sx={{ mb: 2 }}>
-                Navigation
-              </Typography>
-              <Stack spacing={2}>
-                <Link
-                  component={RouterLink}
-                  to="/"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Business sx={{ fontSize: 18 }} />
-                  Home
-                </Link>
-                <Link
-                  component={RouterLink}
-                  to="/about-us"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Info sx={{ fontSize: 18 }} />
-                  About Us
-                </Link>
-                <Link
-                  component={RouterLink}
-                  to="/login"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Support sx={{ fontSize: 18 }} />
-                  Login
-                </Link>
-                <Link
-                  component={RouterLink}
-                  to="/faq"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Help sx={{ fontSize: 18 }} />
-                  FAQ
-                </Link>
-                <Link
-                  component={RouterLink}
-                  to="/blog"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Article sx={{ fontSize: 18 }} />
-                  Blog & Resources
-                </Link>
-                <Link
-                  component={RouterLink}
-                  to="/technology"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Business sx={{ fontSize: 18 }} />
-                  Technology Stack
-                </Link>
-                <Link
-                  component={RouterLink}
-                  to="/pricing"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Business sx={{ fontSize: 18 }} />
-                  Pricing
-                </Link>
-              </Stack>
-            </Box>
-            
-            
-            {/* Support & Legal */}
-            <Box>
-              <Typography variant="subtitle2" color="grey.400" gutterBottom sx={{ mb: 2 }}>
-                Support & Legal
-              </Typography>
-              <Stack spacing={2}>
-                <Link
-                  href="mailto:support@smartpicker.au"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Email sx={{ fontSize: 18 }} />
-                  support@smartpicker.au
-                </Link>
-                <Link
-                  component={RouterLink}
-                  to="/privacy-policy"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Security sx={{ fontSize: 18 }} />
-                  Privacy Policy
-                </Link>
-                <Link
-                  component={RouterLink}
-                  to="/terms-of-service"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    transition: 'color 0.2s ease',
-                    fontSize: '0.95rem'
-                  }}
-                >
-                  <Security sx={{ fontSize: 18 }} />
-                  Terms of Service
-                </Link>
-              </Stack>
-            </Box>
-          </Box>
-        </Box>
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+              {/* Navigation Links */}
+              <section>
+                <h4 className="mb-4 text-sm font-semibold text-slate-400">
+                  Navigation
+                </h4>
+                <div className="flex flex-col space-y-4">
+                  <FooterLink to="/" icon={<Home size={18} />}>Home</FooterLink>
+                  <FooterLink to="/about-us" icon={<Info size={18} />}>About Us</FooterLink>
+                  <FooterLink to="/login" icon={<LogIn size={18} />}>Login</FooterLink>
+                  <FooterLink to="/faq" icon={<HelpCircle size={18} />}>FAQ</FooterLink>
+                  <FooterLink to="/blog" icon={<Newspaper size={18} />}>Blog & Resources</FooterLink>
+                  <FooterLink to="/technology" icon={<Cpu size={18} />}>Technology Stack</FooterLink>
+                  <FooterLink to="/pricing" icon={<DollarSign size={18} />}>Pricing</FooterLink>
+                </div>
+              </section>
+              
+              {/* Support & Legal */}
+              <section>
+                <h4 className="mb-4 text-sm font-semibold text-slate-400">
+                  Support & Legal
+                </h4>
+                <div className="flex flex-col space-y-4">
+                  <ExternalFooterLink href="mailto:support@smartpicker.au" icon={<Mail size={18} />}>
+                    support@smartpicker.au
+                  </ExternalFooterLink>
+                  <FooterLink to="/privacy-policy" icon={<Shield size={18} />}>
+                    Privacy Policy
+                  </FooterLink>
+                  <FooterLink to="/terms-of-service" icon={<Shield size={18} />}>
+                    Terms of Service
+                  </FooterLink>
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
 
-        <Divider sx={{ borderColor: 'grey.700', mb: 4 }} />
+        <hr className="mb-8 border-slate-700" />
 
         {/* Bottom Footer */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            justifyContent: 'space-between',
-            alignItems: { xs: 'center', sm: 'center' },
-            gap: 3,
-            textAlign: { xs: 'center', sm: 'left' },
-            py: 2
-          }}
-        >
-          <Typography variant="body2" color="grey.400" sx={{ fontWeight: 500 }}>
+        <div className="flex flex-col items-center justify-between gap-6 py-4 text-center sm:flex-row sm:text-left">
+          <p className="text-sm font-medium text-slate-400">
             © {currentYear} Smart Picker. All rights reserved.
-          </Typography>
-        </Box>
-      </Container>
-    </Box>
+          </p>
+        </div>
+      </div>
+    </footer>
   );
 };
 

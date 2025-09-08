@@ -1,24 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Button,
-  Typography,
-  Paper,
-  Link,
-  Stack,
-  useTheme
-} from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Close } from '@mui/icons-material';
+import { Info, X } from 'lucide-react';
 
 interface CookieConsentProps {
   onAccept: () => void;
-  onDecline: () => void;
 }
 
-const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept, onDecline }) => {
+const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const theme = useTheme();
 
   useEffect(() => {
     const cookieConsent = localStorage.getItem('cookieConsent');
@@ -28,20 +17,15 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept, onDecline }) =>
     }
   }, []);
 
-  const handleAccept = () => {
-    localStorage.setItem('cookieConsent', 'accepted');
+  const handleAcknowledge = () => {
+    localStorage.setItem('cookieConsent', 'acknowledged');
     setIsVisible(false);
     onAccept();
   };
 
-  const handleDecline = () => {
-    localStorage.setItem('cookieConsent', 'declined');
-    setIsVisible(false);
-    onDecline();
-  };
 
   const handleClose = () => {
-    setIsVisible(false);
+    handleAcknowledge();
   };
 
   if (!isVisible) return null;
@@ -53,98 +37,52 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept, onDecline }) =>
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 9999,
-          padding: '16px'
-        }}
+        className="fixed bottom-0 left-0 right-0 z-[9999] p-4"
       >
-        <Paper
-          elevation={8}
-          sx={{
-            background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-            color: 'white',
-            borderRadius: 2,
-            p: 3,
-            maxWidth: '1200px',
-            mx: 'auto',
-            position: 'relative'
-          }}
+        <div
+          className="relative mx-auto max-w-6xl rounded-lg bg-gradient-to-br from-blue-800 to-blue-500 p-6 text-white shadow-2xl"
         >
-          <Button
+          <button
+            type="button"
+            aria-label="Close cookie banner"
             onClick={handleClose}
-            sx={{
-              position: 'absolute',
-              top: 0,
-              right: 1,
-              color: 'white',
-              minWidth: 'auto',
-              p: 0.5,
-            }}
+            className="absolute top-1 right-1 rounded-full p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white cursor-pointer" 
           >
-            <Close />
-          </Button>
+            <X size={20} />
+          </button>
 
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems="center">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Info sx={{ fontSize: 28 }} />
-              <Typography variant="h6" fontWeight="bold">
+          <div className="flex flex-col items-center gap-4 md:flex-row md:gap-6">
+            <div className="flex shrink-0 items-center gap-3">
+              <Info size={28} />
+              <h6 className="text-lg font-bold md:text-xl">
                 We use cookies
-              </Typography>
-            </Box>
+              </h6>
+            </div>
 
-            <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" sx={{ opacity: 0.9, lineHeight: 1.5 }}>
-                  We use cookies to enhance your experience, provide personalized content, and analyze our traffic. 
-                  By clicking "Accept All", you consent to our use of cookies.{' '}
-                  <Link 
-                    href="/terms-of-service" 
-                    sx={{ 
-                      color: 'white', 
-                      textDecoration: 'underline',
-                      '&:hover': { opacity: 0.8 }
-                    }}
-                  >
-                    Learn more about our cookie policy
-                  </Link>
-                </Typography>
-            </Box>
+            <div className="flex-1">
+              <p className="text-sm leading-normal opacity-90">
+                We use essential cookies to enhance your experience, provide personalized content, and analyze our traffic.
+                By continuing to use our site, you acknowledge our use of cookies. {' '}
+                <a 
+                  href="/terms-of-service" 
+                  className="text-white underline transition-opacity hover:opacity-80 cursor-pointer"
+                >
+                  Learn more about our cookie policy
+                </a>
+              </p>
+            </div>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ minWidth: 'fit-content' }}>
-              <Button
-                variant="outlined"
-                onClick={handleDecline}
-                sx={{
-                  borderColor: 'rgba(255,255,255,0.4)',
-                  color: 'white',
-                  '&:hover': {
-                    borderColor: 'white',
-                    background: 'rgba(255,255,255,0.1)',
-                  }
-                }}
+            <div className="flex w-full shrink-0 flex-row sm:w-auto">
+              <button
+                type="button"
+                onClick={handleAcknowledge}
+                className="w-full rounded-md bg-white px-5 py-2 font-semibold text-blue-900 transition-colors hover:bg-gray-100 sm:w-auto cursor-pointer"
               >
-                Decline
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleAccept}
-                sx={{
-                  background: 'white',
-                  color: '#1E40AF',
-                  fontWeight: 600,
-                  '&:hover': {
-                    background: 'rgba(255,255,255,0.9)',
-                  }
-                }}
-              >
-                Accept All
-              </Button>
-            </Stack>
-          </Stack>
-        </Paper>
+                I Understand
+              </button>
+            </div>
+          </div>
+        </div>
       </motion.div>
     </AnimatePresence>
   );
