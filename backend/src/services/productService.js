@@ -173,25 +173,6 @@ export async function upsertProducts(products, companyId) {
     for (let i = 0; i < deduplicatedProducts.length; i += batchSize) {
       const batch = deduplicatedProducts.slice(i, i + batchSize);
       
-      // Build the upsert query for this batch
-      const values = batch.map((p, index) => {
-        const start = index * 10;
-        return `($${start + 1},$${start + 2},$${start + 3},$${start + 4},$${start + 5},$${start + 6},$${start + 7},$${start + 8},$${start + 9},$${start + 10})`;
-      }).join(', ');
-
-      const params = batch.flatMap(p => [
-        companyId,
-        p.productName,
-        p.sku,
-        p.barcode ?? null,
-        p.external_item_id,
-        p.category,
-        p.tax_code_ref,
-        p.price,
-        p.quantity_on_hand,
-        p.is_archived ?? false,
-      ]);
-
       // Handle upserts for each product individually to manage multiple unique constraints
       for (const product of batch) {
         const productParams = [
@@ -448,7 +429,7 @@ export async function addProductDb(product, companyId, connectionType = 'qbo') {
 export async function saveForLater(quoteId, productId) {
   try {
     const result = await query(
-      'UPDATE quote_items SET picking_status = CASE WHEN picking_status = \'backorder\' THEN \'pending\' ELSE \'backorder\' END WHERE quote_id = $1 AND product_id = $2 RETURNING picking_status, product_name',
+      'UPDATE quote_items SET picking_status = CASE WHEN picking_status = \'backorder\'::picking_status THEN \'pending\'::picking_status ELSE \'backorder\'::picking_status END WHERE quote_id = $1 AND product_id = $2 RETURNING picking_status, product_name',
       [quoteId, productId]
     );
     
@@ -492,7 +473,7 @@ export async function setUnavailable(quoteId, productId) {
     }
 
     const updateResult = await query(
-      'UPDATE quote_items SET picking_status = CASE WHEN picking_status = \'unavailable\' THEN \'pending\' ELSE \'unavailable\' END WHERE quote_id = $1 AND product_id = $2 RETURNING picking_status',
+      'UPDATE quote_items SET picking_status = CASE WHEN picking_status = \'unavailable\'::picking_status THEN \'pending\'::picking_status ELSE \'unavailable\'::picking_status END WHERE quote_id = $1 AND product_id = $2 RETURNING picking_status',
       [quoteId, productId]
     );
 
@@ -511,7 +492,7 @@ export async function setUnavailable(quoteId, productId) {
 export async function setProductFinished(quoteId, productId) {
   try {
     const result = await query(
-      'UPDATE quote_items SET picking_quantity = 0, picking_status = \'completed\' WHERE quote_id = $1 AND product_id = $2 RETURNING *',
+      'UPDATE quote_items SET picking_quantity = 0, picking_status = \'completed\'::picking_status WHERE quote_id = $1 AND product_id = $2 RETURNING *',
       [quoteId, productId]
     );
 

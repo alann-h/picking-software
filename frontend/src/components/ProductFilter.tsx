@@ -1,7 +1,6 @@
 // src/components/ProductFilter.tsx
 
 import React, { ChangeEvent } from 'react';
-import { TextField, Box } from '@mui/material';
 
 interface ProductFilterProps {
   searchTerm: string;
@@ -13,15 +12,15 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
   onSearchChange,
 }) => {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2 }}>
-      <TextField
-        label="Search"
-        variant="outlined"
-        size="small"
+    <div className="flex items-center mb-2 gap-2">
+      <input
+        type="text"
+        placeholder="Search"
+        className="border border-gray-300 rounded-md p-2"
         value={searchTerm}
         onChange={onSearchChange}
       />
-    </Box>
+    </div>
   );
 };
 

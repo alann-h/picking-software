@@ -1,24 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Box, Typography, IconButton, CircularProgress } from '@mui/material';
+import React, { useEffect, useRef, useState, Fragment } from 'react';
+import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
-import CloseIcon from '@mui/icons-material/Close';
+import { X, LoaderCircle } from 'lucide-react';
 import { useSnackbarContext } from './SnackbarContext';
-
-const modalStyle = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: { xs: '90vw', sm: '80vw', md: 500 },
-  bgcolor: 'background.paper',
-  boxShadow: 24,
-  p: 4,
-  display: 'flex',
-  flexDirection: 'column',
-  borderRadius: '10px',
-  maxHeight: '90vh',
-  overflowY: 'auto',
-};
 
 const QRCODE_REGION_ID = "reader";
 
@@ -96,7 +80,6 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         } else {
           cameraIdToUse = devices[0].id;
           console.warn("No 'environment/rear' camera found. Using the first available camera:", devices[0].label, devices[0].id);
-          handleOpenSnackbar("No rear camera found. Using front camera if available.", 'warning');
         }
 
         setIsLoading(false);
@@ -109,7 +92,6 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
             return;
           }
 
-          // Initialize Html5Qrcode only if it hasn't been already
           if (!html5QrCodeRef.current) {
             html5QrCodeRef.current = new Html5Qrcode(QRCODE_REGION_ID, {
               verbose: false,
@@ -175,41 +157,74 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
   }, [isOpen, onScanSuccess, onClose, handleOpenSnackbar]); 
 
   return (
-    <Modal open={isOpen} onClose={onClose}>
-      <Box sx={modalStyle}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" component="h2">
-            Scan Barcode
-          </Typography>
-          <IconButton onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <TransitionChild
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
+        </TransitionChild>
 
-        {isLoading && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: 250, mt: 2 }}>
-            <CircularProgress />
-            <Typography sx={{ mt: 2 }}>Initializing camera...</Typography>
-          </Box>
-        )}
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <TransitionChild
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <DialogTitle
+                  as="h3"
+                  className="text-lg font-medium leading-6 text-gray-900 flex justify-between items-center"
+                >
+                  Scan Barcode
+                  <button
+                    type="button"
+                    className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
+                    onClick={onClose}
+                  >
+                    <X className="h-6 w-6 text-gray-500" />
+                  </button>
+                </DialogTitle>
 
-        {errorMessage && (
-          <Box sx={{ textAlign: 'center', mt: 2, color: 'error.main' }}>
-            <Typography variant="body1">{errorMessage}</Typography>
-          </Box>
-        )}
+                <div className="mt-4">
+                  {isLoading && (
+                    <div className="flex flex-col justify-center items-center h-[250px] mt-2">
+                      <LoaderCircle className="animate-spin h-10 w-10 text-gray-500" />
+                      <p className="mt-4 text-gray-500">Initializing camera...</p>
+                    </div>
+                  )}
 
-        {/* The QR code region is only rendered when not loading and no error,
-            ensuring Html5Qrcode has an element to attach to. */}
-        {!isLoading && !errorMessage && (
-          <Box id={QRCODE_REGION_ID} sx={{ width: '100%', mt: 2, minHeight: 250 }} />
-        )}
+                  {errorMessage && (
+                    <div className="text-center mt-2 p-4 bg-red-50 text-red-700 rounded-lg">
+                      <p>{errorMessage}</p>
+                    </div>
+                  )}
 
-        <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
-          Position a barcode inside the scanning area.
-        </Typography>
-      </Box>
-    </Modal>
+                  {!isLoading && !errorMessage && (
+                    <div id={QRCODE_REGION_ID} className="w-full mt-2 min-h-[250px] border rounded-lg overflow-hidden" />
+                  )}
+
+                  <p className="mt-4 text-sm text-center text-gray-500">
+                    Position a barcode inside the scanning area.
+                  </p>
+                </div>
+              </DialogPanel>
+            </TransitionChild>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
   );
 };
 

@@ -1,10 +1,6 @@
-import React, { useState } from 'react';
-import {
-  TableRow, TableCell, Chip, useTheme, Tooltip,
-  Box, Menu, MenuItem, IconButton, CircularProgress,
-  Typography, Divider
-} from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import React, { useState, useEffect, useRef } from 'react';
+import { MoreVertical, Eye, Edit, Clock, AlertTriangle, CheckCircle, Loader } from 'lucide-react';
+import Portal from './Portal';
 import { ProductDetail } from '../utils/types';
 import { getStatusColor } from '../utils/other';
 import { useQuoteManager } from './useQuote';
@@ -16,240 +12,237 @@ interface ProductRowProps {
   product: ProductDetail;
   actions: QuoteManagerActions;
   pendingStates: QuoteManagerPendingStates;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({
   product,
   actions,
   pendingStates,
+  scrollContainerRef,
 }) => {
-  const theme = useTheme();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const initialScrollPos = useRef({ x: 0, y: 0, containerX: 0 });
 
   const handleProductClick = (event: React.MouseEvent | React.TouchEvent) => {
-    // Prevent default browser behavior (like search context menu on tablets)
     event.preventDefault();
     event.stopPropagation();
-    
     actions.openProductDetailsModal(product.productId, product);
   };
 
-  const isAnyActionLoading = Object.values(pendingStates).some(status => status);
+  const calculateMenuPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const menuWidth = 192;
+      const menuHeight = 270;
 
-  const handleAction = (action: () => void) => {
-    action();
-    handleClose();
+      const left = rect.right + window.scrollX - menuWidth;
+      let top = rect.bottom + window.scrollY + 4;
+
+      if (rect.bottom + menuHeight + 20 > window.innerHeight) {
+        top = rect.top + window.scrollY - menuHeight - 4;
+      }
+      
+      setMenuPosition({ top, left });
+    }
   };
 
-  const getQuantityColor = () => {
-    if (product.pickingQty === product.originalQty) {
-      return theme.palette.success.main;
-    } else if (product.pickingQty > 0) {
-      return theme.palette.warning.main;
+  const toggleMenu = () => {
+    if (!isMenuOpen) {
+      calculateMenuPosition();
+      initialScrollPos.current = {
+        x: window.scrollX,
+        y: window.scrollY,
+        containerX: scrollContainerRef.current?.scrollLeft || 0,
+      };
     }
-    return theme.palette.text.secondary;
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  // Close menu on outside click or scroll
+  useEffect(() => {
+    const handleInteraction = (event: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    
+    const handleScroll = () => {
+      if (!isMenuOpen) return;
+
+      const deltaY = Math.abs(window.scrollY - initialScrollPos.current.y);
+      const deltaContainerX = Math.abs((scrollContainerRef.current?.scrollLeft || 0) - initialScrollPos.current.containerX);
+      const scrollThreshold = 200; // px
+
+      if (deltaY > scrollThreshold || deltaContainerX > scrollThreshold) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const scrollContainer = scrollContainerRef.current;
+
+    document.addEventListener('mousedown', handleInteraction);
+    window.addEventListener('scroll', handleScroll, true);
+    scrollContainer?.addEventListener('scroll', handleScroll, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleInteraction);
+      window.removeEventListener('scroll', handleScroll, true);
+      scrollContainer?.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isMenuOpen, scrollContainerRef]);
+
+  const isAnyActionLoading = Object.values(pendingStates).some(status => status);
+
+  const getQuantityColorClass = () => {
+    if (product.pickingQty === product.originalQty) {
+      return 'text-green-600 font-bold';
+    } else if (product.pickingQty > 0) {
+      return 'text-yellow-600 font-bold';
+    }
+    return 'text-gray-500';
+  };
+
+  const getStatusIcon = () => {
+    switch (product.pickingStatus) {
+      case 'completed':
+        return <CheckCircle size={14} className="text-white" />;
+      case 'pending':
+        return <Clock size={14} className="text-white" />;
+      case 'backorder':
+        return <AlertTriangle size={14} className="text-white" />;
+      case 'unavailable':
+        return <AlertTriangle size={14} className="text-white" />;
+      default:
+        return null;
+    }
   };
 
   return (
-    <TableRow 
-      hover 
-      sx={{
-        '&:hover': {
-          backgroundColor: theme.palette.action.hover,
-          '& .product-name': {
-            color: theme.palette.primary.main,
-            textDecoration: 'underline',
-            cursor: 'pointer'
-          }
-        },
-        transition: 'all 0.2s ease-in-out'
-      }}
-    >
-      <TableCell sx={{ width: '15%', minWidth: '100px' }}>
-        <Typography 
-          variant="body2" 
-          className="product-sku"
-          sx={{ 
-            fontFamily: 'monospace',
-            fontWeight: 500,
-            color: theme.palette.text.secondary,
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-            wordBreak: 'break-all'
-          }}
-        >
+    <tr className="hover:bg-gray-50 transition-all duration-200 ease-in-out group">
+      <td className="px-6 py-4 w-[15%] min-w-[100px]">
+        <span className="text-sm font-mono font-medium text-gray-600 break-all">
           {product.sku}
-        </Typography>
-      </TableCell>
-      
-      <TableCell sx={{ width: '40%', minWidth: '150px' }}>
-        <Typography
-          className="product-name"
-          variant="body2"
-          sx={{
-            color: theme.palette.text.primary,
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease-in-out',
-            fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
-            lineHeight: 1.2,
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            WebkitTouchCallout: 'none',
-            '&:hover': {
-              color: theme.palette.primary.main,
-              textDecoration: 'underline'
-            }
-          }}
+        </span>
+      </td>
+      <td className="px-6 py-4 w-[40%] min-w-[150px]">
+        <button
           onClick={handleProductClick}
+          className="text-left text-sm md:text-base font-semibold text-gray-900 hover:text-blue-600 hover:underline transition-all duration-200 cursor-pointer select-none leading-tight"
         >
           {product.productName}
-        </Typography>
-      </TableCell>
-      
-      <TableCell  sx={{ width: '20%', minWidth: '110px', textAlign: 'center' }}>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          gap: 0.5 
-        }}>
-          <Typography
-            variant="body2"
-            sx={{
-              color: getQuantityColor(),
-              fontWeight: 600,
-            }}
-          >
+        </button>
+      </td>
+      <td className="px-6 py-4 w-[20%] min-w-[110px] text-center">
+        <div className="flex items-center justify-center gap-1">
+          <span className={`text-sm font-semibold ${getQuantityColorClass()}`}>
             {Number(product.pickingQty || 0).toFixed(1)}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: theme.palette.text.secondary,
-            }}
-          >
+          </span>
+          <span className="text-sm text-gray-500">
             / {Number(product.originalQty || 0).toFixed(1)}
-          </Typography>
-        </Box>
-      </TableCell>
-      
-      <TableCell sx={{ width: '15%', minWidth: '90px', textAlign: 'center' }}>
-        <Tooltip title={`Current picking status: ${product.pickingStatus}`}>
-          <Chip
-            label={product.pickingStatus}
-            size="small"
-            sx={{
-              backgroundColor: getStatusColor(product.pickingStatus),
-              color: theme.palette.common.white,
-              textTransform: 'capitalize',
-              fontWeight: 600,
-              fontSize: '0.65rem',
-              height: '24px',
-              '& .MuiChip-label': {
-                px: 1.5
-              }
-            }}
-          />
-        </Tooltip>
-      </TableCell>
-      
-      <TableCell sx={{ width: '10%', padding: '0 8px', textAlign: 'right' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <IconButton
-            aria-label="more options"
-            onClick={handleClick}
+          </span>
+        </div>
+      </td>
+      <td className="px-6 py-4 w-[15%] min-w-[90px] text-center">
+        <div className="flex justify-center">
+          <span 
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white capitalize ${getStatusColor(product.pickingStatus)}`}
+            title={`Current picking status: ${product.pickingStatus}`}
+          >
+            {getStatusIcon()}
+            {product.pickingStatus}
+          </span>
+        </div>
+      </td>
+      <td className="px-2 py-4 w-[10%] text-center">
+        <div className="relative inline-block text-left">
+          <button
+            ref={buttonRef}
+            onClick={toggleMenu}
             disabled={isAnyActionLoading}
-            size="small"
-            sx={{
-              color: theme.palette.action.active,
-              '&:hover': {
-                backgroundColor: theme.palette.action.hover,
-                color: theme.palette.primary.main
-              }
-            }}
+            className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isAnyActionLoading ? (
-              <CircularProgress size={20} />
+              <Loader size={16} className="animate-spin" />
             ) : (
-              <MoreVertIcon fontSize="small" />
+              <MoreVertical size={16} />
             )}
-          </IconButton>
+          </button>
           
-          <Menu 
-            anchorEl={anchorEl} 
-            open={open} 
-            onClose={handleClose}
-            slotProps={{
-              paper: {
-                sx: {
-                  minWidth: 180,
-                  boxShadow: theme.shadows[8],
-                  border: `1px solid ${theme.palette.divider}`
-                }
-              }
-            }}
-          >
-            <MenuItem 
-              onClick={() => handleAction(() => actions.openProductDetailsModal(product.productId, product))}
-              sx={{ py: 1.5 }}
-            >
-              <Typography variant="body2">View Details</Typography>
-            </MenuItem>
-            
-            <Divider />
-            
-            <MenuItem 
-              onClick={() => handleAction(() => actions.openAdjustQuantityModal(product.productId, product.pickingQty, product.productName))}
-              disabled={product.pickingStatus === 'completed'}
-              sx={{ py: 1.5 }}
-            >
-              <Typography variant="body2">Adjust Quantity</Typography>
-            </MenuItem>
-            
-            <MenuItem 
-              onClick={() => handleAction(() => actions.saveForLater(product.productId))} 
-              disabled={product.pickingStatus === 'completed'}
-              sx={{ py: 1.5 }}
-            >
-              <Typography variant="body2">
-                {product.pickingStatus === 'backorder' ? 'Set to Pending' : 'Save for Later'}
-              </Typography>
-            </MenuItem>
-            
-            <MenuItem 
-              onClick={() => handleAction(() => actions.setUnavailable(product.productId))}
-              disabled={product.pickingStatus === 'completed'}
-              sx={{ py: 1.5 }}
-            >
-              <Typography variant="body2" sx={{ color: theme.palette.error.main }}>
-                {product.pickingStatus === 'unavailable' ? 'Set as Available' : 'Set Unavailable'}
-              </Typography>
-            </MenuItem>
-            
-            <Divider />
-            
-            <MenuItem 
-              onClick={() => handleAction(() => actions.setFinished(product.productId))}
-              disabled={product.pickingStatus === 'completed'}
-              sx={{ py: 1.5 }}
-            >
-              <Typography variant="body2" sx={{ color: theme.palette.success.main }}>
-                Mark as Finished
-              </Typography>
-            </MenuItem>
-          </Menu>
-        </Box>
-      </TableCell>
-    </TableRow>
+          {isMenuOpen && (
+            <Portal>
+              <div
+                ref={menuRef}
+                className="absolute z-50 w-48 origin-top-right rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              >
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      actions.openProductDetailsModal(product.productId, product);
+                      setIsMenuOpen(false);
+                    }}
+                    className="group flex w-full items-center px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 cursor-pointer"
+                  >
+                    <Eye className="mr-3 h-4 w-4 text-gray-400" />
+                    View Details
+                  </button>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button
+                    onClick={() => {
+                      actions.openAdjustQuantityModal(product.productId, product.pickingQty, product.productName);
+                      setIsMenuOpen(false);
+                    }}
+                    disabled={product.pickingStatus === 'completed'}
+                    className="group flex w-full items-center px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <Edit className="mr-3 h-4 w-4 text-gray-400" />
+                    Adjust Quantity
+                  </button>
+                  <button
+                    onClick={() => {
+                      actions.saveForLater(product.productId);
+                      setIsMenuOpen(false);
+                    }}
+                    disabled={product.pickingStatus === 'completed'}
+                    className="group flex w-full items-center px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <Clock className="mr-3 h-4 w-4 text-gray-400" />
+                    {product.pickingStatus === 'backorder' ? 'Set to Pending' : 'Save for Later'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      actions.setUnavailable(product.productId);
+                      setIsMenuOpen(false);
+                    }}
+                    disabled={product.pickingStatus === 'completed'}
+                    className="group flex w-full items-center px-4 py-3 text-sm text-red-600 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <AlertTriangle className="mr-3 h-4 w-4 text-red-400" />
+                    {product.pickingStatus === 'unavailable' ? 'Set as Available' : 'Set Unavailable'}
+                  </button>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button
+                    onClick={() => {
+                      actions.setFinished(product.productId);
+                      setIsMenuOpen(false);
+                    }}
+                    disabled={product.pickingStatus === 'completed'}
+                    className="group flex w-full items-center px-4 py-3 text-sm text-green-600 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <CheckCircle className="mr-3 h-4 w-4 text-green-400" />
+                    Mark as Finished
+                  </button>
+                </div>
+              </div>
+            </Portal>
+          )}
+        </div>
+      </td>
+    </tr>
   );
 };
 

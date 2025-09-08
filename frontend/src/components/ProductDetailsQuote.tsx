@@ -1,29 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
+import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  Divider,
-  Chip,
-  Grid,
-  useTheme,
-  Paper,
-  IconButton,
-} from '@mui/material';
-import {
-  Inventory as InventoryIcon,
-  LocalShipping as ShippingIcon,
-  Assignment as AssignmentIcon,
+  Package as InventoryIcon,
+  Truck as ShippingIcon,
+  FileText as AssignmentIcon,
   QrCode as QrCodeIcon,
-  Close as CloseIcon,
-  Info as InfoIcon
-} from '@mui/icons-material';
+  X as CloseIcon,
+  Info as InfoIcon,
+} from 'lucide-react';
 import { ProductDetail } from '../utils/types';
-import { getStatusColor } from '../utils/other';
 
 interface ProductDetailsProps {
   open: boolean;
@@ -39,261 +24,172 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   productDetails,
 }) => {
   const [localProductDetails, setLocalProductDetails] = useState(productDetails);
-  const theme = useTheme();
 
   useEffect(() => {
     setLocalProductDetails(productDetails);
   }, [productDetails]);
 
   const getQuantityProgress = () => {
+    if (!localProductDetails.originalQty) return 0;
     const percentage = (localProductDetails.pickingQty / localProductDetails.originalQty) * 100;
     return Math.min(percentage, 100);
   };
 
-  const getQuantityColor = () => {
+  const getQuantityColorClasses = () => {
     if (localProductDetails.pickingQty === localProductDetails.originalQty) {
-      return theme.palette.success.main;
-    } else if (localProductDetails.pickingQty > 0) {
-      return theme.palette.warning.main;
+      return { bg: 'bg-green-500', text: 'text-green-700' };
     }
-    return theme.palette.text.secondary;
+    if (localProductDetails.pickingQty > 0) {
+      return { bg: 'bg-yellow-400', text: 'text-yellow-700' };
+    }
+    return { bg: 'bg-gray-300', text: 'text-gray-700' };
   };
+  
+  const getStatusClasses = (status?: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'in progress':
+      case 'partial':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'not started':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  }
+
+  const quantityColorClasses = getQuantityColorClasses();
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          boxShadow: theme.shadows[24]
-        }
-      }}
-    >
-      <DialogTitle 
-        sx={{ 
-          bgcolor: theme.palette.primary.main, 
-          color: 'white',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          pr: 1
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <InventoryIcon />
-          <Typography variant="h6" fontWeight={600}>
-            Product Details
-          </Typography>
-        </Box>
-        <IconButton
-          onClick={onClose}
-          sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+    <Transition appear show={open} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <TransitionChild
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
         >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+        </TransitionChild>
 
-      <DialogContent sx={{ p: 3 }}>
-        {/* Product Name Header */}
-        <Box sx={{ mb: 3, textAlign: 'center' }}>
-          <Typography 
-            variant="h4" 
-            gutterBottom 
-            color="primary"
-            sx={{ 
-              fontWeight: 700,
-              mb: 1
-            }}
-          >
-            {productName}
-          </Typography>
-          <Typography 
-            variant="body1" 
-            color="text.secondary"
-            sx={{ fontStyle: 'italic' }}
-          >
-            Product Information & Status
-          </Typography>
-        </Box>
-
-        <Divider sx={{ mb: 3 }} />
-
-        {/* Main Product Information */}
-        <Grid container spacing={3}>
-          {/* Left Column - Basic Info */}
-          <Grid size={{xs: 12, md: 6}}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2.5, 
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2
-              }}
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <TransitionChild
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
             >
-              <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 600 }}>
-                Basic Information
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box display="flex" alignItems="center">
-                  <AssignmentIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 600 }}>
-                      SKU
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
-                      {localProductDetails.sku}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box display="flex" alignItems="center">
-                  <QrCodeIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 600 }}>
-                      Barcode
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                      {localProductDetails.barcode ? localProductDetails.barcode : 'No barcode assigned'}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
-
-          {/* Right Column - Quantity Info */}
-          <Grid size={{xs: 12, md: 6}}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2.5, 
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2
-              }}
-            >
-              <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 600 }}>
-                Quantity Details
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box display="flex" alignItems="center">
-                  <InventoryIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 600 }}>
-                      On Hand
-                    </Typography>
-                    <Typography variant="body1" fontWeight={600}>
-                      {localProductDetails.qtyOnHand}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box display="flex" alignItems="center">
-                  <ShippingIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 600 }}>
-                      Picking Progress
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography 
-                        variant="body1" 
-                        fontWeight={600}
-                        sx={{ color: getQuantityColor() }}
-                      >
-                        {localProductDetails.pickingQty}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        / {localProductDetails.originalQty}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-
-        {/* Status Section */}
-        <Box sx={{ mt: 3 }}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2.5, 
-              border: `1px solid ${theme.palette.divider}`,
-              borderRadius: 2,
-              bgcolor: theme.palette.background.default
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <InfoIcon color="primary" />
-              <Typography variant="h6" fontWeight={600}>
-                Current Status
-              </Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Chip
-                label={localProductDetails.pickingStatus}
-                size="medium"
-                sx={{
-                  bgcolor: getStatusColor(localProductDetails.pickingStatus),
-                  color: 'white',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  px: 2,
-                  py: 1
-                }}
-              />
-              
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Progress: {getQuantityProgress().toFixed(1)}%
-                </Typography>
-                <Box 
-                  sx={{ 
-                    width: '100%', 
-                    height: 8, 
-                    bgcolor: theme.palette.divider, 
-                    borderRadius: 4,
-                    overflow: 'hidden'
-                  }}
+              <DialogPanel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all cursor-default">
+                <DialogTitle
+                  as="div"
+                  className="flex items-center justify-between text-lg font-medium leading-6 text-gray-900 cursor-default"
                 >
-                  <Box 
-                    sx={{ 
-                      width: `${getQuantityProgress()}%`, 
-                      height: '100%', 
-                      bgcolor: getQuantityColor(),
-                      transition: 'width 0.3s ease-in-out'
-                    }} 
-                  />
-                </Box>
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-      </DialogContent>
+                  <div className="flex items-center gap-2">
+                    <InventoryIcon className="h-6 w-6 text-gray-700" />
+                    <h3 className="text-xl font-semibold">Product Details</h3>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
+                  >
+                    <CloseIcon className="h-6 w-6" />
+                  </button>
+                </DialogTitle>
+                
+                <div className="mt-4">
+                  <div className="text-center mb-6">
+                    <h2 className="text-3xl font-bold text-gray-800">{productName}</h2>
+                    <p className="text-md text-gray-500 italic mt-1">Product Information & Status</p>
+                  </div>
 
-      <DialogActions sx={{ p: 3, pt: 0 }}>
-        <Button 
-          onClick={onClose} 
-          variant="contained" 
-          color="primary"
-          size="large"
-          sx={{ 
-            px: 4,
-            py: 1.5,
-            borderRadius: 2,
-            fontWeight: 600
-          }}
-        >
-          Close
-        </Button>
-      </DialogActions>
-    </Dialog>
+                  <hr className="my-6" />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Basic Info */}
+                    <div className="space-y-4 rounded-lg border border-gray-200 p-4">
+                      <h4 className="text-lg font-semibold text-gray-800">Basic Information</h4>
+                      <div className="flex items-start gap-4">
+                        <AssignmentIcon className="h-6 w-6 text-gray-600 mt-1" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 uppercase">SKU</p>
+                          <p className="font-mono text-gray-900">{localProductDetails.sku}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <QrCodeIcon className="h-6 w-6 text-gray-600 mt-1" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 uppercase">Barcode</p>
+                          <p className="font-mono text-gray-900">{localProductDetails.barcode || 'No barcode assigned'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quantity Details */}
+                    <div className="space-y-4 rounded-lg border border-gray-200 p-4">
+                      <h4 className="text-lg font-semibold text-gray-800">Quantity Details</h4>
+                      <div className="flex items-start gap-4">
+                        <InventoryIcon className="h-6 w-6 text-gray-600 mt-1" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 uppercase">On Hand</p>
+                          <p className="font-semibold text-lg text-gray-900">{localProductDetails.qtyOnHand}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <ShippingIcon className="h-6 w-6 text-gray-600 mt-1" />
+                        <div>
+                            <p className="text-sm font-medium text-gray-500 uppercase">Picking Progress</p>
+                            <div className="flex items-baseline gap-1">
+                                <p className={`font-semibold text-lg ${quantityColorClasses.text}`}>
+                                {localProductDetails.pickingQty}
+                                </p>
+                                <p className="text-sm text-gray-500">/ {localProductDetails.originalQty}</p>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Section */}
+                  <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-center gap-2">
+                      <InfoIcon className="h-6 w-6 text-gray-600" />
+                      <h4 className="text-lg font-semibold text-gray-800">Current Status</h4>
+                      <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusClasses(localProductDetails.pickingStatus)}`}>
+                          {localProductDetails.pickingStatus || 'N/A'}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                        <p className="text-sm text-gray-600 mb-1 text-right">{getQuantityProgress().toFixed(1)}%</p>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div className={`h-2.5 rounded-full ${quantityColorClasses.bg}`} style={{ width: `${getQuantityProgress()}%`, transition: 'width 0.3s ease-in-out' }}></div>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex justify-end">
+                  <button
+                    type="button"
+                    className="inline-flex justify-center rounded-md border border-transparent bg-gray-800 px-6 py-2 text-md font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 cursor-pointer"
+                    onClick={onClose}
+                  >
+                    Close
+                  </button>
+                </div>
+              </DialogPanel>
+            </TransitionChild>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
   );
 };
 

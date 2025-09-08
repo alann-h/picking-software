@@ -1,38 +1,16 @@
-import React, { Suspense, useMemo, useState, useTransition } from 'react';
+import React, { Suspense, useMemo, useState, useTransition, Fragment } from 'react';
 import {
-  Container, 
-  Autocomplete, 
-  TextField, 
-  Paper, 
-  Typography, 
-  Box, 
-  Grid, 
-  Stack, 
-  Divider, 
-  Chip, 
-  IconButton, 
-  Collapse,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  LinearProgress
-} from '@mui/material';
-import {
-  PersonOutline, 
-  CalendarTodayOutlined, 
-  ReceiptLongOutlined, 
-  Search, 
-  DirectionsRunOutlined, 
-  KeyboardArrowDown, 
-  KeyboardArrowUp,
-  Business,
-  AttachMoney
-} from '@mui/icons-material';
-import { motion } from 'framer-motion';
+  User,
+  CalendarDays,
+  Receipt,
+  Search,
+  Zap,
+  ChevronDown,
+  ChevronUp,
+  Building2,
+  DollarSign,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Customer, QuoteSummary, Run, RunQuote } from '../utils/types';
 import { getCustomers } from '../api/customers';
@@ -40,188 +18,153 @@ import { getCustomerQuotes } from '../api/quote';
 import { getRuns } from '../api/runs';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
-import { AvailableQuotesSkeleton, RunListSkeleton } from './Skeletons'
+import { AvailableQuotesSkeleton, RunListSkeleton } from './Skeletons';
 import { useAuth } from '../hooks/useAuth';
+import { Combobox, Transition, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption } from '@headlessui/react';
 
 // ====================================================================================
-// Reusable & Child Components (No changes needed in these)
+// Reusable & Child Components
 // ====================================================================================
-const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number; }> = ({ children, delay = 0 }) => ( 
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }} 
-    animate={{ opacity: 1, y: 0 }} 
-    transition={{ duration: 0.5, delay }}> 
-    {children} 
-  </motion.div> 
+
+const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number; }> = ({ children, delay = 0 }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5, delay }}>
+    {children}
+  </motion.div>
 );
+
+const statusColors: { [key: string]: { bg: string; text: string; border?: string } } = {
+    pending: { bg: 'bg-blue-100', text: 'text-blue-800' },
+    checking: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+    finalised: { bg: 'bg-green-100', text: 'text-green-800' },
+    assigned: { bg: 'bg-sky-100', text: 'text-sky-800' },
+    default: { bg: 'bg-gray-100', text: 'text-gray-800' },
+};
+
+const RunStatusChip: React.FC<{ status: Run['status'] }> = ({ status }) => {
+    const color = statusColors[status] || statusColors.default;
+    return (
+        <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full capitalize ${color.bg} ${color.text}`}>
+            {status}
+        </span>
+    );
+};
+
+const QuoteStatusChip: React.FC<{ status: RunQuote['orderStatus'] }> = ({ status }) => {
+    const colorKey = status === 'assigned' ? 'assigned' : status;
+    const color = statusColors[colorKey] || statusColors.default;
+    return (
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize ${color.bg} ${color.text}`}>
+            {status}
+        </span>
+    );
+};
 
 const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const navigate = useNavigate();
     const { quoteCount } = useMemo(() => ({ quoteCount: (run.quotes || []).length }), [run.quotes]);
-    
-    const getStatusChipColor = (status: Run['status']) => {
-        switch (status) {
-            case 'pending': return 'info';
-            case 'checking': return 'warning';
-            case 'finalised': return 'success';
-            default: return 'default';
-        }
-    };
 
     return (
-        <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Stack direction="row" alignItems="center" spacing={3}>
-                    <Typography variant="h6" fontWeight={600}>
-                      Run #{run.run_number || run.id.substring(0, 8)}
-                    </Typography>
-                    <Chip 
-                      label={run.status} 
-                      color={getStatusChipColor(run.status)} 
-                      size="small" 
-                      sx={{ textTransform: 'capitalize' }} 
-                    />
-                </Stack>
-                <Stack direction="row" alignItems="center" spacing={2}>
-                    <Stack alignItems="flex-end">
-                        <Typography variant="caption" sx={{ fontWeight: 500 }}>{quoteCount} quotes</Typography>
-                    </Stack>
-                    <IconButton 
-                      onClick={() => setIsExpanded(!isExpanded)} 
-                      size="small" 
-                      aria-label="expand run"
-                    >
-                      {isExpanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                    </IconButton>
-                </Stack>
-            </Stack>
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="p-4 flex justify-between items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                <div className="flex items-center gap-4">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                        Run #{run.run_number || run.id.substring(0, 8)}
+                    </h3>
+                    <RunStatusChip status={run.status} />
+                </div>
+                <div className="flex items-center gap-4">
+                    <span className="text-sm font-medium text-gray-600">{quoteCount} quotes</span>
+                    <button aria-label="expand run">
+                        {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-500 cursor-pointer" /> : <ChevronDown className="w-5 h-5 text-gray-500 cursor-pointer" />}
+                    </button>
+                </div>
+            </div>
 
-            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                <Divider sx={{ my: 2 }} />
-                <Box>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
-                        <Typography variant="subtitle1" fontWeight={500}>Quotes in this Run</Typography>
-                    </Stack>
-                    
-                    <Table size="small" sx={{ mb: 2 }}>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Priority</TableCell>
-                                <TableCell>Quote ID</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Customer Name</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {run.quotes
-                              ?.sort((a, b) => a.priority - b.priority) // Sort by priority (0 = highest)
-                              .map((quote: RunQuote) => (
-                                <TableRow 
-                                  key={quote.quoteId}
-                                  onClick={() => navigate(`/quote?id=${quote.quoteId}`)}
-                                  sx={{ 
-                                    cursor: 'pointer',
-                                    '&:hover': { 
-                                      backgroundColor: 'rgba(59,130,246,0.02)',
-                                      '& .MuiTableCell-root': {
-                                        borderColor: 'primary.main'
-                                      }
-                                    },
-                                    transition: 'all 0.2s ease'
-                                  }}
-                                >
-                                    <TableCell>
-                                        <Chip 
-                                          label={`${quote.priority + 1}`}
-                                          size="small" 
-                                          color="primary"
-                                          variant="outlined"
-                                          sx={{ 
-                                            fontSize: '0.7rem',
-                                            height: 20,
-                                            fontWeight: 500
-                                          }} 
-                                        />
-                                    </TableCell>
-                                    <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
-                                      #{quote.quoteId}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip 
-                                          label={quote.orderStatus} 
-                                          size="small" 
-                                          color={quote.orderStatus === 'assigned' ? 'info' : 
-                                                 quote.orderStatus === 'checking' ? 'warning' : 
-                                                 quote.orderStatus === 'finalised' ? 'success' : 'default'}
-                                          sx={{ 
-                                            textTransform: 'capitalize',
-                                            fontSize: '0.7rem',
-                                            height: 20
-                                          }} 
-                                        />
-                                    </TableCell>
-                                    <TableCell>{quote.customerName}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </Box>
-            </Collapse>
-        </Paper>
+            <AnimatePresence>
+                {isExpanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                    >
+                        <div className="border-t border-gray-200 p-4">
+                            <h4 className="text-md font-semibold text-gray-700 mb-3">Quotes in this Run</h4>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quote ID</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {run.quotes
+                                          ?.sort((a, b) => a.priority - b.priority)
+                                          .map((quote: RunQuote) => (
+                                              <tr key={quote.quoteId} onClick={() => navigate(`/quote?id=${quote.quoteId}`)} className="hover:bg-gray-50 cursor-pointer transition-colors duration-150">
+                                                  <td className="px-4 py-3 whitespace-nowrap">
+                                                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                          {quote.priority + 1}
+                                                      </span>
+                                                  </td>
+                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">#{quote.quoteId}</td>
+                                                  <td className="px-4 py-3 whitespace-nowrap"><QuoteStatusChip status={quote.orderStatus} /></td>
+                                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{quote.customerName}</td>
+                                              </tr>
+                                          ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 
 const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quote, onClick }) => (
-  <Card
-    elevation={0}
+  <div
     onClick={onClick}
-    sx={{ 
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: 2,
-      cursor: 'pointer', 
-      transition: 'all 0.3s ease', 
-      '&:hover': { 
-        borderColor: 'primary.main',
-        boxShadow: '0 8px 25px rgba(59,130,246,0.15)',
-        transform: 'translateY(-3px)'
-      }
-    }}
+    className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer transition-all duration-300 ease-in-out hover:shadow-lg hover:border-blue-500 hover:-translate-y-1"
   >
-    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-      <Stack spacing={2}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography variant="h6" color="primary.main" fontWeight="bold">
-              Quote #{quote.quoteNumber}
-            </Typography>
-          </Stack>
-        </Stack>
-        
-        <Stack spacing={1.5}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <PersonOutline fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary">
-              {quote.customerName}
-            </Typography>
-          </Stack>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <CalendarTodayOutlined fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary">
-              {new Date(quote.lastModified).toLocaleDateString()}
-            </Typography>
-          </Stack>
-        </Stack>
-      </Stack>
-    </CardContent>
-  </Card>
+    <div className="space-y-3">
+        <h3 className="text-lg font-bold text-blue-600">
+          Quote #{quote.quoteNumber}
+        </h3>
+        <div className="space-y-1.5 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-gray-400" />
+                <span>{quote.customerName}</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-gray-400" />
+                <span>{new Date(quote.lastModified).toLocaleDateString()}</span>
+            </div>
+        </div>
+    </div>
+  </div>
 );
 
 // ====================================================================================
-// 1. ISOLATED DATA-FETCHING COMPONENTS
-// These components now fetch their own data and handle their own loading via Suspense.
+// Data-Fetching Components
 // ====================================================================================
+
+const InfoBox: React.FC<{ icon: React.ElementType, title: string, message: string }> = ({ icon: Icon, title, message }) => (
+    <div className="text-center p-8 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
+        <Icon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-800">{title}</h3>
+        <p className="mt-1 text-sm text-gray-500">{message}</p>
+    </div>
+);
 
 const ActiveRunsList: React.FC = () => {
     const { userCompanyId } = useAuth();
@@ -235,34 +178,17 @@ const ActiveRunsList: React.FC = () => {
     }, [allRuns]);
 
     if (activeRuns.length === 0) return (
-        <Box 
-          textAlign="center" 
-          p={{ xs: 3, sm: 4 }} 
-          sx={{ 
-            border: '2px dashed', 
-            borderColor: 'divider', 
-            borderRadius: 3,
-            backgroundColor: 'grey.50'
-          }}
-        >
-            <DirectionsRunOutlined sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No active runs found
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Create a new run to get started with order picking
-            </Typography>
-        </Box>
+        <InfoBox icon={Zap} title="No active runs found" message="Create a new run to get started with order picking." />
     );
 
     return (
-      <Stack spacing={2}>
+      <div className="space-y-3">
         {activeRuns.map((run, index) => (
           <AnimatedComponent key={run.id} delay={index * 0.1}>
             <DashboardRunItem run={run} />
           </AnimatedComponent>
         ))}
-      </Stack>
+      </div>
     );
 };
 
@@ -275,45 +201,28 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
 
      if (quotes.length === 0) {
         return (
-          <Box 
-            textAlign="center" 
-            p={{ xs: 3, sm: 5 }}
-            sx={{
-              border: '2px dashed',
-              borderColor: 'divider',
-              borderRadius: 3,
-              backgroundColor: 'grey.50'
-            }}
-          >
-            <ReceiptLongOutlined sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No quotes found for this customer
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Create a new quote to get started
-            </Typography>
-          </Box>
+            <InfoBox icon={Receipt} title="No quotes found for this customer" message="Create a new quote to get started." />
         );
     }
 
     return (
-        <Stack spacing={2}>
+        <div className="space-y-2">
             {quotes.map((quote, index) => (
                 <AnimatedComponent key={quote.id} delay={index * 0.05}>
                     <QuoteItem quote={quote} onClick={() => navigate(`/quote?id=${quote.id}`)} />
                 </AnimatedComponent>
             ))}
-        </Stack>
+        </div>
     );
 };
 
 // ====================================================================================
-// 2. REFACTORED Main Dashboard Component
-// This component now orchestrates the UI, but doesn't manage loading states.
+// Main Dashboard Component
 // ====================================================================================
 const Dashboard: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [isPending, startTransition] = useTransition();
+    const [query, setQuery] = useState('');
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],
@@ -326,207 +235,165 @@ const Dashboard: React.FC = () => {
         return customers.find(c => c.customerId === customerId) || null;
     }, [customers, searchParams]);
 
-    const handleCustomerChange = (_: React.SyntheticEvent, customer: Customer | null) => {
+    const handleCustomerChange = (customer: Customer | null) => {
         startTransition(() => {
             setSearchParams(customer ? { customer: customer.customerId } : {});
         });
     };
 
+    const filteredCustomers =
+        query === ''
+            ? customers
+            : customers.filter((customer) =>
+                customer.customerName
+                    .toLowerCase()
+                    .replace(/\s+/g, '')
+                    .includes(query.toLowerCase().replace(/\s+/g, ''))
+            );
+
     return (
-        <Box sx={{ 
-          minHeight: '100vh', 
-          bgcolor: 'background.default', 
-          py: { xs: 2, sm: 4 },
-          px: { xs: 1, sm: 2 }
-        }}>
+        <div className="min-h-screen bg-gray-50/50">
             <title>Smart Picker | Dashboard</title>
-            <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2 } }}>
-                <Stack spacing={{ xs: 3, sm: 4, md: 5 }}>
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="space-y-8">
                     {/* Header Section */}
                     <AnimatedComponent>
-                        <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-                            <Typography 
-                              variant="h3" 
-                              component="h1" 
-                              fontWeight="bold" 
-                              sx={{
-                                background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                mb: 1
-                              }}
-                            >
+                        <div className="text-center sm:text-left">
+                            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
                               Dashboard
-                            </Typography>
-                            <Typography variant="h6" color="text.secondary">
-                              Manage your picking runs and customer quotes
-                            </Typography>
-                        </Box>
+                            </h1>
+                            <p className="mt-3 text-lg text-gray-600">
+                              Manage your picking runs and customer quotes.
+                            </p>
+                        </div>
                     </AnimatedComponent>
 
                     {/* Active Runs Section */}
                     <AnimatedComponent delay={0.1}>
-                        <Card 
-                          elevation={0}
-                          sx={{ 
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 3,
-                            overflow: 'hidden'
-                          }}
-                        >
-                            <Box
-                              sx={{
-                                background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                                color: 'white',
-                                p: { xs: 2, sm: 3 }
-                              }}
-                            >
-                                <Stack direction="row" alignItems="center" spacing={2}>
-                                    <DirectionsRunOutlined sx={{ fontSize: 28 }} />
-                                    <Typography variant="h5" fontWeight="bold">
+                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-gray-50">
+                                <div className="flex items-center gap-3">
+                                    <Zap className="w-6 h-6 text-blue-600" />
+                                    <h2 className="text-xl font-semibold text-gray-800">
                                         Active Picking Runs
-                                    </Typography>
-                                </Stack>
-                            </Box>
-                            <Box sx={{ p: { xs: 2, sm: 3 } }}>
+                                    </h2>
+                                </div>
+                            </div>
+                            <div className="p-4 sm:p-5">
                                 <Suspense fallback={<RunListSkeleton />}>
                                     <ActiveRunsList />
                                 </Suspense>
-                            </Box>
-                        </Card>
+                            </div>
+                        </div>
                     </AnimatedComponent>
 
-                    <Divider sx={{ borderColor: 'divider' }} />
+                    {/* Divider */}
+                    <div className="border-b border-gray-200" />
 
                     {/* Quote Finder Section */}
                     <AnimatedComponent delay={0.2}>
-                        <Box>
-                            <Typography 
-                              variant="h4" 
-                              component="h2" 
-                              fontWeight="bold" 
-                              sx={{ 
-                                mb: 3,
-                                textAlign: { xs: 'center', sm: 'left' }
-                              }}
-                            >
+                        <div>
+                            <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center sm:text-left">
                                 Quote Finder
-                            </Typography>
+                            </h2>
                             
-                            <Grid container spacing={{ xs: 2, md: 4 }}>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {/* Customer Selection */}
-                                <Grid size={{ xs: 12, md: 4 }}>
-                                    <Card 
-                                      elevation={0}
-                                      sx={{ 
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        borderRadius: 3,
-                                        height: 'fit-content'
-                                      }}
-                                    >
-                                        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                                            <Stack spacing={2}>
-                                                <Stack direction="row" alignItems="center" spacing={1}>
-                                                    <Business sx={{ color: 'primary.main' }} />
-                                                    <Typography variant="h6" fontWeight="600">
-                                                        Select Customer
-                                                    </Typography>
-                                                </Stack>
-                                                <Autocomplete
-                                                    options={customers}
-                                                    getOptionLabel={(option) => option.customerName}
-                                                    value={selectedCustomer}
-                                                    onChange={handleCustomerChange}
-                                                    isOptionEqualToValue={(option, value) => option.customerId === value.customerId}
-                                                    renderInput={(params) => (
-                                                        <TextField 
-                                                            {...params} 
-                                                            label="Search customers..." 
-                                                            size="small"
-                                                            sx={{
-                                                                '& .MuiOutlinedInput-root': {
-                                                                    borderRadius: 2
-                                                                }
-                                                            }}
-                                                        />
-                                                    )}
-                                                    sx={{
-                                                        '& .MuiAutocomplete-paper': {
-                                                            borderRadius: 2,
-                                                            boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
-                                                        }
-                                                    }}
-                                                />
-                                            </Stack>
-                                        </CardContent>
-                                    </Card>
-                                </Grid>
+                                <div className="md:col-span-1">
+                                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <Building2 className="w-5 h-5 text-blue-600" />
+                                            <h3 className="text-lg font-semibold text-gray-800">Select Customer</h3>
+                                        </div>
+                                        <Combobox value={selectedCustomer} onChange={handleCustomerChange}>
+                                            <div className="relative">
+                                                <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                                                    <ComboboxInput
+                                                        className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
+                                                        displayValue={(customer: Customer | null) => customer?.customerName || ''}
+                                                        onChange={(event) => setQuery(event.target.value)}
+                                                        placeholder="Search customers..."
+                                                    />
+                                                    <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
+                                                        <ChevronDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
+                                                    </ComboboxButton>
+                                                </div>
+                                                <Transition
+                                                    as={Fragment}
+                                                    leave="transition ease-in duration-100"
+                                                    leaveFrom="opacity-100"
+                                                    leaveTo="opacity-0"
+                                                    afterLeave={() => setQuery('')}
+                                                >
+                                                    <ComboboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-10">
+                                                        {filteredCustomers.length === 0 && query !== '' ? (
+                                                            <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                                                                Nothing found.
+                                                            </div>
+                                                        ) : (
+                                                            filteredCustomers.map((customer) => (
+                                                                <ComboboxOption
+                                                                    key={customer.customerId}
+                                                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-blue-600 data-[active]:text-white"
+                                                                    value={customer}
+                                                                >
+                                                                    {({ selected }) => (
+                                                                        <>
+                                                                            <span className={`block truncate ${ selected ? 'font-medium' : 'font-normal' }`}>
+                                                                                {customer.customerName}
+                                                                            </span>
+                                                                            {selected ? (
+                                                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600 group-data-[active]:text-white">
+                                                                                </span>
+                                                                            ) : null}
+                                                                        </>
+                                                                    )}
+                                                                </ComboboxOption>
+                                                            ))
+                                                        )}
+                                                    </ComboboxOptions>
+                                                </Transition>
+                                            </div>
+                                        </Combobox>
+                                    </div>
+                                </div>
 
                                 {/* Quotes Display */}
-                                <Grid size={{ xs: 12, md: 8 }}>
-                                    <Card 
-                                      elevation={0}
-                                      sx={{ 
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        borderRadius: 3,
-                                        minHeight: { xs: 'auto', md: 400 }
-                                      }}
-                                    >
-                                        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                                            <Stack spacing={2}>
-                                                <Stack direction="row" alignItems="center" spacing={1}>
-                                                    <AttachMoney sx={{ color: 'success.main' }} />
-                                                    <Typography variant="h6" fontWeight="600">
-                                                        {selectedCustomer ? `Quotes for ${selectedCustomer.customerName}` : 'Select a Customer to View Quotes'}
-                                                    </Typography>
-                                                </Stack>
-                                                
-                                                {isPending && (
-                                                    <Box sx={{ width: '100%' }}>
-                                                        <LinearProgress sx={{ borderRadius: 2 }} />
-                                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
-                                                            Loading quotes...
-                                                        </Typography>
-                                                    </Box>
-                                                )}
-                                                
-                                                {!isPending && selectedCustomer ? (
-                                                    <Suspense fallback={<AvailableQuotesSkeleton/>}>
-                                                        <QuoteList customer={selectedCustomer} />
-                                                    </Suspense>
-                                                ) : !isPending && !selectedCustomer ? (
-                                                    <Box 
-                                                      textAlign="center" 
-                                                      p={{ xs: 3, sm: 5 }}
-                                                      sx={{
-                                                        border: '2px dashed',
-                                                        borderColor: 'divider',
-                                                        borderRadius: 3,
-                                                        backgroundColor: 'grey.50'
-                                                      }}
-                                                    >
-                                                        <Search sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                                                        <Typography variant="h6" color="text.secondary" gutterBottom>
-                                                            No customer selected
-                                                        </Typography>
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            Choose a customer from the dropdown to view their quotes
-                                                        </Typography>
-                                                    </Box>
-                                                ) : null}
-                                            </Stack>
-                                        </CardContent>
-                                    </Card>
-                                </Grid>
-                            </Grid>
-                        </Box>
+                                <div className="md:col-span-2">
+                                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-h-[24rem]">
+                                        <div className="p-5">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <DollarSign className="w-5 h-5 text-green-600" />
+                                                <h3 className="text-lg font-semibold text-gray-800">
+                                                    {selectedCustomer ? `Quotes for ${selectedCustomer.customerName}` : 'Select a Customer'}
+                                                </h3>
+                                            </div>
+                                            
+                                            {isPending && (
+                                                <div className="w-full flex flex-col items-center justify-center pt-10">
+                                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                        <div className="bg-blue-600 h-1.5 rounded-full animate-pulse"></div>
+                                                    </div>
+                                                    <p className="mt-2 text-sm text-gray-600">Loading quotes...</p>
+                                                </div>
+                                            )}
+                                            
+                                            {!isPending && selectedCustomer ? (
+                                                <Suspense fallback={<AvailableQuotesSkeleton/>}>
+                                                    <QuoteList customer={selectedCustomer} />
+                                                </Suspense>
+                                            ) : !isPending && !selectedCustomer ? (
+                                                <InfoBox icon={Search} title="No Customer Selected" message="Choose a customer from the dropdown to view their available quotes." />
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </AnimatedComponent>
-                </Stack>
-            </Container>
-        </Box>
+                </div>
+            </main>
+        </div>
     );
 };
 

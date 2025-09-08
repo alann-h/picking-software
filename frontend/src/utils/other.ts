@@ -1,23 +1,28 @@
-import theme from "../theme";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
-        return theme.palette.success.main;
+        return 'bg-green-500';
       case 'pending':
-        return theme.palette.info.main;
+        return 'bg-blue-500';
       case 'assigned':
-        return theme.palette.primary.main;
+        return 'bg-indigo-500';
       case 'checking':
-        return theme.palette.secondary.main;
+        return 'bg-purple-500';
       case 'finalised':
-        return theme.palette.success.main;
+        return 'bg-green-500';
       case 'backorder':
-        return theme.palette.warning.main;
+        return 'bg-yellow-500';
       case 'unavailable':
-        return theme.palette.error.main;
+        return 'bg-red-500';
       default:
-        return theme.palette.info.main;
+        return 'bg-blue-500';
     }
   };
 

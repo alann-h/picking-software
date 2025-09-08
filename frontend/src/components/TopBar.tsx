@@ -104,7 +104,7 @@ const AuthenticatedNavItems: React.FC<{ handleMenuItemClick: (path: string) => v
         type="button"
         title="Admin Operations"
         onClick={() => setAdminMenuOpen(true)}
-        className="rounded-full p-2 text-blue-600 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:bg-blue-500/10"
+        className="rounded-full p-2 text-blue-600 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:bg-blue-500/10 cursor-pointer"
       >
         <Menu size={24} />
       </button>
