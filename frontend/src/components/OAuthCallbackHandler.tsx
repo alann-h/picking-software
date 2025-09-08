@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { verifyUser } from '../api/auth';
-import { Box, CircularProgress } from '@mui/material';
 
 const OAuthCallbackHandler = () => {
   const navigate = useNavigate();
@@ -22,11 +21,7 @@ const OAuthCallbackHandler = () => {
       });
   }, [navigate]);
 
-  return (
-    <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-      <CircularProgress />
-    </Box>
-  );
+  return null;
 };
 
 export default OAuthCallbackHandler;

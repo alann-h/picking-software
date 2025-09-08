@@ -1,83 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  FormControl,
-  Select,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@mui/material';
-import {
-  Upload as UploadIcon,
-  ExpandMore as ExpandMoreIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
+  Upload,
+  ChevronDown,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  ExternalLink,
+  History,
+  Check,
+  ChevronsUpDown,
+} from 'lucide-react';
+import { Listbox, Transition, Disclosure, DisclosureButton, DisclosurePanel, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/react';
 import { uploadKyteCSV, getCustomersForMapping, createQuickBooksEstimates, getConversionHistory } from '../api/kyteConverter';
 import ItemDescription from './ItemDescription';
 
-interface Customer {
-  customerId: string;
-  customerName: string;
-}
+// Interfaces (remain the same)
+interface Customer { customerId: string; customerName: string; }
+interface LineItem { quantity: number; productName: string; originalText: string; productId?: string; sku?: string; barcode?: string; price: number; externalItemId?: string; matched: boolean; }
+interface Order { number: string; date: string; itemsDescription: string; total: number; customerId: string | null; lineItems: LineItem[]; }
+interface ProcessingResult { orderNumber: string; success: boolean; message: string; estimateId?: string; estimateNumber?: string; quickbooksUrl?: string; }
+interface ConversionHistoryItem { orderNumber: string; estimateId?: string; quickbooksUrl?: string; status: 'success' | 'failed'; errorMessage?: string; createdAt: string; }
 
-interface LineItem {
-  quantity: number;
-  productName: string;
-  originalText: string;
-  productId?: string;
-  sku?: string;
-  barcode?: string;
-  price: number;
-  externalItemId?: string;
-  matched: boolean;
-}
+// Reusable UI Components
+const ErrorAlert: React.FC<{ message: string }> = ({ message }) => (
+  <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+    <div className="flex items-center">
+      <AlertCircle className="w-5 h-5 mr-2" />
+      <span className="font-medium">{message}</span>
+    </div>
+  </div>
+);
 
-interface Order {
-  number: string;
-  date: string;
-  itemsDescription: string;
-  total: number;
-  customerId: string | null;
-  lineItems: LineItem[];
-}
+const SuccessAlert: React.FC<{ message: string }> = ({ message }) => (
+  <div className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
+    <div className="flex items-center">
+      <CheckCircle className="w-5 h-5 mr-2" />
+      <span className="font-medium">{message}</span>
+    </div>
+  </div>
+);
 
-interface ProcessingResult {
-  orderNumber: string;
-  success: boolean;
-  message: string;
-  estimateId?: string;
-  estimateNumber?: string;
-  quickbooksUrl?: string;
-}
-
-interface ConversionHistoryItem {
-  orderNumber: string;
-  estimateId?: string;
-  quickbooksUrl?: string;
-  status: 'success' | 'failed';
-  errorMessage?: string;
-  createdAt: string;
-}
+const WarningAlert: React.FC<{ message: string }> = ({ message }) => (
+  <div className="p-4 mb-4 text-sm text-yellow-700 bg-yellow-100 rounded-lg" role="alert">
+    <div className="flex items-center">
+      <AlertTriangle className="w-5 h-5 mr-2" />
+      <span className="font-medium">{message}</span>
+    </div>
+  </div>
+);
 
 const KyteToQuickBooksConverter: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +59,6 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const [results, setResults] = useState<ProcessingResult[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [conversionHistory, setConversionHistory] = useState<ConversionHistoryItem[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     loadCustomers();
@@ -94,26 +67,19 @@ const KyteToQuickBooksConverter: React.FC = () => {
 
   const loadCustomers = async () => {
     try {
-      setLoading(true);
       const response = await getCustomersForMapping();
       setCustomers(response.customers);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to load customers');
-      console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
   const loadConversionHistory = async () => {
     try {
-      setHistoryLoading(true);
-      const response = await getConversionHistory(20); // Load last 20 conversions
+      const response = await getConversionHistory(20);
       setConversionHistory(response.history);
     } catch (err) {
       console.error('Failed to load conversion history:', err);
-    } finally {
-      setHistoryLoading(false);
     }
   };
 
@@ -132,14 +98,11 @@ const KyteToQuickBooksConverter: React.FC = () => {
       setError('Please select a file first');
       return;
     }
-
     try {
       setUploading(true);
       setError(null);
-      
       const csvContent = await selectedFile.text();
       const response = await uploadKyteCSV(csvContent);
-      
       setOrders(response.orders);
       setSuccess(`Successfully processed ${response.orders.length} pending orders`);
     } catch (err: any) {
@@ -150,13 +113,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
   };
 
   const handleCustomerChange = (orderNumber: string, customerId: string) => {
-    setOrders(prev => 
-      prev.map(order => 
-        order.number === orderNumber 
-          ? { ...order, customerId } 
-          : order
-      )
-    );
+    setOrders(prev => prev.map(order => order.number === orderNumber ? { ...order, customerId } : order));
   };
 
   const handleCreateEstimates = async () => {
@@ -165,16 +122,12 @@ const KyteToQuickBooksConverter: React.FC = () => {
       setError(`Please map customers for orders: ${unmappedOrders.map(o => o.number).join(', ')}`);
       return;
     }
-
     try {
       setProcessing(true);
       setError(null);
-      
       const response = await createQuickBooksEstimates(orders);
       setResults(response.results);
       setSuccess(response.message);
-      
-      // Refresh conversion history after successful conversion
       await loadConversionHistory();
     } catch (err: any) {
       setError(err.message || 'Failed to create estimates');
@@ -183,295 +136,199 @@ const KyteToQuickBooksConverter: React.FC = () => {
     }
   };
 
-  const getMatchStatusIcon = (matched: boolean) => {
-    if (matched) {
-      return <CheckCircleIcon color="success" fontSize="small" />;
-    }
-    return <WarningIcon color="warning" fontSize="small" />;
-  };
-
-  const getMatchStatusText = (matched: boolean) => {
-    return matched ? 'Matched' : 'No Match';
-  };
-
   const allCustomersMapped = orders.length > 0 && orders.every(order => order.customerId);
 
-      return (
-      <Box sx={{ p: 3 }}>
-        <title>Smart Picker | Kyte Converter</title>
-        <Box sx={{ 
-          textAlign: 'center', 
-          mb: 4, 
-          p: 3, 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: 2,
-          color: 'white',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-        }}>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-            Smart Picker
-          </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 400, opacity: 0.9 }}>
-            Kyte Converter
-          </Typography>
-        </Box>
-      
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Step 1: Upload CSV File
-        </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
-          <Button
-            variant="contained"
-            component="label"
-            startIcon={<UploadIcon />}
-            disabled={uploading}
-          >
-            Select CSV File
-            <input
-              type="file"
-              accept=".csv"
-              hidden
-              onChange={handleFileSelect}
-            />
-          </Button>
-          
-          {selectedFile && (
-            <Typography variant="body2" color="text.secondary">
-              Selected: {selectedFile.name}
-            </Typography>
-          )}
-          
-          <Button
-            variant="contained"
-            onClick={handleFileUpload}
-            disabled={!selectedFile || uploading}
-          >
-            {uploading ? <CircularProgress size={20} /> : 'Upload & Process'}
-          </Button>
-        </Box>
-        
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
-        
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-      </Paper>
+  return (
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <title>Smart Picker | Kyte Converter</title>
 
+      <div className="text-center p-6 rounded-lg text-white bg-gradient-to-r from-purple-500 to-indigo-600 shadow-lg">
+        <h1 className="text-3xl font-bold">Smart Picker</h1>
+        <h2 className="text-2xl font-light opacity-90">Kyte to QuickBooks Converter</h2>
+      </div>
+
+      {/* Step 1: Upload */}
+      <div className="p-6 rounded-lg bg-white shadow-sm">
+        <h3 className="text-xl font-semibold mb-4">Step 1: Upload CSV File</h3>
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 disabled:bg-blue-300">
+            <Upload className="w-5 h-5 mr-2" />
+            <span>Select CSV File</span>
+            <input type="file" accept=".csv" hidden onChange={handleFileSelect} disabled={uploading} />
+          </label>
+          {selectedFile && <p className="text-sm text-gray-600">Selected: {selectedFile.name}</p>}
+          <button onClick={handleFileUpload} disabled={!selectedFile || uploading} className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md cursor-pointer hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed">
+            {uploading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> : null}
+            <span>Upload & Process</span>
+          </button>
+        </div>
+        {success && <SuccessAlert message={success} />}
+        {error && <ErrorAlert message={error} />}
+      </div>
+
+      {/* Step 2: Map Customers */}
       {orders.length > 0 && (
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Step 2: Map Customers & Review Orders
-          </Typography>
-          
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Order #</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Items Description</TableCell>
-                  <TableCell>Total</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Items</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+        <div className="p-6 rounded-lg bg-white shadow-sm">
+          <h3 className="text-xl font-semibold mb-4">Step 2: Map Customers & Review Orders</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {orders.map((order) => (
-                  <TableRow key={order.number}>
-                    <TableCell>{order.number}</TableCell>
-                    <TableCell>{order.date}</TableCell>
-                    <TableCell>
-                      <ItemDescription 
-                        items={order.itemsDescription.split(',').map(item => item.trim())} 
-                        maxItems={3}
-                        variant="body2"
-                        showExpandButton={true}
-                      />
-                    </TableCell>
-                    <TableCell>${order.total.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <FormControl fullWidth size="small">
-                        <Select
-                          value={order.customerId || ''}
-                          onChange={(e) => handleCustomerChange(order.number, e.target.value)}
-                          displayEmpty
-                        >
-                          <MenuItem value="">
-                            <em>Select Customer</em>
-                          </MenuItem>
-                          {customers.map((customer) => (
-                            <MenuItem key={customer.customerId} value={customer.customerId}>
-                              {customer.customerName}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </TableCell>
-                    <TableCell>
-                      <Accordion>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography variant="body2">
-                            {order.lineItems.length} items
-                          </Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Box>
-                            {order.lineItems.map((item, index) => (
-                              <Box key={index} sx={{ mb: 1, p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                  {getMatchStatusIcon(item.matched)}
-                                  <Typography variant="body2" fontWeight="bold">
-                                    {item.quantity}x {item.productName}
-                                  </Typography>
-                                  <Chip 
-                                    label={getMatchStatusText(item.matched)} 
-                                    size="small" 
-                                    color={item.matched ? "success" : "warning"}
-                                  />
-                                </Box>
-                                {item.matched && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    SKU: {item.sku} | Price: ${item.price.toFixed(2)}
-                                  </Typography>
-                                )}
-                              </Box>
-                            ))}
-                          </Box>
-                        </AccordionDetails>
-                      </Accordion>
-                    </TableCell>
-                  </TableRow>
+                  <tr key={order.number}>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.number}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{order.date}</td>
+                    <td className="px-4 py-4 text-sm text-gray-600 max-w-xs"><ItemDescription items={order.itemsDescription.split(',').map(item => item.trim())} maxItems={3} variant="body2" showExpandButton={true} /></td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">${order.total.toFixed(2)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm w-52">
+                      <Listbox value={order.customerId || ''} onChange={(val) => handleCustomerChange(order.number, val)}>
+                        <div className="relative">
+                          <ListboxButton className="relative w-full cursor-pointer rounded-md bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus-visible:border-indigo-500 sm:text-sm">
+                            <span className="block truncate">{customers.find(c => c.customerId === order.customerId)?.customerName || 'Select Customer'}</span>
+                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2"><ChevronsUpDown className="h-5 w-5 text-gray-400" /></span>
+                          </ListboxButton>
+                          <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
+                            <ListboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
+                              {customers.map((customer) => (
+                                <ListboxOption key={customer.customerId} value={customer.customerId} className="relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-amber-100 data-[active]:text-amber-900">
+                                  {({ selected }) => (<><span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{customer.customerName}</span>{selected ? <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-amber-600"><Check className="h-5 w-5" /></span> : null}</>)}
+                                </ListboxOption>
+                              ))}
+                            </ListboxOptions>
+                          </Transition>
+                        </div>
+                      </Listbox>
+                    </td>
+                    <td className="px-4 py-4 text-sm">
+                      <Disclosure>
+                        {({ open }) => (
+                          <>
+                            <DisclosureButton className="flex items-center gap-1 text-sm text-blue-600 cursor-pointer">
+                              {order.lineItems.length} items <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'transform rotate-180' : ''}`} />
+                            </DisclosureButton>
+                            <DisclosurePanel className="mt-2 space-y-2">
+                              {order.lineItems.map((item, index) => (
+                                <div key={index} className="p-2 rounded-md bg-gray-50">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    {item.matched ? <CheckCircle className="w-4 h-4 text-green-500" /> : <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+                                    <p className="text-sm font-semibold">{item.quantity}x {item.productName}</p>
+                                    <span className={`px-2 py-0.5 text-xs rounded-full ${item.matched ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{item.matched ? 'Matched' : 'No Match'}</span>
+                                  </div>
+                                  {item.matched && <p className="text-xs text-gray-500">SKU: {item.sku} | Price: ${item.price.toFixed(2)}</p>}
+                                </div>
+                              ))}
+                            </DisclosurePanel>
+                          </>
+                        )}
+                      </Disclosure>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          
-          <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleCreateEstimates}
-              disabled={!allCustomersMapped || processing}
-              size="large"
-            >
-              {processing ? <CircularProgress size={20} /> : 'Create QuickBooks Estimates'}
-            </Button>
-            
-            {!allCustomersMapped && (
-              <Alert severity="warning" sx={{ flex: 1 }}>
-                Please map customers for all orders before creating estimates
-              </Alert>
-            )}
-          </Box>
-        </Paper>
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 flex items-center gap-4">
+            <button onClick={handleCreateEstimates} disabled={!allCustomersMapped || processing} className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-md font-semibold cursor-pointer hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed">
+              {processing ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> : null}
+              Create QuickBooks Estimates
+            </button>
+            {!allCustomersMapped && <WarningAlert message="Please map customers for all orders before creating estimates." />}
+          </div>
+        </div>
       )}
 
+      {/* Results */}
       {results.length > 0 && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Processing Results
-          </Typography>
-          
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Order #</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Message</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-                                <TableBody>
-                    {results.map((result) => (
-                      <TableRow key={result.orderNumber}>
-                        <TableCell>{result.orderNumber}</TableCell>
-                        <TableCell>
-                          {result.success ? (
-                            <Chip icon={<CheckCircleIcon />} label="Success" color="success" size="small" />
-                          ) : (
-                            <Chip icon={<ErrorIcon />} label="Failed" color="error" size="small" />
-                          )}
-                        </TableCell>
-                        <TableCell>{result.message}</TableCell>
-                        <TableCell>
-                          {result.success && result.quickbooksUrl && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={() => window.open(result.quickbooksUrl, '_blank')}
-                              startIcon={<CheckCircleIcon />}
-                            >
-                              View in QuickBooks
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+        <div className="p-6 rounded-lg bg-white shadow-sm">
+          <h3 className="text-xl font-semibold mb-4">Processing Results</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Message</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {results.map((result) => (
+                  <tr key={result.orderNumber}>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">{result.orderNumber}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
+                      {result.success ? <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" />Success</span> : <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"><AlertCircle className="w-3 h-3" />Failed</span>}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-600">{result.message}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
+                      {result.success && result.quickbooksUrl && (
+                        <a href={result.quickbooksUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline cursor-pointer">
+                          View in QuickBooks <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
+      {/* History */}
       {conversionHistory.length > 0 && (
-        <Paper sx={{ p: 3, mt: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Conversion History
-          </Typography>
-          
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Order #</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Created At</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {conversionHistory.map((item) => (
-                  <TableRow key={`${item.orderNumber}-${item.createdAt}`}>
-                    <TableCell>{item.orderNumber}</TableCell>
-                    <TableCell>
-                      {item.status === 'success' ? (
-                        <Chip icon={<CheckCircleIcon />} label="Success" color="success" size="small" />
-                      ) : (
-                        <Chip icon={<ErrorIcon />} label="Failed" color="error" size="small" />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(item.createdAt).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      {item.status === 'success' && item.quickbooksUrl && (
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => window.open(item.quickbooksUrl, '_blank')}
-                          startIcon={<CheckCircleIcon />}
-                        >
-                          View in QuickBooks
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+        <Disclosure as="div" className="p-6 rounded-lg bg-white shadow-sm">
+          {({ open }) => (
+            <>
+              <DisclosureButton className="w-full flex justify-between items-center text-left cursor-pointer">
+                <h3 className="text-xl font-semibold">Conversion History</h3>
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800">
+                  <History className="w-5 h-5" /> {open ? 'Hide' : 'Show'} History <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'transform rotate-180' : ''}`} />
+                </div>
+              </DisclosureButton>
+              <DisclosurePanel className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {conversionHistory.map((item) => (
+                      <tr key={`${item.orderNumber}-${item.createdAt}`}>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm">{item.orderNumber}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm">
+                           {item.status === 'success' ? <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" />Success</span> : <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"><AlertCircle className="w-3 h-3" />Failed</span>}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(item.createdAt).toLocaleString()}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm">
+                          {item.status === 'success' && item.quickbooksUrl && (
+                            <a href={item.quickbooksUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline cursor-pointer">
+                              View in QuickBooks <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </DisclosurePanel>
+            </>
+          )}
+        </Disclosure>
       )}
-    </Box>
+    </div>
   );
 };
 
