@@ -25,7 +25,7 @@ const LandingPage: React.FC = () => {
       
       {/* Cache Status Indicator (Development Only) */}
       {import.meta.env.VITE_APP_ENV === 'development' && (
-        <div className={`fixed top-2.5 right-2.5 z-[9999] text-white px-4 py-2 rounded-md text-xs font-semibold shadow-lg transition-opacity ${
+        <div className={`fixed bottom-2.5 left-2.5 z-[9999] text-white px-4 py-2 rounded-md text-xs font-semibold shadow-lg transition-opacity ${
           isCached ? 'bg-green-500' : 'bg-orange-400'
         } ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
         {isLoading ? 'Caching...' : isCached ? 'Cached' : 'Not Cached'}
