@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Typography, Button, Box } from '@mui/material';
 import { formatItemDescription } from '../utils/other';
+import clsx from 'clsx';
 
 interface ItemDescriptionProps {
   items: string[];
   maxItems?: number;
   variant?: 'body1' | 'body2' | 'caption';
-  color?: 'text.primary' | 'text.secondary';
+  color?: 'text-primary' | 'text-secondary';
   showExpandButton?: boolean;
 }
 
@@ -14,58 +14,58 @@ const ItemDescription: React.FC<ItemDescriptionProps> = ({
   items,
   maxItems = 5,
   variant = 'body2',
-  color = 'text.secondary',
+  color = 'text-secondary',
   showExpandButton = true
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const textClasses = clsx({
+    'text-base': variant === 'body1',
+    'text-sm': variant === 'body2',
+    'text-xs': variant === 'caption',
+    'text-gray-800': color === 'text-primary',
+    'text-gray-600': color === 'text-secondary',
+  });
+
   if (!items || items.length === 0) {
     return (
-      <Typography variant={variant} color={color}>
+      <p className={textClasses}>
         No items
-      </Typography>
+      </p>
     );
   }
 
   if (items.length <= maxItems) {
     return (
-      <Typography variant={variant} color={color}>
+      <p className={textClasses}>
         {items.join(', ')}
-      </Typography>
+      </p>
     );
   }
 
   if (!showExpandButton) {
     return (
-      <Typography variant={variant} color={color}>
+      <p className={textClasses}>
         {formatItemDescription(items, maxItems)}
-      </Typography>
+      </p>
     );
   }
 
   return (
-    <Box>
-      <Typography variant={variant} color={color}>
+    <div>
+      <p className={textClasses}>
         {isExpanded 
           ? items.join(', ')
           : formatItemDescription(items, maxItems)
         }
-      </Typography>
-      <Button 
-        size="small" 
+      </p>
+      <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        sx={{ 
-          mt: 0.5, 
-          p: 0, 
-          minWidth: 'auto',
-          fontSize: '0.75rem',
-          textTransform: 'none',
-          color: 'primary.main'
-        }}
+        className="mt-1 p-0 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors duration-200 focus:outline-none"
       >
         {isExpanded ? 'Show Less' : 'Show More'}
-      </Button>
-    </Box>
+      </button>
+    </div>
   );
 };
 

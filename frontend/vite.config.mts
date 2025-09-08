@@ -56,9 +56,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('landing/')) {
               return 'landing-sections';
             }
-            if (id.includes('@mui') || id.includes('@emotion')) {
-              return 'vendor-mui';
-            }
             if (id.includes('react') && !id.includes('react-query')) {
               return 'vendor-react';
             }
