@@ -17,12 +17,16 @@ const IntegrationSection: React.FC = () => {
                 <img
                   src="/quickbooks-logo.svg"
                   alt="QuickBooks Integration"
+                  width="180"
+                  height="80"
                   className="max-w-[140px] sm:max-w-[180px] h-auto opacity-90"
                   onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x80/ffffff/3B82F6?text=QuickBooks'; }}
                 />
                 <img
                   src="/xero-logo.svg"
                   alt="Xero Integration"
+                  width="180"
+                  height="80"
                   className="max-w-[140px] sm:max-w-[180px] h-auto opacity-90"
                   onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x80/ffffff/3B82F6?text=Xero'; }}
                 />

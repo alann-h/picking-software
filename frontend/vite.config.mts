@@ -57,6 +57,9 @@ export default defineConfig(({ mode }) => {
           assetFileNames: 'assets/[name]-[hash].[ext]'
         }
       }
+    },
+    css: {
+      devSourcemap: true
     }
   }
 });

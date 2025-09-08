@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="utf-8" />
         <!-- Google tag (gtag.js) - Optimized for performance -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-B1JJ247L26"></script>
     <script>
@@ -38,9 +39,27 @@
         display: flex;
         flex-direction: column;
       }
+      
+      /* Critical styles for hero section */
+      .hero-section {
+        background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+      }
+      
+      /* Loading states */
+      .loading-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        color: #6b7280;
+      }
     </style>
     
-    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />    
     <meta name="theme-color" content="#000000" />
     <meta
@@ -124,6 +143,28 @@
     </script>
     
     <title>Smart Picker - Professional Warehouse Management Software | QuickBooks & Xero Integration</title>
+    
+    <!-- Async CSS loading for non-critical styles -->
+    <script>
+      // Function to load CSS asynchronously
+      function loadCSS(href, onload) {
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'style';
+        link.href = href;
+        link.onload = function() {
+          this.rel = 'stylesheet';
+          if (onload) onload();
+        };
+        document.head.appendChild(link);
+      }
+      
+      // Load main CSS asynchronously after page load
+      window.addEventListener('load', function() {
+        // This will be replaced by Vite build process with actual CSS file
+        loadCSS('/assets/index-C91Q8DJd.css');
+      });
+    </script>
     </head>
   <body>
     <noscript>
