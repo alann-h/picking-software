@@ -577,11 +577,26 @@ export async function getQuotesWithStatus(status) {
   try {
     let queryText, queryParams;
     
+    const baseQuery = `
+      SELECT 
+        q.id, 
+        q.quote_number, 
+        q.total_amount, 
+        q.status, 
+        q.created_at, 
+        q.updated_at, 
+        q.preparer_names, 
+        q.picker_note,
+        c.customer_name 
+      FROM quotes q
+      LEFT JOIN customers c ON q.customer_id = c.id
+    `;
+
     if (status === 'all') {
-      queryText = 'SELECT * FROM quotes ORDER BY updated_at DESC';
+      queryText = `${baseQuery} ORDER BY q.updated_at DESC`;
       queryParams = [];
     } else {
-      queryText = 'SELECT * FROM quotes WHERE status = $1 ORDER BY updated_at DESC';
+      queryText = `${baseQuery} WHERE q.status = $1 ORDER BY q.updated_at DESC`;
       queryParams = [status];
     }
     

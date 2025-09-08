@@ -1,15 +1,7 @@
 import React, { Suspense } from 'react';
-import {
-  Container,
-  Typography,
-  Stack,
-  Paper,
-  Box,
-  Alert,
-  AlertTitle
-} from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { useSnackbarContext } from './SnackbarContext';
 import { CreateRun } from './runs/CreateRun';
 import { RunList } from './runs/RunList';
@@ -26,144 +18,96 @@ const Runs: React.FC = () => {
     React.useEffect(() => {
       handleOpenSnackbar('You do not have permission to view this page.', 'error');
       navigate('/dashboard');
-    }, []);
+    }, [handleOpenSnackbar, navigate]);
     return null;
   }
 
   // Redirect users without company association
   if (!userCompanyId) {
     return (
-      <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 4 } }}>
-        <Alert
-          severity="warning"
-          sx={{
-            borderRadius: 2,
-            '& .MuiAlert-icon': { fontSize: 28 }
-          }}
-        >
-          <AlertTitle sx={{ fontWeight: 600, mb: 1 }}>
-            Company Association Required
-          </AlertTitle>
-          You are not currently associated with a company. Please contact your administrator to set up your company profile.
-        </Alert>
-      </Container>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md" role="alert">
+          <div className="flex">
+            <div className="py-1"><AlertTriangle className="h-6 w-6 text-yellow-500 mr-4" /></div>
+            <div>
+              <p className="font-bold">Company Association Required</p>
+              <p className="text-sm">You are not currently associated with a company. Please contact your administrator to set up your company profile.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: { xs: 3, sm: 4 } }}>
+    <>
       <title>Smart Picker | Manage Runs</title>
-
-      <Stack spacing={{ xs: 4, sm: 5 }}>
-        {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-            <Typography
-              variant="h3"
-              component="h1"
-              fontWeight="bold"
-              color="primary"
-              sx={{
-                mb: 1,
-                background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}
-            >
-              Manage Picking Runs
-            </Typography>
-            <Typography
-              variant="h6"
-              color="text.secondary"
-              sx={{ fontWeight: 400 }}
-            >
-              Create, organize, and track your warehouse picking operations
-            </Typography>
-          </Box>
-        </motion.div>
-
-        {/* Create Run Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
-          <Paper
-            elevation={0}
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 3,
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)'
-            }}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="flex flex-col space-y-4 sm:space-y-5">
+          {/* Header Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <Box
-              sx={{
-                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                color: 'white',
-                p: { xs: 2, sm: 3 }
-              }}
-            >
-              <Typography variant="h5" fontWeight="600">
-                Create New Run
-              </Typography>
-            </Box>
-            <Box sx={{ p: { xs: 2, sm: 3 } }}>
-              <Suspense fallback={<CreateRunSkeleton />}>
-                <CreateRun />
-              </Suspense>
-            </Box>
-          </Paper>
-        </motion.div>
+            <div className="text-center sm:text-left">
+              <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent mb-1">
+                Manage Picking Runs
+              </h1>
+              <p className="text-lg text-gray-500 font-light">
+                Create, organize, and track your warehouse picking operations
+              </p>
+            </div>
+          </motion.div>
 
-        {/* Run List Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <Paper
-            elevation={0}
-            sx={{
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 3,
-              overflow: 'hidden',
-              minHeight: 400
-            }}
+          {/* Create Run Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
           >
-            <Box
-              sx={{
-                background: 'linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)',
-                color: 'white',
-                p: { xs: 2, sm: 3 }
-              }}
-            >
-              <Typography variant="h5" fontWeight="600">
-                Active & Completed Runs
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                Monitor progress and manage your picking operations
-              </Typography>
-            </Box>
-            <Box sx={{ p: { xs: 2, sm: 3 } }}>
-              <Suspense fallback={<RunListSkeleton />}>
-                <RunList
-                  userCompanyId={userCompanyId}
-                  isAdmin={isAdmin}
-                />
-              </Suspense>
-            </Box>
-          </Paper>
-        </motion.div>
-      </Stack>
-    </Container>
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-200">
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 sm:p-6">
+                <h2 className="text-xl font-semibold">
+                  Create New Run
+                </h2>
+              </div>
+              <div className="p-4 sm:p-6">
+                <Suspense fallback={<CreateRunSkeleton />}>
+                  <CreateRun />
+                </Suspense>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Run List Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <div className="border border-gray-200 rounded-xl overflow-hidden min-h-[400px]">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-4 sm:p-6">
+                <h2 className="text-xl font-semibold">
+                  Active & Completed Runs
+                </h2>
+                <p className="text-sm opacity-90 mt-0.5">
+                  Monitor progress and manage your picking operations
+                </p>
+              </div>
+              <div className="p-4 sm:p-6">
+                <Suspense fallback={<RunListSkeleton />}>
+                  <RunList
+                    userCompanyId={userCompanyId}
+                    isAdmin={isAdmin}
+                  />
+                </Suspense>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </>
   );
 };
 

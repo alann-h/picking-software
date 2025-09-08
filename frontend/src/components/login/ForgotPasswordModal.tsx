@@ -54,7 +54,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
         </TransitionChild>
 
         {/* Modal content container */}
@@ -136,14 +136,14 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:from-blue-600 hover:to-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
+                    className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:from-blue-600 hover:to-blue-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
                     onClick={handleSubmit}
                     disabled={!email || isSubmitting}
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2
-                          className="h-4 w-4 animate-spin text-white cursor-pointer"
+                          className="h-4 w-4 animate-spin text-white"
                           aria-hidden="true"
                         />
                         Sending...

@@ -176,7 +176,8 @@ CREATE TABLE public.quotes (
     order_note text,
     picker_note text,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    quote_number text
 );
 COMMENT ON TABLE public.quotes IS 'Represents customer orders or quotes.';
 COMMENT ON COLUMN public.quotes.id IS 'External Quote ID from QBO (int) or Xero (UUID)';

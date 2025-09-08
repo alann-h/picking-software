@@ -1,6 +1,5 @@
 import React, { useState, useOptimistic } from 'react';
-import { Paper, Typography, Stack } from '@mui/material';
-import { AllInboxOutlined } from '@mui/icons-material';
+import { Inbox } from 'lucide-react';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Run } from '../../utils/types';
 import { deleteRun, getRuns } from '../../api/runs';
@@ -9,13 +8,13 @@ import { RunItem } from './RunItem';
 import { ConfirmationDialog } from '../ConfirmationDialog';
 
 const EmptyRunsState = () => (
-    <Paper variant="outlined" sx={{ mt: 4, p: { xs: 3, sm: 6 }, textAlign: 'center', backgroundColor: (theme) => theme.palette.grey[50] }}>
-        <Stack spacing={2} alignItems="center">
-            <AllInboxOutlined sx={{ fontSize: 60, color: 'grey.400' }} />
-            <Typography variant="h6" sx={{ fontWeight: 500 }}>No runs found!</Typography>
-            <Typography variant="body1" color="text.secondary">Create one above to get started.</Typography>
-        </Stack>
-    </Paper>
+    <div className="mt-4 text-center border-2 border-dashed border-gray-200 rounded-lg p-6 sm:p-12 bg-gray-50">
+        <div className="flex flex-col items-center space-y-2">
+            <Inbox className="w-16 h-16 text-gray-400" />
+            <h3 className="text-lg font-medium text-gray-800">No runs found!</h3>
+            <p className="text-sm text-gray-500">Create one above to get started.</p>
+        </div>
+    </div>
 );
 
 
@@ -76,7 +75,7 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
 
     return (
         <>
-            <Stack spacing={2} sx={{ mt: 2 }}>
+            <div className="space-y-2 mt-2">
                 {optimisticRuns.map((run) => (
                     <RunItem
                         key={run.id}
@@ -86,7 +85,7 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
                         onDeleteRun={handleOpenDeleteDialog}
                     />
                 ))}
-            </Stack>
+            </div>
             
             <ConfirmationDialog
                 open={dialogOpen}

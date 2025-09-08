@@ -104,6 +104,7 @@ export interface Run {
 
 export interface RunQuote {
   quoteId: string;
+  quoteNumber: string;
   customerName: string;
   totalAmount: number;
   priority: number;

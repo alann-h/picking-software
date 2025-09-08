@@ -1,8 +1,7 @@
 // src/components/runs/RunItem.tsx
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Paper, Typography, Stack, Divider, IconButton, Chip, Collapse, Box, Table, TableBody, TableCell, TableHead, TableRow, Button } from '@mui/material';
-import { KeyboardArrowDown, KeyboardArrowUp, Edit, Delete, DragIndicator, Save, Cancel } from '@mui/icons-material';
+import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X } from 'lucide-react';
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -10,8 +9,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Run, RunQuote } from '../../utils/types';
 import { updateRunQuotes, updateRunStatus } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
-
-
+import {
+  Disclosure,
+  DisclosureButton,
+  DisclosurePanel,
+  Transition,
+} from '@headlessui/react'
 
 // --- Helper Functions and Components ---
 
@@ -19,28 +22,27 @@ const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AU', { styl
 
 const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: string) => void }> = ({ quote, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.quoteId });
-    const style = {
+    const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
-        backgroundColor: 'white',
         zIndex: isDragging ? 1 : 0,
-        position: 'relative' as 'relative',
+        position: 'relative',
     };
 
     return (
-        <Paper ref={setNodeRef} style={style} sx={{ display: 'flex', alignItems: 'center', p: 1, mb: 1 }} variant="outlined">
-            <Stack {...attributes} {...listeners} sx={{ cursor: 'grab', touchAction: 'none', mr: 1.5, color: 'text.secondary' }}>
-                <DragIndicator />
-            </Stack>
-            <Stack flexGrow={1}>
-                <Typography variant="body2" fontWeight={500}>Quote #{quote.quoteId}</Typography>
-                <Typography variant="caption" color="text.secondary">{quote.customerName}</Typography>
-            </Stack>
-            <IconButton size="small" color="error" onClick={() => onRemove(quote.quoteId)}>
-                <Delete />
-            </IconButton>
-        </Paper>
+        <div ref={setNodeRef} style={style} className="flex items-center p-2 mb-1 bg-white border border-gray-200 rounded-md">
+            <div {...attributes} {...listeners} className="cursor-grab touch-none mr-3 text-gray-500">
+                <GripVertical className="w-5 h-5" />
+            </div>
+            <div className="flex-grow">
+                <p className="text-sm font-medium text-gray-800">Quote #{quote.quoteNumber}</p>
+                <p className="text-xs text-gray-500">{quote.customerName}</p>
+            </div>
+            <button className="text-red-500 hover:text-red-700 cursor-pointer" onClick={() => onRemove(quote.quoteId)}>
+                <Trash2 className="w-4 h-4" />
+            </button>
+        </div>
     );
 };
 
@@ -53,7 +55,6 @@ export const RunItem: React.FC<{
     userCompanyId: string;
     onDeleteRun: (runId: string) => void;
 }> = ({ run, isAdmin, userCompanyId, onDeleteRun }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableQuotes, setEditableQuotes] = useState<RunQuote[]>([]);
     
@@ -82,11 +83,8 @@ export const RunItem: React.FC<{
     
     const updateStatusMutation = useMutation({
         mutationFn: ({ runId, newStatus }: { runId: string; newStatus: Run['status'] }) => updateRunStatus(runId, newStatus),
-        onSuccess: (data, variables) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
-            
-
-            
             handleOpenSnackbar('Run status updated.', 'success');
         },
         onError: () => {
@@ -94,20 +92,19 @@ export const RunItem: React.FC<{
         }
     });
 
-    const { quoteCount, totalValue } = useMemo(() => {
+    const { quoteCount } = useMemo(() => {
         const quotes = run.quotes || [];
         return {
             quoteCount: quotes.length,
-            totalValue: quotes.reduce((sum, quote) => sum + (quote.totalAmount || 0), 0)
         };
     }, [run.quotes]);
 
-    const getStatusChipColor = (status: Run['status']) => {
+    const getStatusChipClasses = (status: Run['status']) => {
         switch (status) {
-            case 'pending': return 'info';
-            case 'checking': return 'warning';
-            case 'finalised': return 'success';
-            default: return 'default';
+            case 'pending': return 'bg-blue-100 text-blue-800';
+            case 'checking': return 'bg-yellow-100 text-yellow-800';
+            case 'finalised': return 'bg-green-100 text-green-800';
+            default: return 'bg-gray-100 text-gray-800';
         }
     };
 
@@ -141,104 +138,114 @@ export const RunItem: React.FC<{
     };
 
     return (
-        <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Stack direction="row" alignItems="center" spacing={3}>
-                    <Typography variant="h6" fontWeight={600}>Run #{run.run_number}</Typography>
-                    <Chip label={run.status} color={getStatusChipColor(run.status)} size="small" sx={{ textTransform: 'capitalize' }} />
-                </Stack>
-                <Stack direction="row" alignItems="center" spacing={2}>
-                    <Stack alignItems="flex-end">
-                        <Typography variant="caption" sx={{ fontWeight: 500 }}>{quoteCount} quotes</Typography>
-                    </Stack>
-                    <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small" aria-label="expand run">
-                        {isExpanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                    </IconButton>
-                </Stack>
-            </Stack>
-
-            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                <Divider sx={{ my: 2 }} />
-                <Box>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
-                        <Typography variant="subtitle1" fontWeight={500}>Quotes in this Run</Typography>
-                        {isAdmin && run.status === 'pending' && !isEditing && (
-                            <Stack direction="row" spacing={1}>
-                                <Button size="small" startIcon={<Edit />} onClick={handleEditToggle}>Edit</Button>
-                                <Button size="small" startIcon={<Delete />} color="error" onClick={() => onDeleteRun(run.id)}>
-                                    Delete
-                                </Button>
-                            </Stack>
-                        )}
-                    </Stack>
-
-                    {/* --- CONDITIONAL RENDER: EDIT OR VIEW MODE --- */}
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <Disclosure>
+          {({ open }) => (
+            <>
+              <DisclosureButton className="w-full flex justify-between items-center p-4 bg-white hover:bg-gray-50 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75 cursor-pointer">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Run #{run.run_number}</h3>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusChipClasses(run.status)}`}>
+                    {run.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-gray-500">{quoteCount} quote(s)</p>
+                  {open ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
+                </div>
+              </DisclosureButton>
+  
+              <Transition
+                  enter="transition duration-100 ease-out"
+                  enterFrom="transform scale-95 opacity-0"
+                  enterTo="transform scale-100 opacity-100"
+                  leave="transition duration-75 ease-out"
+                  leaveFrom="transform scale-100 opacity-100"
+                  leaveTo="transform scale-95 opacity-0"
+                >
+                <DisclosurePanel className="p-4 bg-gray-50 border-t border-gray-200">
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-md font-medium text-gray-700">Quotes in this Run</h4>
+                      {isAdmin && run.status === 'pending' && !isEditing && (
+                        <div className="flex space-x-2">
+                          <button onClick={handleEditToggle} className="flex items-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
+                            <Edit className="w-4 h-4 mr-1" /> Edit
+                          </button>
+                          <button onClick={() => onDeleteRun(run.id)} className="flex items-center text-sm text-red-600 hover:text-red-800 cursor-pointer">
+                            <Trash2 className="w-4 h-4 mr-1" /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+  
                     {isEditing ? (
-                        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-                            <SortableContext items={editableQuotes.map(q => q.quoteId)} strategy={verticalListSortingStrategy}>
-                                {editableQuotes.map(quote => (
-                                    <EditableQuoteRow key={quote.quoteId} quote={quote} onRemove={handleRemoveQuote} />
-                                ))}
-                            </SortableContext>
-                            <Stack direction="row" spacing={1} sx={{ mt: 2, justifyContent: 'flex-end' }}>
-                                <Button size="small" startIcon={<Cancel />} onClick={handleCancelEdit} color="inherit">Cancel</Button>
-                                <Button 
-                                    size="small" 
-                                    variant="contained" 
-                                    startIcon={<Save />} 
-                                    onClick={handleSaveChanges}
-                                    disabled={updateRunQuotesMutation.isPending}
-                                >
-                                    {updateRunQuotesMutation.isPending ? 'Saving...' : 'Save Changes'}
-                                </Button>
-                            </Stack>
-                        </DndContext>
+                      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                        <SortableContext items={editableQuotes.map(q => q.quoteId)} strategy={verticalListSortingStrategy}>
+                          {editableQuotes.map(quote => (
+                            <EditableQuoteRow key={quote.quoteId} quote={quote} onRemove={handleRemoveQuote} />
+                          ))}
+                        </SortableContext>
+                        <div className="flex space-x-2 mt-4 justify-end">
+                          <button onClick={handleCancelEdit} className="flex items-center text-sm px-3 py-1.5 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 cursor-pointer">
+                            <X className="w-4 h-4 mr-1" /> Cancel
+                          </button>
+                          <button 
+                            onClick={handleSaveChanges}
+                            disabled={updateRunQuotesMutation.isPending}
+                            className="flex items-center text-sm px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            <Save className="w-4 h-4 mr-1" />
+                            {updateRunQuotesMutation.isPending ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        </div>
+                      </DndContext>
                     ) : (
-                        <>
-                            <Table size="small" sx={{ mb: 2 }}>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Quote ID</TableCell>
-                                        <TableCell>Customer Name</TableCell>
-                                        <TableCell>Status</TableCell>
-                                        <TableCell align="right">Amount</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {run.quotes?.map((quote: RunQuote) => (
-                                        <TableRow key={quote.quoteId}>
-                                            <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>#{quote.quoteId}</TableCell>
-                                            <TableCell>{quote.customerName}</TableCell>
-                                            <TableCell>
-                                                <Chip 
-                                                  label={quote.orderStatus} 
-                                                  size="small" 
-                                                  color={quote.orderStatus === 'assigned' ? 'info' : 
-                                                         quote.orderStatus === 'checking' ? 'warning' : 
-                                                         quote.orderStatus === 'finalised' ? 'success' : 'default'}
-                                                  sx={{ 
-                                                    textTransform: 'capitalize',
-                                                    fontSize: '0.7rem',
-                                                    height: 20
-                                                  }} 
-                                                />
-                                            </TableCell>
-                                            <TableCell align="right" sx={{ fontWeight: 600, color: 'success.main' }}>{formatCurrency(quote.totalAmount)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                            {isAdmin && (
-                                <Stack direction="row" spacing={1} sx={{ mt: 2, justifyContent: 'flex-end' }}>
-                                    <Button size="small" variant="outlined" onClick={() => handleChangeRunStatus('pending')} disabled={run.status === 'pending' || updateStatusMutation.isPending}>Mark Pending</Button>
-                                    <Button size="small" variant="outlined" onClick={() => handleChangeRunStatus('checking')} disabled={run.status === 'checking' || updateStatusMutation.isPending}>Mark Checking</Button>
-                                    <Button size="small" variant="outlined" color="success" onClick={() => handleChangeRunStatus('finalised')} disabled={run.status === 'finalised' || updateStatusMutation.isPending}>Mark Completed</Button>
-                                </Stack>
-                            )}
-                        </>
+                      <>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quote ID</th>
+                                <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
+                                <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {run.quotes?.map((quote: RunQuote) => (
+                                <tr key={quote.quoteId}>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-600">#{quote.quoteNumber}</td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{quote.customerName}</td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${
+                                      quote.orderStatus === 'assigned' ? 'bg-blue-100 text-blue-800' : 
+                                      quote.orderStatus === 'checking' ? 'bg-yellow-100 text-yellow-800' : 
+                                      quote.orderStatus === 'finalised' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {quote.orderStatus} 
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-green-700">{formatCurrency(quote.totalAmount)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {isAdmin && (
+                          <div className="flex space-x-2 mt-4 justify-end">
+                            <button onClick={() => handleChangeRunStatus('pending')} disabled={run.status === 'pending' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Pending</button>
+                            <button onClick={() => handleChangeRunStatus('finalised')} disabled={run.status === 'finalised' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-green-600 text-green-600 hover:bg-green-50 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Completed</button>
+                          </div>
+                        )}
+                      </>
                     )}
-                </Box>
-            </Collapse>
-        </Paper>
+                  </div>
+                </DisclosurePanel>
+              </Transition>
+            </>
+          )}
+        </Disclosure>
+      </div>
     );
 };

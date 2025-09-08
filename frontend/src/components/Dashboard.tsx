@@ -1,7 +1,5 @@
 import React, { Suspense, useMemo, useState, useTransition, Fragment } from 'react';
 import {
-  User,
-  CalendarDays,
   Receipt,
   Search,
   Zap,
@@ -9,6 +7,7 @@ import {
   ChevronUp,
   Building2,
   DollarSign,
+  ChevronRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -115,7 +114,7 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                                                           {quote.priority + 1}
                                                       </span>
                                                   </td>
-                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">#{quote.quoteId}</td>
+                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">#{quote.quoteNumber}</td>
                                                   <td className="px-4 py-3 whitespace-nowrap"><QuoteStatusChip status={quote.orderStatus} /></td>
                                                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{quote.customerName}</td>
                                               </tr>
@@ -131,28 +130,27 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     );
 };
 
-const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quote, onClick }) => (
-  <div
-    onClick={onClick}
-    className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer transition-all duration-300 ease-in-out hover:shadow-lg hover:border-blue-500 hover:-translate-y-1"
-  >
-    <div className="space-y-3">
-        <h3 className="text-lg font-bold text-blue-600">
-          Quote #{quote.quoteNumber}
-        </h3>
-        <div className="space-y-1.5 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-gray-400" />
-                <span>{quote.customerName}</span>
+const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quote, onClick }) => {
+    return (
+        <div onClick={onClick} className="w-full bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md hover:border-blue-400 cursor-pointer transition-all duration-200 ease-in-out flex items-center justify-between">
+            <div className="flex items-center">
+                <div className="mr-4">
+                    <p className="text-sm font-semibold text-blue-600">#{quote.quoteNumber}</p>
+                </div>
+                <div>
+                    <p className="font-medium text-gray-800">{quote.customerName}</p>
+                    <p className="text-xs text-gray-500">Last Modified: {new Date(quote.lastModified).toLocaleDateString()}</p>
+                </div>
             </div>
-            <div className="flex items-center gap-2">
-                <CalendarDays className="w-4 h-4 text-gray-400" />
-                <span>{new Date(quote.lastModified).toLocaleDateString()}</span>
+            <div className="flex items-center space-x-4">
+                <div className="text-right">
+                    <p className="font-semibold text-gray-800">${quote.totalAmount.toFixed(2)}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
         </div>
-    </div>
-  </div>
-);
+    );
+};
 
 // ====================================================================================
 // Data-Fetching Components

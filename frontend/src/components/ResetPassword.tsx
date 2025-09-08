@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Box,
-  Container,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  Stack,
-  InputAdornment,
-  IconButton,
-  Alert
-} from '@mui/material';
-import { Visibility, VisibilityOff, Lock } from '@mui/icons-material';
+import { Eye, EyeOff, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -98,70 +86,35 @@ const ResetPassword: React.FC = () => {
           title="Reset Password - Smart Picker" 
           description="Reset your Smart Picker password"
         />
-        <Box
-          sx={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
-            py: 4
-          }}
-        >
-          <Container maxWidth="sm">
+        <div className="flex min-h-screen items-center bg-gradient-to-br from-blue-700 via-blue-500 to-blue-400 py-4">
+          <div className="container mx-auto max-w-sm">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Paper
-                elevation={24}
-                sx={{
-                  p: 4,
-                  borderRadius: 3,
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)'
-                }}
-              >
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
-                  <Typography 
-                    component="h1" 
-                    variant="h4" 
-                    sx={{ 
-                      fontWeight: 700,
-                      background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      mb: 2
-                    }}
-                  >
+              <div className="rounded-2xl border border-white/20 bg-black/30 p-6 shadow-2xl backdrop-blur-sm">
+                <div className="mb-3 text-center">
+                  <h1 className="mb-2 bg-gradient-to-r from-blue-500 to-blue-300 bg-clip-text text-2xl font-bold text-transparent">
                     Invalid Reset Link
-                  </Typography>
-                </Box>
+                  </h1>
+                </div>
                 
-                <Alert severity="error" sx={{ mb: 3 }}>
+                <div className="mb-3 rounded-md bg-red-900/50 p-3 text-center text-red-300">
                   {tokenError}
-                </Alert>
+                </div>
                 
-                <Button
-                  fullWidth
-                  variant="contained"
+                <button
+                  type="button"
                   onClick={() => navigate('/login')}
-                  sx={{
-                    background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #3B82F6, #1E40AF)',
-                    },
-                    py: 1.5,
-                    borderRadius: 2
-                  }}
+                  className="w-full cursor-pointer rounded-lg bg-gradient-to-r from-blue-800 to-blue-500 py-3 text-white transition hover:from-blue-500 hover:to-blue-800"
                 >
                   Back to Login
-                </Button>
-              </Paper>
+                </button>
+              </div>
             </motion.div>
-          </Container>
-        </Box>
+          </div>
+        </div>
       </LoadingWrapper>
     );
   }
@@ -172,166 +125,87 @@ const ResetPassword: React.FC = () => {
         title="Reset Password - Smart Picker" 
         description="Reset your Smart Picker password"
       />
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          py: 4
-        }}
-      >
-        <Container maxWidth="sm">
+      <div className="flex min-h-screen items-center bg-gradient-to-r from-indigo-500 to-purple-600 py-4">
+        <div className="container mx-auto max-w-sm">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Paper
-              elevation={24}
-              sx={{
-                p: 4,
-                borderRadius: 3,
-                background: 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)'
-              }}
-            >
-              {/* Header */}
-              <Box sx={{ textAlign: 'center', mb: 4 }}>
-                <Typography 
-                  component="h1" 
-                  variant="h4" 
-                  sx={{ 
-                    fontWeight: 700,
-                    background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    mb: 1
-                  }}
-                >
+            <div className="rounded-2xl border border-white/20 bg-black/30 p-6 shadow-2xl backdrop-blur-sm">
+              <div className="mb-4 text-center">
+                <h1 className="mb-1 bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-3xl font-bold text-transparent">
                   Reset Password
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem' }}>
+                </h1>
+                <p className="text-lg text-gray-300">
                   Enter your new password below
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              {/* Form */}
-              <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-                <Stack spacing={3}>
-                  {/* New Password */}
-                  <TextField
-                    {...register('password')}
-                    fullWidth
-                    label="New Password"
-                    type={showPassword ? 'text' : 'password'}
-                    error={!!errors.password}
-                    helperText={errors.password?.message}
-                    disabled={isSubmitting}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Lock color="action" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            disabled={isSubmitting}
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      }
-                    }}
-                  />
+              <form onSubmit={handleSubmit(onSubmit)} noValidate>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="New Password"
+                      disabled={isSubmitting}
+                      className={`w-full rounded-lg border bg-transparent py-2 pl-10 pr-10 text-white placeholder-gray-400 ${errors.password ? 'border-red-500' : 'border-gray-600'} focus:border-blue-400 focus:ring-blue-400`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isSubmitting}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                    {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>}
+                  </div>
 
-                  {/* Confirm Password */}
-                  <TextField
-                    {...register('confirmPassword')}
-                    fullWidth
-                    label="Confirm New Password"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    error={!!errors.confirmPassword}
-                    helperText={errors.confirmPassword?.message}
-                    disabled={isSubmitting}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Lock color="action" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            edge="end"
-                            disabled={isSubmitting}
-                          >
-                            {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      }
-                    }}
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      {...register('confirmPassword')}
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm New Password"
+                      disabled={isSubmitting}
+                      className={`w-full rounded-lg border bg-transparent py-2 pl-10 pr-10 text-white placeholder-gray-400 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-600'} focus:border-blue-400 focus:ring-blue-400`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={isSubmitting}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400"
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                    {errors.confirmPassword && <p className="mt-1 text-sm text-red-400">{errors.confirmPassword.message}</p>}
+                  </div>
 
-                  {/* Submit Button */}
-                  <Button
+                  <button
                     type="submit"
-                    fullWidth
-                    variant="contained"
                     disabled={!isValid || isSubmitting || !passwordValue || !confirmPasswordValue}
-                    sx={{
-                      background: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #3B82F6, #1E40AF)',
-                      },
-                      '&:disabled': {
-                        background: '#E5E7EB',
-                        color: '#9CA3AF',
-                      },
-                      py: 1.5,
-                      borderRadius: 2,
-                      fontSize: '1.1rem',
-                      fontWeight: 600
-                    }}
+                    className="w-full cursor-pointer rounded-lg bg-gradient-to-r from-blue-800 to-blue-500 py-3 text-lg font-semibold text-white transition hover:from-blue-500 hover:to-blue-800 disabled:bg-gray-700 disabled:text-gray-400"
                   >
                     {isSubmitting ? 'Resetting Password...' : 'Reset Password'}
-                  </Button>
+                  </button>
 
-                  {/* Back to Login */}
-                  <Button
-                    fullWidth
-                    variant="text"
+                  <button
+                    type="button"
                     onClick={() => navigate('/login')}
                     disabled={isSubmitting}
-                    sx={{
-                      color: 'text.secondary',
-                      textTransform: 'none',
-                      fontSize: '1rem'
-                    }}
+                    className="w-full cursor-pointer text-center text-gray-300"
                   >
                     Back to Login
-                  </Button>
-                </Stack>
-              </Box>
-            </Paper>
+                  </button>
+                </div>
+              </form>
+            </div>
           </motion.div>
-        </Container>
-      </Box>
+        </div>
+      </div>
     </LoadingWrapper>
   );
 };

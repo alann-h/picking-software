@@ -111,6 +111,7 @@ export async function getRunsByCompanyId(companyId) {
                 ri.run_id, 
                 ri.priority, 
                 q.id, 
+                q.quote_number,
                 c.customer_name, 
                 q.total_amount,
                 q.status
@@ -130,6 +131,7 @@ export async function getRunsByCompanyId(companyId) {
             }
             itemsByRunId.get(item.run_id).push({
                 quoteId: item.id,
+                quoteNumber: item.quote_number,
                 customerName: item.customer_name,
                 totalAmount: parseFloat(item.total_amount),
                 priority: item.priority,

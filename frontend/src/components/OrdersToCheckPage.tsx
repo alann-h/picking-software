@@ -2,36 +2,18 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Container,
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  CardActionArea,
-  Grid,
-  Paper,
-  Stack,
-  Chip,
-  Avatar,
-  AvatarGroup,
-  Alert,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import {
-  MonetizationOnOutlined as MoneyIcon,
-  UpdateOutlined as TimeIcon,
-  AssignmentIndOutlined as PreparerIcon,
-  CheckCircleOutline as CheckIcon,
-  TrendingUp as TrendingIcon,
-} from '@mui/icons-material';
+  CircleDollarSign,
+  Clock,
+  User as PreparerIcon,
+  CheckCircle2 as CheckIcon,
+  TrendingUp,
+} from 'lucide-react';
 
 // Context and API Imports
 import { useSnackbarContext } from './SnackbarContext';
 import { getQuotesWithStatus } from '../api/quote';
 import { getUserStatus } from '../api/user';
 import { QuoteSummary } from '../utils/types';
-import { OrderHistorySkeleton } from './Skeletons';
 
 // =================================================================
 // 1. INTERFACE
@@ -100,105 +82,73 @@ const useOrdersToCheck = () => {
 // =================================================================
 // 3. CHILD UI COMPONENTS
 // =================================================================
-const EmptyState: React.FC = () => {
-  const theme = useTheme();
-  
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        mt: 4,
-        p: { xs: 4, sm: 8 },
-        textAlign: 'center',
-        backgroundColor: theme.palette.background.default,
-        border: `2px dashed ${theme.palette.divider}`,
-        borderRadius: 3,
-      }}
-    >
-      <Stack spacing={3} alignItems="center">
-        <Box
-          sx={{
-            width: 80,
-            height: 80,
-            borderRadius: '50%',
-            backgroundColor: theme.palette.grey[100],
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <CheckIcon sx={{ fontSize: 40, color: theme.palette.success.main }} />
-        </Box>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-            All caught up! 🎉
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            No orders are currently pending review. Great job keeping up with the workflow!
-          </Typography>
-        </Box>
-      </Stack>
-    </Paper>
-  );
-};
+const EmptyState: React.FC = () => (
+  <div className="mt-4 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-8 text-center">
+    <div className="flex flex-col items-center space-y-3">
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+        <CheckIcon className="h-10 w-10 text-green-500" />
+      </div>
+      <div>
+        <h3 className="mb-1 text-xl font-semibold">All caught up! 🎉</h3>
+        <p className="text-gray-500">
+          No orders are currently pending review. Great job keeping up with the
+          workflow!
+        </p>
+      </div>
+    </div>
+  </div>
+);
 
 const PreparerAvatars: React.FC<{ preparers: string[] }> = ({ preparers }) => {
-  const theme = useTheme();
-  
   if (!preparers || preparers.length === 0) {
     return (
-      <Chip
-        icon={<PreparerIcon />}
-        label="Not started"
-        size="small"
-        variant="outlined"
-        sx={{ 
-          color: theme.palette.text.secondary,
-          borderColor: theme.palette.divider 
-        }}
-      />
+      <div className="inline-flex items-center rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-500">
+        <PreparerIcon className="mr-1.5 h-4 w-4" />
+        Not started
+      </div>
     );
   }
 
   if (preparers.length === 1) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
+      <div className="flex items-center gap-2">
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
           {preparers[0].charAt(0).toUpperCase()}
-        </Avatar>
-        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          {preparers[0]}
-        </Typography>
-      </Box>
+        </div>
+        <span className="text-sm font-medium">{preparers[0]}</span>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.75rem' } }}>
-        {preparers.map((preparer, index) => (
-          <Avatar key={index} sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
+    <div className="flex items-center gap-2">
+      <div className="flex -space-x-2">
+        {preparers.slice(0, 3).map((preparer, index) => (
+          <div
+            key={index}
+            className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-xs font-medium text-gray-600"
+          >
             {preparer.charAt(0).toUpperCase()}
-          </Avatar>
+          </div>
         ))}
-      </AvatarGroup>
-      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-        {preparers.length} preparers
-      </Typography>
-    </Box>
+      </div>
+      <span className="text-sm font-medium">{preparers.length} preparers</span>
+    </div>
   );
 };
 
 const QuoteCard: React.FC<{ quote: EnhancedQuoteSummary }> = ({ quote }) => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  
+
   const handleQuoteClick = () => navigate(`/quote?id=${quote.id}`);
-  
+
   // Parse preparer names - handle both string and array formats
   const preparerNames = React.useMemo(() => {
     if (typeof quote.preparerNames === 'string') {
-      return quote.preparerNames.split(',').map(name => name.trim()).filter(Boolean);
+      return quote.preparerNames
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean);
     }
     return quote.preparerNames || [];
   }, [quote.preparerNames]);
@@ -207,112 +157,76 @@ const QuoteCard: React.FC<{ quote: EnhancedQuoteSummary }> = ({ quote }) => {
   const timeAgo = quote.lastModified;
 
   return (
-    <Card
-      elevation={0}
-      sx={{
-        height: '100%',
-        border: `1px solid ${theme.palette.divider}`,
-        borderRadius: 2,
-        transition: 'all 0.2s ease-in-out',
-        cursor: 'pointer',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: theme.shadows[8],
-          borderColor: theme.palette.primary.main,
-        },
-      }}
+    <div
+      onClick={handleQuoteClick}
+      className="h-full cursor-pointer rounded-lg border border-gray-200 bg-white transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:border-blue-500 hover:shadow-xl"
     >
-      <CardActionArea onClick={handleQuoteClick} sx={{ height: '100%', p: 0 }}>
-        <CardContent sx={{ p: 4 }}>
-          {/* Header */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-            <Typography variant="h5" component="h2" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-              #{quote.id}
-            </Typography>
-          </Box>
+      <div className="p-6">
+        {/* Header */}
+        <div className="mb-4 flex items-start justify-between">
+          <h2 className="text-2xl font-bold text-blue-600">#{quote.quoteNumber}</h2>
+        </div>
 
-          {/* Customer Info */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-              {quote.customerName}
-            </Typography>
-          </Box>
+        {/* Customer Info */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">{quote.customerName}</h3>
+        </div>
 
-          {/* Details Grid */}
-          <Stack spacing={3}>
-            {/* Amount */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <MoneyIcon color="success" sx={{ fontSize: 24 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                ${quote.totalAmount.toFixed(2)}
-              </Typography>
-            </Box>
+        {/* Details Grid */}
+        <div className="space-y-6">
+          {/* Amount */}
+          <div className="flex items-center gap-3">
+            <CircleDollarSign className="h-6 w-6 text-green-500" />
+            <span className="text-xl font-bold text-green-600">
+              ${quote.totalAmount.toFixed(2)}
+            </span>
+          </div>
 
-            {/* Preparers */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <PreparerIcon color="action" sx={{ fontSize: 24 }} />
-              <PreparerAvatars preparers={preparerNames} />
-            </Box>
+          {/* Preparers */}
+          <div className="flex items-center gap-3">
+            <PreparerIcon className="h-6 w-6 text-gray-500" />
+            <PreparerAvatars preparers={preparerNames} />
+          </div>
 
-            {/* Time Taken */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TrendingIcon color="action" sx={{ fontSize: 24 }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                  Time Taken
-                </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {quote.timeTaken}
-                </Typography>
-              </Box>
-            </Box>
+          {/* Time Taken */}
+          <div className="flex items-center gap-3">
+            <TrendingUp className="h-6 w-6 text-gray-500" />
+            <div>
+              <p className="mb-0.5 text-sm text-gray-500">Time Taken</p>
+              <p className="text-base font-medium">{quote.timeTaken}</p>
+            </div>
+          </div>
 
-            {/* Picker's Note */}
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-              <PreparerIcon color="action" sx={{ fontSize: 24, mt: 0.5 }} />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                  Picker's Note
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontWeight: 500,
-                    fontStyle: quote.pickerNote ? 'normal' : 'italic',
-                    color: quote.pickerNote ? 'text.primary' : 'text.secondary',
-                    wordBreak: 'break-word',
-                    lineHeight: 1.4
-                  }}
-                >
-                  {quote.pickerNote || 'No note provided'}
-                </Typography>
-                {quote.pickerNote && (
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary" 
-                    sx={{ 
-                      mt: 0.5, 
-                      display: 'block',
-                      fontStyle: 'italic'
-                    }}
-                  >
-                    {quote.pickerNote.length}/500 characters
-                  </Typography>
-                )}
-              </Box>
-            </Box>
+          {/* Picker's Note */}
+          <div className="flex items-start gap-3">
+            <PreparerIcon className="mt-0.5 h-6 w-6 text-gray-500" />
+            <div className="flex-1">
+              <p className="mb-0.5 text-sm text-gray-500">Picker's Note</p>
+              <p
+                className={`break-words text-sm ${
+                  quote.pickerNote
+                    ? 'font-medium text-gray-800'
+                    : 'italic text-gray-500'
+                }`}
+              >
+                {quote.pickerNote || 'No note provided'}
+              </p>
+              {quote.pickerNote && (
+                <p className="mt-1 text-xs italic text-gray-400">
+                  {quote.pickerNote.length}/500 characters
+                </p>
+              )}
+            </div>
+          </div>
 
-            {/* Last Modified */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TimeIcon color="action" sx={{ fontSize: 24 }} />
-              <Typography variant="body1" color="text.secondary">
-                {timeAgo}
-              </Typography>
-            </Box>
-          </Stack>
-        </CardContent>
-      </CardActionArea>
-    </Card>
+          {/* Last Modified */}
+          <div className="flex items-center gap-3">
+            <Clock className="h-6 w-6 text-gray-500" />
+            <p className="text-base text-gray-500">{timeAgo}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -321,31 +235,26 @@ const QuoteCard: React.FC<{ quote: EnhancedQuoteSummary }> = ({ quote }) => {
 // =================================================================
 const OrdersToCheckPage: React.FC = () => {
   const { quotes, isLoading, error, refetchQuotes } = useOrdersToCheck();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const renderContent = () => {
     if (isLoading) {
-      return <OrderHistorySkeleton />;
+      return <div className="p-8 text-center">Loading orders...</div>;
     }
 
     if (error) {
       return (
-        <Alert 
-          severity="error" 
-          sx={{ mt: 3 }}
-          action={
-            <Chip 
-              label="Retry" 
-              onClick={() => refetchQuotes()} 
-              color="error" 
-              variant="outlined"
-              size="small"
-            />
-          }
+        <div
+          className="mt-3 flex items-center justify-between rounded-lg border border-red-400 bg-red-100 p-4 text-red-700"
+          role="alert"
         >
-          Failed to load orders. Please try again.
-        </Alert>
+          <p>Failed to load orders. Please try again.</p>
+          <button
+            onClick={() => refetchQuotes()}
+            className="rounded-full border border-red-700 px-3 py-1 text-sm font-medium text-red-700 transition hover:bg-red-200"
+          >
+            Retry
+          </button>
+        </div>
       );
     }
 
@@ -354,50 +263,40 @@ const OrdersToCheckPage: React.FC = () => {
     }
 
     return (
-      <Grid container spacing={3} sx={{ mt: 1 }}>
+      <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
         {quotes.map((quote) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={quote.id}>
-            <QuoteCard quote={quote} />
-          </Grid>
+          <QuoteCard quote={quote} key={quote.id} />
         ))}
-      </Grid>
+      </div>
     );
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <div className="mx-auto my-4 max-w-7xl px-4 sm:px-6 lg:px-8">
       <title>Smart Picker | Orders To Check</title>
-      
+
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              backgroundColor: theme.palette.warning.light,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <TrendingIcon sx={{ fontSize: 24, color: theme.palette.warning.contrastText }} />
-          </Box>
-          <Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
-              Orders Pending Review
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {quotes.length > 0 ? `${quotes.length} order${quotes.length === 1 ? '' : 's'} require${quotes.length === 1 ? 's' : ''} your attention` : 'No pending reviews'}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+      <div className="mb-8">
+        <div className="mb-2 flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
+            <TrendingUp className="h-6 w-6 text-yellow-800" />
+          </div>
+          <div>
+            <h1 className="mb-1 text-3xl font-bold">Orders Pending Review</h1>
+            <p className="text-gray-500">
+              {quotes.length > 0
+                ? `${quotes.length} order${
+                    quotes.length === 1 ? '' : 's'
+                  } require${quotes.length === 1 ? 's' : ''} your attention`
+                : 'No pending reviews'}
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Content */}
       {renderContent()}
-    </Container>
+    </div>
   );
 };
 

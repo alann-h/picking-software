@@ -43,8 +43,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors },
     setValue,
+    watch,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
@@ -187,8 +188,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={!isValid || isSubmitting}
-          className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:from-blue-600 hover:to-blue-400 hover:shadow-md hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:transform-none disabled:shadow-none cursor-pointer"
+          disabled={!watch('password') || isSubmitting}
+          className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:from-blue-600 hover:to-blue-400 hover:shadow-md hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:bg-none disabled:text-gray-500 disabled:transform-none disabled:shadow-none cursor-pointer"
         >
           {isSubmitting ? (
             <>
