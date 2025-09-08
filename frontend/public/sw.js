@@ -31,6 +31,14 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
+  
+  // Skip requests with unsupported schemes (chrome-extension, moz-extension, etc.)
+  if (event.request.url.startsWith('chrome-extension://') || 
+      event.request.url.startsWith('moz-extension://') ||
+      event.request.url.startsWith('safari-extension://') ||
+      event.request.url.startsWith('ms-browser-extension://')) {
+    return;
+  }
 
   // Handle landing page requests with network-first strategy for HTML
   if (event.request.url.includes('/') || event.request.url.includes('/index.html')) {

@@ -5,7 +5,6 @@ import App from './App';
 import reportWebVitals from "./reportWebVitals";
 import './index.css';
 
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
@@ -14,14 +13,14 @@ const queryClient = new QueryClient();
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
-  // <React.StrictMode>
+  <React.StrictMode>
     <BrowserRouter>
     <QueryClientProvider client={queryClient}>
       <App />
       {import.meta.env.VITE_APP_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
     </BrowserRouter>
-  // </React.StrictMode>
+  </React.StrictMode>
 );
 
 reportWebVitals();
