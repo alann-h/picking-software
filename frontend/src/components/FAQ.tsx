@@ -58,11 +58,11 @@ const FAQ: React.FC = () => {
       questions: [
         {
           question: 'How accurate is the barcode scanning feature?',
-          answer: 'Our barcode scanning technology achieves 99.9% accuracy when used properly. The system supports all standard barcode formats including UPC, EAN, Code 128, and QR codes. The scanning feature includes error detection and validation to ensure items are correctly identified before being added to orders.'
+          answer: 'Our barcode scanning technology achieves 99.9% accuracy when used properly. The system supports only standard barcode formats like Code 128 or any other 1D barcode format. The scanning feature includes error detection and validation to ensure items are correctly identified before being added to orders.'
         },
         {
           question: 'Can I customize picking workflows for my business?',
-          answer: 'Yes, Smart Picker offers flexible workflow customization. You can create custom run categories, set priority levels, assign specific pickers to runs, and configure notification settings. The system adapts to your business processes rather than forcing you to change your operations.'
+          answer: 'Yes, Smart Picker offers flexible workflow customization. You can create custom runs, set priority levels, and configure notification settings. The system adapts to your business processes rather than forcing you to change your operations.'
         },
         {
           question: 'Does Smart Picker work offline?',
@@ -80,7 +80,7 @@ const FAQ: React.FC = () => {
         },
         {
           question: 'Can I integrate Smart Picker with other systems?',
-          answer: 'Smart Picker offers API access for custom integrations with ERP systems, warehouse management systems, and other business applications. We also support webhook notifications for real-time data synchronization with external systems.'
+          answer: 'Currently, Smart Picker does not support other systems. It is only compatible with QuickBooks and Xero. There are plans to support other systems in the future like MYOB'
         },
         {
           question: 'Is my data secure when using Smart Picker?',
@@ -242,20 +242,20 @@ const FAQ: React.FC = () => {
                         <Accordion
                           key={faqIndex}
                           sx={{
-                            mb: 1,
+                            mb: 2,
                             '&:before': { display: 'none' },
                             '&.Mui-expanded': {
-                              margin: '0 0 8px 0'
+                              margin: '0 0 16px 0'
                             }
                           }}
                         >
                           <AccordionSummary
                             expandIcon={<ExpandMore />}
                             sx={{
-                              px: 0,
-                              py: 1,
+                              px: 2,
+                              py: 2,
                               '& .MuiAccordionSummary-content': {
-                                margin: '8px 0'
+                                margin: '12px 0'
                               }
                             }}
                           >
@@ -270,7 +270,7 @@ const FAQ: React.FC = () => {
                               {faq.question}
                             </Typography>
                           </AccordionSummary>
-                          <AccordionDetails sx={{ px: 0, pt: 0, pb: 2 }}>
+                          <AccordionDetails sx={{ px: 2, pt: 1, pb: 3 }}>
                             <Typography
                               variant="body2"
                               color="text.secondary"

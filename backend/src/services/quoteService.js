@@ -151,8 +151,25 @@ export async function getQboEstimate(oauthClient, quoteId) {
 
 async function filterEstimates(responseData, companyId, connectionType) {
   if (connectionType === 'qbo') {
-    const estimate = responseData.QueryResponse.Estimate[0];
-    return await filterQboEstimate(estimate, companyId, connectionType);
+    const estimates = responseData.QueryResponse.Estimate;
+    if (!estimates || estimates.length === 0) {
+      return null; // Return null instead of empty array for individual processing
+    }
+    
+    // Handle both single estimate and bulk estimates
+    if (estimates.length === 1) {
+      return await filterQboEstimate(estimates[0], companyId, connectionType);
+    } else {
+      // Process multiple estimates
+      const results = [];
+      for (const estimate of estimates) {
+        const filtered = await filterQboEstimate(estimate, companyId, connectionType);
+        if (filtered) {
+          results.push(filtered);
+        }
+      }
+      return results;
+    }
   } else if (connectionType === 'xero') {
     return await filterXeroEstimate(responseData, companyId, connectionType);
   } else {
@@ -796,14 +813,15 @@ export async function updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteDat
 
 /**
  * Ensures all quotes in a list exist in the local database.
- * Fetches any missing quotes from QuickBooks and saves them.
+ * Fetches any missing quotes from QuickBooks/Xero and saves them.
  * This is a key step to provide a seamless user experience.
- * @param {number[]} quoteIds - An array of quote IDs to check and potentially fetch.
+ * @param {string[]} quoteIds - An array of quote IDs to check and potentially fetch.
  * @param {string} companyId - The ID of the company.
+ * @param {string} connectionType - The connection type ('qbo' or 'xero').
  */
-export async function ensureQuotesExistInDB(quoteIds, companyId) {
+export async function ensureQuotesExistInDB(quoteIds, companyId, connectionType) {
     const quotesCheckResult = await query(
-        'SELECT id FROM quotes WHERE id = ANY($1::int[])',
+        'SELECT id FROM quotes WHERE id = ANY($1::text[])',
         [quoteIds]
     );
     const existingIds = new Set(quotesCheckResult.map(r => r.id));
@@ -815,12 +833,12 @@ export async function ensureQuotesExistInDB(quoteIds, companyId) {
         return;
     }
 
-    console.log(`Fetching ${missingIds.length} missing quotes from ${companyId.includes('xero') ? 'Xero' : 'QuickBooks'}...`);
+    console.log(`Fetching ${missingIds.length} missing quotes from ${connectionType === 'xero' ? 'Xero' : 'QuickBooks'}...`);
 
-    const newQuotesData = await getEstimatesBulk(missingIds, companyId, 'qbo'); // Default to QBO for now, can be made dynamic
+    const newQuotesData = await getEstimatesBulk(missingIds, companyId, connectionType);
     
     if (newQuotesData.length !== missingIds.length) {
-        throw new InputError(`Could not find all quotes in QuickBooks. Please check IDs.`);
+        throw new InputError(`Could not find all quotes in ${connectionType === 'xero' ? 'Xero' : 'QuickBooks'}. Please check IDs.`);
     }
 
     for (const quote of newQuotesData) {
@@ -861,23 +879,34 @@ async function getQboEstimatesBulk(quoteIds, companyId) {
         const oauthClient = await getOAuthClient(companyId);
         if (!oauthClient) throw new AccessError('OAuth client could not be initialised');
 
-        const baseURL = getBaseURL(oauthClient);
+        const baseURL = getBaseURL(oauthClient, 'qbo');
         const realmId = getRealmId(oauthClient);
         
-        const idList = quoteIds.map(id => `'${id}'`).join(',');
-        const queryStr = `SELECT * FROM estimate WHERE Id IN (${idList})`;
-
-        const estimateResponse = await oauthClient.makeApiCall({
-            url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
-        });
-
-        const responseData = estimateResponse.json;
-        if (!responseData.QueryResponse.Estimate) {
-            return [];
+        // QuickBooks API doesn't support bulk IN queries well, so we'll fetch individually
+        const allQuotes = [];
+        
+        for (const quoteId of quoteIds) {
+            try {
+                const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
+                
+                const estimateResponse = await oauthClient.makeApiCall({
+                    url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+                });
+                
+                const responseData = estimateResponse.json;
+                if (responseData.QueryResponse.Estimate && responseData.QueryResponse.Estimate.length > 0) {
+                    const filteredQuote = await filterEstimates(responseData, companyId, 'qbo');
+                    if (filteredQuote) {
+                        allQuotes.push(filteredQuote);
+                    }
+                }
+            } catch (individualError) {
+                console.error(`Error fetching quote ${quoteId}:`, individualError.message);
+                // Continue with other quotes instead of failing completely
+            }
         }
-
-        const filteredQuotes = await filterEstimates(responseData, companyId, 'qbo');
-        return filteredQuotes;
+        
+        return allQuotes;
     } catch (e) {
         throw new InputError(e.message);
     }

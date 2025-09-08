@@ -12,9 +12,9 @@ import {
  */
 export async function createBulkRunController(req, res, next) {
     const { orderedQuoteIds, companyId } = req.body;
-
+    const connectionType = req.session.connectionType;
     try {
-        const newRun = await createBulkRun(orderedQuoteIds, companyId);
+        const newRun = await createBulkRun(orderedQuoteIds, companyId, connectionType);
         res.status(201).json(newRun);
     } catch (error) {
         next(error);

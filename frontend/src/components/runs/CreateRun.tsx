@@ -145,9 +145,6 @@ export const CreateRun: React.FC<{}> = () => {
         mutationFn: (quoteIds: string[]) => createRunFromQuotes(quoteIds, userCompanyId!),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs'] });
-            setRunsToCreate([]);
-            setStagedQuotes([]);
-            handleOpenSnackbar(`${createRunMutation.variables?.length} run(s) created successfully!`, 'success');
         },
         onError: (error: any) => {
             handleOpenSnackbar(error.message || 'Failed to create one or more runs.', 'error');
@@ -161,11 +158,23 @@ export const CreateRun: React.FC<{}> = () => {
             handleOpenSnackbar('No runs to create.', 'warning');
             return;
         }
+        
         const creationPromises = validRuns.map(run =>
             createRunMutation.mutateAsync(run.quotes.map(q => q.id))
         );
+        
         try {
-            await Promise.all(creationPromises);
+            const createdRuns = await Promise.all(creationPromises);
+            setRunsToCreate([]);
+            setStagedQuotes([]);
+            
+            // Show success message with run numbers
+            if (createdRuns.length === 1) {
+                handleOpenSnackbar(`Run #${createdRuns[0].run_number} created successfully!`, 'success');
+            } else {
+                const runNumbers = createdRuns.map(run => `#${run.run_number}`).join(', ');
+                handleOpenSnackbar(`Runs ${runNumbers} created successfully!`, 'success');
+            }
         } catch {
             // Errors are handled by the mutation's onError callback
         }

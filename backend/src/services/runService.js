@@ -18,18 +18,19 @@ async function getNextRunNumber(companyId) {
 
 /**
  * Creates a new run entry in the database.
- * @param {number[]} orderedQuoteIds The ID of the quote to associate with the run.
+ * @param {string[]} orderedQuoteIds The ID of the quote to associate with the run.
  * @param {string} companyId The ID of the company creating the run.
+ * @param {string} connectionType The connection type ('qbo' or 'xero').
  * @returns {Promise<object>} The newly created run object.
  * @throws {InputError} If the quote does not exist or is not in a valid status.
  * @throws {AccessError} If there's a database error.
  */
-export async function createBulkRun(orderedQuoteIds, companyId) {
+export async function createBulkRun(orderedQuoteIds, companyId, connectionType) {
     try {
-        await ensureQuotesExistInDB(orderedQuoteIds, companyId);
+        await ensureQuotesExistInDB(orderedQuoteIds, companyId, connectionType);
         return await transaction(async (client) => {
             const quotesResult = await client.query(
-                'SELECT id, status FROM quotes WHERE id = ANY($1::int[]) FOR UPDATE',
+                'SELECT id, status FROM quotes WHERE id = ANY($1::text[]) FOR UPDATE',
                 [orderedQuoteIds]
             );
 
@@ -68,7 +69,7 @@ export async function createBulkRun(orderedQuoteIds, companyId) {
             );
 
             await client.query(
-                `UPDATE quotes SET status = 'assigned'::order_status WHERE id = ANY($1::int[])`,
+                `UPDATE quotes SET status = 'assigned'::order_status WHERE id = ANY($1::text[])`,
                 [orderedQuoteIds]
             );
 
@@ -110,11 +111,12 @@ export async function getRunsByCompanyId(companyId) {
                 ri.run_id, 
                 ri.priority, 
                 q.id, 
-                q.customer_name, 
+                c.customer_name, 
                 q.total_amount,
                 q.status
             FROM run_items ri
             JOIN quotes q ON ri.quote_id = q.id
+            JOIN customers c ON q.customer_id = c.id
             WHERE ri.run_id = ANY($1) -- Use ANY($1) to match all IDs in the runIds array
             ORDER BY ri.priority ASC
         `;
@@ -238,7 +240,7 @@ export async function deleteRunById(runId) {
 
             if (quoteIdsToRelease.length > 0) {
                 await client.query(
-                    `UPDATE quotes SET status = 'pending'::order_status WHERE id = ANY($1::int[])`,
+                    `UPDATE quotes SET status = 'pending'::order_status WHERE id = ANY($1::text[])`,
                     [quoteIdsToRelease]
                 );
             }

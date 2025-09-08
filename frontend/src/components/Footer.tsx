@@ -5,7 +5,6 @@ import {
   Typography,
   Link,
   useTheme,
-  useMediaQuery,
   Stack,
   Divider,
   IconButton
@@ -26,7 +25,6 @@ import {
 
 const Footer: React.FC = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const currentYear = new Date().getFullYear();
 
   return (
@@ -255,77 +253,28 @@ const Footer: React.FC = () => {
                   <Business sx={{ fontSize: 18 }} />
                   Technology Stack
                 </Link>
+                <Link
+                  component={RouterLink}
+                  to="/pricing"
+                  color="grey.300"
+                  sx={{
+                    '&:hover': {
+                      color: theme.palette.primary.main,
+                      textDecoration: 'none'
+                    },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    transition: 'color 0.2s ease',
+                    fontSize: '0.95rem'
+                  }}
+                >
+                  <Business sx={{ fontSize: 18 }} />
+                  Pricing
+                </Link>
               </Stack>
             </Box>
             
-            {/* Technology Partners */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="subtitle2" color="grey.400" gutterBottom sx={{ mb: 2 }}>
-                Technology Partners
-              </Typography>
-              <Stack spacing={2}>
-                <Link
-                  href="https://developer.intuit.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  QuickBooks Developer Network
-                </Link>
-                <Link
-                  href="https://developer.xero.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  Xero Developer Hub
-                </Link>
-                <Link
-                  href="https://react.dev/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  React Framework
-                </Link>
-                <Link
-                  href="https://aws.amazon.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  color="grey.300"
-                  sx={{
-                    '&:hover': {
-                      color: theme.palette.primary.main,
-                      textDecoration: 'none'
-                    },
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  Amazon Web Services
-                </Link>
-              </Stack>
-            </Box>
             
             {/* Support & Legal */}
             <Box>

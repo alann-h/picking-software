@@ -11,6 +11,7 @@ import { useLandingPageCache } from '../hooks/useLandingPageCache';
 // --- LAZY LOAD THE SECTIONS ---
 const FeaturesSection = React.lazy(() => import('./landing/FeaturesSection'));
 const IntegrationSection = React.lazy(() => import('./landing/IntegrationSection'));
+const PricingTeaser = React.lazy(() => import('./landing/PricingTeaser'));
 const LearnMoreSection = React.lazy(() => import('./landing/LearnMoreSection'));
 
 const LandingPage: React.FC = () => {
@@ -57,6 +58,11 @@ const LandingPage: React.FC = () => {
       {/* --- INTEGRATION SECTION --- */}
       <Suspense fallback={<div>Loading integrations...</div>}>
         <IntegrationSection />
+      </Suspense>
+
+      {/* --- PRICING TEASER --- */}
+      <Suspense fallback={<div>Loading pricing...</div>}>
+        <PricingTeaser />
       </Suspense>
 
       {/* --- LEARN MORE SECTION --- */}

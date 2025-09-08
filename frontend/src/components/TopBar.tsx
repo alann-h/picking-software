@@ -378,6 +378,15 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                   <ListItemText>Blog & Resources</ListItemText>
                 </MenuItem>
                 <MenuItem 
+                  onClick={() => handleMenuItemClick('/pricing')}
+                  sx={{
+                    '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }
+                  }}
+                >
+                  <ListItemIcon><InfoIcon fontSize="small" /></ListItemIcon>
+                  <ListItemText>Pricing</ListItemText>
+                </MenuItem>
+                <MenuItem 
                   onClick={() => handleMenuItemClick('/privacy-policy')}
                   sx={{
                     '&:hover': { backgroundColor: 'rgba(59,130,246,0.1)' }

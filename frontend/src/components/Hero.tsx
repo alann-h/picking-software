@@ -1,232 +1,136 @@
-import React from 'react';
-import { 
-  Button, 
-  Box, 
-  Typography, 
-  Container,
-  Chip,
-  Stack
-} from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { ArrowForward } from '@mui/icons-material';
-import { motion } from 'framer-motion';
+import React, { ReactNode } from 'react';
+import { motion, Transition } from 'framer-motion';
+import { useNavigate } from 'react-router-dom'; // Removed to fix crash in environments without a router
 import AnimatedSection from './landing/AnimatedSection';
-import InteractiveButton from './landing/InteractiveButton';
 
-const Hero: React.FC = () => {
-  const navigate = useNavigate();
+interface InteractiveButtonProps {
+  children: ReactNode;
+  onClick?: () => void;
+  className?: string;
+  animationType?: 'scale' | 'bounce' | 'glow' | 'slide';
+  intensity?: 'subtle' | 'medium' | 'strong';
+  variant?: 'primary' | 'secondary';
+}
+
+// --- InteractiveButton Component ---
+const InteractiveButton: React.FC<InteractiveButtonProps> = ({
+  children,
+  onClick,
+  className = '',
+  animationType = 'scale',
+  intensity = 'medium',
+  variant = 'primary'
+}) => {
+  const getAnimationProps = () => {
+    const baseTransition: Transition = { type: "spring", stiffness: 400, damping: 17 };
+    const intensityMultiplier: Record<string, number> = { subtle: 0.5, medium: 1, strong: 1.5 };
+    const multiplier = intensityMultiplier[intensity];
+
+    switch (animationType) {
+      case 'bounce': return { whileHover: { scale: 1 + (0.05 * multiplier), y: -2 * multiplier }, whileTap: { scale: 1 - (0.05 * multiplier), y: 0 }, transition: baseTransition };
+      case 'glow': return { whileHover: { scale: 1 + (0.03 * multiplier), boxShadow: `0 0 ${20 * multiplier}px rgba(59, 130, 246, ${0.4 * multiplier})` }, whileTap: { scale: 1 - (0.02 * multiplier) }, transition: baseTransition };
+      case 'slide': return { whileHover: { x: 5 * multiplier, scale: 1 + (0.02 * multiplier) }, whileTap: { x: 0, scale: 1 - (0.02 * multiplier) }, transition: baseTransition };
+      case 'scale': default: return { whileHover: { scale: 1 + (0.05 * multiplier) }, whileTap: { scale: 1 - (0.05 * multiplier) }, transition: baseTransition };
+    }
+  };
+
+  const baseClasses = "flex items-center justify-center px-6 py-3 rounded-lg text-base font-semibold duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer";
+  const variantClasses = {
+    primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
+    secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-400"
+  };
 
   return (
-    <Box
-      component="main"
-      sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%)',
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
+    <motion.button
+      onClick={onClick}
+      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
+      {...getAnimationProps()}
     >
-      {/* Floating Background Elements */}
-      <motion.div
-        style={{
-          position: 'absolute',
-          top: '10%',
-          left: '10%',
-          width: '100px',
-          height: '100px',
-          background: 'rgba(255,255,255,0.1)',
-          borderRadius: '50%',
-          zIndex: 1
-        }}
-        animate={{
-          y: [0, -20, 0],
-          x: [0, 10, 0],
-          scale: [1, 1.1, 1]
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
-      <motion.div
-        style={{
-          position: 'absolute',
-          top: '20%',
-          right: '15%',
-          width: '60px',
-          height: '60px',
-          background: 'rgba(255,255,255,0.08)',
-          borderRadius: '50%',
-          zIndex: 1
-        }}
-        animate={{
-          y: [0, 15, 0],
-          x: [0, -8, 0],
-          scale: [1, 0.9, 1]
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 1
-        }}
-      />
-      <motion.div
-        style={{
-          position: 'absolute',
-          bottom: '15%',
-          left: '20%',
-          width: '80px',
-          height: '80px',
-          background: 'rgba(255,255,255,0.06)',
-          borderRadius: '50%',
-          zIndex: 1
-        }}
-        animate={{
-          y: [0, -25, 0],
-          x: [0, 12, 0],
-          scale: [1, 1.2, 1]
-        }}
-        transition={{
-          duration: 7,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 2
-        }}
-      />
-      <Container maxWidth="lg" sx={{ height: '100vh', display: 'flex', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-        <Box sx={{ textAlign: 'center', color: 'white', width: '100%' }}>
-          <AnimatedSection>
-            <Chip
-              label="✨ Professional Inventory Management"
-              sx={{
-                mb: 3,
-                background: 'rgba(255,255,255,0.15)',
-                color: 'white',
-                fontSize: '0.9rem',
-                fontWeight: 500,
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}
-            />
-          </AnimatedSection>
+      {children}
+    </motion.button>
+  );
+};
 
-          <AnimatedSection delay={0.2}>
-            <Typography
-              component="h1"
-              variant="h1"
-              sx={{
-                fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem' },
-                mb: 3,
-                lineHeight: 1.1,
-                textShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                fontWeight: 'bold'
-              }}
-            >
-              Goodbye mistakes,<br />
-              <motion.span
-                style={{
-                  background: "linear-gradient(45deg, #FFD700, #FFA500, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4, #FFD700)",
-                  backgroundSize: "400% 400%",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  color: "transparent",
-                  display: "inline-block"
-                }}
-                animate={{
-                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"]
-                }}
-                transition={{ 
-                  duration: 8, 
-                  repeat: Infinity, 
-                  ease: "easeInOut" 
-                }}
-              >
-                hello Smart Picker
-              </motion.span>
-            </Typography>
-          </AnimatedSection>
+// --- Icons ---
+const ArrowForwardIcon: React.FC = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+);
+const BarcodeIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>
+);
 
-          <AnimatedSection delay={0.4}>
-            <Typography
-              variant="h5"
-              sx={{
-                mb: 4,
-                opacity: 0.95,
-                fontWeight: 400,
-                maxWidth: '600px',
-                mx: 'auto',
-                lineHeight: 1.4
-              }}
-            >
-              Streamline your inventory management with our intelligent picking system.
-              Manage stock and orders from any device, anywhere.
-            </Typography>
-          </AnimatedSection>
+// --- Hero Component ---
+const Hero: React.FC = () => {
+  const navigate = useNavigate(); // This should be used in the parent component that has a Router context
+  return (
+    <main className="min-h-screen bg-gray-50 text-gray-800 flex items-center">
+      <div className="container mx-auto px-6 py-12 lg:py-20">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          
+          {/* Text Content */}
+          <div className="text-center lg:text-left">
+            <AnimatedSection direction="up">
+              <div className="inline-flex items-center bg-blue-100 text-blue-700 text-sm font-bold px-4 py-1 rounded-full mb-4">
+                <BarcodeIcon className="w-4 h-4 mr-2" />
+                Inventory Management, Reimagined
+              </div>
+            </AnimatedSection>
+            
+            <AnimatedSection delay={0.1} direction="up">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-4">
+                Goodbye mistakes,
+                <br />
+                <span className="text-blue-600">hello Smart Picker.</span>
+              </h1>
+            </AnimatedSection>
 
-          <AnimatedSection delay={0.6}>
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              justifyContent="center"
-              alignItems="center"
-            >
-              <InteractiveButton
-                variant="contained"
-                size="large"
-                onClick={() => navigate("/login")}
-                endIcon={<ArrowForward />}
-                animationType="bounce"
-                intensity="medium"
-                sx={{
-                  background: 'rgba(255,255,255,0.9)',
-                  color: '#1E40AF',
-                  px: 4,
-                  py: 1.5,
-                  borderRadius: '8px',
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  boxShadow: '0 8px 25px rgba(255,255,255,0.2)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  '&:hover': {
-                    background: 'rgba(255,255,255,1)',
-                    boxShadow: '0 12px 35px rgba(255,255,255,0.3)',
-                  }
-                }}
-              >
-                Get Started Free
-              </InteractiveButton>
-              <InteractiveButton
-                variant="outlined"
-                size="large"
-                animationType="glow"
-                intensity="subtle"
-                sx={{
-                  borderColor: 'rgba(255,255,255,0.4)',
-                  color: 'white',
-                  px: 4,
-                  py: 1.5,
-                  borderRadius: '8px',
-                  fontSize: '1.1rem',
-                  fontWeight: 500,
-                  '&:hover': {
-                    borderColor: 'white',
-                    background: 'rgba(255,255,255,0.1)',
-                  }
-                }}
-              >
-                Watch Demo
-              </InteractiveButton>
-            </Stack>
+            <AnimatedSection delay={0.2} direction="up">
+              <p className="text-lg md:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8">
+                Streamline your warehouse operations with our intelligent picking system.
+                Increase accuracy, save time, and manage stock from any device, anywhere.
+              </p>
+            </AnimatedSection>
+
+            <AnimatedSection delay={0.3} direction="up">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <InteractiveButton
+                  onClick={() => { navigate("/login") }}
+                  animationType="bounce"
+                  intensity="medium"
+                  variant="primary"
+                >
+                  Get Started Free <ArrowForwardIcon />
+                </InteractiveButton>
+                <InteractiveButton
+                  onClick={() => { navigate("/demo") }}
+                  animationType="scale"
+                  intensity="subtle"
+                  variant="secondary"
+                >
+                  Watch Demo
+                </InteractiveButton>
+              </div>
+            </AnimatedSection>
+          </div>
+
+          {/* Image served and processed by Cloudflare from your S3 origin */}
+          <AnimatedSection delay={0.2} direction="left" className="hidden lg:block">
+            <div className="relative">
+              <img 
+                src="https://www.smartpicker.au/cdn-cgi/image/width=1600,format=auto,quality=95/https://smartpicker-images.s3.ap-southeast-1.amazonaws.com/smartpicker-dashboard.png"
+                alt="Smart Picker inventory management software dashboard"
+                className="rounded-2xl shadow-2xl border border-gray-100"
+              />
+               <div className="absolute -top-4 -right-4 w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 4.293a1 1 0 011.414 1.414l-9 9a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 12.586l8.293-8.293z" /></svg>
+               </div>
+            </div>
           </AnimatedSection>
-        </Box>
-      </Container>
-    </Box>
+        </div>
+      </div>
+    </main>
   );
 };
 
 export default Hero;
+

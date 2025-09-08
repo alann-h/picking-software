@@ -5,6 +5,7 @@ import { SnackbarProvider } from './components/SnackbarContext';
 import SnackbarComponent from './components/SnackbarComponent';
 import LoadingSpinner from './components/LoadingSpinner';
 import QuoteLoadingSpinner from './components/QuoteLoadingSpinner';
+import ScrollToTop from './components/ScrollToTop';
 import theme from './theme';
 import Footer from './components/Footer';
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
@@ -30,6 +31,8 @@ const WarehouseEfficiencyGuide = React.lazy(() => import('./components/blog/Ware
 const GoldenShoreCaseStudy = React.lazy(() => import('./components/blog/GoldenShoreCaseStudy'));
 const SystemSetupGuide = React.lazy(() => import('./components/blog/SystemSetupGuide'));
 const TechnologyStack = React.lazy(() => import('./components/TechnologyStack'));
+const Pricing = React.lazy(() => import('./components/Pricing'));
+const Demo = React.lazy(() => import('./components/Demo'));
 const PublicLayout = React.lazy(() => import('./components/PublicLayout'));
 const ErrorBoundary = React.lazy(() => import('./components/ErrorBoundary'));
 const OrderHistory = React.lazy(() => import('./components/OrderHistory'));
@@ -79,6 +82,7 @@ const App: React.FC = () => {
               maxWidth: '100vw',
               overflowX: 'hidden'
             }}>
+              <ScrollToTop />
               <Routes>
                 {/* Public Routes */}
                 <Route element={
@@ -129,6 +133,16 @@ const App: React.FC = () => {
                   <Route path="/technology" element={
                     <Suspense fallback={<LoadingSpinner />}>
                       <TechnologyStack />
+                    </Suspense>
+                  } />
+                  <Route path="/pricing" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Pricing />
+                    </Suspense>
+                  } />
+                  <Route path="/demo" element={
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Demo />
                     </Suspense>
                   } />
                   <Route path="/blog" element={

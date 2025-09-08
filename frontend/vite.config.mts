@@ -2,6 +2,7 @@
 /// <reference types="vitest" />
 import { defineConfig, ProxyOptions } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig(({ mode }) => {
   const proxyTarget = 'http://localhost:5033';
@@ -17,7 +18,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      react()
+      react(),
+      tailwindcss()
     ],
     esbuild: {
       drop: mode === 'production' ? ['console', 'debugger'] : [],

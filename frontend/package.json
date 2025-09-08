@@ -11,6 +11,7 @@
     "@hookform/resolvers": "^5.2.1",
     "@mui/icons-material": "^7.1.2",
     "@mui/material": "^7.1.2",
+    "@tailwindcss/vite": "^4.1.13",
     "@tanstack/react-query": "^5.84.2",
     "@tanstack/react-query-devtools": "^5.84.2",
     "@testing-library/jest-dom": "^6.6.3",
@@ -24,6 +25,7 @@
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.62.0",
     "react-router-dom": "^7.6.3",
+    "tailwindcss": "^4.1.13",
     "web-vitals": "^5.0.3",
     "zod": "^4.0.13"
   },
