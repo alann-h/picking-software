@@ -1,92 +1,80 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Box, Typography, Container, Paper, Button } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowLeft, PlayCircle } from 'lucide-react';
 
 const Demo: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Get state passed from Hero component
   const heroState = location.state as { source?: string; section?: string } | null;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
-      <Container maxWidth="md">
+    <div className="min-h-screen bg-gray-50 py-8 sm:py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-            <Box sx={{ mb: 3 }}>
-              <Button
-                startIcon={<ArrowBack />}
+          <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-100">
+            <div className="mb-6">
+              <button
                 onClick={() => navigate(-1)}
-                sx={{ mb: 2 }}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors duration-200 mb-4 cursor-pointer"
               >
+                <ArrowLeft className="h-4 w-4" />
                 Back
-              </Button>
+              </button>
               
-              <Typography variant="h4" component="h1" gutterBottom>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-800">
                 Smart Picker Demo
-              </Typography>
+              </h1>
               
               {heroState?.source === 'hero' && (
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                <p className="mt-2 text-gray-600">
                   Welcome from the Hero section! You're viewing the {heroState.section} demo.
-                </Typography>
+                </p>
               )}
-            </Box>
+            </div>
 
-            <Box sx={{ 
-              aspectRatio: '16/9', 
-              bgcolor: 'grey.100', 
-              borderRadius: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 3
-            }}>
-              <Typography variant="h6" color="text.secondary">
-                Demo Video Placeholder
-              </Typography>
-            </Box>
+            <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg flex items-center justify-center mb-6 border border-gray-200">
+                <div className="text-center text-gray-500">
+                    <PlayCircle className="h-16 w-16 mx-auto mb-2 opacity-50" />
+                    <h2 className="text-xl font-semibold">Demo Video Placeholder</h2>
+                </div>
+            </div>
 
-            <Typography variant="body1" paragraph>
-              This is where you would embed your demo video or interactive demo.
-              You could use:
-            </Typography>
+            <p className="text-gray-700 leading-relaxed">
+              This is where you would embed your demo video or interactive demo. You could use:
+            </p>
 
-            <Box component="ul" sx={{ pl: 2 }}>
+            <ul className="list-disc list-inside text-gray-700 mt-2 space-y-1">
               <li>YouTube embed</li>
               <li>Vimeo embed</li>
               <li>Custom video player</li>
               <li>Interactive product tour</li>
               <li>Screen recording walkthrough</li>
-            </Box>
+            </ul>
 
-            <Box sx={{ mt: 4, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
+            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+              <button
                 onClick={() => navigate('/login')}
-                size="large"
+                className="w-full sm:w-auto px-8 py-3 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
               >
                 Get Started
-              </Button>
-              <Button
-                variant="outlined"
+              </button>
+              <button
                 onClick={() => navigate('/pricing')}
-                size="large"
+                className="w-full sm:w-auto px-8 py-3 text-lg font-semibold text-blue-700 bg-white border-2 border-blue-600 rounded-lg shadow-sm hover:bg-blue-50 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
               >
                 View Pricing
-              </Button>
-            </Box>
-          </Paper>
+              </button>
+            </div>
+          </div>
         </motion.div>
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 };
 

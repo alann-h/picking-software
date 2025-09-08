@@ -1,25 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import {
-    Box,
-    Button,
-    Typography,
-    Stack,
-    Alert,
-    Checkbox,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-} from '@mui/material';
-import { 
-    Save as SaveIcon,
-    Person as PersonIcon,
-} from '@mui/icons-material';
+import React, { useState, useEffect, Fragment } from 'react';
+import { Dialog, Transition, Switch, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
+import { Save, User, AlertTriangle } from 'lucide-react';
 import { UserData } from '../../utils/types';
 import { ExtendedUserData } from './types';
 import { canEditUser } from './utils';
 import { z } from 'zod';
+import clsx from 'clsx';
 
 interface EditUserDialogProps {
     open: boolean;
@@ -58,7 +44,7 @@ const validateWithZod = (schema: z.ZodSchema<any>, data: unknown): { isValid: bo
     } catch (error) {
         if (error instanceof z.ZodError) {
             const newErrors: Record<string, string> = {};
-            error.issues.forEach((issue: z.core.$ZodIssue) => {
+            error.issues.forEach((issue) => {
                 if (issue.path[0]) {
                     newErrors[issue.path[0] as string] = issue.message;
                 }
@@ -68,8 +54,6 @@ const validateWithZod = (schema: z.ZodSchema<any>, data: unknown): { isValid: bo
         return { isValid: false, errors: { general: 'Validation failed' } };
     }
 };
-
-
 
 const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, onSave, currentUser }) => {
     const [formData, setFormData] = useState<UserUpdateData>({});
@@ -94,7 +78,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
         setFormData(prev => ({ ...prev, [field]: value }));
         setHasChanges(true);
         
-        // Clear error when user starts typing
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
@@ -110,7 +93,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
         e.preventDefault();
         if (!user || !currentUser) return;
 
-        // Security check
         if (!canEditUser(user, currentUser)) {
             console.error('Unauthorized attempt to edit user');
             return;
@@ -126,7 +108,6 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
             onClose();
         } catch (error) {
             console.error('Failed to update user:', error);
-            // Error is handled by the parent component
         } finally {
             setIsLoading(false);
         }
@@ -134,107 +115,141 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
 
     const handleClose = () => {
         if (hasChanges) {
-            // Could add confirmation dialog here
             console.log('Discarding unsaved changes');
         }
         onClose();
     };
 
-    if (!user || !currentUser) return null;
-
-    // Security check - if user can't edit, don't show dialog
-    if (!canEditUser(user, currentUser)) {
-        console.error('Unauthorized access attempt to edit user dialog');
+    if (!user || !currentUser || !canEditUser(user, currentUser)) {
         return null;
     }
 
     return (
-        <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                    <PersonIcon color="primary" />
-                    <Typography variant="h6">Edit User: {user.display_email}</Typography>
-                </Stack>
-            </DialogTitle>
-            <form onSubmit={handleSubmit}>
-                <DialogContent>
-                    <Stack spacing={3}>
-                        <TextField
-                            label="First Name"
-                            value={formData.given_name || ''}
-                            onChange={(e) => handleChange('given_name', e.target.value)}
-                            error={!!errors.given_name}
-                            helperText={errors.given_name}
-                            fullWidth
-                            required
-                            inputProps={{
-                                maxLength: 50
-                            }}
-                        />
-                        <TextField
-                            label="Last Name"
-                            value={formData.family_name || ''}
-                            onChange={(e) => handleChange('family_name', e.target.value)}
-                            error={!!errors.family_name}
-                            helperText={errors.family_name}
-                            fullWidth
-                            required
-                            inputProps={{
-                                maxLength: 50
-                            }}
-                        />
-                        <TextField
-                            label="Email"
-                            type="email"
-                            value={formData.display_email || ''}
-                            onChange={(e) => handleChange('display_email', e.target.value)}
-                            error={!!errors.display_email}
-                            helperText={errors.display_email}
-                            fullWidth
-                            required
-                            inputProps={{
-                                maxLength: 255
-                            }}
-                        />
-                        <Box>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                Admin privileges allow full system access including user management
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Checkbox
-                                    checked={formData.is_admin || false}
-                                    onChange={(e) => handleChange('is_admin', e.target.checked)}
-                                    color="primary"
-                                />
-                                <Typography component="span" variant="body2">
-                                    Grant admin privileges
-                                </Typography>
-                            </Box>
-                            {formData.is_admin && (
-                                <Alert severity="warning" sx={{ mt: 1 }}>
-                                    <Typography variant="caption">
-                                        <strong>Warning:</strong> Admin users have full access to the system, including the ability to manage other users and access all data.
-                                    </Typography>
-                                </Alert>
-                            )}
-                        </Box>
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose} disabled={isLoading}>
-                        Cancel
-                    </Button>
-                    <Button 
-                        type="submit" 
-                        variant="contained" 
-                        disabled={isLoading || !hasChanges}
-                        startIcon={<SaveIcon />}
-                    >
-                        {isLoading ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                </DialogActions>
-            </form>
-        </Dialog>
+        <Transition appear show={open} as={Fragment}>
+            <Dialog as="div" className="relative z-10" onClose={handleClose}>
+                <TransitionChild
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+                </TransitionChild>
+
+                <div className="fixed inset-0 overflow-y-auto">
+                    <div className="flex min-h-full items-center justify-center p-4 text-center">
+                        <TransitionChild
+                            as={Fragment}
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0 scale-95"
+                            enterTo="opacity-100 scale-100"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100 scale-100"
+                            leaveTo="opacity-0 scale-95"
+                        >
+                            <DialogPanel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
+                                <form onSubmit={handleSubmit}>
+                                    <div className="p-6">
+                                        <DialogTitle as="h3" className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                            <User className="h-6 w-6 text-blue-600" />
+                                            Edit User: {user.display_email}
+                                        </DialogTitle>
+                                        <div className="mt-6 space-y-4">
+                                            <div>
+                                                <label htmlFor="given_name" className="block text-sm font-medium text-gray-700">First Name</label>
+                                                <input
+                                                    id="given_name"
+                                                    type="text"
+                                                    value={formData.given_name || ''}
+                                                    onChange={(e) => handleChange('given_name', e.target.value)}
+                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm", errors.given_name && "border-red-500")}
+                                                    maxLength={50}
+                                                    required
+                                                />
+                                                {errors.given_name && <p className="mt-1 text-xs text-red-500">{errors.given_name}</p>}
+                                            </div>
+                                            <div>
+                                                <label htmlFor="family_name" className="block text-sm font-medium text-gray-700">Last Name</label>
+                                                <input
+                                                    id="family_name"
+                                                    type="text"
+                                                    value={formData.family_name || ''}
+                                                    onChange={(e) => handleChange('family_name', e.target.value)}
+                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm", errors.family_name && "border-red-500")}
+                                                    maxLength={50}
+                                                    required
+                                                />
+                                                {errors.family_name && <p className="mt-1 text-xs text-red-500">{errors.family_name}</p>}
+                                            </div>
+                                            <div>
+                                                <label htmlFor="display_email" className="block text-sm font-medium text-gray-700">Email</label>
+                                                <input
+                                                    id="display_email"
+                                                    type="email"
+                                                    value={formData.display_email || ''}
+                                                    onChange={(e) => handleChange('display_email', e.target.value)}
+                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm", errors.display_email && "border-red-500")}
+                                                    maxLength={255}
+                                                    required
+                                                />
+                                                {errors.display_email && <p className="mt-1 text-xs text-red-500">{errors.display_email}</p>}
+                                            </div>
+                                            <div className="bg-gray-50 rounded-lg p-4">
+                                                <p className="text-sm text-gray-600 mb-2">Admin privileges allow full system access including user management.</p>
+                                                <div className="flex items-center gap-3">
+                                                    <Switch
+                                                        checked={formData.is_admin || false}
+                                                        onChange={(checked) => handleChange('is_admin', checked)}
+                                                        className="group relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                    >
+                                                        <span className="sr-only">Grant admin privileges</span>
+                                                        <span aria-hidden="true" className="pointer-events-none absolute h-full w-full rounded-md bg-white" />
+                                                        <span aria-hidden="true" className={clsx(formData.is_admin ? 'bg-blue-600' : 'bg-gray-200', 'pointer-events-none absolute mx-auto h-4 w-9 rounded-full transition-colors duration-200 ease-in-out')} />
+                                                        <span aria-hidden="true" className={clsx(formData.is_admin ? 'translate-x-5' : 'translate-x-0', 'pointer-events-none absolute left-0 inline-block h-5 w-5 transform rounded-full border border-gray-200 bg-white shadow ring-0 transition-transform duration-200 ease-in-out')} />
+                                                    </Switch>
+                                                    <label className="text-sm font-medium text-gray-800">Grant admin privileges</label>
+                                                </div>
+                                                {formData.is_admin && (
+                                                    <div className="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-md">
+                                                        <div className="flex items-start">
+                                                            <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+                                                            <div className="ml-2 text-xs text-yellow-700">
+                                                                <strong>Warning:</strong> Admin users have full access to the system, including managing other users and all data.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 flex justify-end gap-3 mt-6">
+                                        <button
+                                            type="button"
+                                            onClick={handleClose}
+                                            disabled={isLoading}
+                                            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={isLoading || !hasChanges}
+                                            className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                                        >
+                                            <Save className="mr-2 h-4 w-4" />
+                                            {isLoading ? 'Saving...' : 'Save Changes'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </DialogPanel>
+                        </TransitionChild>
+                    </div>
+                </div>
+            </Dialog>
+        </Transition>
     );
 };
 

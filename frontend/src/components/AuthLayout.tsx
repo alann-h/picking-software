@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider } from './AuthProvider';
 import { useAuth } from '../hooks/useAuth';
 import TopBar from './TopBar';
-import { Box, CircularProgress } from '@mui/material';
+import { Loader } from 'lucide-react';
 
 const ProtectedLayout = () => {
     const { isAuthenticated, isLoading } = useAuth();
@@ -17,9 +17,9 @@ const ProtectedLayout = () => {
         <>
             <TopBar disableTopBar={false} />
             {isLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
-                    <CircularProgress />
-                </Box>
+                <div className="flex justify-center items-center h-[calc(100vh-64px)]">
+                    <Loader className="animate-spin text-blue-600" size={48} />
+                </div>
             ) : (
                 <Outlet />
             )}

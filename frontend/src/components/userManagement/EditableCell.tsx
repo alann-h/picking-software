@@ -1,8 +1,8 @@
 // EditableCell.tsx
 import React, { useState, useEffect } from 'react';
-import { TableCell, TextField } from '@mui/material';
 import { UserData } from '../../utils/types';
 import { z } from 'zod';
+import clsx from 'clsx';
 
 // Define schemas for validation within the cell
 const emailSchema = z.email("Invalid email format");
@@ -44,7 +44,7 @@ const EditableCell: React.FC<EditableCellProps> = ({ user, field, onSave }) => {
         const result = schema.safeParse(value);
 
         if (!result.success) {
-            setError(result.error.message);
+            setError(result.error.issues[0]?.message || "Invalid input.");
             return;
         }
 
@@ -64,28 +64,37 @@ const EditableCell: React.FC<EditableCellProps> = ({ user, field, onSave }) => {
     
     if (isEditing) {
         return (
-            <TableCell>
-                <TextField
-                    autoFocus
-                    fullWidth
-                    size="small"
-                    variant="outlined"
-                    type={field === 'password' ? 'password' : 'text'}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    onBlur={handleSave}
-                    onKeyDown={handleKeyDown}
-                    error={!!error}
-                    helperText={error}
-                />
-            </TableCell>
+            <td className="px-3 py-2 whitespace-nowrap">
+                <div>
+                    <input
+                        autoFocus
+                        type={field === 'password' ? 'password' : 'text'}
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        onBlur={handleSave}
+                        onKeyDown={handleKeyDown}
+                        className={clsx(
+                            "block w-full rounded-md shadow-sm sm:text-sm py-1.5 px-2",
+                            error 
+                                ? "border-red-500 text-red-900 ring-1 ring-inset ring-red-300 placeholder-red-300 focus:ring-2 focus:ring-inset focus:ring-red-500" 
+                                : "border-gray-300 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600"
+                        )}
+                    />
+                    {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+                </div>
+            </td>
         );
     }
 
     return (
-        <TableCell onClick={() => setIsEditing(true)} sx={{ cursor: 'pointer' }}>
-            {field === 'password' ? '••••••••' : user[field]}
-        </TableCell>
+        <td 
+            onClick={() => setIsEditing(true)} 
+            className="px-6 py-4 whitespace-nowrap cursor-pointer hover:bg-gray-50 group"
+        >
+            <span className="text-sm text-gray-700 group-hover:text-blue-600">
+                {field === 'password' ? '••••••••' : user[field]}
+            </span>
+        </td>
     );
 };
 

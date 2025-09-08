@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
+import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
 import { CheckCircle2, AlertTriangle, LoaderCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { ProductDetail } from '../utils/types';
@@ -28,7 +28,7 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
+        <TransitionChild
           as={Fragment}
           enter="ease-out duration-300"
           enterFrom="opacity-0"
@@ -38,11 +38,11 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
           leaveTo="opacity-0"
         >
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
-        </Transition.Child>
+        </TransitionChild>
 
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
+            <TransitionChild
               as={Fragment}
               enter="ease-out duration-300"
               enterFrom="opacity-0 scale-95"
@@ -51,14 +51,14 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                <Dialog.Title
+              <DialogPanel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <DialogTitle
                   as="h3"
                   className="text-lg font-medium leading-6 text-gray-900 flex items-center gap-2"
                 >
                   {hasBackorder ? <AlertTriangle className="text-yellow-500" /> : <CheckCircle2 className="text-green-500" />}
                   Confirm Invoice Finalisation
-                </Dialog.Title>
+                </DialogTitle>
                 <div className="mt-4">
                   {hasBackorder ? (
                     <>
@@ -135,8 +135,8 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
                     )}
                   </button>
                 </div>
-              </Dialog.Panel>
-            </Transition.Child>
+              </DialogPanel>
+            </TransitionChild>
           </div>
         </div>
       </Dialog>

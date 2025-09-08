@@ -1,30 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Container,
-  Stack,
-  Divider,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText
-} from '@mui/material';
-import { 
-  Settings as SettingsIcon,
-  Inventory as InventoryIcon,
-  UploadFile as UploadFileIcon,
-  Group as GroupIcon
-} from '@mui/icons-material';
-import { motion } from 'framer-motion';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
-
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { Settings as SettingsIcon, Package as InventoryIcon, Upload as UploadFileIcon, Users as GroupIcon } from 'lucide-react';
+import clsx from 'clsx';
+
 import { getAllProducts } from '../api/products';
 import { Product } from '../utils/types';
-
 import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
 import UsersTab from './tabs/UsersTab';
@@ -68,20 +50,20 @@ const Settings: React.FC = () => {
   const menuItems = [
     {
       label: 'Current Products',
-      icon: <InventoryIcon />,
+      icon: <InventoryIcon className="h-5 w-5" />,
       path: 'products',
       description: 'Manage your product inventory and details'
     },
     ...(isAdmin ? [
       {
         label: 'Upload Data',
-        icon: <UploadFileIcon />,
+        icon: <UploadFileIcon className="h-5 w-5" />,
         path: 'upload',
         description: 'Bulk upload products and data files'
       },
       {
         label: 'User Management',
-        icon: <GroupIcon />,
+        icon: <GroupIcon className="h-5 w-5" />,
         path: 'users',
         description: 'Manage user accounts and permissions'
       }
@@ -89,56 +71,33 @@ const Settings: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      bgcolor: 'background.default', 
-      py: { xs: 2, sm: 4 },
-      px: { xs: 1, sm: 2 }
-    }}>
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-2 sm:px-4">
       <title>Smart Picker | Settings</title>
-      <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2 } }}>
-        <Stack spacing={{ xs: 3, sm: 4 }}>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        <div className="space-y-4 sm:space-y-6">
           {/* Header Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Box sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
-              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white'
-                  }}
+            <div className="text-center sm:text-left">
+              <div className="flex items-center space-x-3 mb-2">
+                <div
+                  className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white"
                 >
-                  <SettingsIcon sx={{ fontSize: 24 }} />
-                </Box>
-                <Box>
-                  <Typography 
-                    variant="h3" 
-                    component="h1" 
-                    fontWeight="bold"
-                    sx={{
-                      background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
-                    }}
-                  >
+                  <SettingsIcon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-br from-blue-700 to-blue-900 bg-clip-text text-transparent">
                     Settings
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary">
+                  </h1>
+                  <p className="text-md text-gray-500">
                     Configure your Smart Picker system
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
+                  </p>
+                </div>
+              </div>
+            </div>
           </motion.div>
           
           {/* Settings Content */}
@@ -147,137 +106,89 @@ const Settings: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', lg: 'row' } }}>
+            <div className="flex flex-col lg:flex-row gap-6">
               {/* Vertical Menu Sidebar */}
-              <Paper 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  width: { xs: '100%', lg: 320 },
-                  flexShrink: 0,
-                  bgcolor: 'grey.50'
-                }}
-              >
-                <Box
-                  sx={{
-                    background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    p: 2
-                  }}
-                >
-                  <Typography variant="h6" fontWeight={600} color="text.primary">
-                    Navigation
-                  </Typography>
-                </Box>
-                
-                <List sx={{ p: 0 }}>
-                  {menuItems.map((item, index) => (
-                    <React.Fragment key={item.path}>
-                      <ListItem disablePadding>
-                        <ListItemButton
-                          onClick={() => handleMenuClick(item.path)}
-                          selected={currentPath === item.path}
-                          sx={{
-                            py: 2.5,
-                            px: 3,
-                            '&.Mui-selected': {
-                              bgcolor: 'primary.50',
-                              borderRight: '3px solid',
-                              borderColor: 'primary.main',
-                              '&:hover': {
-                                bgcolor: 'primary.100',
+              <aside className="lg:w-80 lg:flex-shrink-0">
+                <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                  <div
+                    className="bg-gray-50 border-b border-gray-200 p-4"
+                  >
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      Navigation
+                    </h2>
+                  </div>
+                  
+                  <nav className="p-2">
+                    <ul className="space-y-1">
+                      {menuItems.map((item) => (
+                        <li key={item.path}>
+                          <button
+                            onClick={() => handleMenuClick(item.path)}
+                            className={clsx(
+                              'w-full text-left flex items-center gap-3 py-3 px-4 rounded-lg transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+                              {
+                                'bg-blue-50 text-blue-700 hover:bg-blue-100': currentPath === item.path,
+                                'text-gray-700 hover:bg-gray-100': currentPath !== item.path,
                               }
-                            },
-                            '&:hover': {
-                              bgcolor: 'grey.100',
-                            }
-                          }}
-                        >
-                          <ListItemIcon 
-                            sx={{ 
-                              color: currentPath === item.path ? 'primary.main' : 'text.secondary',
-                              minWidth: 40
-                            }}
+                            )}
                           >
-                            {item.icon}
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={
-                              <Typography 
-                                variant="body1" 
-                                fontWeight={currentPath === item.path ? 600 : 500}
-                                color={currentPath === item.path ? 'primary.main' : 'text.primary'}
-                              >
+                            <span className={clsx('transition-colors', { 'text-blue-600': currentPath === item.path, 'text-gray-500': currentPath !== item.path })}>
+                              {item.icon}
+                            </span>
+                            <div>
+                              <span className={clsx(
+                                'font-semibold',
+                                { 'text-blue-700': currentPath === item.path, 'text-gray-800': currentPath !== item.path }
+                              )}>
                                 {item.label}
-                              </Typography>
-                            }
-                            secondary={
-                              <Typography 
-                                variant="caption" 
-                                color="text.secondary"
-                                sx={{ display: { xs: 'none', lg: 'block' } }}
-                              >
+                              </span>
+                              <p className="text-xs text-gray-500 hidden lg:block">
                                 {item.description}
-                              </Typography>
-                            }
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                      {index < menuItems.length - 1 && (
-                        <Divider sx={{ mx: 3, opacity: 0.6 }} />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </List>
-              </Paper>
+                              </p>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
+                </div>
+              </aside>
 
               {/* Content Area */}
-              <Paper 
-                elevation={0}
-                sx={{ 
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  flex: 1,
-                  bgcolor: 'white'
-                }}
-              >
-                <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-                  <Routes>
-                    <Route
-                      path="products"
-                      element={
-                        <ProductsTab
-                          searchTerm={searchTerm}
-                          onSearchChange={handleSearchChange}
-                          filteredProducts={filteredProducts}
-                          isLoading={isLoading}
-                          isAdmin={isAdmin}
-                        />
-                      }
-                    />
-                    <Route 
-                      path="upload" 
-                      element={isAdmin ? <UploadTab /> : <Navigate to="/settings/products" replace />} 
-                    />
-                    <Route 
-                      path="users/*" 
-                      element={isAdmin ? <UsersTab /> : <Navigate to="/settings/products" replace />} 
-                    />
-                    <Route path="*" element={<Navigate to="products" replace />} />
-                  </Routes>
-                </Box>
-              </Paper>
-            </Box>
+              <main className="flex-1">
+                <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                  <div className="p-4 sm:p-6 md:p-8">
+                    <Routes>
+                      <Route
+                        path="products"
+                        element={
+                          <ProductsTab
+                            searchTerm={searchTerm}
+                            onSearchChange={handleSearchChange}
+                            filteredProducts={filteredProducts}
+                            isLoading={isLoading}
+                            isAdmin={isAdmin}
+                          />
+                        }
+                      />
+                      <Route 
+                        path="upload" 
+                        element={isAdmin ? <UploadTab /> : <Navigate to="/settings/products" replace />} 
+                      />
+                      <Route 
+                        path="users/*" 
+                        element={isAdmin ? <UsersTab /> : <Navigate to="/settings/products" replace />} 
+                      />
+                      <Route path="*" element={<Navigate to="products" replace />} />
+                    </Routes>
+                  </div>
+                </div>
+              </main>
+            </div>
           </motion.div>
-        </Stack>
-      </Container>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -1,23 +1,5 @@
-// UserTable.tsx
 import React from 'react';
-import {
-    Box,
-    Typography,
-    TableCell,
-    TableRow,
-    Checkbox,
-    FormControl,
-    MenuItem,
-    Select,
-    Chip,
-    IconButton,
-    Tooltip,
-    Stack,
-} from '@mui/material';
-import { 
-    Edit as EditIcon,
-    Delete as DeleteIcon,
-} from '@mui/icons-material';
+import { Edit, Trash2 } from 'lucide-react';
 import { ExtendedUserData } from './types';
 import { canEditUser, canDeleteUser, canChangePermissions } from './utils';
 
@@ -31,8 +13,6 @@ interface UserTableProps {
     onPermissionUpdate: (userId: string, field: string, value: any) => void;
 }
 
-
-
 const UserTable: React.FC<UserTableProps> = ({
     userList,
     currentUser,
@@ -44,23 +24,21 @@ const UserTable: React.FC<UserTableProps> = ({
 }) => {
     if (isLoading) {
         return (
-            <TableRow>
-                <TableCell colSpan={7}>
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                        <Typography color="text.secondary">Loading users...</Typography>
-                    </Box>
-                </TableCell>
-            </TableRow>
+            <tr>
+                <td colSpan={7} className="text-center py-8">
+                    <p className="text-gray-500">Loading users...</p>
+                </td>
+            </tr>
         );
     }
 
     if (userList.length === 0) {
         return (
-            <TableRow>
-                <TableCell colSpan={7} align="center">
-                    <Typography color="text.secondary">No users found</Typography>
-                </TableCell>
-            </TableRow>
+            <tr>
+                <td colSpan={7} className="text-center py-8">
+                    <p className="text-gray-500">No users found</p>
+                </td>
+            </tr>
         );
     }
 
@@ -72,83 +50,74 @@ const UserTable: React.FC<UserTableProps> = ({
                 const canChangePerms = canChangePermissions(user, currentUser);
                 
                 return (
-                    <TableRow key={user.id} hover>
+                    <tr key={user.id} className="hover:bg-gray-50">
                         {/* User Information */}
-                        <TableCell>
-                            <Box>
-                                <Typography variant="body1" fontWeight="medium">
-                                    {user.display_email}
-                                </Typography>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {user.given_name} {user.family_name}
-                                    </Typography>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                                <p className="text-sm font-medium text-gray-900">{user.display_email}</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm text-gray-500">{user.given_name} {user.family_name}</p>
                                     {user.id === currentUser?.id && (
-                                        <Chip label="You" size="small" color="info" />
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            You
+                                        </span>
                                     )}
-                                </Box>
-                            </Box>
-                        </TableCell>
+                                </div>
+                            </div>
+                        </td>
 
                         {/* Admin Status */}
-                        <TableCell align="center">
-                            <Checkbox
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <input
+                                type="checkbox"
                                 checked={user.is_admin || false}
                                 onChange={(e) => onPermissionUpdate(user.id, 'is_admin', e.target.checked)}
-                                color="primary"
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
                                 disabled={!canChangePerms || updatePermissionsMutation.isPending}
                             />
-                        </TableCell>
+                        </td>
 
                         {/* Access Level */}
-                        <TableCell align="center">
-                            <FormControl size="small" fullWidth>
-                                <Select
-                                    value={user.access_level || 'read'}
-                                    onChange={(e) => onPermissionUpdate(user.id, 'access_level', e.target.value)}
-                                    disabled={!canChangePerms || updatePermissionsMutation.isPending}
-                                    size="small"
-                                >
-                                    <MenuItem value="read">Read</MenuItem>
-                                    <MenuItem value="write">Write</MenuItem>
-                                    <MenuItem value="admin">Admin</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </TableCell>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <select
+                                value={user.access_level || 'read'}
+                                onChange={(e) => onPermissionUpdate(user.id, 'access_level', e.target.value)}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md disabled:opacity-50"
+                                disabled={!canChangePerms || updatePermissionsMutation.isPending}
+                            >
+                                <option value="read">Read</option>
+                                <option value="write">Write</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </td>
 
                         {/* Actions */}
-                        <TableCell align="center">
-                            <Stack direction="row" spacing={1} justifyContent="center">
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="flex justify-center items-center gap-2">
                                 {canEdit && (
-                                    <Tooltip title="Edit user information">
-                                        <IconButton
-                                            color="primary"
-                                            size="small"
-                                            onClick={() => onEditUser(user)}
-                                        >
-                                            <EditIcon />
-                                        </IconButton>
-                                    </Tooltip>
+                                    <button
+                                        onClick={() => onEditUser(user)}
+                                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        aria-label="Edit user"
+                                    >
+                                        <Edit className="h-5 w-5" />
+                                    </button>
                                 )}
                                 {canDelete && (
-                                    <Tooltip title="Delete user">
-                                        <IconButton
-                                            color="error"
-                                            size="small"
-                                            onClick={() => onDeleteUser(user)}
-                                        >
-                                            <DeleteIcon />
-                                        </IconButton>
-                                    </Tooltip>
+                                    <button
+                                        onClick={() => onDeleteUser(user)}
+                                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        aria-label="Delete user"
+                                    >
+                                        <Trash2 className="h-5 w-5" />
+                                    </button>
                                 )}
                                 {!canEdit && !canDelete && (
-                                    <Typography variant="caption" color="text.secondary">
-                                        No actions available
-                                    </Typography>
+                                    <p className="text-xs text-gray-500">No actions</p>
                                 )}
-                            </Stack>
-                        </TableCell>
-                    </TableRow>
+                            </div>
+                        </td>
+                    </tr>
                 );
             })}
         </>

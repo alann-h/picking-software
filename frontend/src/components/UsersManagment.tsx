@@ -1,29 +1,11 @@
 import React, { useState } from 'react';
-import {
-    Box,
-    Button,
-    Typography,
-    Stack,
-    Alert,
-    Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-} from '@mui/material';
-import { 
-    Add as AddIcon, 
-    PowerOff as PowerOffIcon, 
-    Security as SecurityIcon,
-} from '@mui/icons-material';
 import { useSnackbarContext } from './SnackbarContext';
 import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from '../api/user';
 import { useNavigate } from 'react-router-dom';
 import { disconnectQB } from '../api/auth';
 import { useAdminFunctions } from '../hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Power, ShieldAlert, AlertCircle, Info, KeyRound } from 'lucide-react';
 
 import AddUserDialog from './userManagement/AddUserDialog';
 import ConfirmationDialog from './userManagement/ConfirmationDialog';
@@ -230,83 +212,93 @@ const UsersManagement = () => {
     // Security check for current user
     if (!currentUser?.is_admin) {
         return (
-            <Box sx={{ py: 4, textAlign: 'center' }}>
-                <SecurityIcon sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
-                <Typography variant="h4" color="error.main" gutterBottom>
+            <div className="py-8 text-center">
+                <ShieldAlert className="mx-auto h-16 w-16 text-red-500 mb-4" />
+                <h2 className="text-2xl font-bold text-red-600 mb-2">
                     Access Denied
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
+                </h2>
+                <p className="text-gray-600">
                     You do not have permission to access user management. Please contact an administrator.
-                </Typography>
-            </Box>
+                </p>
+            </div>
         );
     }
     
     return (
-        <Box sx={{ py: 2 }}>
-            <Stack spacing={3}>
+        <div className="py-4">
+            <div className="space-y-6">
                 {/* Header */}
-                <Box>
-                    <Typography variant="h4" component="h1" fontWeight="bold" sx={{ mb: 1 }}>
+                <div>
+                    <h1 className="text-3xl font-bold mb-1">
                         User Management & Permissions
-                    </Typography>
-                    <Typography color="text.secondary">
+                    </h1>
+                    <p className="text-gray-600">
                         Manage users, their roles, and access permissions in one place
-                    </Typography>
-                    <Alert severity="info" sx={{ mt: 2 }}>
-                        <Typography variant="body2">
-                            <strong>Current User:</strong> {currentUser?.display_email} ({currentUser?.is_admin ? 'Administrator' : 'User'})
-                        </Typography>
-                    </Alert>
-                </Box>
+                    </p>
+                    <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md">
+                        <div className="flex items-center">
+                            <Info className="h-5 w-5 text-blue-600 mr-3" />
+                            <p className="text-sm text-blue-800">
+                                <strong>Current User:</strong> {currentUser?.display_email} ({currentUser?.is_admin ? 'Administrator' : 'User'})
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Error Display */}
                 {error && (
-                    <Alert severity="error" sx={{ borderRadius: 1 }}>
-                        <Typography variant="body2">
-                            Failed to load users. Please refresh the page or try again later.
-                        </Typography>
-                    </Alert>
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                        <div className="flex items-center">
+                            <AlertCircle className="h-5 w-5 text-red-600 mr-3" />
+                            <p className="text-sm text-red-800">
+                                Failed to load users. Please refresh the page or try again later.
+                            </p>
+                        </div>
+                    </div>
                 )}
 
                 {/* Add User Button */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Button
-                        variant="contained"
+                <div className="flex justify-between items-center">
+                    <button
                         onClick={() => setAddDialogOpen(true)}
                         disabled={userList.length >= 5 || addUserMutation.isPending}
-                        startIcon={<AddIcon />}
-                        size="medium"
+                        className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
+                        <Plus className="-ml-1 mr-2 h-5 w-5" />
                         {addUserMutation.isPending ? 'Adding...' : 'Add User'}
-                    </Button>
+                    </button>
                     
                     {userList.length >= 5 && (
-                        <Alert severity="warning" sx={{ borderRadius: 1 }}>
-                            You have reached the maximum limit of 5 users. To add a new user, please delete an existing one.
-                        </Alert>
+                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-md">
+                            <div className="flex items-center">
+                                <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
+                                <p className="text-sm text-yellow-800">
+                                    You have reached the maximum limit of 5 users. To add a new user, please delete an existing one.
+                                </p>
+                            </div>
+                        </div>
                     )}
-                </Box>
+                </div>
 
                 {/* Unified User Table */}
-                <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                    <TableContainer>
-                        <Table>
-                            <TableHead>
-                                <TableRow sx={{ bgcolor: 'grey.50' }}>
-                                    <TableCell sx={{ fontWeight: 600 }}>User Information</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600 }}>Admin Status</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600 }}>Access Level</TableCell>
-                                    <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
+                <div className="overflow-hidden border border-gray-200 rounded-lg">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Information</th>
+                                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
+                                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Access Level</th>
+                                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
                                 {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={4}>
+                                    <tr>
+                                        <td colSpan={4}>
                                             <UserTableSkeleton />
-                                        </TableCell>
-                                    </TableRow>
+                                        </td>
+                                    </tr>
                                 ) : (
                                     <UserTable
                                         userList={userList}
@@ -318,62 +310,56 @@ const UsersManagement = () => {
                                         onPermissionUpdate={handlePermissionUpdate}
                                     />
                                 )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                </Paper>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
                 {/* Permission Levels Info */}
-                <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 3, bgcolor: 'grey.50' }}>
-                    <Typography variant="h6" gutterBottom>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                        <KeyRound className="h-5 w-5 mr-2 text-gray-600" />
                         Permission Levels:
-                    </Typography>
-                    <Box component="ul" pl={2}>
-                        <Typography component="li" variant="body2" mb={1}>
-                            <strong>Read:</strong> Can view data but cannot modify
-                        </Typography>
-                        <Typography component="li" variant="body2" mb={1}>
-                            <strong>Write:</strong> Can view and modify data
-                        </Typography>
-                        <Typography component="li" variant="body2">
-                            <strong>Admin:</strong> Full access including user management
-                        </Typography>
-                    </Box>
-                </Paper>
+                    </h3>
+                    <ul className="space-y-2">
+                        <li className="flex items-start">
+                            <strong className="w-20 font-medium">Read:</strong>
+                            <span className="text-gray-600">Can view data but cannot modify</span>
+                        </li>
+                        <li className="flex items-start">
+                            <strong className="w-20 font-medium">Write:</strong>
+                            <span className="text-gray-600">Can view and modify data</span>
+                        </li>
+                        <li className="flex items-start">
+                            <strong className="w-20 font-medium">Admin:</strong>
+                            <span className="text-gray-600">Full access including user management</span>
+                        </li>
+                    </ul>
+                </div>
 
                 {/* QuickBooks Disconnect */}
-                <Paper 
-                    elevation={0}
-                    sx={{ 
-                        border: '1px solid',
-                        borderColor: 'error.light',
-                        borderRadius: 2,
-                        bgcolor: 'error.50',
-                        p: 3
-                    }}
-                >
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Box>
-                            <Typography variant="h6" fontWeight={600} color="error.main" sx={{ mb: 1 }}>
+                <div className="border border-red-300 bg-red-50 rounded-lg p-6">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-semibold text-red-800 mb-1 flex items-center">
+                                <AlertCircle className="h-5 w-5 mr-2" />
                                 QuickBooks Integration
-                            </Typography>
-                            <Typography variant="body2" color="error.dark">
+                            </h3>
+                            <p className="text-sm text-red-700">
                                 Disconnect from QuickBooks to remove all associated data
-                            </Typography>
-                        </Box>
-                        <Button
-                            variant="outlined"
-                            color="error"
-                            startIcon={<PowerOffIcon />}
+                            </p>
+                        </div>
+                        <button
                             onClick={() => setDisconnecting(true)}
                             disabled={disconnectQBMutation.isPending}
-                            size="medium"
+                            className="inline-flex items-center justify-center rounded-md border border-red-500 bg-transparent px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer"
                         >
+                            <Power className="mr-2 h-4 w-4" />
                             {disconnectQBMutation.isPending ? 'Disconnecting...' : 'Disconnect QuickBooks'}
-                        </Button>
-                    </Stack>
-                </Paper>
-            </Stack>
+                        </button>
+                    </div>
+                </div>
+            </div>
             
             {/* Dialogs */}
             <AddUserDialog
@@ -429,7 +415,7 @@ const UsersManagement = () => {
                 confirmColor="warning"
                 confirmText={updatePermissionsMutation.isPending ? "Granting..." : "Grant Admin Access"}
             />
-        </Box>
+        </div>
     );
 };
 

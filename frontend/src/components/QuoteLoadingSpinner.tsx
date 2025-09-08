@@ -1,80 +1,28 @@
 import React from 'react';
-import { Box, CircularProgress, Typography, Fade, Paper } from '@mui/material';
-import { Description } from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import { FileText, Loader2 } from 'lucide-react';
 
 const QuoteLoadingSpinner: React.FC = () => {
   return (
-    <Fade in={true} timeout={400}>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1000,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          gap: 4
-        }}
-      >
-        <Paper
-          elevation={4}
-          sx={{
-            p: 6,
-            borderRadius: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 3,
-            minWidth: '400px',
-            maxWidth: '500px'
-          }}
-        >
-          <Description 
-            sx={{ 
-              fontSize: 72, 
-              color: 'primary.main',
-              opacity: 0.8
-            }} 
-          />
-          <CircularProgress 
-            size={80} 
-            thickness={6}
-            sx={{
-              color: 'primary.main',
-              '& .MuiCircularProgress-circle': {
-                strokeLinecap: 'round',
-              }
-            }}
-          />
-          <Typography
-            variant="h5"
-            color="text.primary"
-            sx={{
-              fontWeight: 600,
-              textAlign: 'center'
-            }}
-          >
-            Preparing Quote
-          </Typography>
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{
-              textAlign: 'center',
-              maxWidth: '350px',
-              lineHeight: 1.5
-            }}
-          >
-            Loading product catalog and pricing information...
-          </Typography>
-        </Paper>
-      </Box>
-    </Fade>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm"
+    >
+      <div className="flex flex-col items-center gap-6 rounded-2xl bg-white p-8 sm:p-12 shadow-2xl ring-1 ring-black ring-opacity-5">
+        <FileText className="h-16 w-16 text-blue-500 opacity-80" />
+        <Loader2 className="h-20 w-20 animate-spin text-blue-600" />
+        <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-800">
+                Preparing Quote
+            </h2>
+            <p className="mt-2 max-w-xs text-gray-600">
+                Loading product catalog and pricing information...
+            </p>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 

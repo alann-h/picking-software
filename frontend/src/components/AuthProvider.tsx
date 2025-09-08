@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return userLevel >= requiredLevelNum;
   };
 
-  const canAccessService = (service: 'qbo' | 'xero'): boolean => {
+  const canAccessService = (_service: 'qbo' | 'xero'): boolean => {
     // All users can access QBO/Xero services since they're essential for the picking software
     return true;
   };
@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('Insufficient permissions');
     }
 
-    await updateUserPermissions(userId, {
+    await updateUserPermissions({
       companyId: userCompanyId,
       permissions: newPermissions
     });

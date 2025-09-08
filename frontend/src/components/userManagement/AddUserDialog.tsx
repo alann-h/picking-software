@@ -1,33 +1,9 @@
 // AddUserDialog.tsx
-import React, { useState, useMemo } from 'react';
-import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  Button, 
-  TextField, 
-  Box, 
-  Switch, 
-  Typography, 
-  Stack,
-  LinearProgress,
-  Chip,
-  IconButton,
-  InputAdornment,
-  Alert
-} from '@mui/material';
-import { 
-  Visibility, 
-  VisibilityOff, 
-  CheckCircle, 
-  Cancel,
-  Security,
-  Person,
-  Email,
-  AdminPanelSettings
-} from '@mui/icons-material';
+import React, { useState, useMemo, Fragment } from 'react';
+import { Dialog, Switch, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
 import { z } from 'zod';
+import { Eye, EyeOff, CheckCircle, XCircle, Shield, User, Mail, ShieldCheck, AlertTriangle } from 'lucide-react';
+import clsx from 'clsx';
 
 const userSchema = z.object({
   given_name: z.string().min(1, "First name is required."),
@@ -102,7 +78,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
     // Password strength calculation
     const passwordStrength = useMemo(() => {
         const password = newUser.password;
-        if (!password) return { score: 0, color: 'default', label: 'Enter a password' };
+        if (!password) return { score: 0, color: 'bg-gray-200', label: 'Enter a password' };
         
         let score = 0;
         const checks = {
@@ -115,10 +91,10 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
 
         score = Object.values(checks).filter(Boolean).length;
         
-        if (score <= 2) return { score, color: 'error', label: 'Weak' };
-        if (score <= 3) return { score, color: 'warning', label: 'Fair' };
-        if (score <= 4) return { score, color: 'info', label: 'Good' };
-        return { score, color: 'success', label: 'Strong' };
+        if (score <= 2) return { score, color: 'bg-red-500', label: 'Weak' };
+        if (score <= 3) return { score, color: 'bg-yellow-500', label: 'Fair' };
+        if (score <= 4) return { score, color: 'bg-blue-500', label: 'Good' };
+        return { score, color: 'bg-green-500', label: 'Strong' };
     }, [newUser.password]);
 
     // Password requirements checklist
@@ -130,267 +106,184 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
         { key: 'symbol', label: 'One symbol', met: /[^A-Za-z0-9]/.test(newUser.password) }
     ];
 
+    const renderInputField = (
+        field: keyof NewUser,
+        label: string,
+        type: string = 'text',
+        Icon: React.ElementType,
+        isPassword = false
+    ) => (
+        <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <Icon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+                id={field}
+                type={isPassword ? (showPassword ? 'text' : 'password') : type}
+                value={newUser[field] as string}
+                onChange={e => handleChange(field, e.target.value)}
+                placeholder={label}
+                className={clsx(
+                    "block w-full rounded-md border-gray-300 py-3 pl-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm",
+                    errors[field] && "border-red-500"
+                )}
+            />
+            {isPassword && (
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-1 text-gray-500 hover:text-gray-700">
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                </div>
+            )}
+            {errors[field] && <p className="mt-1 text-xs text-red-500">{errors[field]}</p>}
+        </div>
+    );
+
     return (
-        <Dialog 
-            open={open} 
-            onClose={handleClose} 
-            maxWidth="md" 
-            fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: 3,
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-                    border: '1px solid rgba(59,130,246,0.1)'
-                }
-            }}
-        >
-            <DialogTitle sx={{ 
-                pb: 1, 
-                background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                color: 'white',
-                borderRadius: '12px 12px 0 0'
-            }}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                    <Person sx={{ fontSize: 28 }} />
-                    <Box>
-                        <Typography variant="h5" fontWeight="bold">
-                            Add New User
-                        </Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                            Create a new user account for your organization
-                        </Typography>
-                    </Box>
-                </Stack>
-            </DialogTitle>
-            
-            <DialogContent sx={{ p: 4 }}>
-                <Stack spacing={3}>
-                    {/* Basic Information Section */}
-                    <Box>
-                        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Person sx={{ fontSize: 20, color: '#1E40AF' }} />
-                            Basic Information
-                        </Typography>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                            <TextField 
-                                label="First Name" 
-                                fullWidth 
-                                value={newUser.given_name} 
-                                onChange={e => handleChange('given_name', e.target.value)} 
-                                error={!!errors.given_name} 
-                                helperText={errors.given_name} 
-                                required
-                                slotProps={{
-                                    input: {
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <Person sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                            </InputAdornment>
-                                        ),
-                                    },
-                                }}
-                            />
-                            <TextField 
-                                label="Last Name" 
-                                fullWidth 
-                                value={newUser.family_name} 
-                                onChange={e => handleChange('family_name', e.target.value)} 
-                                error={!!errors.family_name} 
-                                helperText={errors.family_name} 
-                                required
-                                slotProps={{
-                                    input: {
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <Person sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                            </InputAdornment>
-                                        ),
-                                    },
-                                }}
-                            />
-                        </Stack>
-                    </Box>
+        <Transition appear show={open} as={Fragment}>
+            <Dialog as="div" className="relative z-10" onClose={handleClose}>
+                <TransitionChild
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+                </TransitionChild>
 
-                    {/* Contact Information Section */}
-                    <Box>
-                        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Email sx={{ fontSize: 20, color: '#1E40AF' }} />
-                            Contact Information
-                        </Typography>
-                        <TextField 
-                            label="Email Address" 
-                            type="email" 
-                            fullWidth 
-                            value={newUser.display_email} 
-                            onChange={e => handleChange('display_email', e.target.value)} 
-                            error={!!errors.display_email} 
-                            helperText={errors.display_email} 
-                            required
-                            slotProps={{
-                                input: {
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <Email sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                        </InputAdornment>
-                                    ),
-                                },
-                            }}
-                        />
-                    </Box>
+                <div className="fixed inset-0 overflow-y-auto">
+                    <div className="flex min-h-full items-center justify-center p-4 text-center">
+                        <TransitionChild
+                            as={Fragment}
+                            enter="ease-out duration-300"
+                            enterFrom="opacity-0 scale-95"
+                            enterTo="opacity-100 scale-100"
+                            leave="ease-in duration-200"
+                            leaveFrom="opacity-100 scale-100"
+                            leaveTo="opacity-0 scale-95"
+                        >
+                            <DialogPanel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
+                                <div className="bg-gradient-to-br from-blue-700 to-blue-900 text-white p-6">
+                                    <DialogTitle as="h3" className="text-2xl font-bold flex items-center gap-3">
+                                        <User className="h-7 w-7" />
+                                        Add New User
+                                    </DialogTitle>
+                                    <p className="text-blue-200 mt-1">
+                                        Create a new user account for your organization
+                                    </p>
+                                </div>
+                                
+                                <div className="p-6 space-y-6">
+                                    {/* Basic Information */}
+                                    <fieldset className="space-y-4">
+                                        <legend className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                                            <User className="h-5 w-5 text-blue-600" />
+                                            Basic Information
+                                        </legend>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {renderInputField('given_name', 'First Name', 'text', User)}
+                                            {renderInputField('family_name', 'Last Name', 'text', User)}
+                                        </div>
+                                    </fieldset>
 
-                    {/* Password Section */}
-                    <Box>
-                        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Security sx={{ fontSize: 20, color: '#1E40AF' }} />
-                            Password Security
-                        </Typography>
-                        
-                        <TextField 
-                            label="Password" 
-                            type={showPassword ? 'text' : 'password'} 
-                            fullWidth 
-                            value={newUser.password} 
-                            onChange={e => handleChange('password', e.target.value)} 
-                            error={!!errors.password} 
-                            helperText={errors.password} 
-                            required
-                            slotProps={{
-                                input: {
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <Security sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                        </InputAdornment>
-                                    ),
-                                    endAdornment: (
-                                        <InputAdornment position="end">
-                                            <IconButton
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                edge="end"
-                                            >
-                                                {showPassword ? <VisibilityOff /> : <Visibility />}
-                                            </IconButton>
-                                        </InputAdornment>
-                                    ),
-                                },
-                            }}
-                        />
-                        {/* Password Strength Indicator */}
-                        {newUser.password && (
-                            <Box sx={{ mt: 2 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                        Password Strength
-                                    </Typography>
-                                    <Chip 
-                                        label={passwordStrength.label} 
-                                        color={passwordStrength.color as any}
-                                        size="small"
-                                        variant="outlined"
-                                    />
-                                </Box>
-                                <LinearProgress 
-                                    variant="determinate" 
-                                    value={(passwordStrength.score / 5) * 100} 
-                                    color={passwordStrength.color as any}
-                                    sx={{ height: 6, borderRadius: 3 }}
-                                />
-                            </Box>
-                        )}
+                                    {/* Contact Information */}
+                                    <fieldset className="space-y-4">
+                                        <legend className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                                            <Mail className="h-5 w-5 text-blue-600" />
+                                            Contact Information
+                                        </legend>
+                                        {renderInputField('display_email', 'Email Address', 'email', Mail)}
+                                    </fieldset>
 
-                        {/* Password Requirements */}
-                        <Box sx={{ mt: 2 }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                Password Requirements:
-                            </Typography>
-                            <Stack spacing={0.5}>
-                                {passwordRequirements.map((req) => (
-                                    <Box key={req.key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        {req.met ? (
-                                            <CheckCircle sx={{ color: 'success.main', fontSize: 16 }} />
-                                        ) : (
-                                            <Cancel sx={{ color: 'error.main', fontSize: 16 }} />
+                                    {/* Password Security */}
+                                    <fieldset className="space-y-4">
+                                        <legend className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                                            <Shield className="h-5 w-5 text-blue-600" />
+                                            Password Security
+                                        </legend>
+                                        {renderInputField('password', 'Password', 'password', Shield, true)}
+                                        
+                                        {newUser.password && (
+                                            <div>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="text-sm text-gray-600">Password Strength</span>
+                                                    <span className={`text-sm font-bold ${passwordStrength.color.replace('bg-', 'text-')}`}>{passwordStrength.label}</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div className={`h-2 rounded-full ${passwordStrength.color}`} style={{ width: `${(passwordStrength.score / 5) * 100}%` }}></div>
+                                                </div>
+                                            </div>
                                         )}
-                                        <Typography 
-                                            variant="body2" 
-                                            sx={{ 
-                                                color: req.met ? 'success.main' : 'text.secondary',
-                                                textDecoration: req.met ? 'line-through' : 'none'
-                                            }}
+
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                                            {passwordRequirements.map((req) => (
+                                                <div key={req.key} className="flex items-center gap-1.5 text-sm">
+                                                    {req.met ? <CheckCircle className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}
+                                                    <span className={clsx(req.met ? "text-gray-500 line-through" : "text-gray-700")}>{req.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </fieldset>
+
+                                    {/* Admin Access */}
+                                    <fieldset className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <ShieldCheck className="h-6 w-6 text-blue-600" />
+                                            <div>
+                                                <legend className="font-semibold text-gray-800">Admin Access</legend>
+                                                <p className="text-sm text-gray-600">Grant administrative privileges to this user</p>
+                                            </div>
+                                        </div>
+                                        <Switch
+                                            checked={newUser.is_admin}
+                                            onChange={checked => handleChange('is_admin', checked)}
+                                            className="group relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                                         >
-                                            {req.label}
-                                        </Typography>
-                                    </Box>
-                                ))}
-                            </Stack>
-                        </Box>
-                    </Box>
+                                            <span className="sr-only">Use setting</span>
+                                            <span aria-hidden="true" className="pointer-events-none absolute h-full w-full rounded-md bg-white" />
+                                            <span aria-hidden="true" className={clsx(newUser.is_admin ? 'bg-blue-600' : 'bg-gray-200', 'pointer-events-none absolute mx-auto h-4 w-9 rounded-full transition-colors duration-200 ease-in-out')} />
+                                            <span aria-hidden="true" className={clsx(newUser.is_admin ? 'translate-x-5' : 'translate-x-0', 'pointer-events-none absolute left-0 inline-block h-5 w-5 transform rounded-full border border-gray-200 bg-white shadow ring-0 transition-transform duration-200 ease-in-out')} />
+                                        </Switch>
+                                    </fieldset>
+                                    
+                                    {newUser.is_admin && (
+                                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+                                            <div className="flex">
+                                                <div className="flex-shrink-0"><AlertTriangle className="h-5 w-5 text-yellow-500" /></div>
+                                                <div className="ml-3 text-sm text-yellow-700">
+                                                    <p><strong>Warning:</strong> Admin users have full access to all system features, including user management and company settings. Only grant admin access to trusted users.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
 
-                    {/* Admin Access Section */}
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'space-between', 
-                        p: 2, 
-                        borderRadius: 2, 
-                        bgcolor: 'grey.50',
-                        border: '1px solid rgba(59,130,246,0.1)'
-                    }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <AdminPanelSettings sx={{ color: '#1E40AF', fontSize: 20 }} />
-                            <Box>
-                                <Typography variant="body1" fontWeight="medium">
-                                    Admin Access
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    Grant administrative privileges to this user
-                                </Typography>
-                            </Box>
-                        </Box>
-                        <Switch 
-                            checked={newUser.is_admin} 
-                            onChange={e => handleChange('is_admin', e.target.checked)}
-                            color="primary"
-                        />
-                    </Box>
-
-                    {/* Warning for Admin Users */}
-                    {newUser.is_admin && (
-                        <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                            <Typography variant="body2">
-                                <strong>Warning:</strong> Admin users have full access to all system features, 
-                                including user management and company settings. Only grant admin access to trusted users.
-                            </Typography>
-                        </Alert>
-                    )}
-                </Stack>
-            </DialogContent>
-            
-            <DialogActions sx={{ p: '20px 24px', gap: 2 }}>
-                <Button 
-                    onClick={handleClose}
-                    variant="outlined"
-                    sx={{ borderRadius: 2, px: 3 }}
-                >
-                    Cancel
-                </Button>
-                <Button 
-                    variant="contained" 
-                    onClick={handleSubmit} 
-                    disabled={isSubmitting}
-                    sx={{ 
-                        borderRadius: 2, 
-                        px: 3,
-                        background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                        '&:hover': {
-                            background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
-                        }
-                    }}
-                    startIcon={isSubmitting ? undefined : <Person />}
-                >
-                    {isSubmitting ? 'Adding User...' : 'Add User'}
-                </Button>
-            </DialogActions>
-        </Dialog>
+                                <div className="bg-gray-50 p-4 flex justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleClose}
+                                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSubmit}
+                                        disabled={isSubmitting}
+                                        className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                                    >
+                                        {isSubmitting ? 'Adding User...' : 'Add User'}
+                                    </button>
+                                </div>
+                            </DialogPanel>
+                        </TransitionChild>
+                    </div>
+                </div>
+            </Dialog>
+        </Transition>
     );
 };
 

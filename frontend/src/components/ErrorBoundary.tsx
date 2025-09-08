@@ -1,8 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Box, Typography, Button } from '@mui/material';
-import { ErrorOutline } from '@mui/icons-material';
+import { AlertTriangle } from 'lucide-react';
 
 import ProductNotFoundErrorPage from './ProductNotFoundErrorPage';
 import { HttpError } from '../utils/apiHelpers';
@@ -39,26 +38,21 @@ class ErrorBoundary extends Component<Props, State> {
     if (error instanceof HttpError && error.response?.data) {
       const errorData = error.response.data;
       
-      // Handle backend error structure: { error: { message: "...", code: "..." } }
       if (errorData.error && typeof errorData.error === 'object') {
         return errorData.error.message || errorData.error.toString();
       }
       
-      // Handle direct message property
       if (errorData.message) {
         return errorData.message;
       }
       
-      // Handle error property as string
       if (errorData.error && typeof errorData.error === 'string') {
         return errorData.error;
       }
       
-      // Fallback to error message
       return error.message || 'An unexpected error occurred';
     }
     
-    // For non-HttpError errors, use the error message
     return error.message || 'An unexpected error occurred';
   };
 
@@ -78,26 +72,32 @@ class ErrorBoundary extends Component<Props, State> {
       const errorMessage = this.getErrorMessage(error);
 
       return (
-        <Box textAlign="center" p={3} sx={{ border: '2px dashed', borderColor: 'error.main', borderRadius: 2 }}>
-            <ErrorOutline sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
-            <Typography color="error.main" variant="h6">Something Went Wrong</Typography>
-            <Typography color="text.secondary" sx={{ mb: 2 }}>
+        <div className="text-center p-6 border-2 border-dashed border-red-400 rounded-lg bg-red-50">
+            <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-2" />
+            <h2 className="text-xl font-semibold text-red-700">Something Went Wrong</h2>
+            <p className="text-gray-600 mt-2 mb-4">
               {errorMessage}
-            </Typography>
+            </p>
             {error instanceof HttpError && error.response && (
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              <p className="text-xs text-gray-500 mb-4">
                 Status: {error.response.status} | Code: {error.response.data?.error?.code || 'Unknown'}
-              </Typography>
+              </p>
             )}
-            <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
-              <Button variant="outlined" onClick={this.handleGoBack}>
+            <div className="mt-4 flex gap-4 justify-center">
+              <button
+                onClick={this.handleGoBack}
+                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
                 Go Back
-              </Button>
-              <Button variant="outlined" onClick={() => window.location.reload()}>
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
                 Reload Page
-              </Button>
-            </Box>
-        </Box>
+              </button>
+            </div>
+        </div>
       );
     }
 

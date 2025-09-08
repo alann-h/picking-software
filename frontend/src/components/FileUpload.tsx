@@ -1,41 +1,13 @@
 import React, { useRef, DragEvent, ChangeEvent, useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  Paper, 
-  useTheme, 
-  LinearProgress,
-  Grid,
-  Stack,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Card,
-  CardContent,
-  Alert,
-  AlertTitle,
-  Divider
-} from '@mui/material';
-import { 
-  CloudUpload as CloudUploadIcon, 
-  CheckCircleOutline as CheckCircleOutlineIcon, 
-  ErrorOutline as ErrorOutlineIcon,
-  DescriptionOutlined as DescriptionOutlinedIcon,
-  FileUploadOutlined as FileUploadOutlinedIcon,
-  LabelOutlined as LabelOutlinedIcon,
-  QrCode2Outlined as QrCode2OutlinedIcon,
-  PinOutlined as PinOutlinedIcon,
-  InfoOutlined as InfoOutlinedIcon
-} from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { getJobProgress } from '../api/products';
+import { UploadCloud, CheckCircle, AlertCircle } from 'lucide-react';
+import clsx from 'clsx';
+import ExcelInfoComponent from './ExcelInfoComponent';
 
 interface FileUploadProps {
   onFileSelect: (_file: File | null) => void;
-  // CHANGED: jobId is a string
-  onUpload: () => Promise<{ jobId: string }>;
+  onUpload: () => Promise<{ jobId: string } | undefined>;
   selectedFile: File | null;
   onSuccess?: () => void;
 }
@@ -45,16 +17,13 @@ type UploadState = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
 const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selectedFile, onSuccess }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadState, setUploadState] = useState<UploadState>('idle');
-  // CHANGED: jobId state is a string
   const [jobId, setJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const theme = useTheme();
   const pollIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // This effect runs once on mount to check for an existing job
   useEffect(() => {
     const savedJobId = localStorage.getItem('activeJobId');
     if (savedJobId) {
@@ -101,11 +70,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
     setUploadState('uploading');
     setProgressMessage('Uploading file...');
     try {
-      const { jobId } = await onUpload();
-      setJobId(jobId);
-      // Save the active job ID to localStorage
-      localStorage.setItem('activeJobId', jobId);
-      setUploadState('processing');
+      const result = await onUpload();
+      if (result && result.jobId) {
+        setJobId(result.jobId);
+        localStorage.setItem('activeJobId', result.jobId);
+        setUploadState('processing');
+      } else {
+        throw new Error("Upload did not return a job ID.");
+      }
     } catch (error) {
       console.error("Upload failed:", error);
       setUploadState('error');
@@ -119,342 +91,157 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
     setJobId(null);
     setProgress(0);
     setProgressMessage('');
-    // Clear the job ID from storage on reset
     localStorage.removeItem('activeJobId');
   };
 
-  // This effect will start polling when a jobId is set
-useEffect(() => {
-  const poll = async (currentJobId: string) => {
-    try {
-      const { state, progress: jobProgress, error } = await getJobProgress(currentJobId);
-      
-      if (state === 'completed') {
-        setUploadState('success');
-        setProgress(100);
-        setProgressMessage('Processing complete!');
-        localStorage.removeItem('activeJobId');
-        if (onSuccess) onSuccess();
-        return;
-      }
-      
-      if (state === 'failed') {
+  useEffect(() => {
+    const poll = async (currentJobId: string) => {
+      try {
+        const { state, progress: jobProgress, error } = await getJobProgress(currentJobId);
+        
+        if (state === 'completed') {
+          setUploadState('success');
+          setProgress(100);
+          setProgressMessage('Processing complete!');
+          localStorage.removeItem('activeJobId');
+          if (onSuccess) onSuccess();
+          return;
+        }
+        
+        if (state === 'failed') {
+          setUploadState('error');
+          setProgressMessage(error || 'An error occurred during processing.');
+          localStorage.removeItem('activeJobId');
+          return;
+        }
+
+        setProgress(jobProgress?.percentage || 0);
+        setProgressMessage(jobProgress?.message || 'Processing...');
+        pollIntervalRef.current = setTimeout(() => poll(currentJobId), 2000);
+
+      } catch (err) {
+        console.error("Polling error:", err);
         setUploadState('error');
-        setProgressMessage(error || 'An error occurred during processing.');
+        setProgressMessage('Could not fetch progress.');
         localStorage.removeItem('activeJobId');
-        return;
       }
+    };
 
-      // If still processing, update progress and schedule the next poll
-      setProgress(jobProgress?.percentage || 0);
-      setProgressMessage(jobProgress?.message || 'Processing...');
-      pollIntervalRef.current = setTimeout(() => poll(currentJobId), 2000);
+    if (uploadState === 'processing' && jobId) {
+      poll(jobId);
+    }
 
-    } catch (err) {
-      console.error("Polling error:", err);
-      setUploadState('error');
-      setProgressMessage('Could not fetch progress.');
-      localStorage.removeItem('activeJobId');
+    return () => {
+      if (pollIntervalRef.current) {
+        clearTimeout(pollIntervalRef.current);
+      }
+    };
+  }, [uploadState, jobId, onSuccess]);
+
+  const renderContent = () => {
+    switch (uploadState) {
+      case 'uploading':
+      case 'processing':
+        return (
+          <div className="text-center p-8">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">{progressMessage}</h3>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-700 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+            </div>
+            <p className="mt-2 text-lg font-bold text-gray-700">{`${Math.round(progress)}%`}</p>
+          </div>
+        );
+      case 'success':
+        return (
+          <div className="text-center p-8">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Upload and Processing Successful!</h3>
+            <button
+              onClick={resetState}
+              className="mt-4 px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Upload Another File
+            </button>
+          </div>
+        );
+      case 'error':
+        return (
+          <div className="text-center p-8">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">An Error Occurred</h3>
+            <p className="text-gray-600">{progressMessage}</p>
+            <button
+              onClick={resetState}
+              className="mt-4 px-6 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Try Again
+            </button>
+          </div>
+        );
+      case 'idle':
+      default:
+        return (
+          <div className="p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-1">Upload Product Data</h3>
+            <p className="text-gray-500 mb-4">
+              Upload your CSV file containing product data. Ensure it follows the format guide below.
+            </p>
+            <div
+              className={clsx(
+                "border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300",
+                isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+              )}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                className="hidden"
+              />
+              <UploadCloud className="h-12 w-12 text-blue-500 mx-auto mb-3" />
+              {selectedFile ? (
+                <p className="text-sm text-gray-600 mt-2">
+                  Selected file: <strong>{selectedFile.name}</strong>
+                </p>
+              ) : (
+                <p className="text-gray-600">Drag & drop a CSV file here or <span className="font-semibold text-blue-600">click to select</span></p>
+              )}
+            </div>
+            <button
+              onClick={handleUploadClick}
+              disabled={!selectedFile}
+              className={clsx(
+                "w-full text-white font-bold py-3 px-4 rounded-lg mt-4 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2",
+                !selectedFile ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 focus:ring-blue-500'
+              )}
+            >
+              Upload File
+            </button>
+          </div>
+        );
     }
   };
-
-  if (uploadState === 'processing' && jobId) {
-    poll(jobId);
-  }
-
-  return () => {
-    if (pollIntervalRef.current) {
-      clearTimeout(pollIntervalRef.current);
-    }
-  };
-}, [uploadState, jobId, onSuccess]);
-
-  const steps = [
-    'Go to Reports > List Reports > Item Listing',
-    'Customize the report to include the Name and SKU fields.',
-    'Export the report as an CSV file.',
-    'Add a new "Barcode" column and fill in the unique barcodes.',
-  ];
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
+      className="space-y-6"
     >
-      <Paper elevation={0} sx={{ 
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 3,
-        backgroundColor: theme.palette.background.paper, 
-        minHeight: 'auto',
-        overflow: 'hidden'
-      }}>
-        <title>Smart Picker | Upload Data</title>
-        
-        {/* Upload Section */}
-        <Box sx={{ p: 3 }}>
-          <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-            Upload Product Data
-          </Typography>
+      <title>Smart Picker | Upload Data</title>
+      
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        {renderContent()}
+      </div>
 
-          {uploadState === 'idle' && (
-            <>
-              <Typography variant="body1" component="p" gutterBottom sx={{ mb: 3 }}>
-                Upload your CSV file containing product data. Ensure it follows the format guide below.
-              </Typography>
-              <Box
-                sx={{
-                  border: `2px dashed ${isDragging ? theme.palette.primary.main : theme.palette.grey[300]}`,
-                  borderRadius: 2,
-                  padding: 3,
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  backgroundColor: isDragging ? 'rgba(59,130,246,0.05)' : 'transparent',
-                  '&:hover': {
-                    borderColor: theme.palette.primary.main,
-                    backgroundColor: 'rgba(59,130,246,0.02)'
-                  }
-                }}
-                onDragEnter={handleDragEnter}
-                onDragOver={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileChange}
-                  ref={fileInputRef}
-                  style={{ display: 'none' }}
-                />
-                <CloudUploadIcon sx={{ fontSize: 48, color: theme.palette.primary.main, mb: 2 }} />
-                {selectedFile ? (
-                  <Typography variant="body2" sx={{ mt: 2, color: theme.palette.text.secondary }}>
-                    Selected file: <strong>{selectedFile.name}</strong>
-                  </Typography>
-                ) : (
-                  <Typography>Drag & drop a CSV file here or click to select</Typography>
-                )}
-              </Box>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleUploadClick}
-                disabled={!selectedFile}
-                sx={{ 
-                  mt: 3,
-                  background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
-                  }
-                }}
-                fullWidth
-                size="large"
-              >
-                Upload File
-              </Button>
-            </>
-          )}
-
-          {(uploadState === 'uploading' || uploadState === 'processing') && (
-            <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
-              <Typography variant="h6" sx={{mb: 2}}>{progressMessage}</Typography>
-              <Box sx={{ width: '100%', mr: 1 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={progress} 
-                  sx={{ 
-                    height: 8, 
-                    borderRadius: 4,
-                    backgroundColor: 'rgba(59,130,246,0.1)',
-                    '& .MuiLinearProgress-bar': {
-                      borderRadius: 4,
-                      background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)'
-                    }
-                  }}
-                />
-              </Box>
-              <Typography sx={{mt: 1, fontWeight: 500}}>{`${Math.round(progress)}%`}</Typography>
-            </Box>
-          )}
-
-          {uploadState === 'success' && (
-            <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
-              <CheckCircleOutlineIcon sx={{ fontSize: 60, color: 'success.main' }} />
-              <Typography variant="h6" sx={{mt: 2}}>Upload and Processing Successful!</Typography>
-              <Button 
-                variant="outlined" 
-                onClick={resetState} 
-                sx={{mt: 3}}
-                size="large"
-              >
-                Upload Another File
-              </Button>
-            </Box>
-          )}
-
-          {uploadState === 'error' && (
-            <Box sx={{ textAlign: 'center', padding: '40px 0' }}>
-              <ErrorOutlineIcon sx={{ fontSize: 60, color: 'error.main' }} />
-              <Typography variant="h6" sx={{mt: 2}}>An Error Occurred</Typography>
-              <Typography variant="body1">{progressMessage}</Typography>
-              <Button 
-                variant="outlined" 
-                onClick={resetState} 
-                sx={{mt: 3}}
-                size="large"
-              >
-                Try Again
-              </Button>
-            </Box>
-          )}
-        </Box>
-
-        {/* Format Guide Section */}
-        <Divider />
-        <Box sx={{ p: 3, backgroundColor: 'grey.50' }}>
-          <Stack spacing={4}>
-            {/* CSV File Structure */}
-            <Stack spacing={3}>
-              <Stack direction="row" spacing={2} alignItems="center">
-                <DescriptionOutlinedIcon color="primary" sx={{ fontSize: '2rem' }} />
-                <Box>
-                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>
-                    CSV File Structure
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Your uploaded CSV file must follow this structure.
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <Card 
-                    variant="outlined" 
-                    sx={{ 
-                      height: '100%',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        backgroundColor: 'rgba(59,130,246,0.02)'
-                      },
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                      <Stack spacing={1} alignItems="center">
-                        <LabelOutlinedIcon color="primary" />
-                        <Typography variant="subtitle1" component="h4" sx={{ fontWeight: 600 }}>
-                          Product Name
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Must match the product names in QuickBooks exactly.
-                        </Typography>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <Card 
-                    variant="outlined" 
-                    sx={{ 
-                      height: '100%',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        backgroundColor: 'rgba(59,130,246,0.02)'
-                      },
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                      <Stack spacing={1} alignItems="center">
-                        <PinOutlinedIcon color="primary" />
-                        <Typography variant="subtitle1" component="h4" sx={{ fontWeight: 600 }}>
-                          SKU
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Must match the SKU values defined in QuickBooks.
-                        </Typography>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <Card 
-                    variant="outlined" 
-                    sx={{ 
-                      height: '100%',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        backgroundColor: 'rgba(59,130,246,0.02)'
-                      },
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                      <Stack spacing={1} alignItems="center">
-                        <QrCode2OutlinedIcon color="primary" />
-                        <Typography variant="subtitle1" component="h4" sx={{ fontWeight: 600 }}>
-                          Barcode
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Must contain a unique barcode for each product.
-                        </Typography>
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Stack>
-
-            {/* Exporting from QuickBooks */}
-            <Stack spacing={2}>
-              <Stack direction="row" spacing={2} alignItems="center">
-                <FileUploadOutlinedIcon color="primary" sx={{ fontSize: '2rem' }} />
-                <Box>
-                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>
-                    Exporting from QuickBooks
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Follow these steps to get your product list.
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <List sx={{ py: 0 }}>
-                {steps.map((text, index) => (
-                  <ListItem key={index} disablePadding sx={{ py: 0.5 }}>
-                    <ListItemIcon sx={{ minWidth: 32 }}>
-                      <Typography
-                        sx={{
-                          fontWeight: 'bold',
-                          color: 'primary.main',
-                          fontSize: '0.875rem'
-                        }}
-                      >
-                        {index + 1}.
-                      </Typography>
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={text} 
-                      primaryTypographyProps={{ variant: 'body2' }}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Stack>
-
-            {/* Final Note */}
-            <Alert severity="info" icon={<InfoOutlinedIcon />} sx={{ borderRadius: 2 }}>
-              <AlertTitle sx={{ fontWeight: 'bold' }}>Important</AlertTitle>
-              Ensure that the <strong>Product Name</strong> and <strong>SKU</strong> in your CSV file match exactly with those in QuickBooks to avoid data synchronization errors.
-            </Alert>
-          </Stack>
-        </Box>
-      </Paper>
+      <ExcelInfoComponent />
     </motion.div>
   );
 };

@@ -1,22 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  InputAdornment,
-  Stack,
-  Chip,
-  Card,
-  CardContent,
-  IconButton,
-  Tooltip
-} from '@mui/material';
-import { 
-  Search as SearchIcon,
-  Inventory as InventoryIcon,
-  Clear as ClearIcon
-} from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { Search, Package, X } from 'lucide-react';
+import clsx from 'clsx';
 import { Product } from '../../utils/types';
 import ProductList from '../ProductListSettings';
 import { updateProductDb, setProductArchiveStatus, addProductDb } from '../../api/products'; 
@@ -83,151 +68,115 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Box>
+      <div>
         <title>Smart Picker | Current Products</title>
         
         {/* Header Section */}
-        <Stack spacing={3} sx={{ mb: 4 }}>
-          <Box>
-            <Typography 
-              variant="h4" 
-              component="h2" 
-              fontWeight="bold" 
-              gutterBottom
-              sx={{ color: 'primary.main' }}
-            >
+        <div className="space-y-3 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">
               Current Products in System
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
+            </h2>
+            <p className="text-gray-500">
               Manage your product inventory, search by name or SKU, and update product details
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Enhanced Search Section */}
-          <Card 
-            elevation={0}
-            sx={{ 
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)'
-            }}
-          >
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              <Stack spacing={3}>
+          <div className="rounded-xl border border-gray-200 bg-gray-50">
+            <div className="p-4 sm:p-6">
+              <div className="space-y-4">
                 {/* Search Field Selector */}
-                <Stack 
-                  direction={{ xs: 'column', sm: 'row' }} 
-                  spacing={2} 
-                  alignItems={{ xs: 'stretch', sm: 'center' }}
-                >
-                  <Typography variant="body2" fontWeight="500" color="text.secondary">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <p className="text-sm font-medium text-gray-600">
                     Search by:
-                  </Typography>
-                  <Stack direction="row" spacing={1}>
-                    <Chip
-                      label="All Fields"
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
                       onClick={() => handleSearchFieldChange('all')}
-                      color={searchField === 'all' ? 'primary' : 'default'}
-                      variant={searchField === 'all' ? 'filled' : 'outlined'}
-                      size="small"
-                      sx={{ fontWeight: 500 }}
-                    />
-                    <Chip
-                      label="Product Name"
+                      className={clsx(
+                        'px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
+                        {
+                          'bg-blue-600 text-white': searchField === 'all',
+                          'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100': searchField !== 'all',
+                        }
+                      )}
+                    >
+                      All Fields
+                    </button>
+                    <button
                       onClick={() => handleSearchFieldChange('name')}
-                      color={searchField === 'name' ? 'primary' : 'default'}
-                      variant={searchField === 'name' ? 'filled' : 'outlined'}
-                      size="small"
-                      sx={{ fontWeight: 500 }}
-                    />
-                    <Chip
-                      label="SKU"
+                      className={clsx(
+                        'px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
+                        {
+                          'bg-blue-600 text-white': searchField === 'name',
+                          'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100': searchField !== 'name',
+                        }
+                      )}
+                    >
+                      Product Name
+                    </button>
+                    <button
                       onClick={() => handleSearchFieldChange('sku')}
-                      color={searchField === 'name' ? 'primary' : 'default'}
-                      variant={searchField === 'sku' ? 'filled' : 'outlined'}
-                      size="small"
-                      sx={{ fontWeight: 500 }}
-                    />
-                  </Stack>
-                </Stack>
+                      className={clsx(
+                        'px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
+                        {
+                          'bg-blue-600 text-white': searchField === 'sku',
+                          'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100': searchField !== 'sku',
+                        }
+                      )}
+                    >
+                      SKU
+                    </button>
+                  </div>
+                </div>
 
                 {/* Search Input */}
-                <TextField
-                  fullWidth
-                  placeholder={getSearchPlaceholder()}
-                  value={searchTerm}
-                  onChange={onSearchChange}
-                  variant="outlined"
-                  size="medium"
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon color="action" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: searchTerm && (
-                        <InputAdornment position="end">
-                          <Tooltip title="Clear search">
-                            <IconButton
-                              size="small"
-                              onClick={() => onSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>)}
-                              sx={{ color: 'text.secondary' }}
-                            >
-                              <ClearIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </InputAdornment>
-                      ),
-                      sx: {
-                        borderRadius: 2,
-                        backgroundColor: 'white',
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: 'primary.main',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: 'primary.main',
-                          },
-                        },
-                      },
-                    },
-                  }}
-                />
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Search className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={getSearchPlaceholder()}
+                    value={searchTerm}
+                    onChange={onSearchChange}
+                    className="block w-full rounded-lg border-gray-300 py-3 pl-10 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                  {searchTerm && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <button
+                        onClick={() => onSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>)}
+                        className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        aria-label="Clear search"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Search Results Summary */}
-                <Stack 
-                  direction="row" 
-                  alignItems="center" 
-                  spacing={2}
-                  sx={{ 
-                    p: 2, 
-                    backgroundColor: 'white', 
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <InventoryIcon color="primary" />
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+                  <Package className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">
                       Showing {finalFilteredProducts.length} of {filteredProducts.length} products
-                    </Typography>
+                    </p>
                     {searchTerm && (
-                      <Typography variant="body2" color="primary.main" fontWeight="500">
+                      <p className="text-sm font-medium text-blue-700">
                         Search results for "{searchTerm}" in {searchField === 'all' ? 'all fields' : searchField === 'name' ? 'product names' : 'SKUs'}
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
-                </Stack>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Stack>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Product List */}
-        <Box>
+        <div>
           <ProductList 
             products={finalFilteredProducts} 
             isLoading={isLoading} 
@@ -237,8 +186,8 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
             addProductDb={addProductDb} 
             isAdmin={isAdmin}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
     </motion.div>
   );
 };
