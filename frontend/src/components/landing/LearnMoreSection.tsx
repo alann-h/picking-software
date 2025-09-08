@@ -1,114 +1,83 @@
 import React from 'react';
-import { 
-  Button, 
-  Box, 
-  Typography, 
-  Container, 
-  Grid,
-  Stack
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { ArrowForward, CheckCircle } from '@mui/icons-material';
+import { ArrowRight, CheckCircle } from 'lucide-react';
 import AnimatedSection from './AnimatedSection';
 
-const LearnMoreSection = () => {
+const LearnMoreSection: React.FC = () => {
   const navigate = useNavigate();
 
+  const features = [
+    "Advanced customer search and quote management",
+    "Smart run system for optimized warehouse operations",
+    "Barcode scanning with 100% accuracy guarantee",
+    "Comprehensive user management and security"
+  ];
+
+  const benefits = [
+    "Eliminate picking errors completely",
+    "Streamline warehouse operations",
+    "Seamless QuickBooks integration",
+    "Mobile-first design for warehouse staff"
+  ];
+
   return (
-    <Box sx={{ py: { xs: 8, md: 12 }, px: { xs: 2, sm: 4 }, backgroundColor: '#FFFFFF' }}>
-      <Container maxWidth="lg">
-        <Grid container spacing={6} alignItems="center">
-          <Grid size={{ xs: 12, md: 6 }}>
+    <section className="py-16 md:py-24 px-4 sm:px-6 bg-white">
+      <div className="max-w-screen-xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-center">
+
+          {/* Left Column: Text content and CTA */}
+          <div>
             <AnimatedSection>
-              <Typography variant="h3" fontWeight="bold" sx={{ color: '#1F2937', mb: 1 }}>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
                 Discover Smart Picker's Full Potential
-              </Typography>
-              <Typography variant="h6" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6, color: '#6B7280' }}>
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed mb-6">
                 Learn how our comprehensive warehouse management platform combines advanced customer search, 
                 intelligent run systems, barcode validation, and seamless QuickBooks integration to 
                 revolutionize your order fulfillment process.
-              </Typography>
-              <Stack spacing={2}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3B82F6' }} />
-                  <Typography variant="body1" sx={{ color: '#374151' }}>Advanced customer search and quote management</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3B82F6' }} />
-                  <Typography variant="body1" sx={{ color: '#374151' }}>Smart run system for optimized warehouse operations</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3B82F6' }} />
-                  <Typography variant="body1" sx={{ color: '#374151' }}>Barcode scanning with 100% accuracy guarantee</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3B82F6' }} />
-                  <Typography variant="body1" sx={{ color: '#374151' }}>Comprehensive user management and security</Typography>
-                </Box>
-              </Stack>
-              <Button
-                variant="contained"
-                size="large"
+              </p>
+              
+              <ul className="space-y-3 mb-8">
+                {features.map((feature, index) => (
+                  <li key={index} className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0"></div>
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
                 onClick={() => navigate("/about-us")}
-                endIcon={<ArrowForward />}
-                sx={{
-                  mt: 3,
-                  background: 'linear-gradient(45deg, #1E40AF, #3B82F6)',
-                  px: 6,
-                  py: 2,
-                  borderRadius: '8px',
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  boxShadow: '0 10px 30px rgba(30,64,175,0.3)',
-                  '&:hover': {
-                    background: 'linear-gradient(45deg, #3B82F6, #1E40AF)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 15px 40px rgba(30,64,175,0.4)',
-                  }
-                }}
+                className="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-700 to-blue-500 text-white font-semibold text-lg px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 cursor-pointer"
               >
                 Learn More About Smart Picker
-              </Button>
+                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+              </button>
             </AnimatedSection>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
+          </div>
+
+          {/* Right Column: Highlight box */}
+          <div>
             <AnimatedSection delay={0.2}>
-              <Box
-                sx={{
-                  background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-                  borderRadius: 4,
-                  p: 4,
-                  color: 'white',
-                  textAlign: 'center'
-                }}
-              >
-                <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>
+              <div className="bg-gradient-to-br from-blue-800 to-blue-500 rounded-2xl p-8 text-white text-center shadow-2xl">
+                <h3 className="text-2xl font-bold mb-6">
                   Why Choose Smart Picker?
-                </Typography>
-                <Stack spacing={2}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
-                    <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
-                    <Typography variant="body1">Eliminate picking errors completely</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
-                    <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
-                    <Typography variant="body1">Streamline warehouse operations</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
-                    <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
-                    <Typography variant="body1">Seamless QuickBooks integration</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
-                    <CheckCircle sx={{ color: 'white', fontSize: 24 }} />
-                    <Typography variant="body1">Mobile-first design for warehouse staff</Typography>
-                  </Box>
-                </Stack>
-              </Box>
+                </h3>
+                <ul className="space-y-4 inline-block text-left">
+                  {benefits.map((benefit, index) => (
+                     <li key={index} className="flex items-center gap-3">
+                       <CheckCircle className="w-6 h-6 text-white flex-shrink-0" />
+                       <span className="text-lg">{benefit}</span>
+                     </li>
+                  ))}
+                </ul>
+              </div>
             </AnimatedSection>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
+          </div>
+
+        </div>
+      </div>
+    </section>
   );
 };
 

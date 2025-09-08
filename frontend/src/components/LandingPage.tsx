@@ -1,7 +1,4 @@
 import React, { Suspense } from 'react';
-import { 
-  Box, 
-} from '@mui/material';
 import SEO from './SEO';
 import { getPageStructuredData } from '../utils/structuredData';
 import CookieConsent from './CookieConsent';
@@ -28,24 +25,14 @@ const LandingPage: React.FC = () => {
       
       {/* Cache Status Indicator (Development Only) */}
       {import.meta.env.VITE_APP_ENV === 'development' && (
-        <Box sx={{ 
-          position: 'fixed', 
-          top: 10, 
-          right: 10, 
-          zIndex: 9999,
-          background: isCached ? '#4CAF50' : '#FF9800',
-          color: 'white',
-          px: 2,
-          py: 1,
-          borderRadius: 1,
-          fontSize: '0.8rem',
-          opacity: isLoading ? 0.7 : 1
-        }}>
-          {isLoading ? 'Caching...' : isCached ? 'Cached' : 'Not Cached'}
-        </Box>
+        <div className={`fixed top-2.5 right-2.5 z-[9999] text-white px-4 py-2 rounded-md text-xs font-semibold shadow-lg transition-opacity ${
+          isCached ? 'bg-green-500' : 'bg-orange-400'
+        } ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
+        {isLoading ? 'Caching...' : isCached ? 'Cached' : 'Not Cached'}
+      </div>
       )}
       
-      <Box sx={{ backgroundColor: '#FFFFFF' }}>
+      <main className="bg-white font-sans">
       
       {/* --- HERO SECTION --- */}
       <Hero />
@@ -75,7 +62,7 @@ const LandingPage: React.FC = () => {
         onAccept={() => console.log('Cookies accepted')}
         onDecline={() => console.log('Cookies declined')}
       />
-      </Box>
+      </main>
     </>
   );
 };

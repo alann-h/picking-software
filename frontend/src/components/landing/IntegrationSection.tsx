@@ -1,104 +1,59 @@
 import React from 'react';
-import { 
-  Button, 
-  Box, 
-  Typography, 
-  Container, 
-  Grid 
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import AnimatedSection from './AnimatedSection';
 
-const IntegrationSection = () => {
+const IntegrationSection: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <Box sx={{
-      background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)',
-      py: { xs: 8, md: 12 },
-      px: { xs: 2, sm: 4 },
-      color: 'white'
-    }}>
-      <Container maxWidth="lg">
-        <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
-          <Grid size={{ xs: 12, md: 6 }}>
+    <section className="bg-gradient-to-br from-blue-800 to-blue-500 py-16 md:py-24 px-4 sm:px-6 text-white">
+      <div className="max-w-screen-xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+          
+          {/* Left Column: Logos */}
+          <div className="order-2 md:order-1">
             <AnimatedSection>
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-                <Box
-                  component="img"
+              <div className="flex justify-center items-center gap-6 sm:gap-8 flex-wrap">
+                <img
                   src="/quickbooks-logo.svg"
                   alt="QuickBooks Integration"
-                  sx={{
-                    maxWidth: 200,
-                    height: 'auto',
-                    opacity: 0.9,
-                  }}
+                  className="max-w-[140px] sm:max-w-[180px] h-auto opacity-90"
+                  onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x80/ffffff/3B82F6?text=QuickBooks'; }}
                 />
-                <Box
-                  component="img"
+                <img
                   src="/xero-logo.svg"
                   alt="Xero Integration"
-                  sx={{
-                    maxWidth: 200,
-                    height: 'auto',
-                    opacity: 0.9,
-                  }}
+                  className="max-w-[140px] sm:max-w-[180px] h-auto opacity-90"
+                  onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x80/ffffff/3B82F6?text=Xero'; }}
                 />
-              </Box>
+              </div>
             </AnimatedSection>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
+          </div>
+
+          {/* Right Column: Text Content & Button */}
+          <div className="order-1 md:order-2 text-center md:text-left">
             <AnimatedSection delay={0.2}>
-              <Typography 
-                variant="h3" 
-                fontWeight="bold" 
-                gutterBottom
-                sx={{
-                  fontSize: { xs: '1.75rem', sm: '2rem', md: '3rem' },
-                  textAlign: { xs: 'center', md: 'left' }
-                }}
-              >
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4">
                 Seamless Accounting Integration
-              </Typography>
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  mb: 3, 
-                  opacity: 0.95, 
-                  lineHeight: 1.6,
-                  fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
-                  textAlign: { xs: 'center', md: 'left' }
-                }}
-              >
+              </h2>
+              <p className="text-base sm:text-lg md:text-xl opacity-95 leading-relaxed mb-6">
                 SmartPicker automatically syncs with both QuickBooks Online and Xero, keeping your inventory,
                 orders, and financial data perfectly aligned. No more manual data entry or reconciliation.
-              </Typography>
-              <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
-                <Button 
-                  variant="outlined" 
-                  size="large" 
+              </p>
+              <div className="mt-8">
+                <button 
                   onClick={() => navigate("/about-us")}
-                  sx={{ 
-                    borderColor: 'rgba(255,255,255,0.4)',
-                    color: 'white',
-                    borderRadius: '8px',
-                    px: 4,
-                    py: 1.5,
-                    fontSize: '1.1rem',
-                    '&:hover': {
-                      borderColor: 'white',
-                      background: 'rgba(255,255,255,0.1)',
-                    }
-                  }}
+                  className="bg-transparent border border-white/40 text-white font-bold text-lg rounded-lg px-8 py-3 transition-all duration-300 ease-in-out hover:bg-white/10 hover:border-white focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer"
                 >
                   Learn More
-                </Button>
-              </Box>
+                </button>
+              </div>
             </AnimatedSection>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
+          </div>
+
+        </div>
+      </div>
+    </section>
   );
 };
 
