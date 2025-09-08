@@ -13,7 +13,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClass = 'animate-pulse bg-gray-200 dark:bg-gray-700';
+  const baseClass = 'animate-pulse bg-gray-200';
 
   const variantClasses = {
     line: 'rounded-md', // Good default for text
@@ -30,10 +30,6 @@ const Skeleton: React.FC<SkeletonProps> = ({
 
 export const LoginFormSkeleton = () => (
   <div className="space-y-6">
-    {/* Header lines */}
-    <Skeleton variant="line" className="mx-auto h-10 w-3/5" />
-    <Skeleton variant="line" className="mx-auto h-6 w-4/5" />
-
     {/* Email field */}
     <Skeleton variant="box" className="h-14 w-full" />
 
@@ -75,29 +71,50 @@ export const SocialLoginButtonsSkeleton = () => (
 );
 
 export const LoginPageSkeleton = () => (
-  <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-800 via-blue-500 to-blue-400 px-2 py-4">
-    <main className="w-full max-w-sm">
-      <div className="w-full rounded-2xl border border-white/20 bg-white/95 p-6 shadow-2xl backdrop-blur-lg sm:p-8 dark:bg-gray-900/90 dark:border-gray-700/30">
-        {/* Header skeleton */}
-        <div className="mb-8 text-center">
-          <Skeleton variant="line" className="mx-auto mb-2 h-12 w-3/5" />
-          <Skeleton variant="line" className="mx-auto h-6 w-4/5" />
+  <div className="flex min-h-screen bg-white">
+    {/* 1. Brand Panel Skeleton */}
+    <div className="relative hidden w-0 flex-1 flex-col justify-end bg-blue-900 p-12 text-white md:flex lg:w-1/2">
+      <div className="relative z-10">
+        <Skeleton variant="box" className="h-16 w-16 bg-blue-700" />
+        <Skeleton variant="line" className="mt-4 h-8 w-full bg-gray-200" />
+        <Skeleton variant="line" className="mt-2 h-8 w-full bg-gray-200" />
+        <Skeleton variant="line" className="mt-2 h-8 w-3/4 bg-gray-200" />
+        <Skeleton variant="line" className="mt-6 h-6 w-1/2 bg-blue-200" />
+      </div>
+    </div>
+
+    {/* 2. Form Panel Skeleton */}
+    <div className="flex w-full flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:w-1/2 lg:px-20 xl:px-24">
+      <main className="mx-auto w-full max-w-sm lg:w-96">
+        {/* Mobile Logo Skeleton */}
+        <div className="md:hidden">
+          <div className="flex items-center gap-2">
+            <Skeleton variant="box" className="h-10 w-10" />
+            <Skeleton variant="line" className="h-8 w-40" />
+          </div>
         </div>
 
-        {/* Form skeleton */}
-        <LoginFormSkeleton />
+        <div className="mt-8">
+          <UserSessionIndicatorSkeleton />
 
-        {/* Social buttons skeleton */}
-        <SocialLoginButtonsSkeleton />
-      </div>
-    </main>
+          {/* Header Text Skeleton */}
+          <div className="mb-8">
+            <Skeleton variant="line" className="h-10 w-3/4" />
+            <Skeleton variant="line" className="mt-2 h-6 w-full" />
+          </div>
+
+          <LoginFormSkeleton />
+          <SocialLoginButtonsSkeleton />
+        </div>
+      </main>
+    </div>
   </div>
 );
 
 // --- App/Dashboard Skeletons ---
 
 export const UserSessionIndicatorSkeleton = () => (
-  <div className="mb-6 flex items-center justify-between rounded-lg border border-blue-500/20 bg-blue-500/10 p-4 dark:border-blue-700/30 dark:bg-blue-900/20">
+  <div className="mb-6 flex items-center justify-between rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
     <div className="flex items-center gap-2">
       <Skeleton variant="circle" className="h-5 w-5" />
       <Skeleton variant="line" className="h-5 w-48" />
@@ -115,7 +132,7 @@ export const RunListSkeleton = () => (
 );
 
 export const CreateRunSkeleton = () => (
-  <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700 md:p-6">
+  <div className="rounded-lg border border-gray-200 p-4 md:p-6">
     <Skeleton variant="line" className="h-10 w-2/5" />
     <div className="mt-2 grid grid-cols-12 gap-6">
       {/* Column 1 */}
@@ -133,7 +150,7 @@ export const CreateRunSkeleton = () => (
 );
 
 const QuoteItemSkeleton = () => (
-  <div className="mb-2 flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+  <div className="mb-2 flex items-center justify-between rounded-lg border border-gray-200 p-3">
     <div className="flex-grow space-y-2">
       <Skeleton variant="line" className="h-6 w-[45%]" />
       <div className="flex space-x-4">
@@ -146,7 +163,7 @@ const QuoteItemSkeleton = () => (
 );
 
 export const AvailableQuotesSkeleton = () => (
-  <div className="flex-grow overflow-y-hidden rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800">
+  <div className="flex-grow overflow-y-hidden rounded-lg border border-gray-200 bg-gray-50 p-2">
     {[...Array(3)].map((_, i) => (
       <QuoteItemSkeleton key={i} />
     ))}
@@ -154,9 +171,9 @@ export const AvailableQuotesSkeleton = () => (
 );
 
 export const UserTableSkeleton = () => (
-  <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-      <thead className="bg-gray-50 dark:bg-gray-800">
+  <div className="overflow-hidden rounded-lg border border-gray-200">
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
         <tr>
           {[...Array(6)].map((_, i) => (
             <th key={i} className="px-4 py-3 text-left">
@@ -165,7 +182,7 @@ export const UserTableSkeleton = () => (
           ))}
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
+      <tbody className="divide-y divide-gray-200 bg-white">
         {[...Array(3)].map((_, rowIndex) => (
           <tr key={rowIndex}>
             {[...Array(6)].map((_, cellIndex) => (
@@ -202,7 +219,7 @@ const QuoteSkeletonRow = () => (
 
 export const QuoteSkeleton = () => {
   return (
-    <div className="m-2 rounded-lg bg-white p-2 shadow-lg dark:bg-gray-900 sm:m-4 sm:p-4 md:p-6">
+    <div className="m-2 rounded-lg bg-white p-2 shadow-lg sm:m-4 sm:p-4 md:p-6">
       {/* Header */}
       <Skeleton variant="line" className="mb-4 h-12 w-2/5" />
 
@@ -217,9 +234,9 @@ export const QuoteSkeleton = () => {
       <Skeleton variant="box" className="mb-4 h-32 w-full" />
 
       {/* Product Table */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
+      <div className="overflow-hidden rounded-lg border border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3">
                 <Skeleton className="h-5 w-3/5" />
@@ -238,7 +255,7 @@ export const QuoteSkeleton = () => {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-200">
             <QuoteSkeletonRow />
             <QuoteSkeletonRow />
             <QuoteSkeletonRow />
@@ -262,7 +279,7 @@ export const OrderHistorySkeleton = () => {
       {Array.from({ length: 6 }).map((_, index) => (
         <div
           key={index}
-          className="h-full rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+          className="h-full rounded-lg border border-gray-200 bg-white"
         >
           <div className="p-6">
             <Skeleton variant="line" className="mb-4 h-8 w-3/5" />

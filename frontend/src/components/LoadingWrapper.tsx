@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Loader2 } from 'lucide-react';
 
 interface LoadingWrapperProps {
   isLoading: boolean;
@@ -8,20 +8,20 @@ interface LoadingWrapperProps {
   fallback?: React.ReactNode;
 }
 
-const LoadingWrapper: React.FC<LoadingWrapperProps> = ({ 
-  isLoading, 
-  children, 
+const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
+  isLoading,
+  children,
   height = '100vh',
-  fallback 
+  fallback,
 }) => {
   if (isLoading) {
     if (fallback) {
       return <>{fallback}</>;
     }
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex items-center justify-center" style={{ height }}>
+        <Loader2 className="h-12 w-12 animate-spin text-gray-500" />
+      </div>
     );
   }
   return <>{children}</>;

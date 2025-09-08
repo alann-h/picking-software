@@ -124,7 +124,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               disabled={isSubmitting}
-              className={`block w-full rounded-lg border-0 py-2.5 pr-10 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 ${
+              className={`block w-full rounded-lg border-0 py-2.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 ${
                 errors.password
                   ? 'ring-red-500 focus:ring-red-500'
                   : 'ring-gray-300 focus:ring-blue-600'
