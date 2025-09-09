@@ -3,25 +3,31 @@ FROM node:22-alpine AS builder
 
 ARG VITE_API_BASE_URL
 
+# Enable pnpm using Corepack
+RUN corepack enable pnpm
+
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+# Copy the pnpm configuration and all package manifests
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json ./
 COPY frontend/package.json ./frontend/
 COPY backend/package.json ./backend/
 
-RUN npm install
+# Install dependencies using pnpm
+RUN pnpm install
 
 COPY frontend/ ./frontend/
 COPY frontend/tsconfig.json ./frontend/
 
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-RUN npm run build --workspace=frontend
+# Run the build script for the 'frontend' workspace using pnpm filter
+RUN pnpm --filter frontend run build
 
 
-# ---- Stage 2: Serve ----a
-# Use a lightweight Nginx web server to serve the static files in production.
-# This creates a much smaller and more secure final image than using Node.js.
+# ---- Stage 2: Serve ----
+# This stage remains unchanged as it only uses Nginx.
 FROM nginx:1.27-alpine
 
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html

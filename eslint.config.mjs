@@ -1,69 +1,74 @@
-import globals from "globals";
-import pluginJs from "@eslint/js";
-import tseslint from "typescript-eslint";
-import pluginReactConfig from "eslint-plugin-react/configs/recommended.js";
+import js from '@eslint/js'
+import typescript from '@typescript-eslint/eslint-plugin'
+import typescriptParser from '@typescript-eslint/parser'
+import react from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
+import globals from 'globals'
 
 export default [
-  // 1. Global ignores
+  js.configs.recommended,
+  // Backend configuration (Node.js)
   {
-    ignores: ["node_modules/", "dist/", "build/", "frontend/dist/", "backend/tests/"],
-  },
-
-  // 2. Base JS configuration
-  pluginJs.configs.recommended,
-  
-  // 3. Node.js configuration for backend
-  {
-    files: ["backend/**/*.{js,cjs,mjs}"],
+    files: ['backend/**/*.{js,ts}'],
     languageOptions: {
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
       globals: {
         ...globals.node,
       },
     },
+    plugins: {
+      '@typescript-eslint': typescript,
+    },
     rules: {
-      "no-unused-vars": [
-        "warn",
-        { "argsIgnorePattern": "^_" }
-      ],
-    }
+      ...typescript.configs.recommended.rules,
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
   },
-
-  // 4. TypeScript + React configuration for frontend
+  // Frontend configuration (React + TypeScript)
   {
-    files: ["frontend/**/*.{ts,tsx}"],
-    ...pluginReactConfig,
+    files: ['frontend/**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
-      ...pluginReactConfig.languageOptions,
-      parser: tseslint.parser,
+      parser: typescriptParser,
       parserOptions: {
-        project: "./frontend/tsconfig.json",
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
       globals: {
         ...globals.browser,
+        ...globals.node,
       },
     },
     plugins: {
-      ...pluginReactConfig.plugins,
-      "@typescript-eslint": tseslint.plugin,
+      '@typescript-eslint': typescript,
+      'react': react,
+      'react-hooks': reactHooks,
     },
     rules: {
-      ...tseslint.configs.recommended.rules,
-      
-      "no-unused-vars": "off",
-      
-      "@typescript-eslint/no-unused-vars": [
-        "error", // Set to "error" as you mentioned
-        { 
-          "argsIgnorePattern": "^_",
-          "varsIgnorePattern": "^_",
-          "caughtErrorsIgnorePattern": "^_"
-        }
-      ],
-      
-      // Other React rules
-      "react/react-in-jsx-scope": "off",
-      "react/prop-types": "off",
-      "react/jsx-key": "warn",
+      ...typescript.configs.recommended.rules,
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      'react/react-in-jsx-scope': 'off', // Not needed with React 17+
+      'react/prop-types': 'off', // Using TypeScript for prop validation
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
     },
   },
-];
+  // Test files configuration
+  {
+    files: ['**/*.test.{js,jsx,ts,tsx}', '**/*.spec.{js,jsx,ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+]

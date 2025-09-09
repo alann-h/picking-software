@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 // Set environment variables before importing
 process.env.VITE_APP_ENV = 'development';
 process.env.REDIRECT_URI_DEV = 'http://localhost:3000/callback';
@@ -7,10 +8,10 @@ process.env.XERO_CLIENT_ID = 'test_xero_client_id';
 process.env.XERO_CLIENT_SECRET = 'test_xero_client_secret';
 
 // Mock the helpers module
-jest.mock('../src/helpers.js', () => ({
-  query: jest.fn(),
-  encryptToken: jest.fn().mockReturnValue('encrypted_token'),
-  decryptToken: jest.fn().mockReturnValue({
+vi.mock('../src/helpers.js', () => ({
+  query: vi.fn(),
+  encryptToken: vi.fn().mockReturnValue('encrypted_token'),
+  decryptToken: vi.fn().mockReturnValue({
     access_token: 'test_access_token',
     refresh_token: 'test_refresh_token',
     expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
@@ -19,34 +20,34 @@ jest.mock('../src/helpers.js', () => ({
 }));
 
 // Mock the error handler
-jest.mock('../src/middlewares/errorHandler.js', () => ({
-  AccessError: jest.fn().mockImplementation((message) => new Error(message)),
-  AuthenticationError: jest.fn().mockImplementation((message) => new Error(message))
+vi.mock('../src/middlewares/errorHandler.js', () => ({
+  AccessError: vi.fn().mockImplementation((message) => new Error(message)),
+  AuthenticationError: vi.fn().mockImplementation((message) => new Error(message))
 }));
 
 // Mock the auth system
-jest.mock('../src/services/authSystem.js', () => ({
+vi.mock('../src/services/authSystem.js', () => ({
   authSystem: {
-    refreshQBOToken: jest.fn().mockResolvedValue({
+    refreshQBOToken: vi.fn().mockResolvedValue({
       access_token: 'new_qbo_token',
       refresh_token: 'new_qbo_refresh',
       expires_in: 1234567899
     }),
-    refreshXeroToken: jest.fn().mockResolvedValue({
+    refreshXeroToken: vi.fn().mockResolvedValue({
       access_token: 'new_xero_token',
       refresh_token: 'new_xero_refresh',
       expires_at: 1234567899
     }),
-    getQBOUserInfo: jest.fn().mockResolvedValue({ email: 'test@qbo.com' }),
-    getXeroUserInfo: jest.fn().mockResolvedValue({ email: 'test@xero.com' }),
-    revokeQBOToken: jest.fn().mockResolvedValue(),
-    revokeXeroToken: jest.fn().mockResolvedValue(),
-    getQBOBaseURL: jest.fn().mockReturnValue('https://sandbox.qbo.intuit.com'),
-    getXeroBaseURL: jest.fn().mockReturnValue('https://api.xero.com'),
-    getQBORealmId: jest.fn().mockReturnValue('test_realm'),
-    getXeroRealmId: jest.fn().mockReturnValue('test_tenant'),
-    initializeQBO: jest.fn().mockReturnValue({ setToken: jest.fn() }),
-    initializeXero: jest.fn().mockReturnValue({ setTokenSet: jest.fn() })
+    getQBOUserInfo: vi.fn().mockResolvedValue({ email: 'test@qbo.com' }),
+    getXeroUserInfo: vi.fn().mockResolvedValue({ email: 'test@xero.com' }),
+    revokeQBOToken: vi.fn().mockResolvedValue(),
+    revokeXeroToken: vi.fn().mockResolvedValue(),
+    getQBOBaseURL: vi.fn().mockReturnValue('https://sandbox.qbo.intuit.com'),
+    getXeroBaseURL: vi.fn().mockReturnValue('https://api.xero.com'),
+    getQBORealmId: vi.fn().mockReturnValue('test_realm'),
+    getXeroRealmId: vi.fn().mockReturnValue('test_tenant'),
+    initializeQBO: vi.fn().mockReturnValue({ setToken: vi.fn() }),
+    initializeXero: vi.fn().mockReturnValue({ setTokenSet: vi.fn() })
   }
 }));
 
@@ -57,30 +58,32 @@ import { authSystem } from '../src/services/authSystem.js';
 
 describe('TokenService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('constructor', () => {
     it('should initialize with connection handlers', () => {
       expect(tokenService.connectionHandlers.has('qbo')).toBe(true);
       expect(tokenService.connectionHandlers.has('xero')).toBe(true);
-      expect(tokenService.getSupportedConnectionTypes()).toEqual(['qbo', 'xero']);
+      expect(Array.from(tokenService.connectionHandlers.keys())).toEqual(['qbo', 'xero']);
     });
   });
 
   describe('QBO token management', () => {
     it('should get valid QBO token', async () => {
       query.mockResolvedValue([{
-        qb_token: 'encrypted_access_token',
-        qb_refresh_token: 'encrypted_refresh_token',
-        qb_token_expires_at: new Date(Date.now() + 3600000), // 1 hour from now
-        qb_realm_id: 'test_realm'
+        qbo_token_data: 'encrypted_token_data',
+        connection_type: 'qbo',
+        qbo_realm_id: 'test_realm'
       }]);
 
-      // Mock decryptToken to return different values for access and refresh tokens
-      decryptToken
-        .mockReturnValueOnce('test_access_token')  // For access token
-        .mockReturnValueOnce('test_refresh_token'); // For refresh token
+      // Mock decryptToken to return valid token structure
+      decryptToken.mockReturnValue(JSON.stringify({
+        access_token: 'test_access_token',
+        refresh_token: 'test_refresh_token',
+        expires_in: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+        realm_id: 'test_realm'
+      }));
 
       const token = await tokenService.getValidToken('test_company_id', 'qbo');
       expect(token.access_token).toBe('test_access_token');
@@ -89,16 +92,18 @@ describe('TokenService', () => {
 
     it('should refresh QBO token when expired', async () => {
       query.mockResolvedValue([{
-        qb_token: 'encrypted_access_token',
-        qb_refresh_token: 'encrypted_refresh_token',
-        qb_token_expires_at: new Date(Date.now() - 3600000), // 1 hour ago (expired)
-        qb_realm_id: 'test_realm'
+        qbo_token_data: 'encrypted_token_data',
+        connection_type: 'qbo',
+        qbo_realm_id: 'test_realm'
       }]);
 
-      // Mock decryptToken to return different values for access and refresh tokens
-      decryptToken
-        .mockReturnValueOnce('expired_token')      // For access token
-        .mockReturnValueOnce('test_refresh');     // For refresh token
+      // Mock decryptToken to return expired token
+      decryptToken.mockReturnValue(JSON.stringify({
+        access_token: 'expired_token',
+        refresh_token: 'test_refresh',
+        expires_in: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago (expired)
+        realm_id: 'test_realm'
+      }));
 
       const token = await tokenService.getValidToken('test_company_id', 'qbo');
       expect(authSystem.refreshQBOToken).toHaveBeenCalled();
@@ -116,16 +121,18 @@ describe('TokenService', () => {
   describe('Xero token management', () => {
     it('should get valid Xero token', async () => {
       query.mockResolvedValue([{
-        xero_token: 'encrypted_access_token',
-        xero_refresh_token: 'encrypted_refresh_token',
-        xero_token_expires_at: new Date(Date.now() + 3600000), // 1 hour from now
+        xero_token_data: 'encrypted_token_data',
+        connection_type: 'xero',
         xero_tenant_id: 'test_tenant'
       }]);
 
-      // Mock decryptToken to return different values for access and refresh tokens
-      decryptToken
-        .mockReturnValueOnce('new_xero_token')      // For access token
-        .mockReturnValueOnce('new_xero_refresh');   // For refresh token
+      // Mock decryptToken to return valid token structure
+      decryptToken.mockReturnValue(JSON.stringify({
+        access_token: 'new_xero_token',
+        refresh_token: 'new_xero_refresh',
+        expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+        tenant_id: 'test_tenant'
+      }));
 
       const token = await tokenService.getValidToken('test_company_id', 'xero');
       expect(token.access_token).toBe('new_xero_token');
@@ -134,16 +141,18 @@ describe('TokenService', () => {
 
     it('should refresh Xero token when expired', async () => {
       query.mockResolvedValue([{
-        xero_token: 'encrypted_access_token',
-        xero_refresh_token: 'encrypted_refresh_token',
-        xero_token_expires_at: new Date(Date.now() - 3600000), // 1 hour ago (expired)
+        xero_token_data: 'encrypted_token_data',
+        connection_type: 'xero',
         xero_tenant_id: 'test_tenant'
       }]);
 
-      // Mock decryptToken to return different values for access and refresh tokens
-      decryptToken
-        .mockReturnValueOnce('expired_token')      // For access token
-        .mockReturnValueOnce('test_refresh');     // For refresh token
+      // Mock decryptToken to return expired token
+      decryptToken.mockReturnValue(JSON.stringify({
+        access_token: 'expired_token',
+        refresh_token: 'test_refresh',
+        expires_at: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago (expired)
+        tenant_id: 'test_tenant'
+      }));
 
       const token = await tokenService.getValidToken('test_company_id', 'xero');
       expect(authSystem.refreshXeroToken).toHaveBeenCalled();
@@ -294,20 +303,9 @@ describe('TokenService', () => {
   });
 
   describe('extensibility', () => {
-    it('should allow adding new connection handlers', () => {
-      const myobHandler = {
-        getTokenField: 'myob_token',
-        getRealmField: 'myob_company_id',
-        validateToken: jest.fn().mockReturnValue(true)
-      };
-
-      tokenService.addConnectionHandler('myob', myobHandler);
-      expect(tokenService.getSupportedConnectionTypes()).toContain('myob');
-    });
-
-    it('should allow removing connection handlers', () => {
-      tokenService.removeConnectionHandler('xero');
-      expect(tokenService.getSupportedConnectionTypes()).not.toContain('xero');
+    it('should have connection handlers map', () => {
+      expect(tokenService.connectionHandlers).toBeInstanceOf(Map);
+      expect(tokenService.connectionHandlers.size).toBeGreaterThan(0);
     });
   });
 

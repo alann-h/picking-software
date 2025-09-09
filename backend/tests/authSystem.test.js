@@ -1,3 +1,5 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 // Set environment variables before importing
 process.env.VITE_APP_ENV = 'development';
 process.env.REDIRECT_URI_DEV = 'http://localhost:5033/auth/callback';
@@ -8,47 +10,47 @@ process.env.XERO_CLIENT_SECRET = 'test_xero_client_secret';
 
 // Mock the crypto module
 const mockCrypto = {
-  randomBytes: jest.fn().mockReturnValue({ toString: jest.fn().mockReturnValue('test_random_string') })
+  randomBytes: vi.fn().mockReturnValue({ toString: vi.fn().mockReturnValue('test_random_string') })
 };
 
-jest.mock('crypto', () => mockCrypto);
+vi.mock('crypto', () => mockCrypto);
 
 // Mock the OAuth client
 const mockOAuthClient = {
-  authorizeUri: jest.fn().mockReturnValue('https://test.qbo.auth.uri'),
-  createToken: jest.fn().mockResolvedValue({ getToken: jest.fn().mockReturnValue({ realmId: 'test_realm' }) }),
-  setToken: jest.fn(),
-  getToken: jest.fn().mockReturnValue({ realmId: 'test_realm' }),
-  isAccessTokenValid: jest.fn().mockReturnValue(true),
-  token: { isRefreshTokenValid: jest.fn().mockReturnValue(true) },
-  refreshUsingToken: jest.fn().mockResolvedValue({ getToken: jest.fn().mockReturnValue({ realmId: 'test_realm' }) }),
-  revoke: jest.fn().mockResolvedValue(),
-  getUserInfo: jest.fn().mockResolvedValue({ json: { email: 'test@example.com', givenName: 'Test', familyName: 'User' } }),
+  authorizeUri: vi.fn().mockReturnValue('https://test.qbo.auth.uri'),
+  createToken: vi.fn().mockResolvedValue({ getToken: vi.fn().mockReturnValue({ realmId: 'test_realm' }) }),
+  setToken: vi.fn(),
+  getToken: vi.fn().mockReturnValue({ realmId: 'test_realm' }),
+  isAccessTokenValid: vi.fn().mockReturnValue(true),
+  token: { isRefreshTokenValid: vi.fn().mockReturnValue(true) },
+  refreshUsingToken: vi.fn().mockResolvedValue({ getToken: vi.fn().mockReturnValue({ realmId: 'test_realm' }) }),
+  revoke: vi.fn().mockResolvedValue(),
+  getUserInfo: vi.fn().mockResolvedValue({ json: { email: 'test@example.com', givenName: 'Test', familyName: 'User' } }),
   environment: 'sandbox'
 };
 
 // Mock the Xero client
 const mockXeroClient = {
-  buildConsentUrl: jest.fn().mockReturnValue('https://test.xero.auth.uri'),
-  apiCallback: jest.fn().mockResolvedValue({
+  buildConsentUrl: vi.fn().mockReturnValue('https://test.xero.auth.uri'),
+  apiCallback: vi.fn().mockResolvedValue({
     access_token: 'test_access_token',
     refresh_token: 'test_refresh_token',
     expires_at: 1234567890
   }),
-  setTokenSet: jest.fn(),
-  refreshToken: jest.fn().mockResolvedValue({
+  setTokenSet: vi.fn(),
+  refreshToken: vi.fn().mockResolvedValue({
     access_token: 'new_access_token',
     refresh_token: 'new_refresh_token',
     expires_at: 1234567899
   })
 };
 
-jest.mock('intuit-oauth', () => {
-  return jest.fn().mockImplementation(() => mockOAuthClient);
-});
+vi.mock('intuit-oauth', () => ({
+  default: vi.fn().mockImplementation(() => mockOAuthClient)
+}));
 
-jest.mock('xero-node', () => ({
-  XeroClient: jest.fn().mockImplementation(() => mockXeroClient)
+vi.mock('xero-node', () => ({
+  XeroClient: vi.fn().mockImplementation(() => mockXeroClient)
 }));
 
 // Import after setting environment variables
@@ -64,7 +66,7 @@ describe('AuthSystem', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('constructor', () => {
