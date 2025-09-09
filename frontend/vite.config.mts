@@ -59,9 +59,11 @@ export default defineConfig(({ mode }) => {
             vendor: ['react', 'react-dom'],
             router: ['react-router-dom'],
             ui: ['@headlessui/react', 'framer-motion'],
-            query: ['@tanstack/react-query'],
+            query: ['@tanstack/react-query', '@tanstack/react-query-devtools'],
             icons: ['lucide-react'],
-            forms: ['react-hook-form', '@hookform/resolvers', 'zod']
+            forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+            dnd: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+            utils: ['date-fns', 'clsx', 'tailwind-merge', 'js-cookie']
           }
         }
       }
