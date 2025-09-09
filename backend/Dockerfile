@@ -5,6 +5,8 @@ RUN corepack enable pnpm
 
 WORKDIR /app
 
+COPY .npmrc .npmrc
+
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY package.json ./
 COPY frontend/package.json ./frontend/
@@ -25,5 +27,4 @@ WORKDIR /app
 COPY --from=builder /app/deploy .
 
 EXPOSE 5033
-    
 CMD ["pnpm", "start"]
