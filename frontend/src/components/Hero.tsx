@@ -59,6 +59,7 @@ const BarcodeIcon: React.FC<{className?: string}> = ({className}) => (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>
 );
 
+
 // --- Hero Component ---
 const Hero: React.FC = () => {
   const navigate = useNavigate(); // This should be used in the parent component that has a Router context
@@ -120,6 +121,10 @@ const Hero: React.FC = () => {
                 src="https://www.smartpicker.au/cdn-cgi/image/width=1600,format=auto,quality=95/https://smartpicker-images.s3.ap-southeast-1.amazonaws.com/smartpicker-dashboard.png"
                 alt="Smart Picker inventory management software dashboard"
                 className="rounded-2xl shadow-2xl border border-gray-100"
+                loading="lazy"
+                decoding="async"
+                width="800"
+                height="600"
               />
                <div className="absolute -top-4 -right-4 w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg">
                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 4.293a1 1 0 011.414 1.414l-9 9a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 12.586l8.293-8.293z" /></svg>

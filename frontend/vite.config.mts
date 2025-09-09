@@ -54,7 +54,15 @@ export default defineConfig(({ mode }) => {
         output: {
           chunkFileNames: 'js/[name]-[hash].js',
           entryFileNames: 'js/[name]-[hash].js',
-          assetFileNames: 'assets/[name]-[hash].[ext]'
+          assetFileNames: 'assets/[name]-[hash].[ext]',
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            router: ['react-router-dom'],
+            ui: ['@headlessui/react', 'framer-motion'],
+            query: ['@tanstack/react-query'],
+            icons: ['lucide-react'],
+            forms: ['react-hook-form', '@hookform/resolvers', 'zod']
+          }
         }
       }
     },

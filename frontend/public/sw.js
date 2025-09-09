@@ -1,130 +1,182 @@
-const CACHE_NAME = 'smart-picker-landing-v4';
-const LANDING_PAGE_CACHE = 'landing-page-v4';
+// Service Worker for Smart Picker App
+const CACHE_NAME = 'smart-picker-v1';
+const STATIC_CACHE = 'smart-picker-static-v1';
+const DYNAMIC_CACHE = 'smart-picker-dynamic-v1';
 
-// Critical assets to cache for landing page - only files that exist at runtime
-const CRITICAL_ASSETS = [
+// Assets to cache immediately
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/SP.png',
   '/favicon.ico'
 ];
 
-// Install event - cache critical assets first
+// API endpoints to cache
+const API_CACHE_PATTERNS = [
+  /\/api\/customers/,
+  /\/api\/products/,
+  /\/api\/runs/,
+  /\/api\/quote/
+];
+
+// Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('New service worker installing...');
-  // Skip waiting to activate immediately
-  self.skipWaiting();
-  
+  console.log('Service Worker installing...');
   event.waitUntil(
-    caches.open(LANDING_PAGE_CACHE).then((cache) => {
-      console.log('Caching critical landing page assets');
-      return cache.addAll(CRITICAL_ASSETS).then(() => {
-        console.log('Critical assets cached successfully');
-      }).catch((error) => {
-        console.log('Error caching critical assets:', error);
-      });
-    })
+    caches.open(STATIC_CACHE)
+      .then((cache) => {
+        console.log('Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
+      })
+      .then(() => self.skipWaiting())
   );
 });
 
-// Fetch event - serve from cache when possible, but prioritize fresh content
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((cacheName) => {
+              return cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE;
+            })
+            .map((cacheName) => {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            })
+        );
+      })
+      .then(() => self.clients.claim())
+  );
+});
+
+// Fetch event - implement caching strategies
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
-  if (event.request.method !== 'GET') return;
-  
-  // Skip requests with unsupported schemes (chrome-extension, moz-extension, etc.)
-  if (event.request.url.startsWith('chrome-extension://') || 
-      event.request.url.startsWith('moz-extension://') ||
-      event.request.url.startsWith('safari-extension://') ||
-      event.request.url.startsWith('ms-browser-extension://')) {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
     return;
   }
 
-  // Handle landing page requests with network-first strategy for HTML
-  if (event.request.url.includes('/') || event.request.url.includes('/index.html')) {
+  // Handle API requests with stale-while-revalidate strategy
+  if (API_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname))) {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Cache the fresh response
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(LANDING_PAGE_CACHE).then((cache) => {
-              cache.put(event.request, responseToCache);
+      caches.open(DYNAMIC_CACHE)
+        .then((cache) => {
+          return cache.match(request)
+            .then((cachedResponse) => {
+              // Return cached response immediately
+              if (cachedResponse) {
+                // Update cache in background
+                fetch(request)
+                  .then((response) => {
+                    if (response.ok) {
+                      cache.put(request, response.clone());
+                    }
+                  })
+                  .catch(() => {
+                    // Ignore fetch errors for background updates
+                  });
+                return cachedResponse;
+              }
+
+              // No cached response, fetch from network
+              return fetch(request)
+                .then((response) => {
+                  if (response.ok) {
+                    cache.put(request, response.clone());
+                  }
+                  return response;
+                });
             });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cache if network fails
-          return caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Return a basic response if no cache found
-            return new Response('Network error - no cached version available', {
-              status: 503,
-              statusText: 'Service Unavailable'
-            });
-          });
         })
     );
+    return;
   }
-  
-  // Handle JS/CSS with cache-first strategy
-  else if (event.request.url.includes('/js/') || event.request.url.includes('/css/')) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        // Return cached version if available
-        if (cachedResponse) {
-          return cachedResponse;
-        }
 
-        // Fetch from network if not cached
-        return fetch(event.request).then((networkResponse) => {
-          // Don't cache non-successful responses
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-            return networkResponse;
+  // Handle static assets with cache-first strategy
+  if (url.origin === location.origin) {
+    event.respondWith(
+      caches.match(request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
           }
 
-          // Clone the response to cache it
-          const responseToCache = networkResponse.clone();
-          caches.open(LANDING_PAGE_CACHE).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          return fetch(request)
+            .then((response) => {
+              if (response.ok) {
+                const responseClone = response.clone();
+                caches.open(STATIC_CACHE)
+                  .then((cache) => {
+                    cache.put(request, responseClone);
+                  });
+              }
+              return response;
+            });
+        })
+    );
+    return;
+  }
 
-          return networkResponse;
-        }).catch((error) => {
-          // Return a basic error response if network fails
-          return new Response('Network error', {
-            status: 503,
-            statusText: 'Service Unavailable'
-          });
-        });
-      })
+  // Handle external resources (images, fonts, etc.) with cache-first strategy
+  if (url.protocol === 'https:') {
+    event.respondWith(
+      caches.match(request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+
+          return fetch(request)
+            .then((response) => {
+              if (response.ok) {
+                const responseClone = response.clone();
+                caches.open(DYNAMIC_CACHE)
+                  .then((cache) => {
+                    cache.put(request, responseClone);
+                  });
+              }
+              return response;
+            });
+        })
     );
   }
 });
 
-// Activate event - clean up old caches and take control immediately
-self.addEventListener('activate', (event) => {
-  console.log('New service worker activating...');
-  
-  event.waitUntil(
-    Promise.all([
-      // Take control of all clients immediately
-      self.clients.claim(),
-      
-      // Clean up old caches
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== LANDING_PAGE_CACHE && cacheName !== CACHE_NAME) {
-              console.log('Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-    ])
-  );
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-sync') {
+    event.waitUntil(
+      // Handle background sync tasks
+      console.log('Background sync triggered')
+    );
+  }
+});
+
+// Push notifications (if needed in the future)
+self.addEventListener('push', (event) => {
+  if (event.data) {
+    const data = event.data.json();
+    const options = {
+      body: data.body,
+      icon: '/SP.png',
+      badge: '/SP.png',
+      vibrate: [100, 50, 100],
+      data: {
+        dateOfArrival: Date.now(),
+        primaryKey: 1
+      }
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(data.title, options)
+    );
+  }
 });

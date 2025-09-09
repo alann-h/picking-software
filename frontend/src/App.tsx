@@ -2,7 +2,6 @@ import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { SnackbarProvider } from './components/SnackbarContext';
 import SnackbarComponent from './components/SnackbarComponent';
-import LoadingSpinner from './components/LoadingSpinner';
 import QuoteLoadingSpinner from './components/QuoteLoadingSpinner';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
@@ -69,129 +68,37 @@ const App: React.FC = () => {
             <ScrollToTop />
             <Routes>
               {/* Public Routes */}
-              <Route element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <PublicLayout />
-                </Suspense>
-              }>
-                <Route path="/" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <LandingPage />
-                  </Suspense>
-                } />
-                <Route path="/login" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Login />
-                  </Suspense>
-                } />
-                <Route path="/reset-password" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <ResetPassword />
-                  </Suspense>
-                } />
-                <Route path="/oauth/callback" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <OAuthCallbackHandler />
-                  </Suspense>
-                } />
-                <Route path="/privacy-policy" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <PrivacyPolicy />
-                  </Suspense>
-                } />
-                <Route path="/terms-of-service" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <TermsOfService />
-                  </Suspense>
-                } />
-                <Route path="/about-us" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <AboutUs />
-                  </Suspense>
-                } />
-                <Route path="/faq" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <FAQ />
-                  </Suspense>
-                } />
-                <Route path="/technology" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <TechnologyStack />
-                  </Suspense>
-                } />
-                <Route path="/pricing" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Pricing />
-                  </Suspense>
-                } />
-                <Route path="/demo" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Demo />
-                  </Suspense>
-                } />
-                <Route path="/blog" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Blog />
-                  </Suspense>
-                } />
-                <Route path="/blog/warehouse-efficiency-guide" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <WarehouseEfficiencyGuide />
-                  </Suspense>
-                } />
-                <Route path="/blog/golden-shore-case-study" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <GoldenShoreCaseStudy />
-                  </Suspense>
-                } />
-                <Route path="/blog/system-setup-guide" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <SystemSetupGuide />
-                  </Suspense>
-                } />
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/oauth/callback" element={<OAuthCallbackHandler />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/about-us" element={<AboutUs />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/technology" element={<TechnologyStack />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/demo" element={<Demo />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/warehouse-efficiency-guide" element={<WarehouseEfficiencyGuide />} />
+                <Route path="/blog/golden-shore-case-study" element={<GoldenShoreCaseStudy />} />
+                <Route path="/blog/system-setup-guide" element={<SystemSetupGuide />} />
                 <Route path="/about" element={<Navigate to="/about-us" replace />} />
               </Route>
               {/* Protected Routes */}
-              <Route element={
-                <Suspense fallback={<LoadingSpinner />}>
-                  <AuthLayout />
-                </Suspense>
-              }>
-                <Route path="/dashboard" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Dashboard />
-                  </Suspense>
-                } />
-                <Route path="/settings/*" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Settings />
-                  </Suspense>
-                } />
+              <Route element={<AuthLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/settings/*" element={<Settings />} />
                 <Route path="/quote" element={
                   <Suspense fallback={<QuoteLoadingSpinner />}> 
                     <Quote /> 
                   </Suspense>
                 } />
-                <Route path="/orders-to-check" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <OrdersToCheckPage />
-                  </Suspense>
-                } />
-                <Route path="/order-history" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <OrderHistory />
-                  </Suspense>
-                } />
-                <Route path="/run" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Runs />
-                  </Suspense>
-                } />
-                <Route path="/kyte-converter" element={
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <KyteToQuickBooksConverter />
-                  </Suspense>
-                } />
+                <Route path="/orders-to-check" element={<OrdersToCheckPage />} />
+                <Route path="/order-history" element={<OrderHistory />} />
+                <Route path="/run" element={<Runs />} />
+                <Route path="/kyte-converter" element={<KyteToQuickBooksConverter />} />
               </Route>
               {/* Catch-all route - redirects any unknown path to home */}
               <Route path="*" element={<Navigate to="/" replace />} />
@@ -201,8 +108,8 @@ const App: React.FC = () => {
           <Footer />
         </div>
       </ErrorBoundary>
-    </SnackbarProvider>
-  );
-};
+      </SnackbarProvider>
+    );
+  };
 
 export default App;

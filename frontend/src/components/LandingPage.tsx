@@ -1,19 +1,14 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import SEO from './SEO';
 import { getPageStructuredData } from '../utils/structuredData';
 import CookieConsent from './CookieConsent';
 import Hero from './Hero';
-import { useLandingPageCache } from '../hooks/useLandingPageCache';
-
-// --- LAZY LOAD THE SECTIONS ---
-const FeaturesSection = React.lazy(() => import('./landing/FeaturesSection'));
-const IntegrationSection = React.lazy(() => import('./landing/IntegrationSection'));
-const PricingTeaser = React.lazy(() => import('./landing/PricingTeaser'));
-const LearnMoreSection = React.lazy(() => import('./landing/LearnMoreSection'));
+import FeaturesSection from './landing/FeaturesSection';
+import IntegrationSection from './landing/IntegrationSection';
+import PricingTeaser from './landing/PricingTeaser';
+import LearnMoreSection from './landing/LearnMoreSection';
 
 const LandingPage: React.FC = () => {
-  const { isCached, isLoading } = useLandingPageCache();
-
   return (
     <>
       <SEO 
@@ -23,39 +18,22 @@ const LandingPage: React.FC = () => {
         structuredData={getPageStructuredData('webPage')}
       />
       
-      {/* Cache Status Indicator (Development Only) */}
-      {import.meta.env.VITE_APP_ENV === 'development' && (
-        <div className={`fixed bottom-2.5 left-2.5 z-[9999] text-white px-4 py-2 rounded-md text-xs font-semibold shadow-lg transition-opacity ${
-          isCached ? 'bg-green-500' : 'bg-orange-400'
-        } ${isLoading ? 'opacity-70' : 'opacity-100'}`}>
-        {isLoading ? 'Caching...' : isCached ? 'Cached' : 'Not Cached'}
-      </div>
-      )}
-      
       <main className="bg-white font-sans">
       
       {/* --- HERO SECTION --- */}
       <Hero />
 
       {/* --- FEATURES SECTION --- */}
-      <Suspense fallback={<div>Loading features...</div>}>
-        <FeaturesSection />
-      </Suspense>
+      <FeaturesSection />
 
       {/* --- INTEGRATION SECTION --- */}
-      <Suspense fallback={<div>Loading integrations...</div>}>
-        <IntegrationSection />
-      </Suspense>
+      <IntegrationSection />
 
       {/* --- PRICING TEASER --- */}
-      <Suspense fallback={<div>Loading pricing...</div>}>
-        <PricingTeaser />
-      </Suspense>
+      <PricingTeaser />
 
       {/* --- LEARN MORE SECTION --- */}
-      <Suspense fallback={<div>Loading more info...</div>}>
-        <LearnMoreSection />
-      </Suspense>
+      <LearnMoreSection />
 
       {/* --- COOKIE CONSENT --- */}
       <CookieConsent 
