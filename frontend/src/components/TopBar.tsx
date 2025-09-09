@@ -247,7 +247,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-800 to-blue-500 text-lg font-bold text-white">
             SP
           </div>
-          <span className="bg-gradient-to-br from-blue-800 to-blue-500 bg-clip-text text-xl font-bold text-transparent">
+          <span className="hidden sm:block bg-gradient-to-br from-blue-800 to-blue-500 bg-clip-text text-xl font-bold text-transparent">
             Smart Picker
           </span>
         </div>
