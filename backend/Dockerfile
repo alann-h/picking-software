@@ -22,6 +22,8 @@ RUN pnpm deploy --prod --filter=backend /app/deploy
 # ---- Stage 2: Production ----
 FROM node:22-alpine
 
+RUN corepack enable pnpm
+
 WORKDIR /app
 
 COPY --from=builder /app/deploy .
