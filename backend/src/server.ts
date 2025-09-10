@@ -102,7 +102,7 @@ const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   cookieName: config.security.csrf.cookieName,
   cookieOptions: {
     httpOnly: true,
-    sameSite: config.session.cookie.sameSite,
+    sameSite: config.session.cookie.sameSite as 'lax' | 'strict' | 'none' | undefined,
     secure: config.session.cookie.secure,
     domain: config.session.cookie.domain,
   },
@@ -303,7 +303,7 @@ const loginLimiter = rateLimit({
     });
   },
   skipSuccessfulRequests: true,
-  keyGenerator: ipKeyGenerator
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? req.socket.remoteAddress!),
 });
 
 const generalLimiter = rateLimit({
