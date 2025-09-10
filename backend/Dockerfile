@@ -15,6 +15,7 @@ COPY backend/package.json ./backend/
 COPY backend/ ./backend/
 
 RUN pnpm install --filter=backend
+RUN pnpm --filter=backend build
 
 RUN pnpm deploy --prod --filter=backend /app/deploy
 
