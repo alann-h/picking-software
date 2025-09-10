@@ -4,6 +4,12 @@ export interface Customer {
   customer_name: string;
 }
 
+export interface FrontendCustomer {
+  customerId: string;
+  customerName: string;
+  company_id: string;
+}
+
 export interface LocalCustomer {
   id: string;
   customer_name: string;

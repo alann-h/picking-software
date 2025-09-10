@@ -7,15 +7,12 @@ import {
   KyteLineItem,
   MatchedLineItem,
   ConversionHistoryRecord,
-  ConversionHistoryRecordFromDB,
   ProcessedKyteOrder,
   QuickBooksEstimateResult,
   ConversionData,
   ProcessResult,
-  ProductFromDB,
-  Query,
 } from '../types/kyte.js';
-import { Customer } from '../types/customer.js';
+import { FrontendCustomer } from '../types/customer.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
 
 /**
@@ -61,8 +58,9 @@ export async function parseKyteCSV(csvContent: string): Promise<KyteOrder[]> {
       }
     }
     return pendingOrders;
-  } catch (error: any) {
-    throw new InputError(`Failed to parse CSV: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new InputError(`Failed to parse CSV: ${errorMessage}`);
   }
 }
 
@@ -144,62 +142,61 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
  * @returns {Array} Array of matched products with database info
  */
 export async function matchProductsToDatabase(lineItems: KyteLineItem[], companyId: string): Promise<MatchedLineItem[]> {
-  try {
-    const matchedItems: MatchedLineItem[] = [];
-    
-    for (const item of lineItems) {
-      // Try to find product by name (fuzzy match)
-      const product = await prisma.product.findFirst({
-        where: {
-          companyId,
-          isArchived: false,
-          OR: [
-            { productName: { contains: item.productName, mode: 'insensitive' } },
-            { sku: { contains: item.productName, mode: 'insensitive' } },
-            { barcode: { contains: item.productName, mode: 'insensitive' } },
-          ],
-        },
-        select: {
-          id: true,
-          productName: true,
-          sku: true,
-          barcode: true,
-          price: true,
-          externalItemId: true,
-          taxCodeRef: true,
-        },
-      });
+  const matchedItems: MatchedLineItem[] = [];
+  
+  for (const item of lineItems) {
+    // Use PostgreSQL's similarity function
+    const product = await prisma.$queryRaw<Array<{
+      id: bigint;
+      product_name: string;
+      sku: string;
+      barcode: string | null;
+      price: number;
+      external_item_id: string | null;
+      tax_code_ref: string | null;
+    }>>`
+      SELECT 
+        id, product_name, sku, barcode, price, external_item_id, tax_code_ref
+      FROM products 
+      WHERE company_id = ${companyId}::uuid
+        AND is_archived = false
+        AND (
+          similarity(product_name, ${item.productName}) > 0.3 OR
+          similarity(sku, ${item.productName}) > 0.3 OR
+          similarity(barcode, ${item.productName}) > 0.3
+        )
+      ORDER BY similarity(product_name, ${item.productName}) DESC
+      LIMIT 1
+    `;
 
-      if (product) {
-        matchedItems.push({
-          ...item,
-          productId: Number(product.id),
-          sku: product.sku,
-          barcode: product.barcode,
-          price: product.price.toNumber(),
-          externalItemId: product.externalItemId,
-          taxCodeRef: product.taxCodeRef,
-          matched: true
-        });
-      } else {
-        // No match found
-        matchedItems.push({
-          ...item,
-          productId: null,
-          sku: null,
-          barcode: null,
-          price: 0,
-          externalItemId: null,
-          taxCodeRef: null,
-          matched: false
-        });
-      }
+    if (product && product.length > 0) {
+      const matchedProduct = product[0];
+      matchedItems.push({
+        ...item,
+        productId: Number(matchedProduct.id),
+        sku: matchedProduct.sku,
+        barcode: matchedProduct.barcode,
+        price: Number(matchedProduct.price),
+        externalItemId: matchedProduct.external_item_id,
+        taxCodeRef: matchedProduct.tax_code_ref,
+        matched: true
+      });
+    } else {
+      // No match found
+      matchedItems.push({
+        ...item,
+        productId: null,
+        sku: null,
+        barcode: null,
+        price: 0,
+        externalItemId: null,
+        taxCodeRef: null,
+        matched: false
+      });
     }
-    
-    return matchedItems;
-  } catch (error: any) {
-    throw new AccessError(`Failed to match products: ${error.message}`);
   }
+  
+  return matchedItems;
 }
 
 /**
@@ -207,15 +204,17 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
  * @param {string} companyId - Company ID
  * @returns {Array} Array of customers
  */
-export async function getAvailableCustomers(companyId: string): Promise<Customer[]> {
+export async function getAvailableCustomers(companyId: string): Promise<FrontendCustomer[]> {
   try {
     const localCustomers = await fetchCustomersLocal(companyId);
     return localCustomers.map(c => ({
-        ...c,
+        customerId: c.id,
+        customerName: c.customer_name,
         company_id: companyId,
     }));
-  } catch (error: any) {
-    throw new AccessError(`Failed to fetch customers: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new AccessError(`Failed to fetch customers: ${errorMessage}`);
   }
 }
 
@@ -249,8 +248,9 @@ export async function getConversionHistory(companyId: string, limit = 50): Promi
       errorMessage: record.errorMessage,
       createdAt: record.createdAt,
     }));
-  } catch (error: any) {
-    throw new AccessError(`Failed to fetch conversion history: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new AccessError(`Failed to fetch conversion history: ${errorMessage}`);
   }
 }
 
@@ -275,6 +275,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
     
     const lineItems = matchedItems.map((item: MatchedLineItem) => ({
       DetailType: 'SalesItemLineDetail',
+      Description: item.productName,
       Amount: item.quantity * item.price,
       SalesItemLineDetail: {
         ItemRef: {
@@ -333,8 +334,9 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       message: 'Estimate created successfully'
     };
     
-  } catch (error: any) {
-    throw new InputError(`Failed to create QuickBooks estimate: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new InputError(`Failed to create QuickBooks estimate: ${errorMessage}`);
   }
 }
 
@@ -344,7 +346,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
  * @param {string} companyId - Company ID
  * @returns {Object} Saved conversion record
  */
-export async function saveConversionToDatabase(conversionData: ConversionData, companyId: string): Promise<any> {
+export async function saveConversionToDatabase(conversionData: ConversionData, companyId: string): Promise<ConversionHistoryRecord | null> {
   try {
     const {
       kyteOrderNumber,
@@ -377,7 +379,14 @@ export async function saveConversionToDatabase(conversionData: ConversionData, c
       },
     });
 
-    return conversion;
+    return {
+      orderNumber: conversion.kyteOrderNumber,
+      estimateId: conversion.quickbooksEstimateId,
+      quickbooksUrl: conversion.quickbooksUrl,
+      status: conversion.status as 'success' | 'failed',
+      errorMessage: conversion.errorMessage,
+      createdAt: conversion.createdAt,
+    };
   } catch (error) {
     console.error('Failed to save conversion to database:', error);
     // Don't throw error to avoid breaking the conversion process
@@ -426,26 +435,28 @@ export async function processKyteToQuickBooks(orders: ProcessedKyteOrder[], comp
           message: result.message
         });
         
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         // Save failed conversion to database
         await saveConversionToDatabase({
           kyteOrderNumber: order.number,
           quickbooksEstimateId: null,
           quickbooksUrl: null,
           status: 'failed',
-          errorMessage: error.message
+          errorMessage: errorMessage
         }, companyId);
         
         results.push({
           orderNumber: order.number,
           success: false,
-          message: error.message
+          message: errorMessage
         });
       }
     }
     
     return results;
-  } catch (error: any) {
-    throw new AccessError(`Failed to process orders: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new AccessError(`Failed to process orders: ${errorMessage}`);
   }
 }

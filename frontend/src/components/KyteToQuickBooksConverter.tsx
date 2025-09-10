@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Upload,
   ChevronDown,
@@ -10,7 +10,7 @@ import {
   Check,
   ChevronsUpDown,
 } from 'lucide-react';
-import { Listbox, Transition, Disclosure, DisclosureButton, DisclosurePanel, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/react';
+import { Combobox, Transition, Disclosure, DisclosureButton, DisclosurePanel, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption } from '@headlessui/react';
 import { uploadKyteCSV, getCustomersForMapping, createQuickBooksEstimates, getConversionHistory } from '../api/kyteConverter';
 import ItemDescription from './ItemDescription';
 
@@ -59,6 +59,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const [results, setResults] = useState<ProcessingResult[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [conversionHistory, setConversionHistory] = useState<ConversionHistoryItem[]>([]);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     loadCustomers();
@@ -69,7 +70,8 @@ const KyteToQuickBooksConverter: React.FC = () => {
     try {
       const response = await getCustomersForMapping();
       setCustomers(response.customers);
-    } catch (_err) {
+    } catch (err) {
+      console.error('Failed to load customers:', err);
       setError('Failed to load customers');
     }
   };
@@ -105,16 +107,26 @@ const KyteToQuickBooksConverter: React.FC = () => {
       const response = await uploadKyteCSV(csvContent);
       setOrders(response.orders);
       setSuccess(`Successfully processed ${response.orders.length} pending orders`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload CSV');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload CSV';
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleCustomerChange = (orderNumber: string, customerId: string) => {
-    setOrders(prev => prev.map(order => order.number === orderNumber ? { ...order, customerId } : order));
+  const handleCustomerChange = (orderNumber: string, customer: Customer | null) => {
+    setOrders(prev => prev.map(order => order.number === orderNumber ? { ...order, customerId: customer?.customerId || '' } : order));
   };
+
+  const filteredCustomers = query === ''
+    ? customers
+    : customers.filter((customer) =>
+        customer.customerName
+          .toLowerCase()
+          .replace(/\s+/g, '')
+          .includes(query.toLowerCase().replace(/\s+/g, ''))
+      );
 
   const handleCreateEstimates = async () => {
     const unmappedOrders = orders.filter(order => !order.customerId);
@@ -129,8 +141,9 @@ const KyteToQuickBooksConverter: React.FC = () => {
       setResults(response.results);
       setSuccess(response.message);
       await loadConversionHistory();
-    } catch (err: any) {
-      setError(err.message || 'Failed to create estimates');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create estimates';
+      setError(errorMessage);
     } finally {
       setProcessing(false);
     }
@@ -190,28 +203,61 @@ const KyteToQuickBooksConverter: React.FC = () => {
                     <td className="px-4 py-4 text-sm text-gray-600 max-w-xs"><ItemDescription items={order.itemsDescription.split(',').map(item => item.trim())} maxItems={3} variant="body2" showExpandButton={true} /></td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">${order.total.toFixed(2)}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm w-52">
-                      <Listbox value={order.customerId || ''} onChange={(val) => handleCustomerChange(order.number, val)}>
+                      <Combobox value={customers.find(c => c.customerId === order.customerId) || null} onChange={(customer) => handleCustomerChange(order.number, customer)}>
                         <div className="relative">
-                          <ListboxButton className="relative w-full cursor-pointer rounded-md bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus-visible:border-indigo-500 sm:text-sm">
-                            <span className="block truncate">{customers.find(c => c.customerId === order.customerId)?.customerName || 'Select Customer'}</span>
-                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2"><ChevronsUpDown className="h-5 w-5 text-gray-400" /></span>
-                          </ListboxButton>
-                          <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-                            <ListboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm">
-                              {customers.map((customer) => (
-                                <ListboxOption key={customer.customerId} value={customer.customerId} className="relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-amber-100 data-[active]:text-amber-900">
-                                  {({ selected }) => (<><span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{customer.customerName}</span>{selected ? <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-amber-600"><Check className="h-5 w-5" /></span> : null}</>)}
-                                </ListboxOption>
-                              ))}
-                            </ListboxOptions>
+                          <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                            <ComboboxInput
+                              className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
+                              displayValue={(customer: Customer | null) => customer?.customerName || ''}
+                              onChange={(event) => setQuery(event.target.value)}
+                              placeholder="Search customers..."
+                            />
+                            <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
+                              <ChevronsUpDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
+                            </ComboboxButton>
+                          </div>
+                          <Transition
+                            leave="transition ease-in duration-100"
+                            leaveFrom="opacity-100"
+                            leaveTo="opacity-0"
+                            afterLeave={() => setQuery('')}
+                          >
+                            <ComboboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-[9999] border border-gray-300">
+                              {filteredCustomers.length === 0 && query !== '' ? (
+                                <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                                  Nothing found.
+                                </div>
+                              ) : (
+                                filteredCustomers.map((customer) => (
+                                  <ComboboxOption
+                                    key={customer.customerId}
+                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-blue-600 data-[active]:text-white"
+                                    value={customer}
+                                  >
+                                    {({ selected }) => (
+                                      <div>
+                                        <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                                          {customer.customerName}
+                                        </span>
+                                        {selected ? (
+                                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600 group-data-[active]:text-white">
+                                            <Check className="h-5 w-5" />
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                    )}
+                                  </ComboboxOption>
+                                ))
+                              )}
+                            </ComboboxOptions>
                           </Transition>
                         </div>
-                      </Listbox>
+                      </Combobox>
                     </td>
                     <td className="px-4 py-4 text-sm">
                       <Disclosure>
                         {({ open }) => (
-                          <>
+                          <div>
                             <DisclosureButton className="flex items-center gap-1 text-sm text-blue-600 cursor-pointer">
                               {order.lineItems.length} items <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'transform rotate-180' : ''}`} />
                             </DisclosureButton>
@@ -227,7 +273,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                                 </div>
                               ))}
                             </DisclosurePanel>
-                          </>
+                          </div>
                         )}
                       </Disclosure>
                     </td>
@@ -287,7 +333,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
       {conversionHistory.length > 0 && (
         <Disclosure as="div" className="p-6 rounded-lg bg-white shadow-sm">
           {({ open }) => (
-            <>
+            <div>
               <DisclosureButton className="w-full flex justify-between items-center text-left cursor-pointer">
                 <h3 className="text-xl font-semibold">Conversion History</h3>
                 <div className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800">
@@ -324,7 +370,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                   </tbody>
                 </table>
               </DisclosurePanel>
-            </>
+            </div>
           )}
         </Disclosure>
       )}
