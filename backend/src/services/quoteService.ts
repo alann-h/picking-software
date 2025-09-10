@@ -192,7 +192,7 @@ async function filterQboEstimate(estimate: any, companyId: string, connectionTyp
     .map((line: any) => line.SalesItemLineDetail.ItemRef.value);
     
   const productsFromDB: Product[] = await getProductsFromDBByIds(itemIds, companyId); 
-  const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
+  const productMap = new Map(productsFromDB.map(p => [p.externalItemId, p]));
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const line of estimate.Line) {
@@ -210,18 +210,18 @@ async function filterQboEstimate(estimate: any, companyId: string, connectionTyp
       };
     }
     
-    productInfo[itemLocal.id] = {
-      productName: itemLocal.product_name,
-      productId: itemLocal.id,
+    productInfo[itemLocal.id.toString()] = {
+      productName: itemLocal.productName,
+      productId: Number(itemLocal.id),
       sku: itemLocal.sku,
       pickingQty: line.SalesItemLineDetail?.Qty || 0,
       originalQty: line.SalesItemLineDetail?.Qty || 0,
       pickingStatus: 'pending',
-      price: parseFloat(itemLocal.price),
-      quantityOnHand: parseFloat(itemLocal.quantity_on_hand),
+      price: parseFloat(itemLocal.price.toString()),
+      quantityOnHand: parseFloat(itemLocal.quantityOnHand.toString()),
       companyId,
       barcode: itemLocal.barcode,
-      tax_code_ref: itemLocal.tax_code_ref
+      tax_code_ref: itemLocal.taxCodeRef
     };
   }
 
@@ -247,7 +247,7 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
     .map(item => item.itemCode!);
 
   const productsFromDB: Product[] = await getProductsFromDBByIds(itemIds, companyId); 
-  const productMap = new Map(productsFromDB.map(p => [p.external_item_id, p]));
+  const productMap = new Map(productsFromDB.map(p => [p.externalItemId, p]));
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const lineItem of lineItems) {
@@ -265,18 +265,18 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
       };
     }
     
-    productInfo[itemLocal.id] = {
-      productName: itemLocal.product_name,
-      productId: itemLocal.id,
+    productInfo[itemLocal.id.toString()] = {
+      productName: itemLocal.productName,
+      productId: Number(itemLocal.id),
       sku: itemLocal.sku,
       pickingQty: Number(lineItem.quantity) || 0,
       originalQty: Number(lineItem.quantity) || 0,
       pickingStatus: 'pending',
-      price: parseFloat(itemLocal.price),
-      quantityOnHand: parseFloat(itemLocal.quantity_on_hand),
+      price: parseFloat(itemLocal.price.toString()),
+      quantityOnHand: parseFloat(itemLocal.quantityOnHand.toString()),
       companyId,
       barcode: itemLocal.barcode,
-      tax_code_ref: itemLocal.tax_code_ref
+      tax_code_ref: itemLocal.taxCodeRef
     };
   }
 
