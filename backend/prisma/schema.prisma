@@ -1,0 +1,348 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyName      String             @map("company_name")
+  connectionType   connection_type    @default(none) @map("connection_type")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  qboTokenData     String?            @map("qbo_token_data")
+  xeroTokenData    String?            @map("xero_token_data")
+  qboRealmId       String?            @map("qbo_realm_id")
+  xeroTenantId     String?            @map("xero_tenant_id")
+  apiAuditLogs     ApiAuditLog[]
+  connectionHealth ConnectionHealth[]
+  customers        Customer[]
+  jobs             Job[]
+  kyteConversions  KyteConversion[]
+  products         Product[]
+  quotes           Quote[]
+  runs             Run[]
+  securityEvents   SecurityEvent[]
+  userPermissions  UserPermission[]
+  users            User[]
+
+  @@map("companies")
+}
+
+model User {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId            String?          @map("company_id") @db.Uuid
+  givenName            String           @map("given_name")
+  familyName           String?          @map("family_name")
+  displayEmail         String           @unique @map("display_email")
+  normalisedEmail      String           @unique @map("normalised_email")
+  passwordHash         String           @map("password_hash")
+  isAdmin              Boolean          @default(false) @map("is_admin")
+  failedAttempts       Int              @default(0) @map("failed_attempts")
+  lastFailedAttempt    DateTime?        @map("last_failed_attempt") @db.Timestamptz(6)
+  lockedUntil          DateTime?        @map("locked_until") @db.Timestamptz(6)
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  passwordResetToken   String?          @map("password_reset_token")
+  passwordResetExpires DateTime?        @map("password_reset_expires") @db.Timestamptz(6)
+  apiAuditLogs         ApiAuditLog[]
+  securityEvents       SecurityEvent[]
+  userPermissions      UserPermission[]
+  company              Company?         @relation(fields: [companyId], references: [id], onUpdate: NoAction)
+
+  @@index([companyId])
+  @@index([lockedUntil])
+  @@index([normalisedEmail])
+  @@index([passwordResetToken])
+  @@map("users")
+}
+
+model UserPermission {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  companyId   String       @map("company_id") @db.Uuid
+  accessLevel access_level @default(read) @map("access_level")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+  @@index([userId])
+  @@map("user_permissions")
+}
+
+model ApiAuditLog {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
+  companyId      String          @map("company_id") @db.Uuid
+  apiEndpoint    String          @map("api_endpoint")
+  connectionType connection_type @map("connection_type")
+  requestMethod  String          @map("request_method")
+  responseStatus Int?            @map("response_status")
+  errorMessage   String?         @map("error_message")
+  ipAddress      String?         @map("ip_address") @db.Inet
+  userAgent      String?         @map("user_agent")
+  timestamp      DateTime        @default(now()) @db.Timestamptz(6)
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           User            @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([companyId])
+  @@index([connectionType])
+  @@index([timestamp])
+  @@index([userId])
+  @@map("api_audit_log")
+}
+
+model ConnectionHealth {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId          String            @map("company_id") @db.Uuid
+  connectionType     connection_type   @map("connection_type")
+  status             connection_status @default(healthy)
+  lastCheck          DateTime          @default(now()) @map("last_check") @db.Timestamptz(6)
+  lastSuccessfulCall DateTime?         @map("last_successful_call") @db.Timestamptz(6)
+  failureCount       Int               @default(0) @map("failure_count")
+  lastErrorMessage   String?           @map("last_error_message")
+  nextCheckDue       DateTime          @default(dbgenerated("(now() + '01:00:00'::interval)")) @map("next_check_due") @db.Timestamptz(6)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  company            Company           @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([companyId, connectionType])
+  @@index([companyId])
+  @@index([nextCheckDue])
+  @@index([status])
+  @@map("connection_health")
+}
+
+model Product {
+  id             BigInt      @id @default(autoincrement())
+  companyId      String      @map("company_id") @db.Uuid
+  productName    String      @map("product_name")
+  sku            String
+  barcode        String?
+  externalItemId String?     @map("external_item_id")
+  category       String?
+  taxCodeRef     String?     @map("tax_code_ref")
+  price          Decimal     @default(0.00) @db.Decimal(10, 2)
+  quantityOnHand Decimal     @default(0.00) @map("quantity_on_hand") @db.Decimal(10, 2)
+  isArchived     Boolean     @default(false) @map("is_archived")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  company        Company     @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quoteItems     QuoteItem[]
+
+  @@unique([companyId, sku])
+  @@unique([companyId, externalItemId])
+  @@index([companyId, isArchived, category], map: "products_company_archived_category_idx")
+  @@index([companyId])
+  @@index([companyId, sku], map: "products_company_sku_idx")
+  @@map("products")
+}
+
+model Customer {
+  id           String  @id
+  companyId    String  @map("company_id") @db.Uuid
+  customerName String  @map("customer_name")
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quotes       Quote[]
+
+  @@index([companyId])
+  @@index([id])
+  @@map("customers")
+}
+
+model Quote {
+  id            String       @id
+  companyId     String       @map("company_id") @db.Uuid
+  customerId    String       @map("customer_id")
+  status        order_status @default(pending)
+  totalAmount   Decimal      @map("total_amount") @db.Decimal(12, 2)
+  preparerNames String?      @map("preparer_names")
+  orderNote     String?      @map("order_note")
+  pickerNote    String?      @map("picker_note")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  quoteNumber   String?      @map("quote_number") @db.VarChar(50)
+  quoteItems    QuoteItem[]
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  customer      Customer     @relation(fields: [customerId], references: [id], onUpdate: NoAction)
+  runItems      RunItem[]
+
+  @@index([companyId, customerId, createdAt(sort: Desc)], map: "quotes_company_customer_date_idx")
+  @@index([companyId])
+  @@index([companyId, status, createdAt(sort: Desc)], map: "quotes_company_status_date_idx")
+  @@index([customerId])
+  @@index([id])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  quoteId          String         @map("quote_id")
+  productId        BigInt         @map("product_id")
+  productName      String         @map("product_name")
+  sku              String
+  price            Decimal        @db.Decimal(10, 2)
+  taxCodeRef       String?        @map("tax_code_ref")
+  originalQuantity Decimal        @map("original_quantity") @db.Decimal(10, 2)
+  pickingQuantity  Decimal        @default(0) @map("picking_quantity") @db.Decimal(10, 2)
+  pickingStatus    picking_status @default(pending) @map("picking_status")
+  product          Product        @relation(fields: [productId], references: [id], onUpdate: NoAction)
+  quote            Quote          @relation(fields: [quoteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([quoteId, productId])
+  @@index([productId])
+  @@index([quoteId, productId], map: "quote_items_quote_product_idx")
+  @@map("quote_items")
+}
+
+model Job {
+  id                 String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId          String     @map("company_id") @db.Uuid
+  s3Key              String     @map("s3_key")
+  status             job_status @default(queued)
+  progressPercentage Int        @default(0) @map("progress_percentage")
+  progressMessage    String?    @default("File is queued for processing.") @map("progress_message")
+  errorMessage       String?    @map("error_message")
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  company            Company    @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([companyId])
+  @@map("jobs")
+}
+
+model Run {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId String     @map("company_id") @db.Uuid
+  runNumber BigInt     @map("run_number")
+  status    run_status @default(pending)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  runItems  RunItem[]
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([companyId])
+  @@map("runs")
+}
+
+model RunItem {
+  id        BigInt   @id @default(autoincrement())
+  runId     String   @map("run_id") @db.Uuid
+  quoteId   String   @map("quote_id")
+  priority  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  run       Run      @relation(fields: [runId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([runId, quoteId])
+  @@index([runId, priority(sort: Desc)], map: "run_items_run_priority_idx")
+  @@map("run_items")
+}
+
+model KyteConversion {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId            String   @map("company_id") @db.Uuid
+  kyteOrderNumber      String   @map("kyte_order_number")
+  quickbooksEstimateId String?  @map("quickbooks_estimate_id")
+  quickbooksUrl        String?  @map("quickbooks_url")
+  status               String   @default("success")
+  errorMessage         String?  @map("error_message")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company              Company  @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([companyId, kyteOrderNumber])
+  @@index([companyId])
+  @@index([createdAt(sort: Desc)])
+  @@index([status])
+  @@map("kyte_conversions")
+}
+
+model SecurityEvent {
+  id        BigInt              @id @default(autoincrement())
+  userId    String?             @map("user_id") @db.Uuid
+  companyId String?             @map("company_id") @db.Uuid
+  email     String?
+  eventType security_event_type @map("event_type")
+  ipAddress String?             @map("ip_address") @db.Inet
+  userAgent String?             @map("user_agent")
+  metadata  Json?
+  timestamp DateTime            @default(now()) @db.Timestamptz(6)
+  company   Company?            @relation(fields: [companyId], references: [id], onUpdate: NoAction)
+  user      User?               @relation(fields: [userId], references: [id], onUpdate: NoAction)
+
+  @@index([companyId])
+  @@index([ipAddress])
+  @@index([timestamp])
+  @@index([userId])
+  @@map("security_events")
+}
+
+model Session {
+  sid    String   @id @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire])
+  @@map("sessions")
+}
+
+enum access_level {
+  read
+  write
+  admin
+}
+
+enum connection_status {
+  healthy
+  warning
+  expired
+  revoked
+}
+
+enum connection_type {
+  none
+  qbo
+  xero
+}
+
+enum job_status {
+  queued
+  processing
+  completed
+  failed
+}
+
+enum order_status {
+  pending
+  checking
+  finalised
+  cancelled
+  assigned
+}
+
+enum picking_status {
+  pending
+  backorder
+  completed
+  unavailable
+}
+
+enum run_status {
+  pending
+  checking
+  finalised
+}
+
+enum security_event_type {
+  login_success
+  login_failure
+  logout
+  password_reset_request
+  password_reset_success
+  user_lockout
+}

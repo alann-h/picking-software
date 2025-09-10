@@ -1,36 +1,35 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query, transaction } from '../helpers.js';
 import { getBaseURL, getOAuthClient, getRealmId } from './authService.js';
 import he from 'he';
-import { authSystem }from './authSystem.js';
-import { 
-    Product, 
-    ClientProduct,
-    EnrichableProduct, 
-    EnrichedProduct,
-    UpdateProductPayload,
-    QuoteItemStatusResult,
-    QuoteItemFinishResult,
-    PickingStatus,
-    NewProductData
+import { authSystem } from './authSystem.js';
+import {
+  Product,
+  ClientProduct,
+  EnrichableProduct,
+  EnrichedProduct,
+  UpdateProductPayload,
+  QuoteItemStatusResult,
+  QuoteItemFinishResult,
+  PickingStatus,
+  NewProductData
 } from '../types/product.js';
 import { ConnectionType } from '../types/auth.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
 import { XeroClient, Item, Contact } from 'xero-node';
-import { PoolClient } from 'pg';
+import { prisma } from '../lib/prisma.js';
 
 export async function productIdToExternalId(productId: number): Promise<string> {
   try {
-    const result: { external_item_id: string }[] = await query(
-      `SELECT external_item_id FROM products WHERE id = $1`,
-      [productId]
-    );
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { externalItemId: true },
+    });
 
-    if (result.length === 0) {
-      throw new AccessError(`No product found with id=${productId}`);
+    if (!product || !product.externalItemId) {
+      throw new AccessError(`No product found with id=${productId} or product has no external ID`);
     }
 
-    return result[0].external_item_id;
+    return product.externalItemId;
   } catch (err: any) {
     throw new AccessError(err.message);
   }
@@ -155,100 +154,85 @@ export async function enrichWithXeroData(products: EnrichableProduct[], companyI
 
 export async function upsertProducts(products: EnrichableProduct[], companyId: string): Promise<number | undefined> {
   if (products.length === 0) {
-    return;
+    return 0;
   }
 
-  return await transaction(async (client: PoolClient) => {
-    const skuMap = new Map<string, EnrichableProduct>();
-    products.forEach(product => {
-      skuMap.set(product.sku, product);
-    });
-    const deduplicatedProducts = Array.from(skuMap.values());
+  // Deduplicate products by SKU to prevent conflicts, keeping the last one.
+  const skuMap = new Map<string, EnrichableProduct>();
+  products.forEach(product => {
+    skuMap.set(product.sku, product);
+  });
+  const deduplicatedProducts = Array.from(skuMap.values());
 
-    const batchSize = 100;
-    let processedCount = 0;
+  let processedCount = 0;
 
-    for (let i = 0; i < deduplicatedProducts.length; i += batchSize) {
-      const batch = deduplicatedProducts.slice(i, i + batchSize);
-      
-      for (const product of batch) {
-        const productParams = [
-          companyId,
-          product.productName,
-          product.sku,
-          product.barcode ?? null,
-          product.external_item_id,
-          product.category,
-          product.tax_code_ref,
-          product.price,
-          product.quantity_on_hand,
-          product.is_archived ?? false,
-        ];
+  await prisma.$transaction(async (tx) => {
+    for (const product of deduplicatedProducts) {
+      const productData = {
+        companyId: companyId,
+        productName: product.productName,
+        sku: product.sku,
+        barcode: product.barcode ?? null,
+        externalItemId: product.external_item_id,
+        category: product.category,
+        taxCodeRef: product.tax_code_ref,
+        price: product.price,
+        quantityOnHand: product.quantity_on_hand,
+        isArchived: product.is_archived ?? false,
+      };
 
-        const skuUpdateResult = await client.query(`
-          UPDATE products SET
-            product_name = $2,
-            barcode = $4,
-            external_item_id = $5,
-            category = $6,
-            tax_code_ref = $7,
-            price = $8,
-            quantity_on_hand = $9,
-            is_archived = $10,
-            updated_at = NOW()
-          WHERE company_id = $1 AND sku = $3
-          RETURNING id
-        `, productParams);
+      // We need to handle the case where the SKU doesn't exist but the barcode might.
+      // Prisma's `upsert` is based on a single unique key, so we'll do it manually.
+      const existingBySku = await tx.product.findUnique({
+        where: { companyId_sku: { companyId, sku: product.sku } },
+      });
 
-        if (skuUpdateResult.rowCount === 0 && product.barcode && product.barcode.trim() !== '') {
-          const barcodeUpdateResult = await client.query(`
-            UPDATE products SET
-              product_name = $2,
-              sku = $3,
-              external_item_id = $5,
-              category = $6,
-              tax_code_ref = $7,
-              price = $8,
-              quantity_on_hand = $9,
-              is_archived = $10,
-              updated_at = NOW()
-            WHERE company_id = $1 AND barcode = $4
-            RETURNING id
-          `, productParams);
-
-          if (barcodeUpdateResult.rowCount === 0) {
-            await client.query(`
-              INSERT INTO products (
-                company_id, product_name, sku, barcode, external_item_id, category, tax_code_ref, price, quantity_on_hand, is_archived
-              )
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            `, productParams);
-          }
-        } else if (skuUpdateResult.rowCount === 0) {
-          await client.query(`
-            INSERT INTO products (
-              company_id, product_name, sku, barcode, external_item_id, category, tax_code_ref, price, quantity_on_hand, is_archived
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-          `, productParams);
+      if (existingBySku) {
+        // If product with SKU exists, update it.
+        await tx.product.update({
+          where: { id: existingBySku.id },
+          data: productData,
+        });
+      } else {
+        let existingByBarcode = null;
+        if (product.barcode && product.barcode.trim() !== '') {
+          existingByBarcode = await tx.product.findFirst({
+            where: { companyId, barcode: product.barcode },
+          });
+        }
+        
+        if (existingByBarcode) {
+          // If product with barcode exists (but not SKU), update it.
+           await tx.product.update({
+            where: { id: existingByBarcode.id },
+            data: productData,
+          });
+        } else {
+          // If neither exists, create a new product.
+          await tx.product.create({
+            data: productData,
+          });
         }
       }
-
-      processedCount += batch.length;
+      processedCount++;
     }
-
-    console.log(`✅ Successfully processed ${processedCount} products using efficient upsert (${products.length - deduplicatedProducts.length} duplicates removed).`);
-    return processedCount;
   });
+
+  console.log(`✅ Successfully processed ${processedCount} products using Prisma transaction (${products.length - deduplicatedProducts.length} duplicates removed).`);
+  return processedCount;
 }
 
 export async function getProductName(barcode: string, companyId: string): Promise<string> {
   try {
-    const result: { product_name: string }[] = await query('SELECT product_name FROM products WHERE barcode = $1 AND company_id = $2', [barcode, companyId]);
-    if (result.length === 0) {
+    const product = await prisma.product.findFirst({
+      where: { barcode, companyId },
+      select: { productName: true },
+    });
+
+    if (!product) {
       throw new InputError('This product does not exist within the database');
     }
-    return result[0].product_name;
+    return product.productName;
   } catch (error: any) {
     throw new AccessError(error.message);
   }
@@ -259,36 +243,39 @@ export async function getProductsFromDBByIds(itemIds: string[], companyId: strin
     return [];
   }
 
-  const placeholders = itemIds.map((_, index) => `$${index + 1}`).join(', ');
-
-  const sqlQuery = `SELECT * FROM products WHERE external_item_id IN (${placeholders}) AND company_id = $${itemIds.length + 1} AND is_archived = FALSE`;
-
-
-  let results: Product[];
   try {
-    results = await query(sqlQuery, [...itemIds, companyId]);
+    const results = await prisma.product.findMany({
+      where: {
+        externalItemId: { in: itemIds },
+        companyId: companyId,
+        isArchived: false,
+      },
+    });
+
+    return results;
   } catch (err: any) {
     console.log(err);
     throw new AccessError('Error accessing the database while fetching products');
   }
-
-  return results;
 }
 
 export async function getAllProducts(companyId: string): Promise<ClientProduct[]> {
   try {
-    const result: Product[] = await query('SELECT * FROM products WHERE company_id = $1', [companyId]);
-    return result.map((product: Product) => ({
-      productId: product.id,
-      productName: product.product_name,
+    const products = await prisma.product.findMany({
+      where: { companyId },
+    });
+
+    return products.map((product) => ({
+      productId: Number(product.id),
+      productName: product.productName,
       barcode: product.barcode ?? '',
       sku: product.sku ?? '',
-      price: parseFloat(product.price),
-      quantityOnHand: parseFloat(product.quantity_on_hand),
-      companyId: product.company_id,
+      price: product.price.toNumber(),
+      quantityOnHand: product.quantityOnHand.toNumber(),
+      companyId: product.companyId,
       category: product.category ?? null,
-      externalItemId: product.external_item_id ?? '',
-      isArchived: product.is_archived
+      externalItemId: product.externalItemId ?? '',
+      isArchived: product.isArchived,
     }));
   } catch (error: any) {
     throw new AccessError(error.message);
@@ -296,67 +283,54 @@ export async function getAllProducts(companyId: string): Promise<ClientProduct[]
 }
 
 const fieldToDbColumnMap: { [key in keyof UpdateProductPayload]: keyof Product | null } = {
-  productName: 'product_name',
+  productName: 'productName',
   price: 'price',
   barcode: 'barcode',
-  quantityOnHand: 'quantity_on_hand',
+  quantityOnHand: 'quantityOnHand',
   sku: 'sku',
 };
 
 const fieldsToDecode: (keyof UpdateProductPayload)[] = ['productName', 'sku'];
 
 export async function updateProductDb(productId: number, updateFields: UpdateProductPayload): Promise<Product> {
-  const processedUpdateFields: { [key: string]: any } = {};
+  const processedUpdateFields: any = {};
 
-  for (const key in updateFields) {
-    if (Object.hasOwn(updateFields, key)) {
-      const dbColumnName = fieldToDbColumnMap[key as keyof UpdateProductPayload];
-      let value = updateFields[key as keyof UpdateProductPayload];
+  // Use Object.entries for a fully type-safe iteration
+  for (const [key, rawValue] of Object.entries(updateFields)) {
+    const typedKey = key as keyof UpdateProductPayload;
+    const dbColumnName = fieldToDbColumnMap[typedKey];
+    let value = rawValue;
 
-      if (fieldsToDecode.includes(key as keyof UpdateProductPayload) && typeof value === 'string') {
-        value = he.decode(value);
-      }
+    if (fieldsToDecode.includes(typedKey) && typeof value === 'string') {
+      value = he.decode(value);
+    }
 
-      if (dbColumnName) {
-        processedUpdateFields[dbColumnName] = value;
-      } else {
-        console.warn(`Attempted to update unknown field "${key}". Skipping.`);
-      }
+    if (dbColumnName) {
+      processedUpdateFields[dbColumnName] = value;
+    } else {
+      console.warn(`Attempted to update unknown field "${key}". Skipping.`);
     }
   }
 
-  const fields = Object.keys(processedUpdateFields);
-  const values = Object.values(processedUpdateFields);
-  
-  if (fields.length === 0) {
-    throw new Error('No fields provided for update');
+  if (Object.keys(processedUpdateFields).length === 0) {
+    throw new Error('No valid fields provided for update');
   }
 
-  const setClause = fields
-  .map((field, index) => `"${field}" = $${index + 1}`)
-  .join(', ');
-
-  const sqlQuery = `
-    UPDATE products
-    SET ${setClause}
-    WHERE id = $${fields.length + 1}
-    RETURNING *;
-  `;
-
-  const result: Product[] = await query(sqlQuery, [...values, productId]);
-  return result[0];
+  return prisma.product.update({
+    where: { id: productId },
+    data: processedUpdateFields,
+  });
 }
 
 export async function setProductArchiveStatusDb(productId: number, isArchived: boolean): Promise<Product> {
-  const result: Product[] = await query(
-    'UPDATE products SET is_archived = $1 WHERE id = $2 RETURNING *;',
-    [isArchived, productId]
-  );
-  return result[0];
+  return prisma.product.update({
+    where: { id: productId },
+    data: { isArchived },
+  });
 }
 
 export async function addProductDb(product: NewProductData[], companyId: string, connectionType: ConnectionType = 'qbo'): Promise<string> {
-  try{
+  try {
     let enrichedProduct;
     const enrichable = product.map(p => ({ ...p, productName: p.productName }));
 
@@ -365,49 +339,47 @@ export async function addProductDb(product: NewProductData[], companyId: string,
     } else if (connectionType === 'xero') {
       enrichedProduct = await enrichWithXeroData(enrichable, companyId);
     } else {
-      enrichedProduct = await enrichWithQBOData(enrichable, companyId);
+      enrichedProduct = await enrichWithQBOData(enrichable, companyId); // Default to QBO
     }
 
     let { productName, barcode, sku } = product[0];
-
-    const barcodeValue = barcode === '' ? null : barcode;
-
     if (productName) { productName = he.decode(productName); }
     if (sku) { sku = he.decode(sku); }
 
     const { price, quantity_on_hand, external_item_id, tax_code_ref } = enrichedProduct[0];
+    
+    const result = await prisma.product.upsert({
+      where: {
+        companyId_sku: {
+          companyId: companyId,
+          sku: sku,
+        },
+      },
+      update: {
+        productName: productName,
+        barcode: barcode === '' ? null : barcode,
+        externalItemId: external_item_id,
+        category: null, // category is not in the original data
+        taxCodeRef: tax_code_ref,
+        price: price || 0,
+        quantityOnHand: quantity_on_hand || 0,
+        isArchived: false,
+      },
+      create: {
+        companyId: companyId,
+        productName: productName,
+        sku: sku,
+        barcode: barcode === '' ? null : barcode,
+        externalItemId: external_item_id,
+        category: null,
+        taxCodeRef: tax_code_ref,
+        price: price || 0,
+        quantityOnHand: quantity_on_hand || 0,
+        isArchived: false,
+      },
+    });
 
-    const values = [
-      companyId,
-      productName,
-      sku,
-      barcodeValue,
-      external_item_id,
-      null,
-      tax_code_ref,
-      price || 0,
-      quantity_on_hand || 0,
-      false
-    ];
-    const text = `
-      INSERT INTO products
-        (company_id, product_name, sku, barcode, external_item_id, category, tax_code_ref, price, quantity_on_hand, is_archived)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-      ON CONFLICT (company_id, sku) DO UPDATE
-        SET product_name      = EXCLUDED.product_name,
-            barcode          = EXCLUDED.barcode,
-            external_item_id = EXCLUDED.external_item_id,
-            category         = EXCLUDED.category,
-            tax_code_ref     = EXCLUDED.tax_code_ref,
-            price            = EXCLUDED.price,
-            quantity_on_hand = EXCLUDED.quantity_on_hand,
-            is_archived      = EXCLUDED.is_archived,
-            updated_at       = NOW()
-      RETURNING sku;
-    `;
-
-    const result: { sku: string }[] = await query(text, values);
-    return result[0].sku;
+    return result.sku;
 
   } catch (err: any) {
     throw new InputError(`addProductDb failed: ${err.message}`);
@@ -416,22 +388,37 @@ export async function addProductDb(product: NewProductData[], companyId: string,
 // below are functions for products but from quotes
 export async function saveForLater(quoteId: string, productId: number): Promise<QuoteItemStatusResult> {
   try {
-    const result: { picking_status: PickingStatus, product_name: string }[] = await query(
-      'UPDATE quote_items SET picking_status = CASE WHEN picking_status = \'backorder\'::picking_status THEN \'pending\'::picking_status ELSE \'backorder\'::picking_status END WHERE quote_id = $1 AND product_id = $2 RETURNING picking_status, product_name',
-      [quoteId, productId]
-    );
+    const quoteItem = await prisma.quoteItem.findUnique({
+      where: {
+        quoteId_productId: {
+          quoteId,
+          productId,
+        },
+      },
+    });
     
-    if (result.length === 0) {
+    if (!quoteItem) {
       throw new AccessError('Product does not exist in this quote!');
     }
+
+    const newStatus = quoteItem.pickingStatus === 'backorder' ? 'pending' : 'backorder';
     
-    const newStatus = result[0].picking_status;
-    const productName = result[0].product_name;
+    const updatedItem = await prisma.quoteItem.update({
+      where: {
+        quoteId_productId: {
+          quoteId,
+          productId,
+        },
+      },
+      data: {
+        pickingStatus: newStatus,
+      },
+    });
     
     return {
       status: 'success',
-      message: `Product "${productName}" ${newStatus === 'backorder' ? 'saved for later' : 'set to picking'}`,
-      newStatus: newStatus
+      message: `Product "${updatedItem.productName}" ${newStatus === 'backorder' ? 'saved for later' : 'set to picking'}`,
+      newStatus: updatedItem.pickingStatus as PickingStatus,
     };
   } catch (error: any) {
     throw new AccessError(error.message);
@@ -440,37 +427,39 @@ export async function saveForLater(quoteId: string, productId: number): Promise<
 
 export async function setUnavailable(quoteId: string, productId: number): Promise<QuoteItemStatusResult> {
   try {
-    const checkResult: { picking_status: PickingStatus, product_name: string }[] = await query(
-      'SELECT picking_status, product_name FROM quote_items WHERE quote_id = $1 AND product_id = $2',
-      [quoteId, productId]
-    );
+    const quoteItem = await prisma.quoteItem.findUnique({
+      where: {
+        quoteId_productId: { quoteId, productId },
+      },
+    });
 
-    if (checkResult.length === 0) {
+    if (!quoteItem) {
       throw new AccessError('Product does not exist in this quote!');
     }
 
-    const currentStatus = checkResult[0].picking_status;
-    const productName = checkResult[0].product_name;
-
-    if (currentStatus === 'completed') {
+    if (quoteItem.pickingStatus === 'completed') {
       return {
         status: 'error',
-        message: `This product "${productName}" has already been picked and cannot change status.`,
-        newStatus: currentStatus
+        message: `This product "${quoteItem.productName}" has already been picked and cannot change status.`,
+        newStatus: quoteItem.pickingStatus as PickingStatus,
       };
     }
 
-    const updateResult: { picking_status: PickingStatus }[] = await query(
-      'UPDATE quote_items SET picking_status = CASE WHEN picking_status = \'unavailable\'::picking_status THEN \'pending\'::picking_status ELSE \'unavailable\'::picking_status END WHERE quote_id = $1 AND product_id = $2 RETURNING picking_status',
-      [quoteId, productId]
-    );
-
-    const newStatus = updateResult[0].picking_status;
+    const newStatus = quoteItem.pickingStatus === 'unavailable' ? 'pending' : 'unavailable';
+    
+    const updatedItem = await prisma.quoteItem.update({
+      where: {
+        quoteId_productId: { quoteId, productId },
+      },
+      data: {
+        pickingStatus: newStatus,
+      },
+    });
 
     return {
       status: 'success',
-      message: `Product "${productName}" ${newStatus === 'unavailable' ? 'is now unavailable' : 'is now set to picking'}`,
-      newStatus: newStatus
+      message: `Product "${updatedItem.productName}" ${newStatus === 'unavailable' ? 'is now unavailable' : 'is now set to picking'}`,
+      newStatus: updatedItem.pickingStatus as PickingStatus,
     };
   } catch (error: any) {
     throw new AccessError(error.message);
@@ -479,21 +468,25 @@ export async function setUnavailable(quoteId: string, productId: number): Promis
 
 export async function setProductFinished(quoteId: string, productId: number): Promise<QuoteItemFinishResult> {
   try {
-    const result: { picking_quantity: number, picking_status: PickingStatus, product_name: string }[] = await query(
-      'UPDATE quote_items SET picking_quantity = 0, picking_status = \'completed\'::picking_status WHERE quote_id = $1 AND product_id = $2 RETURNING *',
-      [quoteId, productId]
-    );
+    const updatedItem = await prisma.quoteItem.update({
+      where: {
+        quoteId_productId: { quoteId, productId },
+      },
+      data: {
+        pickingQuantity: 0,
+        pickingStatus: 'completed',
+      },
+    });
 
-    if (result.length === 0) {
+    if (!updatedItem) {
       throw new AccessError('Product does not exist in this quote!');
     }
 
     return { 
-      pickingQty: result[0].picking_quantity,
-      newStatus: result[0].picking_status,
-      message: `Set ${result[0].product_name} to finished!`
-    }
-    ;
+      pickingQty: updatedItem.pickingQuantity.toNumber(),
+      newStatus: updatedItem.pickingStatus as PickingStatus,
+      message: `Set ${updatedItem.productName} to finished!`
+    };
   } catch (error: any) {
     throw new AccessError(error.message);
   }

@@ -1,4 +1,5 @@
-import { query, encryptToken, decryptToken } from '../helpers.js';
+import { encryptToken, decryptToken } from '../helpers.js';
+import { prisma } from '../lib/prisma.js';
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
 import { authSystem } from './authSystem.js';
 import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
@@ -28,16 +29,16 @@ class TokenService {
   initializeConnectionHandlers(): void {
     const handlers: Record<string, ConnectionHandler> = {
       qbo: {
-        fields: ['qbo_token_data', 'connection_type', 'qbo_realm_id'],
-        tokenField: 'qbo_token_data',
+        fields: ['qboTokenData', 'connectionType', 'qboRealmId'],
+        tokenField: 'qboTokenData',
         validate: this.validateQBOToken.bind(this),
         refresh: authSystem.refreshQBOToken.bind(authSystem),
         initClient: () => authSystem.initializeQBO(),
         setClientToken: (client, token) => client.setToken(token)
       },
       xero: {
-        fields: ['xero_token_data', 'connection_type', 'xero_tenant_id'],
-        tokenField: 'xero_token_data',
+        fields: ['xeroTokenData', 'connectionType', 'xeroTenantId'],
+        tokenField: 'xeroTokenData',
         validate: this.validateXeroToken.bind(this),
         refresh: authSystem.refreshXeroToken.bind(authSystem),
         initClient: () => authSystem.initializeXero(),
@@ -62,18 +63,26 @@ class TokenService {
     }
 
     try {
-      const result: CompanyTokenDataFromDB[] = await query(
-        `SELECT ${handler.fields.join(', ')} FROM companies WHERE id = $1`,
-        [companyId]
-      );
+      const result = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: {
+          qboTokenData: handler.fields.includes('qboTokenData'),
+          xeroTokenData: handler.fields.includes('xeroTokenData'),
+          connectionType: handler.fields.includes('connectionType'),
+        },
+      });
 
-      if (!result?.length) {
+      if (!result) {
         throw new AuthenticationError(connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
       }
 
       let currentToken: TokenData;
       try {
-        currentToken = this.constructToken(result[0], connectionType, handler);
+        currentToken = this.constructToken({
+          connectionType: result.connectionType,
+          qboTokenData: result.qboTokenData,
+          xeroTokenData: result.xeroTokenData,
+        } as any, connectionType, handler);
       } catch (tokenError: any) {
         if (tokenError instanceof AuthenticationError) throw tokenError;
         throw new AuthenticationError(connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
@@ -198,14 +207,18 @@ class TokenService {
 
       const encryptedTokenData = encryptToken(JSON.stringify(tokenDataToStore));
 
-      const updateField = connectionType === 'qbo' ? 'qbo_token_data' : 'xero_token_data';
-      const realmField = connectionType === 'qbo' ? 'qbo_realm_id' : 'xero_tenant_id';
+      const updateField = connectionType === 'qbo' ? 'qboTokenData' : 'xeroTokenData';
+      const realmField = connectionType === 'qbo' ? 'qboRealmId' : 'xeroTenantId';
       const realmValue = connectionType === 'qbo' ? (refreshedToken as QboToken).realmId : (refreshedToken as XeroToken).tenant_id;
       
-      await query(
-        `UPDATE companies SET ${updateField} = $1, ${realmField} = $2 WHERE id = $3 RETURNING *`,
-        [encryptedTokenData, realmValue, companyId]
-      );
+      const updateData: any = {};
+      updateData[updateField] = encryptedTokenData;
+      updateData[realmField] = realmValue;
+      
+      await prisma.company.update({
+        where: { id: companyId },
+        data: updateData,
+      });
 
       return refreshedToken;
 
@@ -240,13 +253,24 @@ class TokenService {
     if (!handler) return { status: 'ERROR', message: `Unsupported connection type: ${connectionType}` };
 
     try {
-      const result: CompanyTokenDataFromDB[] = await query(`SELECT ${handler.tokenField} FROM companies WHERE id = $1`, [companyId]);
+      const result = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: {
+          connectionType: true,
+          qboTokenData: handler.tokenField === 'qboTokenData',
+          xeroTokenData: handler.tokenField === 'xeroTokenData',
+        },
+      });
       
-      if (!result?.length || !result[0][handler.tokenField]) {
+      if (!result || !result[handler.tokenField as keyof typeof result]) {
         return { status: 'NO_TOKEN', message: `No ${connectionType.toUpperCase()} token found` };
       }
 
-      const currentToken = this.constructToken(result[0], connectionType, handler);
+      const currentToken = this.constructToken({
+        connectionType: result.connectionType,
+        qboTokenData: result.qboTokenData,
+        xeroTokenData: result.xeroTokenData,
+      } as any, connectionType, handler);
       const isValid = handler.validate(currentToken);
       
       return {
@@ -262,15 +286,21 @@ class TokenService {
 
   async getCompanyConnections(companyId: string): Promise<CompanyConnection[]> {
     try {
-      const result: CompanyTokenDataFromDB[] = await query('SELECT connection_type, qbo_token_data, xero_token_data FROM companies WHERE id = $1', [companyId]);
-      if (!result?.length) return [];
+      const result = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: {
+          connectionType: true,
+          qboTokenData: true,
+          xeroTokenData: true,
+        },
+      });
+      if (!result) return [];
 
-      const company = result[0];
       const connections: CompanyConnection[] = [];
 
-      if (company.connection_type === 'qbo' && company.qbo_token_data) {
+      if (result.connectionType === 'qbo' && result.qboTokenData) {
         try {
-          const qboToken = this.constructToken({ qbo_token_data: company.qbo_token_data } as any, 'qbo', this.connectionHandlers.get('qbo')!);
+          const qboToken = this.constructToken({ qboTokenData: result.qboTokenData } as any, 'qbo', this.connectionHandlers.get('qbo')!);
           connections.push({
             type: 'qbo',
             realmId: (qboToken as QboToken).realmId,
@@ -281,9 +311,9 @@ class TokenService {
         }
       }
 
-      if (company.connection_type === 'xero' && company.xero_token_data) {
+      if (result.connectionType === 'xero' && result.xeroTokenData) {
         try {
-          const xeroToken = this.constructToken({ xero_token_data: company.xero_token_data } as any, 'xero', this.connectionHandlers.get('xero')!);
+          const xeroToken = this.constructToken({ xeroTokenData: result.xeroTokenData } as any, 'xero', this.connectionHandlers.get('xero')!);
           connections.push({
             type: 'xero',
             tenantId: (xeroToken as XeroToken).tenant_id,
@@ -325,14 +355,20 @@ class TokenService {
       }
 
       const encryptedTokenData = encryptToken(JSON.stringify(tokenDataToStore));
-      const updateField = connectionType === 'qbo' ? 'qbo_token_data' : 'xero_token_data';
-      const realmField = connectionType === 'qbo' ? 'qbo_realm_id' : 'xero_tenant_id';
+      const updateField = connectionType === 'qbo' ? 'qboTokenData' : 'xeroTokenData';
+      const realmField = connectionType === 'qbo' ? 'qboRealmId' : 'xeroTenantId';
       const realmValue = connectionType === 'qbo' ? tokenData.realmId : tokenData.tenant_id;
       
-      await query(
-        `UPDATE companies SET ${updateField} = $1, connection_type = $2, ${realmField} = $3 WHERE id = $4 RETURNING *`,
-        [encryptedTokenData, connectionType, realmValue, companyId]
-      );
+      const updateData: any = {
+        [updateField]: encryptedTokenData,
+        connectionType: connectionType as any,
+        [realmField]: realmValue,
+      };
+      
+      await prisma.company.update({
+        where: { id: companyId },
+        data: updateData,
+      });
 
       console.log(`Successfully stored ${connectionType.toUpperCase()} token data for company ${companyId}`);
     } catch (error: any) {

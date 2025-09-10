@@ -1,5 +1,5 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query as queryDatabase } from '../helpers.js';
+import { prisma } from '../lib/prisma.js';
 import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { fetchCustomersLocal } from './customerService.js';
 import {
@@ -14,12 +14,9 @@ import {
   ProcessResult,
   ProductFromDB,
   Query,
-  OAuthClient
 } from '../types/kyte.js';
 import { Customer } from '../types/customer.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
-
-const query: Query = queryDatabase;
 
 /**
  * Parse Kyte CSV data and extract pending orders
@@ -152,27 +149,36 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
     
     for (const item of lineItems) {
       // Try to find product by name (fuzzy match)
-      const result: ProductFromDB[] = await query(
-        `SELECT id, product_name, sku, barcode, price, external_item_id, tax_code_ref 
-         FROM products 
-         WHERE company_id = $1 
-         AND (LOWER(product_name) LIKE LOWER($2) 
-              OR LOWER(sku) LIKE LOWER($2)
-              OR LOWER(barcode) LIKE LOWER($2))
-         AND is_archived = FALSE
-         LIMIT 1`,
-        [companyId, `%${item.productName}%`]
-      );
-      if (result.length > 0) {
-        const product = result[0];
+      const product = await prisma.product.findFirst({
+        where: {
+          companyId,
+          isArchived: false,
+          OR: [
+            { productName: { contains: item.productName, mode: 'insensitive' } },
+            { sku: { contains: item.productName, mode: 'insensitive' } },
+            { barcode: { contains: item.productName, mode: 'insensitive' } },
+          ],
+        },
+        select: {
+          id: true,
+          productName: true,
+          sku: true,
+          barcode: true,
+          price: true,
+          externalItemId: true,
+          taxCodeRef: true,
+        },
+      });
+
+      if (product) {
         matchedItems.push({
           ...item,
-          productId: product.id,
+          productId: Number(product.id),
           sku: product.sku,
           barcode: product.barcode,
-          price: parseFloat(product.price) || 0,
-          externalItemId: product.external_item_id,
-          taxCodeRef: product.tax_code_ref,
+          price: product.price.toNumber(),
+          externalItemId: product.externalItemId,
+          taxCodeRef: product.taxCodeRef,
           matched: true
         });
       } else {
@@ -221,28 +227,27 @@ export async function getAvailableCustomers(companyId: string): Promise<Customer
  */
 export async function getConversionHistory(companyId: string, limit = 50): Promise<ConversionHistoryRecord[]> {
   try {
-    const result: ConversionHistoryRecordFromDB[] = await query(
-      `SELECT 
-        kyte_order_number,
-        quickbooks_estimate_id,
-        quickbooks_url,
-        status,
-        error_message,
-        created_at
-       FROM kyte_conversions 
-       WHERE company_id = $1 
-       ORDER BY created_at DESC 
-       LIMIT $2`,
-      [companyId, limit]
-    );
+    const conversions = await prisma.kyteConversion.findMany({
+      where: { companyId },
+      select: {
+        kyteOrderNumber: true,
+        quickbooksEstimateId: true,
+        quickbooksUrl: true,
+        status: true,
+        errorMessage: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
     
-    return result.map((record: ConversionHistoryRecordFromDB) => ({
-      orderNumber: record.kyte_order_number,
-      estimateId: record.quickbooks_estimate_id,
-      quickbooksUrl: record.quickbooks_url,
-      status: record.status,
-      errorMessage: record.error_message,
-      createdAt: record.created_at
+    return conversions.map(record => ({
+      orderNumber: record.kyteOrderNumber,
+      estimateId: record.quickbooksEstimateId,
+      quickbooksUrl: record.quickbooksUrl,
+      status: record.status as 'success' | 'failed',
+      errorMessage: record.errorMessage,
+      createdAt: record.createdAt,
     }));
   } catch (error: any) {
     throw new AccessError(`Failed to fetch conversion history: ${error.message}`);
@@ -349,22 +354,30 @@ export async function saveConversionToDatabase(conversionData: ConversionData, c
       errorMessage
     } = conversionData;
 
-    const result = await query(
-      `INSERT INTO kyte_conversions (
-        company_id, kyte_order_number, quickbooks_estimate_id, 
-        quickbooks_url, status, error_message
-      ) VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (company_id, kyte_order_number) 
-      DO UPDATE SET
-        quickbooks_estimate_id = EXCLUDED.quickbooks_estimate_id,
-        quickbooks_url = EXCLUDED.quickbooks_url,
-        status = EXCLUDED.status,
-        error_message = EXCLUDED.error_message
-      RETURNING *`,
-      [companyId, kyteOrderNumber, quickbooksEstimateId, quickbooksUrl, status, errorMessage]
-    );
+    const conversion = await prisma.kyteConversion.upsert({
+      where: {
+        companyId_kyteOrderNumber: {
+          companyId,
+          kyteOrderNumber,
+        },
+      },
+      update: {
+        quickbooksEstimateId,
+        quickbooksUrl,
+        status,
+        errorMessage,
+      },
+      create: {
+        companyId,
+        kyteOrderNumber,
+        quickbooksEstimateId,
+        quickbooksUrl,
+        status,
+        errorMessage,
+      },
+    });
 
-    return result[0];
+    return conversion;
   } catch (error) {
     console.error('Failed to save conversion to database:', error);
     // Don't throw error to avoid breaking the conversion process

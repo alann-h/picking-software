@@ -1,4 +1,4 @@
-import { query } from '../helpers.js';
+import { prisma } from '../lib/prisma.js';
 
 interface LogApiCallData {
   userId: string;
@@ -66,14 +66,27 @@ class AuditService {
         userAgent
       } = auditData;
 
-      const result: { id: string }[] = await query(`
-        INSERT INTO api_audit_log 
-        (user_id, company_id, api_endpoint, connection_type, request_method, response_status, error_message, ip_address, user_agent)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        RETURNING id
-      `, [userId, companyId, apiEndpoint, connectionType, requestMethod, responseStatus, errorMessage, ipAddress, userAgent]);
+      const createData: any = {
+        companyId,
+        apiEndpoint,
+        connectionType: connectionType as any,
+        requestMethod,
+        responseStatus,
+        errorMessage,
+        ipAddress,
+        userAgent,
+      };
+      
+      if (userId) {
+        createData.userId = userId;
+      }
 
-      return result[0];
+      const result = await prisma.apiAuditLog.create({
+        data: createData,
+        select: { id: true },
+      });
+
+      return result;
     } catch (error) {
       console.error('Error logging API call:', error);
       // Don't throw error as this is not critical to the main flow
@@ -95,39 +108,46 @@ class AuditService {
         nextCheckDue = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
       }
 
-      const result: ConnectionHealth[] = await query(`
-        INSERT INTO connection_health 
-        (company_id, connection_type, status, last_check, last_successful_call, failure_count, last_error_message, next_check_due)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT (company_id, connection_type) 
-        DO UPDATE SET
-          status = EXCLUDED.status,
-          last_check = EXCLUDED.last_check,
-          last_successful_call = CASE 
-            WHEN EXCLUDED.status = 'healthy' THEN EXCLUDED.last_check 
-            ELSE connection_health.last_successful_call 
-          END,
-          failure_count = CASE 
-            WHEN EXCLUDED.status IN ('expired', 'revoked', 'warning') 
-            THEN connection_health.failure_count + 1 
-            ELSE 0 
-          END,
-          last_error_message = EXCLUDED.last_error_message,
-          next_check_due = EXCLUDED.next_check_due,
-          updated_at = NOW()
-        RETURNING *
-      `, [
-        companyId, 
-        connectionType, 
-        status, 
-        now,
-        status === 'healthy' ? now : null,
-        status === 'healthy' ? 0 : 1, // failure_count
-        errorMessage,
-        nextCheckDue
-      ]);
+      const result = await prisma.connectionHealth.upsert({
+        where: {
+          companyId_connectionType: {
+            companyId,
+            connectionType: connectionType as any,
+          },
+        },
+        create: {
+          companyId,
+          connectionType: connectionType as any,
+          status,
+          lastCheck: now,
+          lastSuccessfulCall: status === 'healthy' ? now : null,
+          failureCount: status === 'healthy' ? 0 : 1,
+          lastErrorMessage: errorMessage,
+          nextCheckDue,
+        },
+        update: {
+          status,
+          lastCheck: now,
+          lastSuccessfulCall: status === 'healthy' ? now : undefined,
+          failureCount: status === 'healthy' ? 0 : { increment: 1 },
+          lastErrorMessage: errorMessage,
+          nextCheckDue,
+        },
+      });
 
-      return result[0];
+      return {
+        id: result.id,
+        company_id: result.companyId,
+        connection_type: result.connectionType,
+        status: result.status as ConnectionStatus,
+        last_check: result.lastCheck,
+        last_successful_call: result.lastSuccessfulCall,
+        failure_count: result.failureCount,
+        last_error_message: result.lastErrorMessage,
+        next_check_due: result.nextCheckDue,
+        created_at: result.createdAt,
+        updated_at: result.updatedAt,
+      };
     } catch (error) {
       console.error('Error updating connection health:', error);
     }
@@ -138,13 +158,24 @@ class AuditService {
    */
   async getConnectionHealth(companyId: string): Promise<ConnectionHealth[]> {
     try {
-      const result: ConnectionHealth[] = await query(`
-        SELECT * FROM connection_health 
-        WHERE company_id = $1 
-        ORDER BY connection_type
-      `, [companyId]);
+      const results = await prisma.connectionHealth.findMany({
+        where: { companyId },
+        orderBy: { connectionType: 'asc' },
+      });
 
-      return result;
+      return results.map(result => ({
+        id: result.id,
+        company_id: result.companyId,
+        connection_type: result.connectionType,
+        status: result.status as ConnectionStatus,
+        last_check: result.lastCheck,
+        last_successful_call: result.lastSuccessfulCall,
+        failure_count: result.failureCount,
+        last_error_message: result.lastErrorMessage,
+        next_check_due: result.nextCheckDue,
+        created_at: result.createdAt,
+        updated_at: result.updatedAt,
+      }));
     } catch (error) {
       console.error('Error getting connection health:', error);
       return [];
@@ -156,20 +187,38 @@ class AuditService {
    */
   async getCompanyAuditLogs(companyId: string, limit = 100, offset = 0): Promise<CompanyAuditLog[]> {
     try {
-      const result: CompanyAuditLog[] = await query(`
-        SELECT 
-          al.*,
-          u.display_email,
-          u.given_name,
-          u.family_name
-        FROM api_audit_log al
-        LEFT JOIN users u ON al.user_id = u.id
-        WHERE al.company_id = $1
-        ORDER BY al.timestamp DESC
-        LIMIT $2 OFFSET $3
-      `, [companyId, limit, offset]);
+      const results = await prisma.apiAuditLog.findMany({
+        where: { companyId },
+        include: {
+          user: {
+            select: {
+              displayEmail: true,
+              givenName: true,
+              familyName: true,
+            },
+          },
+        },
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      });
 
-      return result;
+      return results.map(result => ({
+        id: result.id,
+        user_id: result.userId,
+        company_id: result.companyId,
+        api_endpoint: result.apiEndpoint,
+        connection_type: result.connectionType,
+        request_method: result.requestMethod,
+        response_status: result.responseStatus!,
+        error_message: result.errorMessage,
+        ip_address: result.ipAddress!,
+        user_agent: result.userAgent!,
+        timestamp: result.timestamp,
+        display_email: result.user?.displayEmail || null,
+        given_name: result.user?.givenName || null,
+        family_name: result.user?.familyName || null,
+      }));
     } catch (error) {
       console.error('Error getting company audit logs:', error);
       return [];
@@ -181,14 +230,26 @@ class AuditService {
    */
   async getUserAuditLogs(userId: string, limit = 50, offset = 0): Promise<ApiAuditLog[]> {
     try {
-      const result: ApiAuditLog[] = await query(`
-        SELECT * FROM api_audit_log 
-        WHERE user_id = $1
-        ORDER BY timestamp DESC
-        LIMIT $2 OFFSET $3
-      `, [userId, limit, offset]);
+      const results = await prisma.apiAuditLog.findMany({
+        where: { userId },
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      });
 
-      return result;
+      return results.map(result => ({
+        id: result.id,
+        user_id: result.userId,
+        company_id: result.companyId,
+        api_endpoint: result.apiEndpoint,
+        connection_type: result.connectionType,
+        request_method: result.requestMethod,
+        response_status: result.responseStatus!,
+        error_message: result.errorMessage,
+        ip_address: result.ipAddress!,
+        user_agent: result.userAgent!,
+        timestamp: result.timestamp,
+      }));
     } catch (error) {
       console.error('Error getting user audit logs:', error);
       return [];
@@ -200,21 +261,42 @@ class AuditService {
    */
   async getFailedApiCalls(companyId: string, hours = 24): Promise<CompanyAuditLog[]> {
     try {
-      const result: CompanyAuditLog[] = await query(`
-        SELECT 
-          al.*,
-          u.display_email,
-          u.given_name,
-          u.family_name
-        FROM api_audit_log al
-        LEFT JOIN users u ON al.user_id = u.id
-        WHERE al.company_id = $1 
-          AND al.response_status >= 400
-          AND al.timestamp >= NOW() - INTERVAL '${hours} hours'
-        ORDER BY al.timestamp DESC
-      `, [companyId]);
+      const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+      
+      const results = await prisma.apiAuditLog.findMany({
+        where: {
+          companyId,
+          responseStatus: { gte: 400 },
+          timestamp: { gte: cutoffTime },
+        },
+        include: {
+          user: {
+            select: {
+              displayEmail: true,
+              givenName: true,
+              familyName: true,
+            },
+          },
+        },
+        orderBy: { timestamp: 'desc' },
+      });
 
-      return result;
+      return results.map(result => ({
+        id: result.id,
+        user_id: result.userId,
+        company_id: result.companyId,
+        api_endpoint: result.apiEndpoint,
+        connection_type: result.connectionType,
+        request_method: result.requestMethod,
+        response_status: result.responseStatus!,
+        error_message: result.errorMessage,
+        ip_address: result.ipAddress!,
+        user_agent: result.userAgent!,
+        timestamp: result.timestamp,
+        display_email: result.user?.displayEmail || null,
+        given_name: result.user?.givenName || null,
+        family_name: result.user?.familyName || null,
+      }));
     } catch (error) {
       console.error('Error getting failed API calls:', error);
       return [];
@@ -226,10 +308,13 @@ class AuditService {
    */
   async cleanupOldAuditLogs(): Promise<any> {
     try {
-      const result = await query(`
-        DELETE FROM api_audit_log 
-        WHERE timestamp < NOW() - INTERVAL '90 days'
-      `, []);
+      const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // 90 days ago
+      
+      const result = await prisma.apiAuditLog.deleteMany({
+        where: {
+          timestamp: { lt: cutoffDate },
+        },
+      });
 
       return result;
     } catch (error) {

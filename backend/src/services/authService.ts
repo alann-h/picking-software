@@ -1,5 +1,6 @@
 import { AccessError, AuthenticationError } from '../middlewares/errorHandler.js';
-import { query, transaction, decryptToken } from '../helpers.js';
+import { prisma } from '../lib/prisma.js';
+import { decryptToken } from '../helpers.js';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
 import crypto from 'crypto';
@@ -111,29 +112,43 @@ export async function login(email: string, password: string, ipAddress: string |
       throw new AuthenticationError(AUTH_ERROR_CODES.ACCOUNT_LOCKED, `Account temporarily locked. Try again in ${remainingTime} minutes.`);
     }
 
-    const result: (UserFromDB & CompanyFromDB)[] = await query(`
-        SELECT 
-          u.*,
-          c.connection_type,
-          c.qbo_token_data,
-          c.xero_token_data,
-          c.qbo_realm_id,
-          c.xero_tenant_id
-        FROM users u
-        JOIN companies c ON u.company_id = c.id
-        WHERE u.normalised_email = $1
-      `, [email]);
+    const userWithCompany = await prisma.user.findUnique({
+      where: { normalisedEmail: email },
+      include: {
+        company: {
+          select: {
+            connectionType: true,
+            qboTokenData: true,
+            xeroTokenData: true,
+            qboRealmId: true,
+            xeroTenantId: true,
+          },
+        },
+      },
+    });
 
-    if (result.length === 0) {
+    if (!userWithCompany) {
       await incrementFailedAttempts(email, ipAddress, userAgent);
       throw new AuthenticationError(AUTH_ERROR_CODES.INVALID_CREDENTIALS, 'Invalid email or password');
     }
 
-    const userWithCompany: (UserFromDB & CompanyFromDB) = result[0];
-
     const user: LoginUser = {
-        ...userWithCompany,
-        connectionType: userWithCompany.connection_type || 'qbo'
+      id: userWithCompany.id,
+      company_id: userWithCompany.companyId!,
+      given_name: userWithCompany.givenName,
+      family_name: userWithCompany.familyName,
+      display_email: userWithCompany.displayEmail,
+      normalised_email: userWithCompany.normalisedEmail,
+      password_hash: userWithCompany.passwordHash,
+      is_admin: userWithCompany.isAdmin,
+      failed_attempts: userWithCompany.failedAttempts,
+      last_failed_attempt: userWithCompany.lastFailedAttempt,
+      locked_until: userWithCompany.lockedUntil,
+      password_reset_token: userWithCompany.passwordResetToken,
+      password_reset_expires: userWithCompany.passwordResetExpires,
+      created_at: userWithCompany.createdAt,
+      updated_at: userWithCompany.updatedAt,
+      connectionType: (userWithCompany.company?.connectionType as ConnectionType) || 'qbo',
     };
 
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
@@ -148,7 +163,7 @@ export async function login(email: string, password: string, ipAddress: string |
     let connectionType = user.connectionType;
 
     try {
-        const encryptedTokenData = connectionType === 'qbo' ? result[0].qbo_token_data : result[0].xero_token_data;
+        const encryptedTokenData = connectionType === 'qbo' ? userWithCompany.company?.qboTokenData : userWithCompany.company?.xeroTokenData;
         if (!encryptedTokenData) {
             throw new Error('No valid token data found');
         }
@@ -204,63 +219,92 @@ export async function register(displayEmail: string, password: string, is_admin:
   const saltRounds = 10;
   const normalisedEmail = validator.normalizeEmail(displayEmail) as string;
 
-  const existingUser: { id: string }[] = await query(
-    'SELECT id FROM users WHERE normalised_email = $1',
-    [normalisedEmail]
-  );
+  const existingUser = await prisma.user.findUnique({
+    where: { normalisedEmail },
+    select: { id: true },
+  });
 
-  if (existingUser.length > 0) {
+  if (existingUser) {
     throw new AuthenticationError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'An account with this email address already exists. Please log in.');
   }
 
   const hashedPassword = await bcrypt.hash(password, saltRounds);
   
-  const result: UserFromDB[] = await query(`
-    INSERT INTO users (normalised_email, password_hash, is_admin, given_name, family_name, company_id, display_email) 
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING *`,
-    [normalisedEmail, hashedPassword, is_admin, givenName, familyName, companyId, displayEmail]
-  );
-  
-  if (result.length === 0) {
-    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Unable to register user.');
-  }
+  const newUser = await prisma.user.create({
+    data: {
+      normalisedEmail,
+      passwordHash: hashedPassword,
+      isAdmin: is_admin,
+      givenName,
+      familyName,
+      companyId,
+      displayEmail,
+    },
+  });
 
   if (companyId) {
     try {
-      await permissionService.setDefaultPermissions(result[0].id, companyId, is_admin);
+      await permissionService.setDefaultPermissions(newUser.id, companyId, is_admin);
     } catch (permissionError) {
       console.warn('Failed to set default permissions for user:', permissionError);
     }
   }
 
-  return result[0];
+  return {
+    id: newUser.id,
+      company_id: newUser.companyId!,
+    given_name: newUser.givenName,
+    family_name: newUser.familyName,
+    display_email: newUser.displayEmail,
+    normalised_email: newUser.normalisedEmail,
+    password_hash: newUser.passwordHash,
+    is_admin: newUser.isAdmin,
+    failed_attempts: newUser.failedAttempts,
+    last_failed_attempt: newUser.lastFailedAttempt,
+    locked_until: newUser.lockedUntil,
+    password_reset_token: newUser.passwordResetToken,
+    password_reset_expires: newUser.passwordResetExpires,
+    created_at: newUser.createdAt,
+    updated_at: newUser.updatedAt,
+  };
 }
 
 export async function deleteUser(userId: string, sessionId: string): Promise<UserFromDB> {
   try {
-    return await transaction(async (client) => {
+    return await prisma.$transaction(async (tx) => {
       if (sessionId) {
-        await client.query(
-          'DELETE FROM sessions WHERE sid = $1',
-          [sessionId]
-        );
+        await tx.session.delete({
+          where: { sid: sessionId },
+        });
       }
       
-      const result = await client.query(
-        `DELETE FROM users 
-         WHERE id = $1 
-         RETURNING *`,
-        [userId]
-      );
+      const deletedUser = await tx.user.delete({
+        where: { id: userId },
+      });
       
-      if (result.rows.length === 0) {
-        throw new Error('User not found');
-      }
-      
-      return result.rows[0];
+      return {
+        id: deletedUser.id,
+        company_id: deletedUser.companyId!,
+        given_name: deletedUser.givenName,
+        family_name: deletedUser.familyName,
+        display_email: deletedUser.displayEmail,
+        normalised_email: deletedUser.normalisedEmail,
+        password_hash: deletedUser.passwordHash,
+        is_admin: deletedUser.isAdmin,
+        failed_attempts: deletedUser.failedAttempts,
+        last_failed_attempt: deletedUser.lastFailedAttempt,
+        locked_until: deletedUser.lockedUntil,
+        password_reset_token: deletedUser.passwordResetToken,
+        password_reset_expires: deletedUser.passwordResetExpires,
+        created_at: deletedUser.createdAt,
+        updated_at: deletedUser.updatedAt,
+      };
     });
   } catch (error: any) {
+    if (error.code === 'P2025') {
+      // Prisma error for record not found
+      throw new AuthenticationError(AUTH_ERROR_CODES.NOT_FOUND, 'User not found');
+    }
     throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
   }
 };
@@ -283,34 +327,63 @@ export async function saveUserFromOAuth(token: QboToken | XeroToken, companyId: 
     const userInfo = await getUserInfo(token, connectionType);
     const normalisedEmail = validator.normalizeEmail(userInfo.email) as string;
 
-    const existingUserResult: UserFromDB[] = await query(
-      'SELECT * FROM users WHERE normalised_email = $1',
-      [normalisedEmail]
-    );
+    const existingUser = await prisma.user.findUnique({
+      where: { normalisedEmail },
+    });
 
-    if (existingUserResult.length > 0) {
-      const existingUser = existingUserResult[0];
-      
-      if (existingUser.company_id !== companyId) {
-        console.log(`User ${normalisedEmail} switching from company ${existingUser.company_id} to ${companyId} via ${connectionType}`);
+    if (existingUser) {
+      if (existingUser.companyId !== companyId) {
+        console.log(`User ${normalisedEmail} switching from company ${existingUser.companyId} to ${companyId} via ${connectionType}`);
         
-        await query(
-          'UPDATE users SET company_id = $1 WHERE id = $2',
-          [companyId, existingUser.id]
-        );
-        
-        existingUser.company_id = companyId;
+        const updatedUser = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { companyId },
+        });
         
         try {
-          await permissionService.setDefaultPermissions(existingUser.id, companyId, existingUser.is_admin);
+          await permissionService.setDefaultPermissions(updatedUser.id, companyId, updatedUser.isAdmin);
         } catch (permissionError) {
           console.warn('Failed to set default permissions for user switching companies:', permissionError);
         }
+        
+        return {
+          id: updatedUser.id,
+          company_id: updatedUser.companyId!,
+          given_name: updatedUser.givenName,
+          family_name: updatedUser.familyName,
+          display_email: updatedUser.displayEmail,
+          normalised_email: updatedUser.normalisedEmail,
+          password_hash: updatedUser.passwordHash,
+          is_admin: updatedUser.isAdmin,
+          failed_attempts: updatedUser.failedAttempts,
+          last_failed_attempt: updatedUser.lastFailedAttempt,
+          locked_until: updatedUser.lockedUntil,
+          password_reset_token: updatedUser.passwordResetToken,
+          password_reset_expires: updatedUser.passwordResetExpires,
+          created_at: updatedUser.createdAt,
+          updated_at: updatedUser.updatedAt,
+        };
       } else {
         console.log(`Existing user re-authenticated via ${connectionType}: ${normalisedEmail}`);
+        
+        return {
+          id: existingUser.id,
+          company_id: existingUser.companyId,
+          given_name: existingUser.givenName,
+          family_name: existingUser.familyName,
+          display_email: existingUser.displayEmail,
+          normalised_email: existingUser.normalisedEmail,
+          password_hash: existingUser.passwordHash,
+          is_admin: existingUser.isAdmin,
+          failed_attempts: existingUser.failedAttempts,
+          last_failed_attempt: existingUser.lastFailedAttempt,
+          locked_until: existingUser.lockedUntil,
+          password_reset_token: existingUser.passwordResetToken,
+          password_reset_expires: existingUser.passwordResetExpires,
+          created_at: existingUser.createdAt,
+          updated_at: existingUser.updatedAt,
+        };
       }
-      
-      return existingUser;
     } 
     
     else {
@@ -334,21 +407,28 @@ export async function saveUserFromOAuth(token: QboToken | XeroToken, companyId: 
 
 export async function getAllUsers(companyId: string): Promise<UserForFrontend[]> {
   try {
-    const result: UserForFrontend[] = await query( `
-      SELECT 
-        id, 
-        display_email, 
-        normalised_email, 
-        given_name, 
-        family_name, 
-        is_admin,
-        company_id
-      FROM 
-        users 
-      WHERE 
-        company_id = $1
-    `, [companyId]);
-    return result;
+    const users = await prisma.user.findMany({
+      where: { companyId },
+      select: {
+        id: true,
+        displayEmail: true,
+        normalisedEmail: true,
+        givenName: true,
+        familyName: true,
+        isAdmin: true,
+        companyId: true,
+      },
+    });
+    
+    return users.map(user => ({
+      id: user.id,
+      display_email: user.displayEmail,
+      normalised_email: user.normalisedEmail,
+      given_name: user.givenName,
+      family_name: user.familyName,
+      is_admin: user.isAdmin,
+      company_id: user.companyId!,
+    }));
   } catch (e: any) {
     throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);
   }
@@ -362,9 +442,7 @@ export async function updateUser(userId: string, userData: UpdateUserPayload): P
     throw new AccessError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'No update data provided.');
   }
 
-  const setClauses: string[] = [];
-  const values: (string | boolean | number)[] = [];
-  let paramIndex = 1;
+  const updateData: any = {};
 
   for (const field of fields) {
     let value = userData[field];
@@ -377,39 +455,54 @@ export async function updateUser(userId: string, userData: UpdateUserPayload): P
     
     if (field === 'display_email' && typeof value === 'string') {
       const normalisedEmail = validator.normalizeEmail(value);
-      setClauses.push(`${field} = $${paramIndex++}`);
-      values.push(value);
-      setClauses.push(`normalised_email = $${paramIndex++}`);
-      values.push(normalisedEmail as string);
+      updateData.displayEmail = value;
+      updateData.normalisedEmail = normalisedEmail;
     } else {
-      setClauses.push(`${field} = $${paramIndex++}`);
-      values.push(value!);
+      // Map field names to Prisma field names
+      const fieldMap: { [key: string]: string } = {
+        'given_name': 'givenName',
+        'family_name': 'familyName',
+        'is_admin': 'isAdmin',
+        'password': 'passwordHash',
+      };
+      
+      const prismaField = fieldMap[field] || field;
+      updateData[prismaField] = value;
     }
   }
 
-  if (setClauses.length === 0) {
+  if (Object.keys(updateData).length === 0) {
       throw new AccessError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'The provided update data does not contain any valid fields for update.');
   }
 
-  values.push(userId);
-
-  const sql = `
-    UPDATE users 
-    SET ${setClauses.join(', ')} 
-    WHERE id = $${paramIndex}
-    RETURNING *
-  `;
-
   try {
-    const result: UserFromDB[] = await query(sql, values);
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
 
-    if (result.length === 0) {
+    return {
+      id: updatedUser.id,
+      company_id: updatedUser.companyId!,
+      given_name: updatedUser.givenName,
+      family_name: updatedUser.familyName,
+      display_email: updatedUser.displayEmail,
+      normalised_email: updatedUser.normalisedEmail,
+      password_hash: updatedUser.passwordHash,
+      is_admin: updatedUser.isAdmin,
+      failed_attempts: updatedUser.failedAttempts,
+      last_failed_attempt: updatedUser.lastFailedAttempt,
+      locked_until: updatedUser.lockedUntil,
+      password_reset_token: updatedUser.passwordResetToken,
+      password_reset_expires: updatedUser.passwordResetExpires,
+      created_at: updatedUser.createdAt,
+      updated_at: updatedUser.updatedAt,
+    };
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      // Prisma error for record not found
       throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'User not found or no update was necessary.');
     }
-
-    delete (result[0] as any).password;
-    return result[0];
-  } catch (error: any) {
     throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
   }
 }
@@ -435,29 +528,35 @@ export async function revokeQuickBooksToken(token: QboToken): Promise<void> {
 
 export async function requestPasswordReset(email: string): Promise<{ message: string }> {
   try {
-    const normalisedEmail = validator.normalizeEmail(email);
+    const normalisedEmail = validator.normalizeEmail(email) as string;
     
-    const result: { id: string, display_email: string, given_name: string, family_name: string }[] = await query(
-      'SELECT id, display_email, given_name, family_name FROM users WHERE normalised_email = $1',
-      [normalisedEmail]
-    );
+    const user = await prisma.user.findUnique({
+      where: { normalisedEmail },
+      select: {
+        id: true,
+        displayEmail: true,
+        givenName: true,
+        familyName: true,
+      },
+    });
 
-    if (result.length === 0) {
+    if (!user) {
       return { message: 'If an account with that email exists, a password reset link has been sent.' };
     }
-
-    const user = result[0];
     
     const resetToken = crypto.randomBytes(32).toString('hex');
     const tokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
     
-    await query(
-      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
-      [resetToken, tokenExpiry, user.id]
-    );
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpires: tokenExpiry,
+      },
+    });
 
-    const userName = `${user.given_name} ${user.family_name}`.trim();
-    await sendPasswordResetEmail(user.display_email, resetToken, userName);
+    const userName = `${user.givenName} ${user.familyName}`.trim();
+    await sendPasswordResetEmail(user.displayEmail, resetToken, userName);
 
     return { message: 'If an account with that email exists, a password reset link has been sent.' };
   } catch (error: any) {
@@ -468,31 +567,39 @@ export async function requestPasswordReset(email: string): Promise<{ message: st
 
 export async function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
   try {
-    const result: { id: string, display_email: string, given_name: string, family_name: string, password_reset_expires: Date }[] = await query(
-      'SELECT id, display_email, given_name, family_name, password_reset_expires FROM users WHERE password_reset_token = $1',
-      [token]
-    );
+    const user = await prisma.user.findFirst({
+      where: { passwordResetToken: token },
+      select: {
+        id: true,
+        displayEmail: true,
+        givenName: true,
+        familyName: true,
+        passwordResetExpires: true,
+      },
+    });
 
-    if (result.length === 0) {
+    if (!user) {
       throw new AuthenticationError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'Invalid or expired reset token');
     }
 
-    const user = result[0];
-
-    if (new Date() > new Date(user.password_reset_expires)) {
+    if (new Date() > new Date(user.passwordResetExpires!)) {
       throw new AuthenticationError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'Reset token has expired');
     }
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    await query(
-      'UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2',
-      [hashedPassword, user.id]
-    );
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      },
+    });
 
-    const userName = `${user.given_name} ${user.family_name}`.trim();
-    await sendPasswordResetConfirmationEmail(user.display_email, userName);
+    const userName = `${user.givenName} ${user.familyName}`.trim();
+    await sendPasswordResetConfirmationEmail(user.displayEmail, userName);
 
     return { message: 'Password has been successfully reset' };
   } catch (error: any) {

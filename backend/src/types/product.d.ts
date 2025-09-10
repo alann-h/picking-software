@@ -1,22 +1,11 @@
 import { ConnectionType } from './auth.js';
+import { Product as PrismaProduct } from '../../generated/prisma/index.js';
 
 export type PickingStatus = 'pending' | 'backorder' | 'completed' | 'unavailable';
 
-export interface Product {
-    id: number;
-    company_id: string;
-    product_name: string;
-    sku: string;
-    barcode: string | null;
-    external_item_id: string | null;
-    category: string | null;
-    tax_code_ref: string | null;
-    price: string;
-    quantity_on_hand: string;
-    is_archived: boolean;
-    created_at: Date;
-    updated_at: Date;
-}
+// Use the Prisma-generated Product type as the source of truth.
+// This ensures your types always match your database schema.
+export type Product = PrismaProduct;
 
 export interface ClientProduct {
     productId: number;

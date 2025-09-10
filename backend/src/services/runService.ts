@@ -1,33 +1,33 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query, transaction } from '../helpers.js';
 import { ensureQuotesExistInDB } from './quoteService.js';
 import { ConnectionType } from '../types/auth.js';
 import { Run, RunStatus, RunWithDetails, RunItemFromDB, QuoteInRun } from '../types/run.js';
 import { OrderStatus } from '../types/quote.js';
-import { PoolClient } from 'pg';
+import { prisma } from '../lib/prisma.js';
 
 async function getNextRunNumber(companyId: string): Promise<number> {
-    const result: { next_run_number: number }[] = await query(
-        'SELECT COALESCE(MAX(run_number), 0) + 1 AS next_run_number FROM runs WHERE company_id = $1',
-        [companyId]
-    );
-    return result[0].next_run_number;
+    const result = await prisma.run.aggregate({
+        where: { companyId },
+        _max: { runNumber: true },
+    });
+    return Number(result._max.runNumber || 0) + 1;
 }
 
 export async function createBulkRun(orderedQuoteIds: string[], companyId: string, connectionType: ConnectionType): Promise<Run> {
     try {
         await ensureQuotesExistInDB(orderedQuoteIds, companyId, connectionType);
-        return await transaction(async (client: PoolClient) => {
-            const quotesResult = await client.query<{ id: string, status: OrderStatus }>(
-                'SELECT id, status FROM quotes WHERE id = ANY($1::text[]) FOR UPDATE',
-                [orderedQuoteIds]
-            );
+        return await prisma.$transaction(async (tx) => {
+            // Get quotes with FOR UPDATE equivalent (Prisma handles this automatically in transactions)
+            const quotes = await tx.quote.findMany({
+                where: { id: { in: orderedQuoteIds } },
+                select: { id: true, status: true },
+            });
 
-            if (quotesResult.rows.length !== orderedQuoteIds.length) {
+            if (quotes.length !== orderedQuoteIds.length) {
                 throw new Error('Internal Server Error: Could not retrieve all quotes for run creation.');
             }
             
-            for (const quote of quotesResult.rows) {
+            for (const quote of quotes) {
                 if (!['pending', 'checking'].includes(quote.status)) {
                     throw new InputError(`Quote ID ${quote.id} has status '${quote.status}' and cannot be added to a run.`);
                 }
@@ -35,34 +35,48 @@ export async function createBulkRun(orderedQuoteIds: string[], companyId: string
 
             const nextRunNumber = await getNextRunNumber(companyId);
 
-            const newRunResult = await client.query<Run>(
-                `INSERT INTO runs (company_id, run_number, status)
-                 VALUES ($1, $2, 'pending'::run_status)
-                 RETURNING id, company_id, created_at, run_number, status`,
-                [companyId, nextRunNumber]
-            );
+            // Create the run
+            const newRun = await tx.run.create({
+                data: {
+                    companyId,
+                    runNumber: nextRunNumber,
+                    status: 'pending',
+                },
+                select: {
+                    id: true,
+                    companyId: true,
+                    createdAt: true,
+                    runNumber: true,
+                    status: true,
+                },
+            });
             
-            const newRun = newRunResult.rows[0];
             const runId = newRun.id;
 
-            const values: (string | number)[] = [];
-            const placeholders = orderedQuoteIds.map((quoteId, index) => {
-                const offset = index * 3;
-                values.push(runId, quoteId, index);
-                return `($${offset + 1}, $${offset + 2}, $${offset + 3})`;
-            }).join(',');
+            // Create run items with priorities
+            const runItemsData = orderedQuoteIds.map((quoteId, index) => ({
+                runId,
+                quoteId,
+                priority: index,
+            }));
 
-            await client.query(
-                `INSERT INTO run_items (run_id, quote_id, priority) VALUES ${placeholders}`,
-                values
-            );
+            await tx.runItem.createMany({
+                data: runItemsData,
+            });
 
-            await client.query(
-                `UPDATE quotes SET status = 'assigned'::order_status WHERE id = ANY($1::text[])`,
-                [orderedQuoteIds]
-            );
+            // Update quotes status to assigned
+            await tx.quote.updateMany({
+                where: { id: { in: orderedQuoteIds } },
+                data: { status: 'assigned' },
+            });
 
-            return newRun;
+            return {
+                id: newRun.id,
+                company_id: newRun.companyId,
+                created_at: newRun.createdAt,
+                run_number: Number(newRun.runNumber),
+                status: newRun.status,
+            };
         });
     } catch (error: any) {
         console.error('Error in createBulkRun service:', error);
@@ -72,56 +86,63 @@ export async function createBulkRun(orderedQuoteIds: string[], companyId: string
 
 export async function getRunsByCompanyId(companyId: string): Promise<RunWithDetails[]> {
     try {
-        const runsSql = `
-            SELECT id, company_id, created_at, run_number, status
-            FROM runs
-            WHERE company_id = $1 AND status IN ('pending'::run_status, 'checking'::run_status)
-            ORDER BY run_number DESC
-        `;
-        const runsResult: Run[] = await query(runsSql, [companyId]);
+        const runs = await prisma.run.findMany({
+            where: {
+                companyId,
+                status: { in: ['pending', 'checking'] },
+            },
+            orderBy: { runNumber: 'desc' },
+            select: {
+                id: true,
+                companyId: true,
+                createdAt: true,
+                runNumber: true,
+                status: true,
+            },
+        });
 
-        if (runsResult.length === 0) {
+        if (runs.length === 0) {
             return [];
         }
-        const runs = runsResult;
+
         const runIds = runs.map(run => run.id);
 
-        const itemsSql = `
-            SELECT 
-                ri.run_id, 
-                ri.priority, 
-                q.id, 
-                q.quote_number,
-                c.customer_name, 
-                q.total_amount,
-                q.status
-            FROM run_items ri
-            JOIN quotes q ON ri.quote_id = q.id
-            JOIN customers c ON q.customer_id = c.id
-            WHERE ri.run_id = ANY($1)
-            ORDER BY ri.priority ASC
-        `;
-        const itemsResult: RunItemFromDB[] = await query(itemsSql, [runIds] as any);
-        const items = itemsResult;
+        const items = await prisma.runItem.findMany({
+            where: { runId: { in: runIds } },
+            include: {
+                quote: {
+                    include: {
+                        customer: {
+                            select: { customerName: true },
+                        },
+                    },
+                },
+            },
+            orderBy: { priority: 'asc' },
+        });
 
         const itemsByRunId = new Map<string, QuoteInRun[]>();
         for (const item of items) {
-            if (!itemsByRunId.has(item.run_id)) {
-                itemsByRunId.set(item.run_id, []);
+            if (!itemsByRunId.has(item.runId)) {
+                itemsByRunId.set(item.runId, []);
             }
-            itemsByRunId.get(item.run_id)!.push({
-                quoteId: item.id,
-                quoteNumber: item.quote_number,
-                customerName: item.customer_name,
-                totalAmount: parseFloat(item.total_amount),
+            itemsByRunId.get(item.runId)!.push({
+                quoteId: item.quoteId,
+                quoteNumber: item.quote.quoteNumber || '',
+                customerName: item.quote.customer.customerName,
+                totalAmount: item.quote.totalAmount.toNumber(),
                 priority: item.priority,
-                orderStatus: item.status
+                orderStatus: item.quote.status,
             });
         }
 
         const finalResult: RunWithDetails[] = runs.map(run => ({
-            ...run,
-            quotes: itemsByRunId.get(run.id) || []
+            id: run.id,
+            company_id: run.companyId,
+            created_at: run.createdAt,
+            run_number: Number(run.runNumber),
+            status: run.status,
+            quotes: itemsByRunId.get(run.id) || [],
         }));
 
         return finalResult;
@@ -139,15 +160,30 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
     }
 
     try {
-        const result: Run[] = await query(
-            'UPDATE runs SET status = $1 WHERE id = $2 RETURNING id, company_id, created_at, run_number, status',
-            [newStatus, runId]
-        );
-        if (result.length === 0) {
+        const updatedRun = await prisma.run.update({
+            where: { id: runId },
+            data: { status: newStatus },
+            select: {
+                id: true,
+                companyId: true,
+                createdAt: true,
+                runNumber: true,
+                status: true,
+            },
+        });
+
+        return {
+            id: updatedRun.id,
+            company_id: updatedRun.companyId,
+            created_at: updatedRun.createdAt,
+            run_number: Number(updatedRun.runNumber),
+            status: updatedRun.status,
+        };
+    } catch (error: any) {
+        if (error.code === 'P2025') {
+            // Prisma error for record not found
             throw new InputError(`Run with ID ${runId} not found.`);
         }
-        return result[0];
-    } catch (error: any) {
         console.error('Error in updateRunStatus service:', error);
         throw error;
     }
@@ -159,21 +195,23 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: string[]):
     }
 
     try {
-        await transaction(async (client: PoolClient) => {
-            await client.query('DELETE FROM run_items WHERE run_id = $1', [runId]);
+        await prisma.$transaction(async (tx) => {
+            // Delete existing run items
+            await tx.runItem.deleteMany({
+                where: { runId },
+            });
 
+            // Create new run items if there are any
             if (orderedQuoteIds.length > 0) {
-                const values: (string | number)[] = [];
-                const placeholders = orderedQuoteIds.map((quoteId, index) => {
-                    const offset = index * 3;
-                    values.push(runId, quoteId, index);
-                    return `($${offset + 1}, $${offset + 2}, $${offset + 3})`;
-                }).join(',');
+                const runItemsData = orderedQuoteIds.map((quoteId, index) => ({
+                    runId,
+                    quoteId,
+                    priority: index,
+                }));
 
-                await client.query(
-                    `INSERT INTO run_items (run_id, quote_id, priority) VALUES ${placeholders}`,
-                    values
-                );
+                await tx.runItem.createMany({
+                    data: runItemsData,
+                });
             }
         });
 
@@ -187,22 +225,30 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: string[]):
 
 export async function deleteRunById(runId: string): Promise<{message: string}> {
     try {
-        await transaction(async (client: PoolClient) => {
-            const itemsResult = await client.query<{ id: string }>(
-                'SELECT id FROM run_items WHERE run_id = $1',
-                [runId]
-            );
-            const quoteIdsToRelease = itemsResult.rows.map(item => item.id);
+        await prisma.$transaction(async (tx) => {
+            // Get quote IDs from run items before deleting them
+            const runItems = await tx.runItem.findMany({
+                where: { runId },
+                select: { quoteId: true },
+            });
+            const quoteIdsToRelease = runItems.map(item => item.quoteId);
 
-            await client.query('DELETE FROM run_items WHERE run_id = $1', [runId]);
+            // Delete run items first (due to foreign key constraints)
+            await tx.runItem.deleteMany({
+                where: { runId },
+            });
 
-            await client.query('DELETE FROM runs WHERE id = $1', [runId]);
+            // Delete the run
+            await tx.run.delete({
+                where: { id: runId },
+            });
 
+            // Release quotes back to pending status
             if (quoteIdsToRelease.length > 0) {
-                await client.query(
-                    `UPDATE quotes SET status = 'pending'::order_status WHERE id = ANY($1::text[])`,
-                    [quoteIdsToRelease]
-                );
+                await tx.quote.updateMany({
+                    where: { id: { in: quoteIdsToRelease } },
+                    data: { status: 'pending' },
+                });
             }
         });
 

@@ -25,7 +25,7 @@ export type OauthClient = IntuitOAuthClient | XeroClient;
 
 export interface ConnectionHandler {
     fields: string[];
-    tokenField: 'qbo_token_data' | 'xero_token_data';
+    tokenField: 'qboTokenData' | 'xeroTokenData';
     validate: (token: any) => boolean;
     refresh: (token: any) => Promise<any>;
     initClient: () => OauthClient;
@@ -33,11 +33,11 @@ export interface ConnectionHandler {
 }
 
 export interface CompanyTokenDataFromDB {
-    qbo_token_data?: string | null;
-    xero_token_data?: string | null;
-    connection_type: ConnectionType;
-    qbo_realm_id?: string | null;
-    xero_tenant_id?: string | null;
+    qboTokenData?: string | null;
+    xeroTokenData?: string | null;
+    connectionType: ConnectionType;
+    qboRealmId?: string | null;
+    xeroTenantId?: string | null;
 }
 
 export type TokenStatus = 'VALID' | 'EXPIRED' | 'NO_TOKEN' | 'ERROR';

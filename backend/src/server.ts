@@ -37,12 +37,12 @@ import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
 import { upsertProducts } from './services/productService.js';
 import { getOAuthClient } from './services/authService.js';
+import { prisma } from './lib/prisma.js';
 import pool from './db.js';
 
 // --- Configuration
 import config from './config/index.js';
 import { JobStatus } from './types/jobs.js';
-import { OauthClient } from './types/token.js';
 import { IntuitOAuthClient } from './types/authSystem.js';
 
 const app = express();
@@ -166,15 +166,15 @@ interface JobProgressRequestBody {
 app.post('/internal/jobs/:jobId/progress', verifyInternalRequest, asyncHandler(async (req, res) => {
   const { jobId } = req.params;
   const { status, percentage, message, errorDetails } = req.body;
-  await pool.query(
-    `UPDATE jobs SET
-        status = $1,
-        progress_percentage = $2,
-        progress_message = $3,
-        error_message = $4
-     WHERE id = $5`,
-    [status, percentage, message, errorDetails, jobId]
-  );
+  await prisma.job.update({
+    where: { id: jobId },
+    data: {
+      status: status as any,
+      progressPercentage: percentage,
+      progressMessage: message,
+      errorMessage: errorDetails,
+    },
+  });
   res.sendStatus(200);
 }));
 
@@ -182,9 +182,12 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
   const { jobId } = req.params;
 
   const companyId = req.session.companyId;
-  const { rows } = await pool.query('SELECT * FROM jobs WHERE id = $1 AND company_id = $2', [jobId, companyId]);
-
-  const job = rows[0];
+  const job = await prisma.job.findFirst({
+    where: {
+      id: jobId,
+      companyId: companyId,
+    },
+  });
 
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
@@ -194,10 +197,10 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
     jobId: job.id,
     state: job.status,
     progress: {
-      percentage: job.progress_percentage,
-      message: job.progress_message
+      percentage: job.progressPercentage,
+      message: job.progressMessage
     },
-    error: job.error_message
+    error: job.errorMessage
   });
 }));
 
@@ -233,15 +236,21 @@ app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(as
       if (!req.session.companyId) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
-      const dbResponse = await pool.query(
-        `INSERT INTO jobs (s3_key, company_id) VALUES ($1, $2) RETURNING id`,
-        [s3Key, req.session.companyId]
-      );
-      const jobId = dbResponse.rows[0].id;
+      const job = await prisma.job.create({
+        data: {
+          s3Key,
+          companyId: req.session.companyId,
+        },
+        select: { id: true },
+      });
+      const jobId = job.id;
 
       // Get company connection type
-      const companyResult = await pool.query('SELECT connection_type FROM companies WHERE id = $1', [req.session.companyId]);
-      const connectionType = companyResult.rows[0]?.connection_type || 'qbo';
+      const company = await prisma.company.findUnique({
+        where: { id: req.session.companyId },
+        select: { connectionType: true },
+      });
+      const connectionType = (company?.connectionType as any) || 'qbo';
       
       const oauthClient = await getOAuthClient(req.session.companyId, connectionType);
       let freshTokenForLambda;
@@ -405,18 +414,17 @@ app.post('/logout-all', asyncHandler(async (req: Request, res: Response) => {
   
   try {
     // Delete all sessions for this user from the database using JSON operator
-    const client = await pool.connect();
-    try {
-      const result = await client.query(
-        'DELETE FROM sessions WHERE sess->>\'userId\' = $1 RETURNING sid',
-        [userId]
-      );
-      
-      deletedSessionsCount = result.rowCount || 0;
-      console.log(`Deleted ${deletedSessionsCount} sessions for user ${userId}`);
-    } finally {
-      client.release();
-    }
+    const result = await prisma.session.deleteMany({
+      where: {
+        sess: {
+          path: ['userId'],
+          equals: userId,
+        },
+      },
+    });
+    
+    deletedSessionsCount = result.count;
+    console.log(`Deleted ${deletedSessionsCount} sessions for user ${userId}`);
     
     // Destroy current session
     req.session.destroy(err => {
@@ -456,34 +464,38 @@ app.get('/sessions', asyncHandler(async (req: Request, res: Response) => {
   const userId = req.session.userId;
   
   try {
-    const client = await pool.connect();
-    try {
-      // Use JSONB operators for better performance with jsonb type column
-      // Consider adding an index: CREATE INDEX idx_sessions_userid ON sessions USING GIN ((sess->>'userId'))
-      const result = await client.query(
-        'SELECT sid, sess, expire FROM sessions WHERE sess->>\'userId\' = $1',
-        [userId]
-      );
-      
-      const userSessions = result.rows.map(row => ({
-        sessionId: row.sid,
-        userId: row.sess.userId,
-        companyId: row.sess.companyId,
-        email: row.sess.email,
-        name: row.sess.name,
-        isAdmin: row.sess.isAdmin,
-        expiresAt: row.expire,
-        isCurrentSession: row.sid === req.session.id
-      }));
+    // Use JSONB operators for better performance with jsonb type column
+    // Consider adding an index: CREATE INDEX idx_sessions_userid ON sessions USING GIN ((sess->>'userId'))
+    const sessions = await prisma.session.findMany({
+      where: {
+        sess: {
+          path: ['userId'],
+          equals: userId,
+        },
+      },
+      select: {
+        sid: true,
+        sess: true,
+        expire: true,
+      },
+    });
+    
+    const userSessions = sessions.map(session => ({
+      sessionId: session.sid,
+      userId: (session.sess as any).userId,
+      companyId: (session.sess as any).companyId,
+      email: (session.sess as any).email,
+      name: (session.sess as any).name,
+      isAdmin: (session.sess as any).isAdmin,
+      expiresAt: session.expire,
+      isCurrentSession: session.sid === req.session.id
+    }));
       
       res.json({
         userId,
         activeSessions: userSessions,
         totalSessions: userSessions.length
       });
-    } finally {
-      client.release();
-    }
   } catch (error: any) {
     console.error('Error fetching user sessions:', error);
     res.status(500).json({ error: 'Failed to fetch user sessions' });
@@ -501,42 +513,62 @@ app.get('/sessions/enhanced', asyncHandler(async (req: Request, res: Response) =
   const { includeExpired = false, adminOnly = false } = req.query;
   
   try {
-    const client = await pool.connect();
-    try {
-      let query = `
-        SELECT sid, sess, expire 
-        FROM sessions 
-        WHERE sess->>'userId' = $1 
-        AND sess->>'companyId' = $2
-      `;
-      
-      const params = [userId, companyId];
-      
-      // Add admin filter if requested
-      if (adminOnly === 'true') {
-        query += ` AND sess->>'isAdmin' = 'true'`;
-      }
-      
-      // Add expiration filter
-      if (includeExpired !== 'true') {
-        query += ` AND expire > NOW()`;
-      }
-      
-      // Add ordering
-      query += ` ORDER BY expire DESC`;
-      
-      const result = await client.query(query, params);
-      
-      const userSessions = result.rows.map(row => ({
-        sessionId: row.sid,
-        userId: row.sess.userId,
-        companyId: row.sess.companyId,
-        email: row.sess.email,
-        name: row.sess.name,
-        isAdmin: row.sess.isAdmin,
-        expiresAt: row.expire,
-        isExpired: row.expire < new Date(),
-        isCurrentSession: row.sid === req.session.id
+    const whereConditions: any = {
+      sess: {
+        path: ['userId'],
+        equals: userId,
+      },
+    };
+    
+    // Add company filter
+    whereConditions.AND = [
+      {
+        sess: {
+          path: ['companyId'],
+          equals: companyId,
+        },
+      },
+    ];
+    
+    // Add admin filter if requested
+    if (adminOnly === 'true') {
+      whereConditions.AND.push({
+        sess: {
+          path: ['isAdmin'],
+          equals: 'true',
+        },
+      });
+    }
+    
+    // Add expiration filter
+    if (includeExpired !== 'true') {
+      whereConditions.expire = {
+        gt: new Date(),
+      };
+    }
+    
+    const sessions = await prisma.session.findMany({
+      where: whereConditions,
+      select: {
+        sid: true,
+        sess: true,
+        expire: true,
+      },
+      orderBy: {
+        expire: 'desc',
+      },
+    });
+    
+    const userSessions = sessions.map(session => ({
+        sessionId: session.sid,
+        userId: (session.sess as any).userId,
+        companyId: (session.sess as any).companyId,
+        email: (session.sess as any).email,
+        name: (session.sess as any).name,
+        isAdmin: (session.sess as any).isAdmin,
+        expiresAt: session.expire,
+        isExpired: session.expire < new Date(),
+        isCurrentSession: session.sid === req.session.id
       }));
       
       res.json({
@@ -549,9 +581,6 @@ app.get('/sessions/enhanced', asyncHandler(async (req: Request, res: Response) =
           adminOnly: adminOnly === 'true'
         }
       });
-    } finally {
-      client.release();
-    }
   } catch (error: any) {
     console.error('Error fetching enhanced sessions:', error);
     res.status(500).json({ error: 'Failed to fetch enhanced sessions' });

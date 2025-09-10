@@ -1,5 +1,5 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
-import { query, transaction, roundQuantity, formatTimestampForSydney } from '../helpers.js';
+import { roundQuantity, formatTimestampForSydney } from '../helpers.js';
 import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { getProductsFromDBByIds, productIdToExternalId } from './productService.js';
 import { tokenService } from './tokenService.js';
@@ -8,12 +8,11 @@ import { ConnectionType } from '../types/auth.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
 import { XeroClient, Quote as XeroQuote, LineItem as XeroLineItem, Contact as XeroContact } from 'xero-node';
 import { Product, PickingStatus } from '../types/product.js';
-import { PoolClient } from 'pg';
+import { prisma } from '../lib/prisma.js';
 import {
     CustomerQuote,
     FilteredQuote,
     QuoteFetchError,
-    CombinedQuoteItemFromDB,
     BarcodeProcessResult,
     AddProductResult,
     AdjustQuantityResult,
@@ -297,41 +296,48 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
 
 export async function estimateToDB(quote: FilteredQuote): Promise<void> {
   try {
-    await transaction(async (client: PoolClient) => {
-      const existingQuote = await client.query(
-        'SELECT id FROM quotes WHERE id = $1',
-        [quote.quoteId]
-      );
-      if (existingQuote.rows.length > 0) {
-        await client.query(
-          'UPDATE quotes SET total_amount = $2, status = $3, order_note = $4, quote_number = $5 WHERE id = $1',
-          [quote.totalAmount, quote.orderStatus, quote.orderNote, quote.quoteNumber]
-        );
-      } else {
-        await client.query(
-          'INSERT INTO quotes (id, quote_number, customer_id, total_amount, status, company_id, order_note) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-          [quote.quoteId, quote.quoteNumber, quote.customerId, quote.totalAmount, quote.orderStatus, quote.companyId, quote.orderNote]
-        );
-      }
+    await prisma.$transaction(async (tx) => {
+      // Upsert the quote
+      await tx.quote.upsert({
+        where: { id: quote.quoteId },
+        update: {
+          totalAmount: quote.totalAmount,
+          status: quote.orderStatus,
+          orderNote: quote.orderNote,
+          quoteNumber: quote.quoteNumber,
+        },
+        create: {
+          id: quote.quoteId,
+          quoteNumber: quote.quoteNumber,
+          customerId: quote.customerId,
+          totalAmount: quote.totalAmount,
+          status: quote.orderStatus,
+          companyId: quote.companyId,
+          orderNote: quote.orderNote,
+        },
+      });
 
-      await client.query('DELETE FROM quote_items WHERE quote_id = $1', [quote.quoteId]);
+      // Delete existing quote items
+      await tx.quoteItem.deleteMany({
+        where: { quoteId: quote.quoteId },
+      });
 
+      // Create new quote items
       for (const [productId, item] of Object.entries(quote.productInfo)) {
-        await client.query(
-          'INSERT INTO quote_items (quote_id, product_id, product_name, picking_quantity, original_quantity, picking_status, sku, price, tax_code_ref) VALUES ($1, $2, $3, $4, $5, $6::picking_status, $7, $8, $9)',
-          [
-            quote.quoteId,
-            productId,
-            item.productName,
-            roundQuantity(item.pickingQty),
-            roundQuantity(item.originalQty),
-            item.pickingStatus,
-            item.sku,
-            roundQuantity(item.price),
-            item.tax_code_ref
-          ]
-        );
-      }     
+        await tx.quoteItem.create({
+          data: {
+            quoteId: quote.quoteId,
+            productId: Number(productId), // Convert string to number for bigint field
+            productName: item.productName,
+            pickingQuantity: roundQuantity(item.pickingQty),
+            originalQuantity: roundQuantity(item.originalQty),
+            pickingStatus: item.pickingStatus,
+            sku: item.sku,
+            price: roundQuantity(item.price),
+            taxCodeRef: item.tax_code_ref,
+          },
+        });
+      }
     });
   } catch (error: any) {
     throw new AccessError(error.message);
@@ -340,11 +346,11 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
 
 export async function checkQuoteExists(quoteId: string): Promise<boolean> {
   try {
-    const result = await query(
-      'SELECT id FROM quotes WHERE id = $1',
-      [quoteId]
-    );
-    return result.length > 0;
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      select: { id: true },
+    });
+    return quote !== null;
   } catch (error: any) {
     console.error('Error checking if quote exists:', error);
     throw error;
@@ -353,51 +359,52 @@ export async function checkQuoteExists(quoteId: string): Promise<boolean> {
 
 export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | null> {
   try {
-    const result: CombinedQuoteItemFromDB[] = await query(`
-      SELECT q.*, qi.*, c.customer_name
-      FROM quotes q
-      LEFT JOIN quote_items qi ON q.id = qi.quote_id
-      LEFT JOIN customers c ON q.customer_id = c.id
-      WHERE q.id = $1
-    `, [quoteId]);
-
-    if (result.length === 0) {
-      return null;
-    }
-    const formattedTime = formatTimestampForSydney(result[0].updated_at);
-
-    const quote: FilteredQuote = {
-      quoteId: result[0].id,
-      quoteNumber: result[0].quote_number,
-      customerId: result[0].customer_id,
-      customerName: result[0].customer_name,
-      totalAmount: parseFloat(result[0].total_amount),
-      orderStatus: result[0].status, 
-      lastModified: formattedTime,
-      productInfo: {},
-      companyId: result[0].company_id,
-      orderNote: result[0].order_note,
-    };
-
-    result.forEach(row => {
-      if (row.quote_id && row.product_id) {
-        quote.productInfo[row.product_id] = {
-          productId: row.product_id,
-          productName: row.product_name,
-          originalQty: parseFloat(row.original_quantity),
-          pickingQty: parseFloat(row.picking_quantity),
-          pickingStatus: row.picking_status,
-          sku: row.sku,
-          price: parseFloat(row.price),
-          companyId: row.company_id,
-          barcode: row.barcode,
-          tax_code_ref: row.tax_code_ref,
-          quantityOnHand: 0,
-        };
-      }
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      include: {
+        quoteItems: true,
+        customer: {
+          select: { customerName: true },
+        },
+      },
     });
 
-    return quote;
+    if (!quote) {
+      return null;
+    }
+
+    const formattedTime = formatTimestampForSydney(quote.updatedAt);
+
+    const filteredQuote: FilteredQuote = {
+      quoteId: quote.id,
+      quoteNumber: quote.quoteNumber || '',
+      customerId: quote.customerId,
+      customerName: quote.customer.customerName,
+      totalAmount: quote.totalAmount.toNumber(),
+      orderStatus: quote.status,
+      lastModified: formattedTime,
+      productInfo: {},
+      companyId: quote.companyId,
+      orderNote: quote.orderNote,
+    };
+
+    quote.quoteItems.forEach(item => {
+      filteredQuote.productInfo[item.productId.toString()] = {
+        productId: Number(item.productId),
+        productName: item.productName,
+        originalQty: item.originalQuantity.toNumber(),
+        pickingQty: item.pickingQuantity.toNumber(),
+        pickingStatus: item.pickingStatus,
+        sku: item.sku,
+        price: item.price.toNumber(),
+        companyId: quote.companyId,
+        barcode: '', // Will be populated from product relation if needed
+        tax_code_ref: item.taxCodeRef,
+        quantityOnHand: 0,
+      };
+    });
+
+    return filteredQuote;
   } catch (error: any) {
     console.error('Error fetching quote data:', error);
     throw error;
@@ -406,13 +413,13 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
 
 async function updateQuotePreparerNames(quoteId: string, userName: string): Promise<void> {
   try {
-    const result: { preparer_names: string | null }[] = await query(
-      'SELECT preparer_names FROM quotes WHERE id = $1',
-      [quoteId]
-    );
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      select: { preparerNames: true },
+    });
 
-   const currentNames = (result.length > 0 && result[0].preparer_names)
-      ? result[0].preparer_names.split(',').map(name => name.trim().toLowerCase())
+    const currentNames = quote?.preparerNames
+      ? quote.preparerNames.split(',').map(name => name.trim().toLowerCase())
       : [];
 
     const normalizedNewName = userName.trim().toLowerCase();
@@ -423,10 +430,10 @@ async function updateQuotePreparerNames(quoteId: string, userName: string): Prom
 
       const updatedNamesString = currentNames.join(', ');
 
-      await query(
-        'UPDATE quotes SET preparer_names = $1 WHERE id = $2',
-        [updatedNamesString, quoteId]
-      );
+      await prisma.quote.update({
+        where: { id: quoteId },
+        data: { preparerNames: updatedNamesString },
+      });
       console.log(`Quote ${quoteId}: Preparer names updated to "${updatedNamesString}" by ${userName}`);
     }
   } catch (err: any) {
@@ -437,16 +444,24 @@ async function updateQuotePreparerNames(quoteId: string, userName: string): Prom
 
 export async function processBarcode(barcode: string, quoteId: string, newQty: number, userName: string): Promise<BarcodeProcessResult> {
   try {
-    const checkStatusResult: { picking_status: PickingStatus }[] = await query(
-      'SELECT picking_status FROM quote_items WHERE quote_id = $1 AND barcode = $2',
-      [quoteId, barcode]
-    );
+    // First, find the quote item by barcode through the product relation
+    const quoteItem = await prisma.quoteItem.findFirst({
+      where: {
+        quoteId: quoteId,
+        product: {
+          barcode: barcode,
+        },
+      },
+      include: {
+        product: true,
+      },
+    });
 
-    if (checkStatusResult.length === 0) {
+    if (!quoteItem) {
       throw new InputError('Quote number is invalid or scanned product does not exist on quote');
     }
 
-    const currentStatus = checkStatusResult[0].picking_status;
+    const currentStatus = quoteItem.pickingStatus;
     
     if (currentStatus === 'completed') {
       throw new InputError(`This item has already been fully picked`);
@@ -454,14 +469,30 @@ export async function processBarcode(barcode: string, quoteId: string, newQty: n
       throw new InputError(`Cannot process item. Current status is ${currentStatus}. Please change the status to 'pending' before scanning.`);
     }
 
-    const result: BarcodeProcessResult[] = await query(
-      'UPDATE quote_items SET picking_quantity = GREATEST(picking_quantity - $1, 0), picking_status = CASE WHEN picking_quantity - $1 <= 0 THEN \'completed\'::picking_status ELSE picking_status END WHERE quote_id = $2 AND barcode = $3 RETURNING picking_quantity, product_name, picking_status',
-      [newQty, quoteId, barcode]
-    );
+    // Calculate new picking quantity and status
+    const newPickingQuantity = Math.max(quoteItem.pickingQuantity.toNumber() - newQty, 0);
+    const newPickingStatus = newPickingQuantity <= 0 ? 'completed' : quoteItem.pickingStatus;
+
+    const updatedItem = await prisma.quoteItem.update({
+      where: {
+        quoteId_productId: {
+          quoteId: quoteId,
+          productId: quoteItem.productId,
+        },
+      },
+      data: {
+        pickingQuantity: newPickingQuantity,
+        pickingStatus: newPickingStatus as PickingStatus,
+      },
+    });
 
     await updateQuotePreparerNames(quoteId, userName);
 
-    return { productName: result[0].productName, updatedQty: result[0].updatedQty, pickingStatus: result[0].pickingStatus };
+    return {
+      productName: updatedItem.productName,
+      updatedQty: updatedItem.pickingQuantity.toNumber(),
+      pickingStatus: updatedItem.pickingStatus,
+    };
   } catch (error: any) {
     throw new AccessError(error.message);
   }
@@ -469,44 +500,91 @@ export async function processBarcode(barcode: string, quoteId: string, newQty: n
 
 export async function addProductToQuote(productId: number, quoteId: string, qty: number, companyId: string): Promise<AddProductResult> {
   try {
-    const productResult: Product[] = await query('SELECT * FROM products WHERE id = $1', [productId]);
-    if (productResult.length === 0) {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+    if (!product) {
       throw new AccessError('Product does not exist in database!');
     }
-    const quoteResult: { total_amount: string }[] = await query('SELECT total_amount FROM quotes WHERE id = $1', [quoteId]);
-    if (quoteResult.length === 0) {
+
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      select: { totalAmount: true },
+    });
+    if (!quote) {
       throw new AccessError('Quote does not exist in database!');
     }
+
     let addNewProduct: any = null;
-    let addExisitingProduct: any = null;
+    let addExistingProduct: any = null;
     let totalAmount: any = 0;
-    await transaction(async (client: PoolClient) => {
+
+    await prisma.$transaction(async (tx) => {
       const pickingStatus = 'pending';
-      const existingItem: { rows: any[] } = await client.query(
-        'SELECT * FROM quote_items WHERE quote_id = $1 AND product_id = $2',
-        [quoteId, productId]
-      );
+      const existingItem = await tx.quoteItem.findUnique({
+        where: {
+          quoteId_productId: {
+            quoteId: quoteId,
+            productId: productId,
+          },
+        },
+      });
       
-      if (existingItem.rows.length > 0) {
-        addExisitingProduct = await client.query(
-          'UPDATE quote_items SET picking_quantity = picking_quantity + $1, original_quantity = original_quantity + $1, picking_status = $2 WHERE quote_id = $3 AND product_id = $4 returning *',
-          [qty, pickingStatus, quoteId, productId]
-        );
+      if (existingItem) {
+        addExistingProduct = await tx.quoteItem.update({
+          where: {
+            quoteId_productId: {
+              quoteId: quoteId,
+              productId: productId,
+            },
+          },
+          data: {
+            pickingQuantity: existingItem.pickingQuantity.toNumber() + qty,
+            originalQuantity: existingItem.originalQuantity.toNumber() + qty,
+            pickingStatus: pickingStatus,
+          },
+        });
       } else {
-          addNewProduct = await client.query(
-            'INSERT INTO quote_items (quote_id, product_id, picking_quantity, original_quantity, picking_status, barcode, product_name, sku, price, company_id, tax_code_ref) VALUES ($1, $2, $3, $4, $5::picking_status, $6, $7, $8, $9, $10, $11) returning *',
-            [quoteId, productId, qty, qty, pickingStatus, productResult[0].barcode, productResult[0].product_name, productResult[0].sku, productResult[0].price, companyId, productResult[0].tax_code_ref]
-          );
+        addNewProduct = await tx.quoteItem.create({
+          data: {
+            quoteId: quoteId,
+            productId: productId,
+            pickingQuantity: qty,
+            originalQuantity: qty,
+            pickingStatus: pickingStatus,
+            productName: product.productName,
+            sku: product.sku,
+            price: product.price,
+            taxCodeRef: product.taxCodeRef,
+          },
+        });
       }
       
-      const price = parseFloat(productResult[0].price) * qty;
-      const newTotalAmount =  Number(quoteResult[0].total_amount) + price;
-      totalAmount = await client.query('UPDATE quotes SET total_amount = $1 WHERE id = $2 returning total_amount, updated_at', [newTotalAmount, quoteId]);
+      const price = product.price.toNumber() * qty;
+      const newTotalAmount = quote.totalAmount.toNumber() + price;
+      
+      const updatedQuote = await tx.quote.update({
+        where: { id: quoteId },
+        data: { totalAmount: newTotalAmount },
+        select: { totalAmount: true, updatedAt: true },
+      });
+      
+      totalAmount = updatedQuote;
     });
+
     if (addNewProduct) {
-      return {status: 'new', productInfo: addNewProduct.rows[0], totalAmount: totalAmount.rows[0].total_amount, lastModified: totalAmount.rows[0].updated_at};
+      return {
+        status: 'new',
+        productInfo: addNewProduct,
+        totalAmount: totalAmount.totalAmount.toNumber(),
+        lastModified: totalAmount.updatedAt,
+      };
     } else {
-      return {status: 'exists', productInfo: addExisitingProduct.rows[0], totalAmount: totalAmount.rows[0].total_amount };
+      return {
+        status: 'exists',
+        productInfo: addExistingProduct,
+        totalAmount: totalAmount.totalAmount.toNumber(),
+      };
     }
   } catch (e: any) {
     throw new AccessError(e.message);
@@ -515,37 +593,70 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
 
 export async function adjustProductQuantity(quoteId: string, productId: number, newQty: number): Promise<AdjustQuantityResult> {
   try {
-    const quote: { total_amount: string }[] = await query(
-      'SELECT total_amount FROM quotes WHERE id = $1',
-      [quoteId]
-    );
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      select: { totalAmount: true },
+    });
 
-    if (quote.length === 0) {
+    if (!quote) {
       throw new AccessError('Quote does not exist!');
     }
 
-    const quoteitems: { original_quantity: string }[] = await query(
-      'SELECT original_quantity FROM quote_items WHERE quote_id = $1 AND product_id = $2',
-      [quoteId, productId]
-    );
+    const quoteItem = await prisma.quoteItem.findUnique({
+      where: {
+        quoteId_productId: {
+          quoteId: quoteId,
+          productId: productId,
+        },
+      },
+      select: { originalQuantity: true },
+    });
 
-    if (quoteitems.length === 0) {
+    if (!quoteItem) {
       throw new AccessError('Product does not exist in this quote!');
     }
     
-    const product: { price: string }[] = await query('SELECT price FROM products WHERE id = $1', [productId]);
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { price: true },
+    });
 
-    const qtyDiff = newQty - Number(quoteitems[0].original_quantity);
-    const priceChange = Number(product[0].price) * qtyDiff;
-    const newTotalAmount = Number(quote[0].total_amount) + priceChange;
+    if (!product) {
+      throw new AccessError('Product not found!');
+    }
 
-    const updatedItem: { picking_quantity: number, original_quantity: number }[] = await query(
-      'UPDATE quote_items SET picking_quantity = $1, original_quantity = $1 WHERE quote_id = $2 AND product_id = $3 RETURNING picking_quantity, original_quantity',
-      [newQty, quoteId, productId]
-    );
+    const qtyDiff = newQty - quoteItem.originalQuantity.toNumber();
+    const priceChange = product.price.toNumber() * qtyDiff;
+    const newTotalAmount = quote.totalAmount.toNumber() + priceChange;
 
-    const updatedTotalAmt: { total_amount: string }[] = await query('UPDATE quotes SET total_amount = $1 WHERE id = $2 returning total_amount', [newTotalAmount, quoteId]);
-    return { pickingQty: updatedItem[0].picking_quantity, originalQty: updatedItem[0].original_quantity, totalAmount: updatedTotalAmt[0].total_amount };
+    const updatedItem = await prisma.quoteItem.update({
+      where: {
+        quoteId_productId: {
+          quoteId: quoteId,
+          productId: productId,
+        },
+      },
+      data: {
+        pickingQuantity: newQty,
+        originalQuantity: newQty,
+      },
+      select: {
+        pickingQuantity: true,
+        originalQuantity: true,
+      },
+    });
+
+    const updatedQuote = await prisma.quote.update({
+      where: { id: quoteId },
+      data: { totalAmount: newTotalAmount },
+      select: { totalAmount: true },
+    });
+
+    return {
+      pickingQty: updatedItem.pickingQuantity.toNumber(),
+      originalQty: updatedItem.originalQuantity.toNumber(),
+      totalAmount: updatedQuote.totalAmount.toString(),
+    };
   } catch (error: any) {
     throw new AccessError(error.message);
   }
@@ -553,11 +664,12 @@ export async function adjustProductQuantity(quoteId: string, productId: number, 
 
 export async function setOrderStatus(quoteId: string, newStatus: OrderStatus): Promise<{ orderStatus: OrderStatus }> {
   try {
-    const result: { status: OrderStatus }[] = await query(
-      'UPDATE quotes SET status = $1 WHERE id = $2 returning status',
-      [newStatus, quoteId]
-    );
-    return {orderStatus: result[0].status};
+    const updatedQuote = await prisma.quote.update({
+      where: { id: quoteId },
+      data: { status: newStatus },
+      select: { status: true },
+    });
+    return { orderStatus: updatedQuote.status };
   } catch (error: any) {
     throw new AccessError(error.message);
   }
@@ -565,37 +677,21 @@ export async function setOrderStatus(quoteId: string, newStatus: OrderStatus): P
 
 export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<any[]> {
   try {
-    let queryText: string, queryParams: (OrderStatus | 'all')[] | [];
-    
-    const baseQuery = `
-      SELECT 
-        q.id, 
-        q.quote_number, 
-        q.total_amount, 
-        q.status, 
-        q.created_at, 
-        q.updated_at, 
-        q.preparer_names, 
-        q.picker_note,
-        c.customer_name 
-      FROM quotes q
-      LEFT JOIN customers c ON q.customer_id = c.id
-    `;
+    const quotes = await prisma.quote.findMany({
+      where: status === 'all' ? {} : { status },
+      include: {
+        customer: {
+          select: { customerName: true },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
 
-    if (status === 'all') {
-      queryText = `${baseQuery} ORDER BY q.updated_at DESC`;
-      queryParams = [];
-    } else {
-      queryText = `${baseQuery} WHERE q.status = $1 ORDER BY q.updated_at DESC`;
-      queryParams = [status];
-    }
-    
-    const result: any[] = await query(queryText, queryParams);
-    return result.map(quote => {
+    return quotes.map(quote => {
       let timeTaken = 'N/A';
-      if (quote.created_at && quote.updated_at) {
-        const start = new Date(quote.created_at);
-        const end = new Date(quote.updated_at);
+      if (quote.createdAt && quote.updatedAt) {
+        const start = new Date(quote.createdAt);
+        const end = new Date(quote.updatedAt);
         
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
           const diffMs = end.getTime() - start.getTime();
@@ -615,22 +711,22 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<
         }
       }
 
-      const formattedTimeStarted = formatTimestampForSydney(quote.created_at);
-      const formattedLastModified = formatTimestampForSydney(quote.updated_at);
+      const formattedTimeStarted = formatTimestampForSydney(quote.createdAt);
+      const formattedLastModified = formatTimestampForSydney(quote.updatedAt);
 
       return {
         id: quote.id,
-        quoteNumber: quote.quote_number,
-        customerId: quote.id,
-        customerName: quote.customer_name,
-        totalAmount: parseFloat(quote.total_amount),
+        quoteNumber: quote.quoteNumber || '',
+        customerId: quote.customerId,
+        customerName: quote.customer.customerName,
+        totalAmount: quote.totalAmount.toNumber(),
         orderStatus: quote.status,
         timeStarted: formattedTimeStarted,
         lastModified: formattedLastModified,
         timeTaken: timeTaken,
-        companyId: quote.id,
-        preparerNames: quote.preparer_names,
-        pickerNote: quote.picker_note
+        companyId: quote.companyId,
+        preparerNames: quote.preparerNames,
+        pickerNote: quote.pickerNote,
       };
     });
   } catch (error: any) {
@@ -641,17 +737,18 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<
 
 export async function savePickerNote(quoteId: string, note: string): Promise<{ pickerNote: string }> {
   try {
-    const result: { picker_note: string }[] = await query(
-      'UPDATE quotes SET picker_note = $1 WHERE id = $2 RETURNING picker_note',
-      [note, quoteId]
-    );
+    const updatedQuote = await prisma.quote.update({
+      where: { id: quoteId },
+      data: { pickerNote: note },
+      select: { pickerNote: true },
+    });
     
-    if (result.length === 0) {
+    return { pickerNote: updatedQuote.pickerNote || '' };
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      // Prisma error for record not found
       throw new InputError('Quote not found');
     }
-    
-    return {pickerNote: result[0].picker_note};
-  } catch (error: any) {
     if (error instanceof InputError) {
       throw error;
     }
@@ -661,35 +758,34 @@ export async function savePickerNote(quoteId: string, note: string): Promise<{ p
 
 export async function deleteQuotesBulk(quoteIds: string[]): Promise<BulkDeleteResult> {
   try {
-    const result = await transaction(async (client: PoolClient) => {
+    const result = await prisma.$transaction(async (tx) => {
       const deletedQuotes: { id: string }[] = [];
       const errors: { quoteId: string, error: string }[] = [];
       
       for (const quoteId of quoteIds) {
         try {
-          const quoteExists = await client.query(
-            'SELECT id FROM quotes WHERE id = $1',
-            [quoteId]
-          );
+          const quoteExists = await tx.quote.findUnique({
+            where: { id: quoteId },
+            select: { id: true },
+          });
           
-          if (quoteExists.rows.length === 0) {
+          if (!quoteExists) {
             errors.push({ quoteId, error: 'Quote not found' });
             continue;
           }
           
-          await client.query(
-            'DELETE FROM quote_items WHERE quote_id = $1',
-            [quoteId]
-          );
+          // Delete quote items first (due to foreign key constraints)
+          await tx.quoteItem.deleteMany({
+            where: { quoteId: quoteId },
+          });
           
-          const deletedQuote = await client.query(
-            'DELETE FROM quotes WHERE id = $1 RETURNING id',
-            [quoteId]
-          );
+          // Delete the quote
+          const deletedQuote = await tx.quote.delete({
+            where: { id: quoteId },
+            select: { id: true },
+          });
           
-          if (deletedQuote.rows.length > 0) {
-            deletedQuotes.push(deletedQuote.rows[0]);
-          }
+          deletedQuotes.push(deletedQuote);
           
         } catch (error: any) {
           errors.push({ quoteId, error: error.message });
@@ -804,10 +900,12 @@ export async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: Fil
 }
 
 export async function ensureQuotesExistInDB(quoteIds: string[], companyId: string, connectionType: ConnectionType): Promise<void> {
-    const quotesCheckResult: { id: string }[] = await query(
-        'SELECT id FROM quotes WHERE id = ANY($1::text[])',
-        quoteIds
-    );
+    const quotesCheckResult = await prisma.quote.findMany({
+        where: {
+            id: { in: quoteIds },
+        },
+        select: { id: true },
+    });
     const existingIds = new Set(quotesCheckResult.map(r => r.id));
 
     const missingIds = quoteIds.filter(id => !existingIds.has(id));

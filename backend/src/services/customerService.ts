@@ -1,7 +1,6 @@
 import { tokenService } from './tokenService.js';
 import { authSystem } from './authSystem.js';
 import { AccessError } from '../middlewares/errorHandler.js';
-import { transaction, query } from '../helpers.js';
 import { getBaseURL, getRealmId } from './authService.js';
 import { Customer, LocalCustomer } from '../types/customer.js';
 import { ConnectionType } from '../types/auth.js';
@@ -9,17 +8,23 @@ import { IntuitOAuthClient } from '../types/authSystem.js';
 import { XeroClient, Contact } from 'xero-node';
 import { PoolClient } from 'pg';
 import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
+import { prisma } from '../lib/prisma.js';
 
 export async function fetchCustomersLocal(companyId: string): Promise<LocalCustomer[]> {
   try {
-    // Fetch from your database instead of API
-    const result: LocalCustomer[] = await query(
-      'SELECT id, customer_name FROM customers WHERE company_id = $1 ORDER BY customer_name',
-      [companyId]
-    );
-    return result.map((customer: LocalCustomer) => ({
+    // Fetch from your database using Prisma
+    const customers = await prisma.customer.findMany({
+      where: { companyId },
+      select: {
+        id: true,
+        customerName: true
+      },
+      orderBy: { customerName: 'asc' }
+    });
+    
+    return customers.map(customer => ({
       id: customer.id,
-      customer_name: customer.customer_name
+      customer_name: customer.customerName
     }));
   } catch (error: any) {
     console.error('Error fetching customers from database:', error);
@@ -130,16 +135,25 @@ async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Custome
 
 export async function saveCustomers(customers: Omit<Customer, 'company_id'>[], companyId: string): Promise<void> {
   try {
-    await transaction(async (client: PoolClient) => {
+    // Use Prisma transaction for better type safety
+    await prisma.$transaction(async (tx) => {
       for (const customer of customers) {
         if (customer.id == null) {
           console.error('❌ Null or undefined customerId found:', customer);
           continue;
         }
-        await client.query(
-          'INSERT INTO customers (id, customer_name, company_id) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET customer_name = $2',
-          [customer.id, customer.customer_name, companyId]
-        );
+        
+        await tx.customer.upsert({
+          where: { id: customer.id },
+          update: { 
+            customerName: customer.customer_name 
+          },
+          create: {
+            id: customer.id,
+            customerName: customer.customer_name,
+            companyId: companyId
+          }
+        });
       }
     });
   } catch (error: any) {
