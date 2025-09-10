@@ -5,10 +5,13 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --env-file=../.env.development src/server.js",
-    "start": "node src/server.js",
-    "lint": "eslint src/*.js",
-    "test": "vitest"
+    "build": "tsc",
+    "dev": "tsx watch --env-file=../.env.development src/server.ts",
+    "start": "node dist/server.js",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "test": "vitest",
+    "type-check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -49,7 +52,24 @@
     "xero-node": "^13.0.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/connect-pg-simple": "^7.0.3",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/express-session": "^1.18.0",
+    "@types/fs-extra": "^11.0.4",
+    "@types/he": "^1.2.3",
+    "@types/morgan": "^1.9.9",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/validator": "^13.11.7",
     "@vitest/coverage-v8": "^3.2.4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.7.2",
     "vitest": "^3.2.4"
   }
 }

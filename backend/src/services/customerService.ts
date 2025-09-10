@@ -1,0 +1,148 @@
+import { tokenService } from './tokenService.js';
+import { authSystem } from './authSystem.js';
+import { AccessError } from '../middlewares/errorHandler.js';
+import { transaction, query } from '../helpers.js';
+import { getBaseURL, getRealmId } from './authService.js';
+import { Customer, LocalCustomer } from '../types/customer.js';
+import { ConnectionType } from '../types/auth.js';
+import { IntuitOAuthClient } from '../types/authSystem.js';
+import { XeroClient, Contact } from 'xero-node';
+import { PoolClient } from 'pg';
+import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
+
+export async function fetchCustomersLocal(companyId: string): Promise<LocalCustomer[]> {
+  try {
+    // Fetch from your database instead of API
+    const result: LocalCustomer[] = await query(
+      'SELECT id, customer_name FROM customers WHERE company_id = $1 ORDER BY customer_name',
+      [companyId]
+    );
+    return result.map((customer: LocalCustomer) => ({
+      id: customer.id,
+      customer_name: customer.customer_name
+    }));
+  } catch (error: any) {
+    console.error('Error fetching customers from database:', error);
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to fetch customers: ' + error.message);
+  }
+}
+
+export async function fetchCustomers(companyId: string, connectionType: ConnectionType = 'qbo'): Promise<Omit<Customer, 'company_id'>[]> {
+  try {
+    if (connectionType === 'qbo') {
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'qbo') as IntuitOAuthClient;
+      return await fetchQBOCustomers(oauthClient);
+    } else if (connectionType === 'xero') {
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'xero') as XeroClient;
+      return await fetchXeroCustomers(oauthClient);
+    } else {
+      throw new AccessError(AUTH_ERROR_CODES.VALIDATION_ERROR, `Unsupported connection type: ${connectionType}`);
+    }
+  } catch (e: any) {
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to fetch customers: ' + e.message);
+  }
+}
+
+interface QBOCustomer {
+    Id: string;
+    DisplayName: string;
+}
+
+async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<Customer, 'company_id'>[]> {
+  const baseURL = await getBaseURL(oauthClient, 'qbo');
+  const realmId = getRealmId(oauthClient);
+
+  let allCustomers: Omit<Customer, 'company_id'>[] = [];
+  let startPosition = 1;
+  let pageSize = 100; // API limit
+  let moreRecords = true;
+
+  while (moreRecords) {
+    const response = await oauthClient.makeApiCall({
+      url: `${baseURL}v3/company/${realmId}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
+    });
+    const responseData = response.json;
+    const customers: QBOCustomer[] = responseData.QueryResponse.Customer || [];
+
+    allCustomers.push(...customers.map((customer: QBOCustomer) => ({
+      id: customer.Id,
+      customer_name: customer.DisplayName
+    })));
+
+    if (customers.length < pageSize) {
+      moreRecords = false;
+    } else {
+      startPosition += pageSize;
+    }
+  }
+  return allCustomers;
+}
+
+async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Customer, 'company_id'>[]> {
+  try {
+    const tenantId = await authSystem.getXeroTenantId(oauthClient);
+
+    if (!tenantId) {
+        throw new Error('Xero tenant ID not found.');
+    }
+
+    let allCustomers: Omit<Customer, 'company_id'>[] = [];
+    let page = 1;
+    let hasMorePages = true;
+
+    const whereFilter = 'IsCustomer==true';
+
+    while (hasMorePages) {
+      const response = await oauthClient.accountingApi.getContacts(
+        tenantId,
+        undefined,  // ifModifiedSince
+        whereFilter, // where
+        undefined,  // order
+        undefined,  // iDs
+        page,       // page
+        true,       // includeArchived
+        true,       // summaryOnly
+        undefined  // searchTerm
+      );
+
+      const customers: Contact[] = response.body.contacts || [];
+      
+      allCustomers.push(...customers.map((customer: Contact) => ({
+        id: customer.contactID!,
+        customer_name: customer.name!
+      })));
+
+      // Check if there are more pages
+      if (customers.length < 100) {
+        hasMorePages = false;
+      } else {
+        page++;
+      }
+    }
+
+    return allCustomers;
+  } catch (error: any) {
+    console.error('Error fetching Xero customers:', error);
+    throw new Error(`Failed to fetch Xero customers: ${error.message}`);
+  }
+}
+
+
+export async function saveCustomers(customers: Omit<Customer, 'company_id'>[], companyId: string): Promise<void> {
+  try {
+    await transaction(async (client: PoolClient) => {
+      for (const customer of customers) {
+        if (customer.id == null) {
+          console.error('❌ Null or undefined customerId found:', customer);
+          continue;
+        }
+        await client.query(
+          'INSERT INTO customers (id, customer_name, company_id) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET customer_name = $2',
+          [customer.id, customer.customer_name, companyId]
+        );
+      }
+    });
+  } catch (error: any) {
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+  }
+}
