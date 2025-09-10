@@ -1,5 +1,5 @@
 import { ConnectionType } from './auth.js';
-import { Product as PrismaProduct } from '../../generated/prisma/index.js';
+import { Product as PrismaProduct } from '@prisma/client';
 
 export type PickingStatus = 'pending' | 'backorder' | 'completed' | 'unavailable';
 
