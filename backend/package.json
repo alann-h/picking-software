@@ -5,6 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "prisma generate && tsc",
     "dev": "tsx watch --env-file=../.env.development src/server.ts",
     "start": "node dist/server.js",
