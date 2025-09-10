@@ -1,3 +1,5 @@
 packages:
   - 'frontend'
   - 'backend'
+
+inject-workspace-packages: true
