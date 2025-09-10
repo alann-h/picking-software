@@ -14,7 +14,7 @@ COPY backend/ ./backend/
 
 RUN pnpm install --filter=backend
 
-RUN pnpm deploy --prod --filter=backend /app/deploy
+RUN pnpm deploy --legacy --filter=backend /app/deploy
 
 
 # ---- Stage 2: Production ----
