@@ -5,7 +5,7 @@
       "moduleResolution": "NodeNext",
       "outDir": "./dist",
       "rootDir": "./src",
-  
+      "types": [],
       "allowJs": true,
       "strict": true,
       "esModuleInterop": true,

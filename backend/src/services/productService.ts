@@ -30,8 +30,11 @@ export async function productIdToExternalId(productId: number): Promise<string> 
     }
 
     return product.externalItemId;
-  } catch (err: any) {
-    throw new AccessError(err.message);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      throw new AccessError(err.message);
+    }
+    throw new AccessError('An unknown error occurred while converting product ID.');
   }
 }
 
@@ -64,8 +67,12 @@ export async function enrichWithQBOData(products: EnrichableProduct[], companyId
           external_item_id: itemData.Id,
           tax_code_ref: itemData.SalesTaxCodeRef.value
         });
-      } catch (err: any) {
-        console.warn(`Failed QBO lookup for SKU ${product.sku}: ${err.message}`);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          console.warn(`Failed QBO lookup for SKU ${product.sku}: ${err.message}`);
+        } else {
+          console.warn(`Failed QBO lookup for SKU ${product.sku}: An unknown error occurred`);
+        }
         enriched.push({
           ...product,
           price: Number(product.price) || 0,
@@ -77,7 +84,7 @@ export async function enrichWithQBOData(products: EnrichableProduct[], companyId
     }
 
     return enriched;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error enriching products with QBO data:', error);
     return products.map(product => ({
       ...product,
@@ -127,8 +134,12 @@ export async function enrichWithXeroData(products: EnrichableProduct[], companyI
           external_item_id: itemData.itemID || null,
           tax_code_ref: itemData.salesDetails?.taxType || null
         });
-      } catch (err: any) {
-        console.warn(`Failed Xero lookup for SKU ${product.sku}: ${err.message}`);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          console.warn(`Failed Xero lookup for SKU ${product.sku}: ${err.message}`);
+        } else {
+          console.warn(`Failed Xero lookup for SKU ${product.sku}: An unknown error occurred`);
+        }
         enriched.push({
           ...product,
           price: Number(product.price) || 0,
@@ -140,7 +151,7 @@ export async function enrichWithXeroData(products: EnrichableProduct[], companyI
     }
 
     return enriched;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error enriching products with Xero data:', error);
     return products.map(product => ({
       ...product,
@@ -233,8 +244,11 @@ export async function getProductName(barcode: string, companyId: string): Promis
       throw new InputError('This product does not exist within the database');
     }
     return product.productName;
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred while getting the product name.');
   }
 }
 
@@ -253,7 +267,7 @@ export async function getProductsFromDBByIds(itemIds: string[], companyId: strin
     });
 
     return results;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.log(err);
     throw new AccessError('Error accessing the database while fetching products');
   }
@@ -277,8 +291,11 @@ export async function getAllProducts(companyId: string): Promise<ClientProduct[]
       externalItemId: product.externalItemId ?? '',
       isArchived: product.isArchived,
     }));
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred while fetching all products.');
   }
 }
 
@@ -381,8 +398,11 @@ export async function addProductDb(product: NewProductData[], companyId: string,
 
     return result.sku;
 
-  } catch (err: any) {
-    throw new InputError(`addProductDb failed: ${err.message}`);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      throw new InputError(`addProductDb failed: ${err.message}`);
+    }
+    throw new InputError('An unknown error occurred in addProductDb.');
   }
 }
 // below are functions for products but from quotes
@@ -420,8 +440,11 @@ export async function saveForLater(quoteId: string, productId: number): Promise<
       message: `Product "${updatedItem.productName}" ${newStatus === 'backorder' ? 'saved for later' : 'set to picking'}`,
       newStatus: updatedItem.pickingStatus as PickingStatus,
     };
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred in saveForLater.');
   }
 }
 
@@ -461,8 +484,11 @@ export async function setUnavailable(quoteId: string, productId: number): Promis
       message: `Product "${updatedItem.productName}" ${newStatus === 'unavailable' ? 'is now unavailable' : 'is now set to picking'}`,
       newStatus: updatedItem.pickingStatus as PickingStatus,
     };
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred in setUnavailable.');
   }
 }
 
@@ -487,7 +513,10 @@ export async function setProductFinished(quoteId: string, productId: number): Pr
       newStatus: updatedItem.pickingStatus as PickingStatus,
       message: `Set ${updatedItem.productName} to finished!`
     };
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred in setProductFinished.');
   }
 }

@@ -82,8 +82,8 @@ class TokenService {
           connectionType: result.connectionType,
           qboTokenData: result.qboTokenData,
           xeroTokenData: result.xeroTokenData,
-        } as any, connectionType, handler);
-      } catch (tokenError: any) {
+        } as CompanyTokenDataFromDB, connectionType, handler);
+      } catch (tokenError: unknown) {
         if (tokenError instanceof AuthenticationError) throw tokenError;
         throw new AuthenticationError(connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
       }
@@ -115,7 +115,7 @@ class TokenService {
         this.tokenRefreshPromises.delete(cacheKey);
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error getting valid token for company ${companyId} (${connectionType}):`, error);
       throw error;
     }
@@ -150,7 +150,7 @@ class TokenService {
           created_at: tokenData.created_at
         };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error parsing token data:', error);
       throw new AuthenticationError(
         connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED
@@ -222,12 +222,15 @@ class TokenService {
 
       return refreshedToken;
 
-    } catch (error: any) {
-      if (error.message.includes('REFRESH_TOKEN_EXPIRED') || error.message.includes('REAUTH_REQUIRED')) {
+    } catch (error: unknown) {
+      if (error instanceof Error && (error.message.includes('REFRESH_TOKEN_EXPIRED') || error.message.includes('REAUTH_REQUIRED'))) {
         const errorCode = connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED;
         throw new AuthenticationError(errorCode);
       }
-      throw new AccessError(`Failed to refresh ${connectionType.toUpperCase()} token: ${error.message}`);
+      if (error instanceof Error) {
+        throw new AccessError(`Failed to refresh ${connectionType.toUpperCase()} token: ${error.message}`);
+      }
+      throw new AccessError(`An unknown error occurred while refreshing the ${connectionType.toUpperCase()} token.`);
     }
   }
 
@@ -243,8 +246,8 @@ class TokenService {
     try {
       await this.getValidToken(companyId, connectionType);
       return false;
-    } catch (error: any) {
-      return error.message.includes('REAUTH_REQUIRED') || error.message.includes('REFRESH_TOKEN_EXPIRED');
+    } catch (error: unknown) {
+      return error instanceof Error && (error.message.includes('REAUTH_REQUIRED') || error.message.includes('REFRESH_TOKEN_EXPIRED'));
     }
   }
 
@@ -270,7 +273,7 @@ class TokenService {
         connectionType: result.connectionType,
         qboTokenData: result.qboTokenData,
         xeroTokenData: result.xeroTokenData,
-      } as any, connectionType, handler);
+      } as CompanyTokenDataFromDB, connectionType, handler);
       const isValid = handler.validate(currentToken);
       
       return {
@@ -279,8 +282,11 @@ class TokenService {
         connectionType,
         realmId: connectionType === 'qbo' ? (currentToken as QboToken).realmId : (currentToken as XeroToken).tenant_id
       };
-    } catch (error: any) {
-      return { status: 'ERROR', message: error.message };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return { status: 'ERROR', message: error.message };
+      }
+      return { status: 'ERROR', message: 'An unknown error occurred while checking token status.' };
     }
   }
 
@@ -300,32 +306,32 @@ class TokenService {
 
       if (result.connectionType === 'qbo' && result.qboTokenData) {
         try {
-          const qboToken = this.constructToken({ qboTokenData: result.qboTokenData } as any, 'qbo', this.connectionHandlers.get('qbo')!);
+          const qboToken = this.constructToken({ qboTokenData: result.qboTokenData } as CompanyTokenDataFromDB, 'qbo', this.connectionHandlers.get('qbo')!);
           connections.push({
             type: 'qbo',
             realmId: (qboToken as QboToken).realmId,
             status: await this.getTokenStatus(companyId, 'qbo')
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Error parsing QBO token:', error);
         }
       }
 
       if (result.connectionType === 'xero' && result.xeroTokenData) {
         try {
-          const xeroToken = this.constructToken({ xeroTokenData: result.xeroTokenData } as any, 'xero', this.connectionHandlers.get('xero')!);
+          const xeroToken = this.constructToken({ xeroTokenData: result.xeroTokenData } as CompanyTokenDataFromDB, 'xero', this.connectionHandlers.get('xero')!);
           connections.push({
             type: 'xero',
             tenantId: (xeroToken as XeroToken).tenant_id,
             status: await this.getTokenStatus(companyId, 'xero')
           });
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Error parsing Xero token:', error);
         }
       }
 
       return connections;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error getting company connections for ${companyId}:`, error);
       return [];
     }
@@ -371,9 +377,13 @@ class TokenService {
       });
 
       console.log(`Successfully stored ${connectionType.toUpperCase()} token data for company ${companyId}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Error storing ${connectionType} token data:`, error);
+        throw new Error(`Failed to store ${connectionType.toUpperCase()} token data: ${error.message}`);
+      }
       console.error(`Error storing ${connectionType} token data:`, error);
-      throw new Error(`Failed to store ${connectionType.toUpperCase()} token data: ${error.message}`);
+      throw new Error(`An unknown error occurred while storing ${connectionType.toUpperCase()} token data.`);
     }
   }
 }

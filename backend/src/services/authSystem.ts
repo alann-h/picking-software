@@ -59,7 +59,7 @@ export class AuthSystem {
      * @returns {IntuitOAuthClient} Initialized QBO OAuth client
      */
     initializeQBO(): IntuitOAuthClient {
-        return new (OAuthClient as any)({
+        return new (OAuthClient as new (options: unknown) => IntuitOAuthClient)({
             clientId: this.qboClientId,
             clientSecret: this.qboClientSecret,
             environment: this.environment,
@@ -100,7 +100,7 @@ export class AuthSystem {
      * @param {boolean} rememberMe - Whether to remember the user
      * @returns {Promise<string>} Authorization URI
      */
-    async getXeroAuthUri(rememberMe = false): Promise<string> {
+    async getXeroAuthUri(_rememberMe = false): Promise<string> {
         const xeroClient = this.initializeXero();
 
         return await xeroClient.buildConsentUrl();
@@ -116,9 +116,12 @@ export class AuthSystem {
         try {
             const authResponse = await oauthClient.createToken(url);
             return authResponse.getToken();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('QBO callback error:', error);
-            throw new Error('Could not create QBO token: ' + error.message);
+            if (error instanceof Error) {
+                throw new Error('Could not create QBO token: ' + error.message);
+            }
+            throw new Error('Could not create QBO token due to an unknown error.');
         }
     }
 
@@ -140,7 +143,7 @@ export class AuthSystem {
                 tenant_id: tenantId,
                 created_at: Date.now() / 1000
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Xero callback error:', error);
             throw new Error('Failed to handle Xero callback.');
         }
@@ -164,11 +167,14 @@ export class AuthSystem {
             const tokenData: QboToken = response.getToken();
             console.log('QBO token refreshed!');
             return tokenData;
-        } catch (error: any) {
-            if (error.error === 'invalid_grant') {
+        } catch (error: unknown) {
+            if (error instanceof Object && 'error' in error && error.error === 'invalid_grant') {
                 throw new Error('QBO_TOKEN_REVOKED');
             }
-            throw new Error('Failed to refresh QBO token: ' + error.message);
+            if (error instanceof Error) {
+                throw new Error('Failed to refresh QBO token: ' + error.message);
+            }
+            throw new Error('Failed to refresh QBO token due to an unknown error.');
         }
     }
 
@@ -191,12 +197,15 @@ export class AuthSystem {
                 tenant_id: tenantId,
                 created_at: Date.now() / 1000
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Xero token refresh error:', error);
-            if (error.message.includes('invalid_grant')) {
-                throw new Error('XERO_TOKEN_REVOKED');
+            if (error instanceof Error) {
+                if (error.message.includes('invalid_grant')) {
+                    throw new Error('XERO_TOKEN_REVOKED');
+                }
+                throw new Error('Failed to refresh Xero token.');
             }
-            throw new Error('Failed to refresh Xero token.');
+            throw new Error('Failed to refresh Xero token due to an unknown error.');
         }
     }
 
@@ -240,8 +249,12 @@ export class AuthSystem {
             if (tenants && tenants.length > 0) {
                 tenantId = tenants[0].tenantId!;
             }
-        } catch (error: any) {
-            console.warn('Could not fetch Xero tenant ID:', error.message);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                console.warn('Could not fetch Xero tenant ID:', error.message);
+            } else {
+                console.warn('Could not fetch Xero tenant ID due to an unknown error.');
+            }
         }
         return tenantId;
     }
@@ -255,9 +268,12 @@ export class AuthSystem {
         
         try {
             await oauthClient.revoke();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error revoking QBO token:', error);
-            throw new Error('Could not revoke QBO token: ' + error.message);
+            if (error instanceof Error) {
+                throw new Error('Could not revoke QBO token: ' + error.message);
+            }
+            throw new Error('Could not revoke QBO token due to an unknown error.');
         }
     }
 
@@ -279,9 +295,12 @@ export class AuthSystem {
             // Use the proper revoke method
             await xeroClient.revokeToken();
             console.log('Xero token revoked successfully');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error revoking Xero token:', error);
-            throw new Error('Could not revoke Xero token: ' + error.message);
+            if (error instanceof Error) {
+                throw new Error('Could not revoke Xero token: ' + error.message);
+            }
+            throw new Error('Could not revoke Xero token due to an unknown error.');
         }
     }
 
@@ -297,8 +316,11 @@ export class AuthSystem {
         try {
             const userInfo = await oauthClient.getUserInfo();
             return userInfo.json;
-        } catch (error: any) {
-            throw new Error('Could not get QBO user information: ' + error.message);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                throw new Error('Could not get QBO user information: ' + error.message);
+            }
+            throw new Error('Could not get QBO user information due to an unknown error.');
         }
     }
 

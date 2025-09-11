@@ -6,7 +6,6 @@ import { Customer, LocalCustomer } from '../types/customer.js';
 import { ConnectionType } from '../types/auth.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
 import { XeroClient, Contact } from 'xero-node';
-import { PoolClient } from 'pg';
 import { AUTH_ERROR_CODES } from '../constants/errorCodes.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -26,9 +25,12 @@ export async function fetchCustomersLocal(companyId: string): Promise<LocalCusto
       id: customer.id,
       customer_name: customer.customerName
     }));
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching customers from database:', error);
-    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to fetch customers: ' + error.message);
+    if (error instanceof Error) {
+      throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to fetch customers: ' + error.message);
+    }
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'An unknown error occurred while fetching customers.');
   }
 }
 
@@ -43,8 +45,11 @@ export async function fetchCustomers(companyId: string, connectionType: Connecti
     } else {
       throw new AccessError(AUTH_ERROR_CODES.VALIDATION_ERROR, `Unsupported connection type: ${connectionType}`);
     }
-  } catch (e: any) {
-    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to fetch customers: ' + e.message);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to fetch customers: ' + e.message);
+    }
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'An unknown error occurred while fetching customers.');
   }
 }
 
@@ -126,9 +131,12 @@ async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Custome
     }
 
     return allCustomers;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching Xero customers:', error);
-    throw new Error(`Failed to fetch Xero customers: ${error.message}`);
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch Xero customers: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while fetching Xero customers.');
   }
 }
 
@@ -156,7 +164,10 @@ export async function saveCustomers(customers: Omit<Customer, 'company_id'>[], c
         });
       }
     });
-  } catch (error: any) {
-    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+    }
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'An unknown error occurred while saving customers.');
   }
 }

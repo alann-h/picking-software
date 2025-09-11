@@ -13,7 +13,6 @@ import { sendPasswordResetEmail, sendPasswordResetConfirmationEmail } from './em
 import { 
     ConnectionType, 
     UserFromDB, 
-    CompanyFromDB,
     LoginUser, 
     UpdateUserPayload, 
     OAuthUserInfo,
@@ -66,7 +65,7 @@ export async function handleCallback(url: string, connectionType: ConnectionType
       return await authSystem.handleXeroCallback(url);
     }
     throw new Error(`Unsupported connection type: ${connectionType}`);
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(e);
     throw new AccessError('Could not create token.');
   }
@@ -80,13 +79,14 @@ export async function refreshToken(token: QboToken | XeroToken, connectionType: 
       return await authSystem.refreshXeroToken(token as XeroToken);
     }
     throw new Error(`Unsupported connection type: ${connectionType}`);
-  } catch (e: any) {
-    if (e.message === 'QBO_TOKEN_REVOKED') {
-      throw new AuthenticationError(AUTH_ERROR_CODES.TOKEN_REVOKED);
-    } else if (e.message === 'XERO_TOKEN_REVOKED') {
-      throw new AuthenticationError(AUTH_ERROR_CODES.TOKEN_REVOKED);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      if (e.message === 'QBO_TOKEN_REVOKED' || e.message === 'XERO_TOKEN_REVOKED') {
+        throw new AuthenticationError(AUTH_ERROR_CODES.TOKEN_REVOKED);
+      }
+      throw new AccessError('Failed to refresh token: ' + e.message);
     }
-    throw new AccessError('Failed to refresh token: ' + e.message);
+    throw new AccessError('Failed to refresh token: An unknown error occurred');
   }
 }
 
@@ -200,8 +200,8 @@ export async function login(email: string, password: string, ipAddress: string |
             user.token = tokenData;
         }
       }
-    } catch (error: any) {
-      if (error.message === 'QBO_TOKEN_REVOKED' || error.message === 'XERO_TOKEN_REVOKED' || error.message.includes('REAUTH_REQUIRED')) {
+    } catch (error: unknown) {
+      if (error instanceof Error && (error.message === 'QBO_TOKEN_REVOKED' || error.message === 'XERO_TOKEN_REVOKED' || error.message.includes('REAUTH_REQUIRED'))) {
         user.reAuthRequired = true;
       } else {
         console.error('Token refresh error:', error);
@@ -210,8 +210,11 @@ export async function login(email: string, password: string, ipAddress: string |
     }
 
     return user;
-  } catch (error: any) {
-    throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+    }
+    throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'An unknown error occurred during login.');
   }
 }
 
@@ -300,12 +303,15 @@ export async function deleteUser(userId: string, sessionId: string): Promise<Use
         updated_at: deletedUser.updatedAt,
       };
     });
-  } catch (error: any) {
-    if (error.code === 'P2025') {
+  } catch (error: unknown) {
+    if (error instanceof Object && 'code' in error && error.code === 'P2025') {
       // Prisma error for record not found
       throw new AuthenticationError(AUTH_ERROR_CODES.NOT_FOUND, 'User not found');
     }
-    throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+    if (error instanceof Error) {
+      throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+    }
+    throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'An unknown error occurred while deleting the user.');
   }
 };
 
@@ -317,8 +323,11 @@ async function getUserInfo(token: QboToken | XeroToken, connectionType: Connecti
       return await authSystem.getXeroUserInfo(token as XeroToken);
     }
     throw new Error(`Unsupported connection type: ${connectionType}`);
-  } catch (e: any) {
-    throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);
+    }
+    throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information due to an unknown error.');
   }
 }
 
@@ -400,8 +409,11 @@ export async function saveUserFromOAuth(token: QboToken | XeroToken, companyId: 
       );
       return newUser;
     }
-  } catch (e: any) {
-    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, `Failed during ${connectionType} user processing: ${e.message}`);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, `Failed during ${connectionType} user processing: ${e.message}`);
+    }
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, `Failed during ${connectionType} user processing due to an unknown error.`);
   }
 }
 
@@ -429,8 +441,11 @@ export async function getAllUsers(companyId: string): Promise<UserForFrontend[]>
       is_admin: user.isAdmin,
       company_id: user.companyId!,
     }));
-  } catch (e: any) {
-    throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information: ' + e.message);
+    }
+    throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'Could not get user information due to an unknown error.');
   }
 }
 
@@ -442,7 +457,7 @@ export async function updateUser(userId: string, userData: UpdateUserPayload): P
     throw new AccessError(AUTH_ERROR_CODES.VALIDATION_ERROR, 'No update data provided.');
   }
 
-  const updateData: any = {};
+  const updateData: { [key: string]: string | boolean | null | undefined } = {};
 
   for (const field of fields) {
     let value = userData[field];
@@ -466,7 +481,7 @@ export async function updateUser(userId: string, userData: UpdateUserPayload): P
         'password': 'passwordHash',
       };
       
-      const prismaField = fieldMap[field] || field;
+      const prismaField: string = fieldMap[field] || field;
       updateData[prismaField] = value;
     }
   }
@@ -498,12 +513,15 @@ export async function updateUser(userId: string, userData: UpdateUserPayload): P
       created_at: updatedUser.createdAt,
       updated_at: updatedUser.updatedAt,
     };
-  } catch (error: any) {
-    if (error.code === 'P2025') {
+  } catch (error: unknown) {
+    if (error instanceof Object && 'code' in error && error.code === 'P2025') {
       // Prisma error for record not found
       throw new AccessError(AUTH_ERROR_CODES.NOT_FOUND, 'User not found or no update was necessary.');
     }
-    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+    if (error instanceof Error) {
+      throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, error.message);
+    }
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'An unknown error occurred during user update.');
   }
 }
 
@@ -516,9 +534,13 @@ export async function revokeToken(token: QboToken | XeroToken, connectionType: C
     } else {
       throw new Error(`Unsupported connection type: ${connectionType}`);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      console.error(`Error revoking ${connectionType} token:`, e);
+      throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, `Could not revoke ${connectionType} token: ` + e.message);
+    }
     console.error(`Error revoking ${connectionType} token:`, e);
-    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, `Could not revoke ${connectionType} token: ` + e.message);
+    throw new AccessError(AUTH_ERROR_CODES.INTERNAL_ERROR, `Could not revoke ${connectionType} token due to an unknown error.`);
   }
 }
 
@@ -559,7 +581,7 @@ export async function requestPasswordReset(email: string): Promise<{ message: st
     await sendPasswordResetEmail(user.displayEmail, resetToken, userName);
 
     return { message: 'If an account with that email exists, a password reset link has been sent.' };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error requesting password reset:', error);
     throw new AuthenticationError(AUTH_ERROR_CODES.INTERNAL_ERROR, 'Failed to process password reset request');
   }
@@ -602,7 +624,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
     await sendPasswordResetConfirmationEmail(user.displayEmail, userName);
 
     return { message: 'Password has been successfully reset' };
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof AuthenticationError) {
       throw error;
     }

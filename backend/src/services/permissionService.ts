@@ -58,7 +58,7 @@ class PermissionService {
       }
 
       return { hasAccess: false, level: 'none', isAdmin: false };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error checking user permission:', error);
       throw new AccessError('Failed to verify user permissions');
     }
@@ -98,7 +98,7 @@ class PermissionService {
         created_at: userPermission.createdAt,
         updated_at: userPermission.updatedAt,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error granting user permission:', error);
       throw new AccessError('Failed to grant user permissions');
     }
@@ -126,8 +126,8 @@ class PermissionService {
         created_at: userPermission.createdAt,
         updated_at: userPermission.updatedAt,
       };
-    } catch (error: any) {
-      if (error.code === 'P2025') {
+    } catch (error: unknown) {
+      if (error instanceof Object && 'code' in error && error.code === 'P2025') {
         // Prisma error for record not found
         throw new AccessError('User permission not found');
       }
@@ -167,7 +167,7 @@ class PermissionService {
           permission_created_at: permission?.createdAt || null,
         };
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting company user permissions:', error);
       throw new AccessError('Failed to retrieve user permissions');
     }
@@ -183,7 +183,7 @@ class PermissionService {
       };
 
       return await this.grantUserPermission(userId, companyId, defaultPermissions);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error setting default permissions:', error);
       throw new AccessError('Failed to set default permissions');
     }

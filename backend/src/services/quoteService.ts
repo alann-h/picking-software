@@ -32,8 +32,11 @@ export async function getCustomerQuotes(customerId: string, companyId: string, c
     } else {
       throw new AccessError(`Unsupported connection type: ${connectionType}`);
     }
-  } catch (error: any) {
-    throw new InputError('Failed to fetch customer quotes: ' + error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new InputError('Failed to fetch customer quotes: ' + error.message);
+    }
+    throw new InputError('An unknown error occurred while fetching customer quotes.');
   }
 }
 
@@ -65,8 +68,11 @@ async function getQboCustomerQuotes(oauthClient: IntuitOAuthClient, customerId: 
       }));
     
     return customerQuotes;
-  } catch (error: any) {
-    throw new Error(`Failed to fetch QBO customer quotes: ${error.message}`);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch QBO customer quotes: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while fetching QBO customer quotes.');
   }
 }
 
@@ -95,9 +101,12 @@ async function getXeroCustomerQuotes(oauthClient: XeroClient, customerId: string
       lastModified: quote.updatedDateUTC!,
     }));
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching Xero customer quotes:', error);
-    throw new Error(`Failed to fetch Xero customer quotes: ${error.message}`);
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch Xero customer quotes: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while fetching Xero customer quotes.');
   }
 }
 
@@ -121,8 +130,11 @@ export async function getEstimate(quoteId: string, companyId: string, rawDataNee
 
     const filteredQuote = await filterEstimates(estimate, companyId, connectionType);
     return filteredQuote;
-  } catch (e: any) {
-    throw new InputError(e.message);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      throw new InputError(e.message);
+    }
+    throw new InputError('An unknown error occurred while getting the estimate.');
   }
 }
 
@@ -137,9 +149,12 @@ async function getXeroEstimate(oauthClient: XeroClient, quoteId: string): Promis
         throw new Error('Quote not found in Xero');
     }
     return estimate;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching Xero quote:', error);
-    throw new Error(`Failed to fetch Xero quote: ${error.message}`);
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch Xero quote: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while fetching the Xero quote.');
   }
 }
 
@@ -155,8 +170,11 @@ export async function getQboEstimate(oauthClient: IntuitOAuthClient, quoteId: st
     });
 
     return estimateResponse.json;
-  } catch (e: any) {
-    throw new InputError(e.message);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      throw new InputError(e.message);
+    }
+    throw new InputError('An unknown error occurred while getting the QBO estimate.');
   }
 }
 
@@ -339,8 +357,11 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
         });
       }
     });
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred while saving the estimate to the database.');
   }
 }
 
@@ -351,7 +372,7 @@ export async function checkQuoteExists(quoteId: string): Promise<boolean> {
       select: { id: true },
     });
     return quote !== null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error checking if quote exists:', error);
     throw error;
   }
@@ -405,7 +426,7 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
     });
 
     return filteredQuote;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching quote data:', error);
     throw error;
   }
@@ -436,7 +457,7 @@ async function updateQuotePreparerNames(quoteId: string, userName: string): Prom
       });
       console.log(`Quote ${quoteId}: Preparer names updated to "${updatedNamesString}" by ${userName}`);
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(`Error updating preparer names for quote ${quoteId} by user ${userName}:`, err);
     throw new Error('Failed to update quote preparer names.');
   }
@@ -493,8 +514,11 @@ export async function processBarcode(barcode: string, quoteId: string, newQty: n
       updatedQty: updatedItem.pickingQuantity.toNumber(),
       pickingStatus: updatedItem.pickingStatus,
     };
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred while processing the barcode.');
   }
 }
 
@@ -586,8 +610,11 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
         totalAmount: totalAmount.totalAmount.toNumber(),
       };
     }
-  } catch (e: any) {
-    throw new AccessError(e.message);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      throw new AccessError(e.message);
+    }
+    throw new AccessError('An unknown error occurred while adding a product to the quote.');
   }
 }
 
@@ -657,8 +684,11 @@ export async function adjustProductQuantity(quoteId: string, productId: number, 
       originalQty: updatedItem.originalQuantity.toNumber(),
       totalAmount: updatedQuote.totalAmount.toString(),
     };
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred while adjusting product quantity.');
   }
 }
 
@@ -670,8 +700,11 @@ export async function setOrderStatus(quoteId: string, newStatus: OrderStatus): P
       select: { status: true },
     });
     return { orderStatus: updatedQuote.status };
-  } catch (error: any) {
-    throw new AccessError(error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred while setting the order status.');
   }
 }
 
@@ -729,9 +762,12 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<
         pickerNote: quote.pickerNote,
       };
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching quotes with status:', error);
-    throw new AccessError('Failed to fetch quotes');
+    if (error instanceof Error) {
+      throw new AccessError('Failed to fetch quotes');
+    }
+    throw new AccessError('An unknown error occurred while fetching quotes with status.');
   }
 }
 
@@ -744,8 +780,8 @@ export async function savePickerNote(quoteId: string, note: string): Promise<{ p
     });
     
     return { pickerNote: updatedQuote.pickerNote || '' };
-  } catch (error: any) {
-    if (error.code === 'P2025') {
+  } catch (error: unknown) {
+    if (error instanceof Object && 'code' in error && error.code === 'P2025') {
       // Prisma error for record not found
       throw new InputError('Quote not found');
     }
@@ -787,8 +823,12 @@ export async function deleteQuotesBulk(quoteIds: string[]): Promise<BulkDeleteRe
           
           deletedQuotes.push(deletedQuote);
           
-        } catch (error: any) {
-          errors.push({ quoteId, error: error.message });
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            errors.push({ quoteId, error: error.message });
+          } else {
+            errors.push({ quoteId, error: 'An unknown error occurred' });
+          }
         }
       }
       
@@ -821,8 +861,11 @@ export async function deleteQuotesBulk(quoteIds: string[]): Promise<BulkDeleteRe
       };
     }
     
-  } catch (error: any) {
-    throw new InputError(`Bulk delete operation failed: ${error.message}`);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new InputError(`Bulk delete operation failed: ${error.message}`);
+    }
+    throw new InputError('An unknown error occurred during bulk delete.');
   }
 }
 
@@ -893,9 +936,12 @@ export async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: Fil
 
     await setOrderStatus(quoteId, 'finalised');
     return { message: 'Quote updated successfully in QuickBooks'};
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating quote in QuickBooks:', error);
-    throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
+    if (error instanceof Error) {
+      throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
+    }
+    throw new AccessError('An unknown error occurred while updating the quote in QuickBooks.');
   }
 }
 
@@ -942,8 +988,11 @@ export async function getEstimatesBulk(quoteIds: string[], companyId: string, co
         } else {
             throw new AccessError(`Unsupported connection type: ${connectionType}`);
         }
-    } catch (e: any) {
-        throw new InputError(e.message);
+    } catch (e: unknown) {
+        if (e instanceof Error) {
+            throw new InputError(e.message);
+        }
+        throw new InputError('An unknown error occurred during bulk estimate fetch.');
     }
 }
 
@@ -971,14 +1020,21 @@ async function getQboEstimatesBulk(quoteIds: string[], companyId: string): Promi
                         allQuotes.push(filteredQuote);
                     }
                 }
-            } catch (individualError: any) {
-                console.error(`Error fetching quote ${quoteId}:`, individualError.message);
+            } catch (individualError: unknown) {
+                if (individualError instanceof Error) {
+                    console.error(`Error fetching quote ${quoteId}:`, individualError.message);
+                } else {
+                    console.error(`An unknown error occurred while fetching quote ${quoteId}:`, individualError);
+                }
             }
         }
         
         return allQuotes;
-    } catch (e: any) {
-        throw new InputError(e.message);
+    } catch (e: unknown) {
+        if (e instanceof Error) {
+            throw new InputError(e.message);
+        }
+        throw new InputError('An unknown error occurred during bulk QBO estimate fetch.');
     }
 }
 
@@ -996,7 +1052,7 @@ async function getXeroEstimatesBulk(quoteIds: string[], companyId: string): Prom
                 if (response.body.quotes && response.body.quotes.length > 0) {
                     estimates.push(response.body.quotes[0]);
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error(`Failed to fetch Xero quote ${quoteId}:`, error);
             }
         }
@@ -1012,13 +1068,16 @@ async function getXeroEstimatesBulk(quoteIds: string[], companyId: string): Prom
                 if (filteredQuote && !(filteredQuote as QuoteFetchError).error) {
                     filteredQuotes.push(filteredQuote);
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error(`Failed to filter Xero estimate:`, error);
             }
         }
 
         return filteredQuotes;
-    } catch (e: any) {
-        throw new InputError(e.message);
+    } catch (e: unknown) {
+        if (e instanceof Error) {
+            throw new InputError(e.message);
+        }
+        throw new InputError('An unknown error occurred during bulk Xero estimate fetch.');
     }
 }

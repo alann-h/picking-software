@@ -201,30 +201,5 @@
     <div id="root"></div>
     <div id="portal-root"></div>
     <script type="module" src="/src/index.tsx"></script>
-    
-    <!-- Service Worker Registration for Performance -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Add version parameter to force service worker update
-          navigator.serviceWorker.register('/sw.js?v=5')
-            .then((registration) => {              
-              // Check for updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New service worker available, reload to use it
-                    window.location.reload();
-                  }
-                });
-              });
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
-      }
-    </script>
   </body>
 </html>

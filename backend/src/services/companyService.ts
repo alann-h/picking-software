@@ -21,8 +21,11 @@ export class CompanyService {
                 createdAt: company.createdAt,
                 updatedAt: company.updatedAt,
             }));
-        } catch (error: any) {
-            throw new Error(`Failed to get companies: ${error.message}`);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                throw new Error(`Failed to get companies: ${error.message}`);
+            }
+            throw new Error(`Failed to get companies: An unknown error occurred`);
         }
     }
 
@@ -45,8 +48,11 @@ export class CompanyService {
                 createdAt: company.createdAt,
                 updatedAt: company.updatedAt,
             };
-        } catch (error: any) {
-            throw new Error(`Failed to get company by ID: ${error.message}`);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                throw new Error(`Failed to get company by ID: ${error.message}`);
+            }
+            throw new Error(`Failed to get company by ID: An unknown error occurred`);
         }
     }
 
@@ -171,8 +177,11 @@ export class CompanyService {
             } else {
                 throw new Error(`Unsupported connection type: ${connectionType}`);
             }
-        } catch (error: any) {
-            throw new Error(`Failed to save company info: ${error.message}`);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                throw new Error(`Failed to save company info: ${error.message}`);
+            }
+            throw new Error(`Failed to save company info: An unknown error occurred`);
         }
     }
 
@@ -228,20 +237,23 @@ export class CompanyService {
             });
 
             return { success: true, message: 'Company and related data deleted successfully' };
-        } catch (error: any) {
-            if (error.code === 'P2025') {
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message === 'P2025') {
                 // Prisma error for record not found
                 throw new AccessError('Company ID does not exist');
             }
-            throw new AccessError('Company ID does not exist: ' + error.message);
+            throw new Error(`Failed to remove company data: An unknown error occurred`);
         }
     }
 
     async setCompanyTokens(companyId: string, connectionType: ConnectionType, tokenData: QboToken | XeroToken): Promise<void> {
         try {
             await tokenService.storeTokenData(companyId, connectionType, tokenData);
-        } catch (e: any) {
-            throw new Error(`Failed to set company tokens: ${e.message}`);
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                throw new Error(`Failed to set company tokens: ${e.message}`);
+            }
+            throw new Error(`Failed to set company tokens: An unknown error occurred`);
         }
     }
 
@@ -277,11 +289,11 @@ export class CompanyService {
                 createdAt: company.createdAt,
                 updatedAt: company.updatedAt,
             };
-        } catch (error: any) {
-            if (error.code === AUTH_ERROR_CODES.TOKEN_INVALID) {
-                throw new AuthenticationError('Invalid token provided for company creation.');
+        } catch (error: unknown) {
+            if (error instanceof Error && error.message === AUTH_ERROR_CODES.TOKEN_INVALID) {
+                throw new AuthenticationError(AUTH_ERROR_CODES.TOKEN_INVALID, 'Invalid token provided for company creation.');
             }
-            throw new Error(`Failed to create company: ${error.message}`);
+            throw new Error(`Failed to create company: An unknown error occurred`);
         }
     }
 }

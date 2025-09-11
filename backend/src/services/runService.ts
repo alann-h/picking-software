@@ -78,7 +78,7 @@ export async function createBulkRun(orderedQuoteIds: string[], companyId: string
                 status: newRun.status,
             };
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in createBulkRun service:', error);
         throw error;
     }
@@ -147,7 +147,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
 
         return finalResult;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in getRunsByCompanyId service:', error);
         throw new AccessError('Failed to fetch runs.');
     }
@@ -179,8 +179,8 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
             run_number: Number(updatedRun.runNumber),
             status: updatedRun.status,
         };
-    } catch (error: any) {
-        if (error.code === 'P2025') {
+    } catch (error: unknown) {
+        if (error instanceof Object && 'code' in error && error.code === 'P2025') {
             // Prisma error for record not found
             throw new InputError(`Run with ID ${runId} not found.`);
         }
@@ -217,7 +217,7 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: string[]):
 
         return { message: `Run ${runId} was updated successfully.` };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`Error updating quotes for run ${runId}:`, error);
         throw error;
     }
@@ -253,7 +253,7 @@ export async function deleteRunById(runId: string): Promise<{message: string}> {
         });
 
         return { message: `Run ${runId} was successfully deleted.` };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(`Error deleting run ${runId}:`, error);
         throw error;
     }

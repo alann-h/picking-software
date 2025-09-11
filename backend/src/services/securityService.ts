@@ -29,7 +29,7 @@ export async function logSecurityEvent(eventData: LogSecurityEventData): Promise
         metadata: metadata,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to log security event:', error);
     throw error;
   }
@@ -85,7 +85,7 @@ export async function incrementFailedAttempts(email: string, ipAddress: string |
       failed_attempts: updatedUser.failedAttempts,
       locked_until: updatedUser.lockedUntil,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to increment failed attempts:', error);
     throw error;
   }
@@ -125,7 +125,7 @@ export async function isAccountLocked(email: string): Promise<AccountLockoutStat
     }
     
     return { isLocked: false, failedAttempts: 0, remainingAttempts: 5 };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to check account lock status:', error);
     throw error;
   }
@@ -141,7 +141,7 @@ export async function resetFailedAttempts(email: string): Promise<void> {
         lastFailedAttempt: null,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to reset failed attempts:', error);
     throw error;
   }
@@ -194,7 +194,7 @@ export async function getSecurityStats(): Promise<SecurityStats> {
         metadata: event.metadata as Record<string, any> | null,
       })),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to get security stats:', error);
     throw error;
   }
