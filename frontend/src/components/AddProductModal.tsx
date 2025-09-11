@@ -182,7 +182,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                               filteredProducts.map((product) => (
                                 <ComboboxOption
                                   key={product.productId}
-                                  className="relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-indigo-600 data-[active]:text-white"
+                                  className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-gray-100"
                                   value={product}
                                 >
                                   {({ selected }) => (
@@ -193,13 +193,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
                                         }`}
                                       >
                                         {product.productName}
-                                        <span className={cn("ml-2 text-xs text-gray-500 data-[active]:text-indigo-200")}>
+                                        <span className={cn("ml-2 text-xs text-gray-500 group-data-[active]:text-gray-500")}>
                                           SKU: {product.sku}
                                         </span>
                                       </span>
                                       {selected ? (
                                         <span
-                                          className="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-600 data-[active]:text-white"
+                                          className="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-600 group-data-[active]:text-indigo-600"
                                         >
                                           <Check className="h-5 w-5" aria-hidden="true" />
                                         </span>

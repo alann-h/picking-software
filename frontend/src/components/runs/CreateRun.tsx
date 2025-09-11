@@ -1,5 +1,5 @@
 import React, { useState, useMemo, Suspense, useTransition, Fragment } from 'react';
-import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search } from 'lucide-react';
+import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check } from 'lucide-react';
 import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -292,7 +292,7 @@ export const CreateRun: React.FC<{}> = () => {
                                         filteredCustomers.map((customer) => (
                                         <ComboboxOption
                                             key={customer.customerId}
-                                            className="relative cursor-pointer select-none py-2 px-4 text-gray-900 data-[active]:bg-blue-600 data-[active]:text-white"
+                                            className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-gray-100"
                                             value={customer}
                                         >
                                             {({ selected }) => (
@@ -304,6 +304,11 @@ export const CreateRun: React.FC<{}> = () => {
                                                 >
                                                 {customer.customerName}
                                                 </span>
+                                                 {selected ? (
+                                                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600 group-data-[active]:text-blue-600">
+                                                    <Check className="h-5 w-5" aria-hidden="true" />
+                                                  </span>
+                                                ) : null}
                                             </>
                                             )}
                                         </ComboboxOption>

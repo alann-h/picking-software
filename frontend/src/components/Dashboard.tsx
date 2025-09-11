@@ -8,6 +8,7 @@ import {
   Building2,
   DollarSign,
   ChevronRight,
+  Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -332,7 +333,7 @@ const Dashboard: React.FC = () => {
                                                             filteredCustomers.map((customer) => (
                                                                 <ComboboxOption
                                                                     key={customer.customerId}
-                                                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-blue-600 data-[active]:text-white"
+                                                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-gray-100"
                                                                     value={customer}
                                                                 >
                                                                     {({ selected }) => (
@@ -341,7 +342,8 @@ const Dashboard: React.FC = () => {
                                                                                 {customer.customerName}
                                                                             </span>
                                                                             {selected ? (
-                                                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600 group-data-[active]:text-white">
+                                                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600 group-data-[active]:text-blue-600">
+                                                                                  <Check className="h-5 w-5" aria-hidden="true" />
                                                                                 </span>
                                                                             ) : null}
                                                                         </>
