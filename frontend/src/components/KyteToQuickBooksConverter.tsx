@@ -202,18 +202,18 @@ const KyteToQuickBooksConverter: React.FC = () => {
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{order.date}</td>
                     <td className="px-4 py-4 text-sm text-gray-600 max-w-xs"><ItemDescription items={order.itemsDescription.split(',').map(item => item.trim())} maxItems={3} variant="body2" showExpandButton={true} /></td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">${order.total.toFixed(2)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm w-52">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm w-80">
                       <Combobox value={customers.find(c => c.customerId === order.customerId) || null} onChange={(customer) => handleCustomerChange(order.number, customer)}>
                         <div className="relative">
                           <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
                             <ComboboxInput
-                              className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
+                              className="w-full border-none py-2.5 pl-4 pr-12 text-base leading-6 text-gray-900 focus:ring-0"
                               displayValue={(customer: Customer | null) => customer?.customerName || ''}
                               onChange={(event) => setQuery(event.target.value)}
                               placeholder="Search customers..."
                             />
-                            <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
-                              <ChevronsUpDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
+                            <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-4">
+                              <ChevronsUpDown className="h-6 w-6 text-gray-400 cursor-pointer" aria-hidden="true" />
                             </ComboboxButton>
                           </div>
                           <Transition
@@ -222,7 +222,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                             leaveTo="opacity-0"
                             afterLeave={() => setQuery('')}
                           >
-                            <ComboboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-[9999] border border-gray-300">
+                            <ComboboxOptions className="absolute mt-1 max-h-72 w-full overflow-auto rounded-md bg-white py-2 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-[9999] border border-gray-300">
                               {filteredCustomers.length === 0 && query !== '' ? (
                                 <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
                                   Nothing found.
@@ -231,7 +231,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                                 filteredCustomers.map((customer) => (
                                   <ComboboxOption
                                     key={customer.customerId}
-                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-blue-600 data-[active]:text-white"
+                                    className="group relative cursor-pointer select-none py-3 pl-12 pr-4 text-gray-900 data-[active]:bg-blue-600 data-[active]:text-white"
                                     value={customer}
                                   >
                                     {({ selected }) => (
@@ -240,8 +240,8 @@ const KyteToQuickBooksConverter: React.FC = () => {
                                           {customer.customerName}
                                         </span>
                                         {selected ? (
-                                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600 group-data-[active]:text-white">
-                                            <Check className="h-5 w-5" />
+                                          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-blue-600 group-data-[active]:text-white">
+                                            <Check className="h-6 w-6" />
                                           </span>
                                         ) : null}
                                       </div>
