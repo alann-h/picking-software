@@ -14,6 +14,9 @@ COPY package.json ./
 COPY frontend/package.json ./frontend/
 COPY backend/package.json ./backend/
 
+# Copy the Prisma schema, which is required by the backend's postinstall script
+COPY backend/prisma ./backend/prisma
+
 # Install dependencies using pnpm
 RUN pnpm install
 
