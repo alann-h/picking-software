@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Search, Package, X } from 'lucide-react';
 import clsx from 'clsx';
 import { Product } from '../../utils/types';
@@ -63,11 +62,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <div>
       <div>
         <title>Smart Picker | Current Products</title>
         
@@ -188,7 +183,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
           />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

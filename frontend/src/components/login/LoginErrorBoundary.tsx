@@ -1,5 +1,4 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { motion } from 'framer-motion';
 // Lucide icons replacing MUI icons
 import { AlertTriangle, RefreshCw, LogIn } from 'lucide-react';
 
@@ -60,11 +59,7 @@ class LoginErrorBoundary extends Component<
       return (
         <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-800 via-blue-500 to-blue-400 px-2 py-4 dark:from-blue-900 dark:via-blue-800 dark:to-blue-600">
           <main className="w-full max-w-sm">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
+            <div>
               <div className="w-full rounded-2xl border border-white/20 bg-white/95 p-6 text-center shadow-2xl backdrop-blur-lg sm:p-8 dark:border-gray-700/30 dark:bg-gray-900/90">
                 <div className="flex flex-col items-center space-y-6">
                   {/* Error Icon */}
@@ -113,7 +108,7 @@ class LoginErrorBoundary extends Component<
                   </p>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </main>
         </div>
       );

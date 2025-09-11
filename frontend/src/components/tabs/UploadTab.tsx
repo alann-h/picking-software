@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { CloudUpload, AlertTriangle } from 'lucide-react';
 import FileUpload from '../FileUpload';
 import { useSnackbarContext } from '../SnackbarContext';
@@ -30,11 +29,7 @@ const UploadTab: React.FC = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <div>
       <div className="space-y-6">
         {/* Header Section */}
         <div>
@@ -47,11 +42,7 @@ const UploadTab: React.FC = () => {
         </div>
 
         {/* File Upload Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
+        <div>
           <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
             <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white p-4 sm:p-6">
               <div className="flex items-center gap-3">
@@ -70,14 +61,10 @@ const UploadTab: React.FC = () => {
               />
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Additional Information */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
+        <div>
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:p-6">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -98,9 +85,9 @@ const UploadTab: React.FC = () => {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

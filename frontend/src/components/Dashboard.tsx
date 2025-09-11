@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Check,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Customer, QuoteSummary, Run, RunQuote } from '../utils/types';
 import { getCustomers } from '../api/customers';
@@ -25,15 +24,6 @@ import { Combobox, Transition, ComboboxInput, ComboboxButton, ComboboxOptions, C
 // ====================================================================================
 // Reusable & Child Components
 // ====================================================================================
-
-const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number; }> = ({ children, delay = 0 }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay }}>
-    {children}
-  </motion.div>
-);
 
 const statusColors: { [key: string]: { bg: string; text: string; border?: string } } = {
     pending: { bg: 'bg-blue-100', text: 'text-blue-800' },
@@ -84,20 +74,13 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                 </div>
             </div>
 
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        className="overflow-hidden"
-                    >
-                        <div className="border-t border-gray-200 p-4">
-                            <h4 className="text-md font-semibold text-gray-700 mb-3">Quotes in this Run</h4>
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+            {isExpanded && (
+                <div className="overflow-hidden">
+                    <div className="border-t border-gray-200 p-4">
+                        <h4 className="text-md font-semibold text-gray-700 mb-3">Quotes in this Run</h4>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
                                         <tr>
                                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quote ID</th>
@@ -124,9 +107,8 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                                 </table>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
                 )}
-            </AnimatePresence>
         </div>
     );
 };
@@ -182,10 +164,10 @@ const ActiveRunsList: React.FC = () => {
 
     return (
       <div className="space-y-3">
-        {activeRuns.map((run, index) => (
-          <AnimatedComponent key={run.id} delay={index * 0.1}>
+        {activeRuns.map((run) => (
+          <div key={run.id}>
             <DashboardRunItem run={run} />
-          </AnimatedComponent>
+          </div>
         ))}
       </div>
     );
@@ -206,10 +188,10 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
 
     return (
         <div className="space-y-2">
-            {quotes.map((quote, index) => (
-                <AnimatedComponent key={quote.id} delay={index * 0.05}>
+            {quotes.map((quote) => (
+                <div key={quote.id}>
                     <QuoteItem quote={quote} onClick={() => navigate(`/quote?id=${quote.id}`)} />
-                </AnimatedComponent>
+                </div>
             ))}
         </div>
     );
@@ -256,7 +238,7 @@ const Dashboard: React.FC = () => {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="space-y-8">
                     {/* Header Section */}
-                    <AnimatedComponent>
+                    <div>
                         <div className="text-center sm:text-left">
                             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
                               Dashboard
@@ -265,10 +247,10 @@ const Dashboard: React.FC = () => {
                               Manage your picking runs and customer quotes.
                             </p>
                         </div>
-                    </AnimatedComponent>
+                    </div>
 
                     {/* Active Runs Section */}
-                    <AnimatedComponent delay={0.1}>
+                    <div>
                         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
                             <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-gray-50">
                                 <div className="flex items-center gap-3">
@@ -284,13 +266,13 @@ const Dashboard: React.FC = () => {
                                 </Suspense>
                             </div>
                         </div>
-                    </AnimatedComponent>
+                    </div>
 
                     {/* Divider */}
                     <div className="border-b border-gray-200" />
 
                     {/* Quote Finder Section */}
-                    <AnimatedComponent delay={0.2}>
+                    <div>
                         <div>
                             <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center sm:text-left">
                                 Quote Finder
@@ -390,7 +372,7 @@ const Dashboard: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                    </AnimatedComponent>
+                    </div>
                 </div>
             </main>
         </div>

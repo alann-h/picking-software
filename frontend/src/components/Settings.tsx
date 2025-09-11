@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { Settings as SettingsIcon, Package as InventoryIcon, Upload as UploadFileIcon, Users as GroupIcon } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -76,11 +75,7 @@ const Settings: React.FC = () => {
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         <div className="space-y-4 sm:space-y-6">
           {/* Header Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+          <div>
             <div className="text-center sm:text-left">
               <div className="flex items-center space-x-3 mb-2">
                 <div
@@ -98,14 +93,10 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
           
           {/* Settings Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
+          <div>
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Vertical Menu Sidebar */}
               <aside className="lg:w-80 lg:flex-shrink-0">
@@ -185,7 +176,7 @@ const Settings: React.FC = () => {
                 </div>
               </main>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>

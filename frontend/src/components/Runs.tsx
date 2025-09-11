@@ -1,5 +1,4 @@
 import React, { Suspense } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { useSnackbarContext } from './SnackbarContext';
@@ -45,11 +44,7 @@ const Runs: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
         <div className="flex flex-col space-y-4 sm:space-y-5">
           {/* Header Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <div>
             <div className="text-center sm:text-left">
               <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent mb-1">
                 Manage Picking Runs
@@ -58,14 +53,10 @@ const Runs: React.FC = () => {
                 Create, organize, and track your warehouse picking operations
               </p>
             </div>
-          </motion.div>
+          </div>
 
           {/* Create Run Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
+          <div>
             <div className="border border-gray-200 rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-200">
               <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 sm:p-6">
                 <h2 className="text-xl font-semibold">
@@ -78,14 +69,10 @@ const Runs: React.FC = () => {
                 </Suspense>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Run List Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
+          <div>
             <div className="border border-gray-200 rounded-xl overflow-hidden min-h-[400px]">
               <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-4 sm:p-6">
                 <h2 className="text-xl font-semibold">
@@ -104,7 +91,7 @@ const Runs: React.FC = () => {
                 </Suspense>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </>
