@@ -110,14 +110,11 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
     
     // Try to extract quantity and product name
     // Pattern: "2x(00) Semolina Fine G/S 1KGx12" or "1x Corn Flour Starch G/S 500Gx20"
-    const match = trimmed.match(/^(\d+)x?\(?([^)]*)?\)?\s*(.+)$/);
+    const match = trimmed.match(/^(\d+)x?\(?(\d+)?\)?\s*(.+)$/);
     
     if (match) {
       const quantity = parseInt(match[1]) || 1;
       let productName = match[3].trim();
-      
-      // Attempt to remove case size like 'x10', 'x12' from the end of product names
-      productName = productName.replace(/\s*x\d+$/i, '').trim();
       
       items.push({
         quantity,
@@ -144,61 +141,62 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
  * @returns {Array} Array of matched products with database info
  */
 export async function matchProductsToDatabase(lineItems: KyteLineItem[], companyId: string): Promise<MatchedLineItem[]> {
-  const matchedItems: MatchedLineItem[] = [];
-  
-  for (const item of lineItems) {
-    // Use PostgreSQL's similarity function
-    const product = await prisma.$queryRaw<Array<{
-      id: bigint;
-      product_name: string;
-      sku: string;
-      barcode: string | null;
-      price: number;
-      external_item_id: string | null;
-      tax_code_ref: string | null;
-    }>>`
-      SELECT 
-        id, product_name, sku, barcode, price, external_item_id, tax_code_ref
-      FROM products 
-      WHERE company_id = ${companyId}::uuid
-        AND is_archived = false
-        AND (
-          similarity(product_name, ${item.productName}) > 0.4 OR
-          similarity(sku, ${item.productName}) > 0.4 OR
-          similarity(barcode, ${item.productName}) > 0.4
-        )
-      ORDER BY similarity(product_name, ${item.productName}) DESC
-      LIMIT 1
-    `;
+  try {
+    const matchedItems: MatchedLineItem[] = [];
+    
+    for (const item of lineItems) {
+      // Try to find product by name (fuzzy match)
+      const product = await prisma.product.findFirst({
+        where: {
+          companyId,
+          isArchived: false,
+          OR: [
+            { productName: { contains: item.productName, mode: 'insensitive' } },
+            { sku: { contains: item.productName, mode: 'insensitive' } },
+            { barcode: { contains: item.productName, mode: 'insensitive' } },
+          ],
+        },
+        select: {
+          id: true,
+          productName: true,
+          sku: true,
+          barcode: true,
+          price: true,
+          externalItemId: true,
+          taxCodeRef: true,
+        },
+      });
 
-    if (product && product.length > 0) {
-      const matchedProduct = product[0];
-      matchedItems.push({
-        ...item,
-        productId: Number(matchedProduct.id),
-        sku: matchedProduct.sku,
-        barcode: matchedProduct.barcode,
-        price: Number(matchedProduct.price),
-        externalItemId: matchedProduct.external_item_id,
-        taxCodeRef: matchedProduct.tax_code_ref,
-        matched: true
-      });
-    } else {
-      // No match found
-      matchedItems.push({
-        ...item,
-        productId: null,
-        sku: null,
-        barcode: null,
-        price: 0,
-        externalItemId: null,
-        taxCodeRef: null,
-        matched: false
-      });
+      if (product) {
+        matchedItems.push({
+          ...item,
+          productId: Number(product.id),
+          sku: product.sku,
+          barcode: product.barcode,
+          price: product.price.toNumber(),
+          externalItemId: product.externalItemId,
+          taxCodeRef: product.taxCodeRef,
+          matched: true
+        });
+      } else {
+        // No match found
+        matchedItems.push({
+          ...item,
+          productId: null,
+          sku: null,
+          barcode: null,
+          price: 0,
+          externalItemId: null,
+          taxCodeRef: null,
+          matched: false
+        });
+      }
     }
+    
+    return matchedItems;
+  } catch (error: any) {
+    throw new AccessError(`Failed to match products: ${error.message}`);
   }
-  
-  return matchedItems;
 }
 
 /**
