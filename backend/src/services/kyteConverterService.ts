@@ -110,7 +110,7 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
     
     // Try to extract quantity and product name
     // Pattern: "2x(00) Semolina Fine G/S 1KGx12" or "1x Corn Flour Starch G/S 500Gx20"
-    const match = trimmed.match(/^(\d+)x?\(?(\d+)?\)?\s*(.+)$/);
+    const match = trimmed.match(/^(\d+)x?\(?([^)]*)?\)?\s*(.+)$/);
     
     if (match) {
       const quantity = parseInt(match[1]) || 1;
