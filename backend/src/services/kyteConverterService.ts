@@ -114,8 +114,10 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
     
     if (match) {
       const quantity = parseInt(match[1]) || 1;
-      const productName = match[3].trim();
+      let productName = match[3].trim();
       
+      // Attempt to remove case size like 'x10', 'x12' from the end of product names
+      productName = productName.replace(/\s*x\d+$/i, '').trim();
       
       items.push({
         quantity,
@@ -161,9 +163,9 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
       WHERE company_id = ${companyId}::uuid
         AND is_archived = false
         AND (
-          similarity(product_name, ${item.productName}) > 0.3 OR
-          similarity(sku, ${item.productName}) > 0.3 OR
-          similarity(barcode, ${item.productName}) > 0.3
+          similarity(product_name, ${item.productName}) > 0.4 OR
+          similarity(sku, ${item.productName}) > 0.4 OR
+          similarity(barcode, ${item.productName}) > 0.4
         )
       ORDER BY similarity(product_name, ${item.productName}) DESC
       LIMIT 1
