@@ -262,7 +262,10 @@ const KyteToQuickBooksConverter: React.FC = () => {
                               {order.lineItems.length} items <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'transform rotate-180' : ''}`} />
                             </DisclosureButton>
                             <DisclosurePanel className="mt-2 space-y-2">
-                              {order.lineItems.map((item, index) => (
+                              {order.lineItems
+                                .slice()
+                                .sort((a, b) => Number(a.matched) - Number(b.matched))
+                                .map((item, index) => (
                                 <div key={index} className="p-2 rounded-md bg-gray-50">
                                   <div className="flex items-center gap-2 mb-1">
                                     {item.matched ? <CheckCircle className="w-4 h-4 text-green-500" /> : <AlertTriangle className="w-4 h-4 text-yellow-500" />}
