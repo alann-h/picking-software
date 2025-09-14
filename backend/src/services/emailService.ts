@@ -1,7 +1,7 @@
 import { MailjetRequest, MailjetResponse } from '../types/email.js';
 import Mailjet from 'node-mailjet';
 
-// @ts-ignore
+// @ts-expect-error - Mailjet types are not compatible with the current version of Mailjet
 const mailjet = Mailjet.apiConnect(
   process.env.MAILJET_API_KEY!,
   process.env.MAILJET_API_SECRET!

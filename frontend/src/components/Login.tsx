@@ -13,7 +13,6 @@ import SocialLoginButtons from './login/SocialLoginButtons';
 import UserSessionIndicator from './login/UserSessionIndicator';
 import ForgotPasswordModal from './login/ForgotPasswordModal';
 import LoginErrorBoundary from './login/LoginErrorBoundary';
-import { LoginPageSkeleton, UserSessionIndicatorSkeleton } from './Skeletons';
 import { useLoginError } from '../hooks/useLoginError';
 
 interface LoginFormData {
@@ -156,7 +155,7 @@ const Login: React.FC = () => {
         description="Sign in to Smart Picker - the smart order picking app with barcode scanning and digital lists. Access your dashboard and manage warehouse operations."
         keywords="login, sign in, Smart Picker, order picking software, warehouse management"
       />
-      <LoadingWrapper isLoading={loading} height="100vh" fallback={<LoginPageSkeleton />}>
+      <LoadingWrapper isLoading={loading} height="100vh">
         {/* New Split Screen Layout */}
         <div className="flex min-h-screen bg-white">
           
@@ -167,7 +166,7 @@ const Login: React.FC = () => {
             <div className="relative z-10">
               <Quote className="h-16 w-16 text-blue-700" />
               <p className="mt-4 text-3xl font-medium text-white">
-                "This tool cut our picking errors to zero and saved us 10 hours a week. A total game-changer for our entire warehouse operation."
+                &quot;This tool cut our picking errors to zero and saved us 10 hours a week. A total game-changer for our entire warehouse operation.&quot;
               </p>
               <p className="mt-6 font-semibold text-blue-200">
                 — Warehouse Manager, Golden Shore Products
@@ -191,14 +190,12 @@ const Login: React.FC = () => {
                 className="mt-8"
               >
                 {/* User Session Indicator (Unchanged) */}
-                {currentUser && !showSwitchAccount ? (
+                {currentUser && !showSwitchAccount && (
                   <UserSessionIndicator
                     currentUser={currentUser}
                     onSwitchAccount={handleSwitchAccount}
                   />
-                ) : loading ? (
-                  <UserSessionIndicatorSkeleton />
-                ) : null}
+                )}
 
                 {/* Header Text (Redesigned with solid text) */}
                 <div className="mb-8">
