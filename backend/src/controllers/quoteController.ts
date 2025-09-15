@@ -16,16 +16,8 @@ import {
 } from '../services/quoteService.js';
 import { Request, Response, NextFunction } from 'express';
 import {
-    CustomerQuote,
     FilteredQuote,
-    QuoteFetchError,
-    CombinedQuoteItemFromDB,
-    BarcodeProcessResult,
-    AddProductResult,
-    AdjustQuantityResult,
-    OrderStatus,
-    BulkDeleteResult,
-    ProductInfo
+    OrderStatus
 } from '../types/quote.js';
 
 // GET /quotes/customer/:customerId
@@ -71,12 +63,18 @@ export async function getEstimateById(req: Request, res: Response, next: NextFun
       });
     }
 
-    if (apiQuote.error) {
+    // Check if it's an error response
+    if (typeof apiQuote === 'object' && 'error' in apiQuote && apiQuote.error === true) {
       return res.status(409).json({source: 'api', data: apiQuote});
     }
     
-    await estimateToDB(apiQuote);
-    res.json({ source: 'api', data: apiQuote });
+    // Type guard to ensure it's a FilteredQuote
+    if ('quoteId' in apiQuote && 'quoteNumber' in apiQuote) {
+      await estimateToDB(apiQuote as FilteredQuote);
+      res.json({ source: 'api', data: apiQuote });
+    } else {
+      return res.status(500).json({ error: 'Invalid quote data received' });
+    }
   } catch (err) {
     next(err);
   }
@@ -123,7 +121,10 @@ export async function syncToQuickBooks(req: Request, res: Response, next: NextFu
       return res.status(404).json({ error: 'Quote not found in local database' });
     }
     const rawData = await getEstimate(quoteId, companyId, true, connectionType);
-    const result = await updateQuoteInQuickBooks(quoteId, localQuote, rawData, companyId);
+    if (!rawData || typeof rawData !== 'object') {
+      return res.status(500).json({ error: 'Failed to fetch quote data' });
+    }
+    const result = await updateQuoteInQuickBooks(quoteId, localQuote, rawData as Record<string, unknown>, companyId);
     res.json({ message: result.message });
   } catch (err) {
     next(err);

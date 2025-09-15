@@ -36,14 +36,13 @@ import asyncHandler from './middlewares/asyncHandler.js';
 import { isAuthenticated } from './middlewares/authMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
 import { upsertProducts } from './services/productService.js';
-import { getOAuthClient } from './services/authService.js';
 import { prisma } from './lib/prisma.js';
 import pool from './db.js';
+import { tokenService } from './services/tokenService.js';
 
 // --- Configuration
 import config from './config/index.js';
-import { JobStatus } from './types/jobs.js';
-import { IntuitOAuthClient } from './types/authSystem.js';
+import { ConnectionType } from './types/auth.js';
 
 const app = express();
 const unlinkAsync = promisify(fsUnlink);
@@ -67,7 +66,7 @@ app.use(session({
   secret: config.session.secret,
   resave: false,
   saveUninitialized: false,
-  cookie: config.session.cookie as any,
+  cookie: config.session.cookie as session.CookieOptions,
 }));
 
 // — Prune sessions daily
@@ -107,7 +106,7 @@ const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
     domain: config.session.cookie.domain,
   },
   size: config.security.csrf.size,
-  ignoredMethods: config.security.csrf.ignoredMethods as any,
+  ignoredMethods: config.security.csrf.ignoredMethods as ('GET' | 'HEAD' | 'OPTIONS')[],
   getCsrfTokenFromRequest: (req: Request) => req.headers['x-csrf-token'],
   getSessionIdentifier: (req: Request) => req.session.id,
 });
@@ -132,12 +131,9 @@ const streamToString = (stream: Readable): Promise<string> =>
     stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
   });
 
-interface S3JobRequestBody {
-    companyId: string;
-    processedDataS3Key: string;
-}
 
-app.post('/internal/process-s3-job', verifyInternalRequest, asyncHandler(async (req: Request<{}, {}, S3JobRequestBody>, res: Response) => {
+
+app.post('/internal/process-s3-job', verifyInternalRequest, asyncHandler(async (req, res) => {
   const { companyId, processedDataS3Key } = req.body;
 
   // 1. Download the processed JSON file from S3
@@ -156,20 +152,13 @@ app.post('/internal/process-s3-job', verifyInternalRequest, asyncHandler(async (
   res.status(200).json({ message: `Successfully processed and saved products from S3 key: ${processedDataS3Key}` });
 }));
 
-interface JobProgressRequestBody {
-    status: JobStatus;
-    percentage: number;
-    message: string;
-    errorDetails?: string;
-}
-
 app.post('/internal/jobs/:jobId/progress', verifyInternalRequest, asyncHandler(async (req, res) => {
   const { jobId } = req.params;
   const { status, percentage, message, errorDetails } = req.body;
   await prisma.job.update({
     where: { id: jobId },
     data: {
-      status: status as any,
+      status: status,
       progressPercentage: percentage,
       progressMessage: message,
       errorMessage: errorDetails,
@@ -250,16 +239,9 @@ app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(as
         where: { id: req.session.companyId },
         select: { connectionType: true },
       });
-      const connectionType = (company?.connectionType as any) || 'qbo';
+      const connectionType = (company?.connectionType as ConnectionType) || 'qbo';
       
-      const oauthClient = await getOAuthClient(req.session.companyId, connectionType);
-      let freshTokenForLambda;
-      if (connectionType === 'qbo') {
-        freshTokenForLambda = (oauthClient as IntuitOAuthClient).getToken();
-      } else {
-        // For Xero or other types, you might need a different way to get the token
-        freshTokenForLambda = (oauthClient as any).token;
-      }
+      const freshTokenForLambda = await tokenService.getValidToken(req.session.companyId, connectionType);
 
       // 3. Prepare the payload for the Lambda function
       const lambdaPayload = {
@@ -281,15 +263,15 @@ app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(as
       // 5. Respond to the client with the new job ID from the database
       res.status(202).json({ message: 'File queued for processing', jobId: jobId });
 
-    } catch (error: any) {
-      console.error('Error during file upload or Lambda invocation:', error);
+    } catch (error: unknown) {
+      console.error('Error during file upload or Lambda invocation:', error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: 'Failed to process file upload.' });
     } finally {
       try {
         await unlinkAsync(localFilePath);
         console.log(`Cleaned up temporary local file: ${localFilePath}`);
-      } catch (cleanupError: any) {
-        console.warn(`Failed to clean up temporary file ${localFilePath}:`, cleanupError);
+      } catch (cleanupError: unknown) {
+        console.warn(`Failed to clean up temporary file ${localFilePath}:`, cleanupError instanceof Error ? cleanupError.message : String(cleanupError));
       }
     }
   })
@@ -332,7 +314,7 @@ app.use('/api', generalLimiter);
 app.get('/api/csrf-token', (req: Request, res: Response, next: NextFunction) => {
   try {
     const csrfToken = generateCsrfToken(req, res);
-    (req.session as any).csrfSessionEnsured = true;
+    (req.session as unknown as Record<string, unknown>).csrfSessionEnsured = true;
 
     req.session.save(err => {
       if (err) {
@@ -341,8 +323,8 @@ app.get('/api/csrf-token', (req: Request, res: Response, next: NextFunction) => 
       }
       res.json({ csrfToken });
     });
-  } catch (err: any) {
-    next(err);
+  } catch (err: unknown) {
+    next(err instanceof Error ? err : new Error(String(err)));
   }
 });
 
@@ -393,8 +375,8 @@ app.get('/security/monitoring', asyncHandler(async (req: Request, res: Response)
       timestamp: new Date().toISOString(),
       ...stats
     });
-  } catch (error: any) {
-    console.error('Error getting security stats:', error);
+  } catch (error: unknown) {
+    console.error('Error getting security stats:', error instanceof Error ? error.message : String(error));
     res.status(500).json({ error: 'Failed to get security statistics' });
   }
 }));
@@ -449,8 +431,8 @@ app.post('/logout-all', asyncHandler(async (req: Request, res: Response) => {
         timestamp: new Date().toISOString()
       });
     });
-  } catch (error: any) {
-    console.error('Error during global logout:', error);
+  } catch (error: unknown) {
+    console.error('Error during global logout:', error instanceof Error ? error.message : String(error));
     res.status(500).json({ error: 'Failed to logout from all devices' });
   }
 }));
@@ -482,11 +464,11 @@ app.get('/sessions', asyncHandler(async (req: Request, res: Response) => {
     
     const userSessions = sessions.map(session => ({
       sessionId: session.sid,
-      userId: (session.sess as any).userId,
-      companyId: (session.sess as any).companyId,
-      email: (session.sess as any).email,
-      name: (session.sess as any).name,
-      isAdmin: (session.sess as any).isAdmin,
+      userId: (session.sess as Record<string, unknown>).userId,
+      companyId: (session.sess as Record<string, unknown>).companyId,
+      email: (session.sess as Record<string, unknown>).email,
+      name: (session.sess as Record<string, unknown>).name,
+      isAdmin: (session.sess as Record<string, unknown>).isAdmin,
       expiresAt: session.expire,
       isCurrentSession: session.sid === req.session.id
     }));
@@ -496,8 +478,8 @@ app.get('/sessions', asyncHandler(async (req: Request, res: Response) => {
         activeSessions: userSessions,
         totalSessions: userSessions.length
       });
-  } catch (error: any) {
-    console.error('Error fetching user sessions:', error);
+  } catch (error: unknown) {
+    console.error('Error fetching user sessions:', error instanceof Error ? error.message : String(error));
     res.status(500).json({ error: 'Failed to fetch user sessions' });
   }
 }));
@@ -513,7 +495,7 @@ app.get('/sessions/enhanced', asyncHandler(async (req: Request, res: Response) =
   const { includeExpired = false, adminOnly = false } = req.query;
   
   try {
-    const whereConditions: any = {
+    const whereConditions: Record<string, unknown> = {
       sess: {
         path: ['userId'],
         equals: userId,
@@ -521,7 +503,7 @@ app.get('/sessions/enhanced', asyncHandler(async (req: Request, res: Response) =
     };
     
     // Add company filter
-    whereConditions.AND = [
+    (whereConditions as { AND: unknown[] }).AND = [
       {
         sess: {
           path: ['companyId'],
@@ -532,7 +514,7 @@ app.get('/sessions/enhanced', asyncHandler(async (req: Request, res: Response) =
     
     // Add admin filter if requested
     if (adminOnly === 'true') {
-      whereConditions.AND.push({
+      (whereConditions as { AND: unknown[] }).AND.push({
         sess: {
           path: ['isAdmin'],
           equals: 'true',
@@ -561,11 +543,11 @@ app.get('/sessions/enhanced', asyncHandler(async (req: Request, res: Response) =
     
     const userSessions = sessions.map(session => ({
         sessionId: session.sid,
-        userId: (session.sess as any).userId,
-        companyId: (session.sess as any).companyId,
-        email: (session.sess as any).email,
-        name: (session.sess as any).name,
-        isAdmin: (session.sess as any).isAdmin,
+        userId: (session.sess as Record<string, unknown>).userId,
+        companyId: (session.sess as Record<string, unknown>).companyId,
+        email: (session.sess as Record<string, unknown>).email,
+        name: (session.sess as Record<string, unknown>).name,
+        isAdmin: (session.sess as Record<string, unknown>).isAdmin,
         expiresAt: session.expire,
         isExpired: session.expire < new Date(),
         isCurrentSession: session.sid === req.session.id
@@ -581,8 +563,8 @@ app.get('/sessions/enhanced', asyncHandler(async (req: Request, res: Response) =
           adminOnly: adminOnly === 'true'
         }
       });
-  } catch (error: any) {
-    console.error('Error fetching enhanced sessions:', error);
+  } catch (error: unknown) {
+    console.error('Error fetching enhanced sessions:', error instanceof Error ? error.message : String(error));
     res.status(500).json({ error: 'Failed to fetch enhanced sessions' });
   }
 }));
