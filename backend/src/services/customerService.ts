@@ -20,7 +20,6 @@ export async function fetchCustomersLocal(companyId: string): Promise<LocalCusto
       },
       orderBy: { customerName: 'asc' }
     });
-    
     return customers.map(customer => ({
       id: customer.id,
       customer_name: customer.customerName
@@ -100,13 +99,11 @@ async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Custome
     let page = 1;
     let hasMorePages = true;
 
-    const whereFilter = 'IsCustomer==true';
-
     while (hasMorePages) {
       const response = await oauthClient.accountingApi.getContacts(
         tenantId,
         undefined,  // ifModifiedSince
-        whereFilter, // where
+        undefined,  // where - removed filter due to high contact count
         undefined,  // order
         undefined,  // iDs
         page,       // page
@@ -114,10 +111,14 @@ async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Custome
         true,       // summaryOnly
         undefined  // searchTerm
       );
-
       const customers: Contact[] = response.body.contacts || [];
       
-      allCustomers.push(...customers.map((customer: Contact) => ({
+      // Filter to only include active customers
+      const activeCustomers = customers.filter((customer: Contact) => 
+        String(customer.contactStatus) === 'ACTIVE'
+      );
+      
+      allCustomers.push(...activeCustomers.map((customer: Contact) => ({
         id: customer.contactID!,
         customer_name: customer.name!
       })));

@@ -63,7 +63,7 @@ export class AuthSystem {
             clientId: this.qboClientId,
             clientSecret: this.qboClientSecret,
             environment: this.environment,
-            redirectUri: `${this.baseUrl}${oauth.qbo.redirectUri}`
+            redirectUri: `${oauth.qbo.redirectUri}`
         });
     }
 
@@ -75,7 +75,7 @@ export class AuthSystem {
         return new XeroClient({
             clientId: this.xeroClientId,
             clientSecret: this.xeroClientSecret,
-            redirectUris: [`${this.baseUrl}${oauth.xero.redirectUri}`],
+            redirectUris: [`${oauth.xero.redirectUri}`],
             scopes: oauth.xero.scopes,
         });
     }

@@ -6,7 +6,7 @@ import { tokenService } from './tokenService.js';
 import { authSystem } from './authSystem.js';
 import { ConnectionType } from '../types/auth.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
-import { XeroClient, Quote as XeroQuote, LineItem as XeroLineItem, Contact as XeroContact } from 'xero-node';
+import { XeroClient, Quote as XeroQuote } from 'xero-node';
 import { Product, PickingStatus } from '../types/product.js';
 import { prisma } from '../lib/prisma.js';
 import {
@@ -58,13 +58,13 @@ async function getQboCustomerQuotes(oauthClient: IntuitOAuthClient, customerId: 
     const estimates = responseData.QueryResponse.Estimate || [];
 
     const customerQuotes: CustomerQuote[] = estimates
-      .filter((quote: any) => quote.TxnStatus !== 'Closed')
-      .map((quote: any) => ({
+      .filter((quote: Record<string, unknown>) => quote.TxnStatus !== 'Closed')
+      .map((quote: Record<string, unknown>) => ({
         id: Number(quote.Id),
         quoteNumber: quote.DocNumber,
         totalAmount: quote.TotalAmt,
-        customerName: quote.CustomerRef.name,
-        lastModified: quote.MetaData.LastUpdatedTime,
+        customerName: (quote.CustomerRef as Record<string, unknown>).name as string,
+        lastModified: (quote.MetaData as Record<string, unknown>).LastUpdatedTime as string,
       }));
     
     return customerQuotes;
@@ -80,15 +80,15 @@ async function getXeroCustomerQuotes(oauthClient: XeroClient, customerId: string
   try {
     const tenantId = await authSystem.getXeroTenantId(oauthClient);
 
-    let whereFilter = '(Status == "DRAFT")';
-    if (customerId) {
-      whereFilter += ` AND Contact.ContactID == "${customerId}"`;
-    }
-
     const response = await oauthClient.accountingApi.getQuotes(
       tenantId,
-      undefined,
-      whereFilter,
+      undefined,  // ifModifiedSince
+      undefined,  // dateFrom
+      undefined,  // dateTo
+      undefined,  // expiryDateFrom
+      undefined,  // expiryDateTo
+      customerId, // contactID
+      'DRAFT',    // status
     );
 
     const quotes = response.body.quotes || [];
@@ -111,7 +111,7 @@ async function getXeroCustomerQuotes(oauthClient: XeroClient, customerId: string
 }
 
 
-export async function getEstimate(quoteId: string, companyId: string, rawDataNeeded: boolean, connectionType: ConnectionType): Promise<any> {
+export async function getEstimate(quoteId: string, companyId: string, rawDataNeeded: boolean, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError | null | (FilteredQuote | QuoteFetchError)[] | Record<string, unknown>> {
   try {
     let estimate;
     if (connectionType === 'qbo') {
@@ -125,10 +125,10 @@ export async function getEstimate(quoteId: string, companyId: string, rawDataNee
     }
 
     if (rawDataNeeded) {
-      return estimate;
+      return estimate as Record<string, unknown>;
     }
 
-    const filteredQuote = await filterEstimates(estimate, companyId, connectionType);
+    const filteredQuote = await filterEstimates(estimate as Record<string, unknown>, companyId, connectionType);
     return filteredQuote;
   } catch (e: unknown) {
     if (e instanceof Error) {
@@ -158,7 +158,7 @@ async function getXeroEstimate(oauthClient: XeroClient, quoteId: string): Promis
   }
 }
 
-export async function getQboEstimate(oauthClient: IntuitOAuthClient, quoteId: string): Promise<any> {
+export async function getQboEstimate(oauthClient: IntuitOAuthClient, quoteId: string): Promise<Record<string, unknown>> {
   try {
     const baseURL = await getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
@@ -178,9 +178,10 @@ export async function getQboEstimate(oauthClient: IntuitOAuthClient, quoteId: st
   }
 }
 
-async function filterEstimates(responseData: any, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError | null | (FilteredQuote | QuoteFetchError)[]> {
+async function filterEstimates(responseData: Record<string, unknown>, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError | null | (FilteredQuote | QuoteFetchError)[]> {
   if (connectionType === 'qbo') {
-    const estimates = responseData.QueryResponse.Estimate;
+    const queryResponse = responseData.QueryResponse as Record<string, unknown>;
+    const estimates = queryResponse.Estimate as Array<Record<string, unknown>>;
     if (!estimates || estimates.length === 0) {
       return null;
     }
@@ -204,27 +205,34 @@ async function filterEstimates(responseData: any, companyId: string, connectionT
   }
 }
 
-async function filterQboEstimate(estimate: any, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError> {
-  const itemIds = estimate.Line
-    .filter((line: any) => line.DetailType !== 'SubTotalLineDetail')
-    .map((line: any) => line.SalesItemLineDetail.ItemRef.value);
+async function filterQboEstimate(estimate: Record<string, unknown>, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError> {
+  const estimateLine = estimate.Line as Array<Record<string, unknown>>;
+  const itemIds = estimateLine
+    .filter((line: Record<string, unknown>) => line.DetailType !== 'SubTotalLineDetail')
+    .map((line: Record<string, unknown>) => {
+      const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
+      const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
+      return itemRef.value as string;
+    });
     
   const productsFromDB: Product[] = await getProductsFromDBByIds(itemIds, companyId); 
   const productMap = new Map(productsFromDB.map(p => [p.externalItemId, p]));
   const productInfo: Record<string, ProductInfo> = {};
    
-  for (const line of estimate.Line) {
+  for (const line of estimateLine) {
     if (line.DetailType === 'SubTotalLineDetail') continue;
 
-    const itemId = line.SalesItemLineDetail.ItemRef.value;
+    const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
+    const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
+    const itemId = itemRef.value as string;
     const itemLocal = productMap.get(itemId);
 
     if (!itemLocal) {
       return {
         error: true,
-        quoteId: estimate.Id,
+        quoteId: estimate.Id as string,
         message: `Product from ${connectionType.toUpperCase()} not found in our database.`,
-        productName: line.SalesItemLineDetail.ItemRef.name.split(':').pop().trim(),
+        productName: (itemRef.name as string).split(':').pop()?.trim() || 'Unknown Product',
       };
     }
     
@@ -232,8 +240,8 @@ async function filterQboEstimate(estimate: any, companyId: string, connectionTyp
       productName: itemLocal.productName,
       productId: Number(itemLocal.id),
       sku: itemLocal.sku,
-      pickingQty: line.SalesItemLineDetail?.Qty || 0,
-      originalQty: line.SalesItemLineDetail?.Qty || 0,
+      pickingQty: (salesItemLineDetail.Qty as number) || 0,
+      originalQty: (salesItemLineDetail.Qty as number) || 0,
       pickingStatus: 'pending',
       price: parseFloat(itemLocal.price.toString()),
       quantityOnHand: parseFloat(itemLocal.quantityOnHand.toString()),
@@ -243,18 +251,22 @@ async function filterQboEstimate(estimate: any, companyId: string, connectionTyp
     };
   }
 
-  return {
-    quoteId: estimate.Id,
-    quoteNumber: estimate.DocNumber,
-    customerId: estimate.CustomerRef.value,
-    customerName: estimate.CustomerRef.name,
-    productInfo,
-    totalAmount: estimate.TotalAmt,
-    orderStatus: 'pending',
-    lastModified: formatTimestampForSydney(estimate.MetaData.LastUpdatedTime),
-    companyId,
-    orderNote: estimate.CustomerMemo?.value || null
-  };
+    const customerRef = estimate.CustomerRef as Record<string, unknown>;
+    const metaData = estimate.MetaData as Record<string, unknown>;
+    const customerMemo = estimate.CustomerMemo as Record<string, unknown> | undefined;
+    
+    return {
+      quoteId: estimate.Id as string,
+      quoteNumber: estimate.DocNumber as string,
+      customerId: customerRef.value as string,
+      customerName: customerRef.name as string,
+      productInfo,
+      totalAmount: estimate.TotalAmt as number,
+      orderStatus: 'pending',
+      lastModified: formatTimestampForSydney(metaData.LastUpdatedTime as string),
+      companyId,
+      orderNote: customerMemo?.value as string || null
+    };
 }
 
 async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError> {
@@ -301,7 +313,7 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
   return {
     quoteId: quote.quoteID!,
     quoteNumber: quote.quoteNumber!,
-    customerId: quote.contact?.contactID!,
+    customerId: quote.contact?.contactID || '',
     customerName: quote.contact?.name || 'Unknown Customer',
     productInfo,
     totalAmount: quote.total || 0,
@@ -522,7 +534,7 @@ export async function processBarcode(barcode: string, quoteId: string, newQty: n
   }
 }
 
-export async function addProductToQuote(productId: number, quoteId: string, qty: number, companyId: string): Promise<AddProductResult> {
+export async function addProductToQuote(productId: number, quoteId: string, qty: number, _companyId: string): Promise<AddProductResult> {
   try {
     const product = await prisma.product.findUnique({
       where: { id: productId },
@@ -539,9 +551,9 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
       throw new AccessError('Quote does not exist in database!');
     }
 
-    let addNewProduct: any = null;
-    let addExistingProduct: any = null;
-    let totalAmount: any = 0;
+    let addNewProduct: Record<string, unknown> | null = null;
+    let addExistingProduct: Record<string, unknown> | null = null;
+    let totalAmount: Record<string, unknown> | null = null;
 
     await prisma.$transaction(async (tx) => {
       const pickingStatus = 'pending';
@@ -596,19 +608,23 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
       totalAmount = updatedQuote;
     });
 
-    if (addNewProduct) {
+    if (addNewProduct && totalAmount) {
+      const totalAmountData = totalAmount as Record<string, unknown>;
       return {
         status: 'new',
         productInfo: addNewProduct,
-        totalAmount: totalAmount.totalAmount.toNumber(),
-        lastModified: totalAmount.updatedAt,
+        totalAmount: (totalAmountData.totalAmount as { toNumber(): number }).toNumber().toString(),
+        lastModified: totalAmountData.updatedAt as Date,
       };
-    } else {
+    } else if (addExistingProduct && totalAmount) {
+      const totalAmountData = totalAmount as Record<string, unknown>;
       return {
         status: 'exists',
         productInfo: addExistingProduct,
-        totalAmount: totalAmount.totalAmount.toNumber(),
+        totalAmount: (totalAmountData.totalAmount as { toNumber(): number }).toNumber().toString(),
       };
+    } else {
+      throw new AccessError('Failed to add product to quote');
     }
   } catch (e: unknown) {
     if (e instanceof Error) {
@@ -708,7 +724,7 @@ export async function setOrderStatus(quoteId: string, newStatus: OrderStatus): P
   }
 }
 
-export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<any[]> {
+export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<Array<Record<string, unknown>>> {
   try {
     const quotes = await prisma.quote.findMany({
       where: status === 'all' ? {} : { status },
@@ -869,23 +885,27 @@ export async function deleteQuotesBulk(quoteIds: string[]): Promise<BulkDeleteRe
   }
 }
 
-export async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQuote, rawQuoteData: any, companyId: string): Promise<{ message: string }> {
+export async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQuote, rawQuoteData: Record<string, unknown>, companyId: string): Promise<{ message: string }> {
   try {
     const oauthClient = await getOAuthClient(companyId, 'qbo') as IntuitOAuthClient;
     
-    const qbQuote = rawQuoteData.QueryResponse.Estimate[0];
+    const queryResponse = rawQuoteData.QueryResponse as Record<string, unknown>;
+    const estimates = queryResponse.Estimate as Array<Record<string, unknown>>;
+    const qbQuote = estimates[0];
     
     if (!qbQuote || !qbQuote.SyncToken) {
       throw new AccessError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
-    const updatePayload: any = {
+    const updatePayload: Record<string, unknown> = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
       sparse: true,
       Line: []
     };
 
+    const lineItems: Array<Record<string, unknown>> = [];
+    
     for (const localItem of Object.values(quoteLocalDb.productInfo)) {
       if (localItem.pickingStatus === 'unavailable') {
         continue;
@@ -919,10 +939,11 @@ export async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: Fil
         }
       };
       
-      updatePayload.Line.push(lineItem);
+      lineItems.push(lineItem);
     }
     
-    if (updatePayload.Line.length === 0) {
+    updatePayload.Line = lineItems;
+    if (lineItems.length === 0) {
       throw new AccessError('No products found to update in QuickBooks');
     }
 
@@ -1064,7 +1085,7 @@ async function getXeroEstimatesBulk(quoteIds: string[], companyId: string): Prom
         const filteredQuotes: (FilteredQuote | QuoteFetchError)[] = [];
         for (const estimate of estimates) {
             try {
-                const filteredQuote = await filterEstimates(estimate, companyId, 'xero') as FilteredQuote | QuoteFetchError;
+                const filteredQuote = await filterEstimates(estimate as Record<string, unknown>, companyId, 'xero') as FilteredQuote | QuoteFetchError;
                 if (filteredQuote && !(filteredQuote as QuoteFetchError).error) {
                     filteredQuotes.push(filteredQuote);
                 }

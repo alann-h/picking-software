@@ -3,6 +3,7 @@ import * as authService from '../services/authService.js';
 import { CompanyService } from '../services/companyService.js';
 import { logSecurityEvent } from '../services/securityService.js';
 import { fetchCustomers, saveCustomers } from '../services/customerService.js';
+import { QboToken } from '../types/token.js';
 import { Request, Response, NextFunction } from 'express';
 
 // GET /auth/qbo-uri
@@ -45,9 +46,9 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
     const user = await authService.saveUserFromOAuth(token, companyInfo.id, connectionType);
     
     fetchCustomers(companyInfo.id, connectionType)
-      .then((customers: any) => saveCustomers(customers, companyInfo.id))
+      .then((customers) => saveCustomers(customers, companyInfo.id))
       .then(() => console.log(`[Background Sync] Successfully synced customers for company ${companyInfo.id}`))
-      .catch((err: any) => console.error(`[Background Sync] FAILED for company ${companyInfo.id}:`, err));
+      .catch((err: unknown) => console.error(`[Background Sync] FAILED for company ${companyInfo.id}:`, err));
 
 
     req.session.companyId = companyInfo.id;
@@ -171,7 +172,7 @@ export async function deleteUser(req: Request, res: Response, next: NextFunction
     const sessionId = req.session.userId === userId ? req.session.id : null;
     if (!sessionId) {
       // Handle the case where the session ID is null, maybe just delete the user without touching sessions
-      const deleted = await authService.deleteUser(userId, ''); // Or handle differently
+      await authService.deleteUser(userId, ''); // Or handle differently
     } else {
       const deleted = await authService.deleteUser(userId, sessionId);
 
@@ -258,13 +259,13 @@ export async function disconnect(req: Request, res: Response, next: NextFunction
     try {
       if (connectionType === 'qbo') {
         const oauthClient = await authService.getOAuthClient(companyId, connectionType);
-        const tokenToRevoke = (oauthClient as any).getToken();
+        const tokenToRevoke = (oauthClient as { getToken: () => QboToken }).getToken();
 
         await authService.revokeQuickBooksToken(tokenToRevoke);
         console.log(`Successfully revoked QuickBooks token for company ${companyId}`);
       }
-    } catch (tokenError: any) {
-      console.warn(`Could not revoke QuickBooks token for company ${companyId}:`, tokenError.message);
+    } catch (tokenError: unknown) {
+      console.warn(`Could not revoke QuickBooks token for company ${companyId}:`, tokenError instanceof Error ? tokenError.message : String(tokenError));
       // Continue with disconnection even if token revocation fails
     }
     
@@ -272,8 +273,8 @@ export async function disconnect(req: Request, res: Response, next: NextFunction
       const companyService = new CompanyService();
       await companyService.removeCompanyData(companyId);
       console.log(`Successfully removed QuickBooks data for company ${companyId}`);
-    } catch (dataError: any) {
-      console.warn(`Could not remove QuickBooks data for company ${companyId}:`, dataError.message);
+    } catch (dataError: unknown) {
+      console.warn(`Could not remove QuickBooks data for company ${companyId}:`, dataError instanceof Error ? dataError.message : String(dataError));
       // Continue with disconnection even if data removal fails
     }
 
