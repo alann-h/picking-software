@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Info, X } from 'lucide-react';
 
 interface CookieConsentProps {
@@ -31,14 +30,7 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept }) => {
   if (!isVisible) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="fixed bottom-0 left-0 right-0 z-[9999] p-4"
-      >
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4">
         <div
           className="relative mx-auto max-w-6xl rounded-lg bg-gradient-to-br from-blue-800 to-blue-500 p-6 text-white shadow-2xl"
         >
@@ -46,7 +38,7 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept }) => {
             type="button"
             aria-label="Close cookie banner"
             onClick={handleClose}
-            className="absolute top-1 right-1 rounded-full p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white cursor-pointer" 
+            className="absolute top-1 right-1 rounded-full p-1 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer" 
           >
             <X size={20} />
           </button>
@@ -65,7 +57,7 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept }) => {
                 By continuing to use our site, you acknowledge our use of cookies. {' '}
                 <a 
                   href="/terms-of-service" 
-                  className="text-white underline transition-opacity hover:opacity-80 cursor-pointer"
+                  className="text-white underline hover:opacity-80 cursor-pointer"
                 >
                   Learn more about our cookie policy
                 </a>
@@ -76,15 +68,14 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept }) => {
               <button
                 type="button"
                 onClick={handleAcknowledge}
-                className="w-full rounded-md bg-white px-5 py-2 font-semibold text-blue-900 transition-colors hover:bg-gray-100 sm:w-auto cursor-pointer"
+                className="w-full rounded-md bg-white px-5 py-2 font-semibold text-blue-900 hover:bg-gray-100 sm:w-auto cursor-pointer"
               >
                 I Understand
               </button>
             </div>
           </div>
         </div>
-      </motion.div>
-    </AnimatePresence>
+    </div>
   );
 };
 

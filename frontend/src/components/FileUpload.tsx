@@ -1,5 +1,4 @@
 import React, { useRef, DragEvent, ChangeEvent, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { getJobProgress } from '../api/products';
 import { UploadCloud, CheckCircle, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
@@ -218,7 +217,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
               disabled={!selectedFile}
               className={clsx(
                 "w-full text-white font-bold py-3 px-4 rounded-lg mt-4 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2",
-                !selectedFile ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 focus:ring-blue-500'
+                !selectedFile ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 focus:ring-blue-500 cursor-pointer'
               )}
             >
               Upload File
@@ -229,12 +228,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <title>Smart Picker | Upload Data</title>
       
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
@@ -242,7 +236,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
       </div>
 
       <ExcelInfoComponent />
-    </motion.div>
+    </div>
   );
 };
 
