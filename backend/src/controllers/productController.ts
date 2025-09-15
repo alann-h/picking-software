@@ -37,7 +37,14 @@ export async function getProduct(req: Request, res: Response, next: NextFunction
     }
     const externalId = await productIdToExternalId(parseInt(productId, 10));
     const productData = await getProductsFromDBByIds([externalId], companyId);
-    res.json(productData[0]);
+    
+    // Convert BigInt id to string for JSON serialization
+    const serializedResult = {
+      ...productData[0],
+      id: productData[0].id.toString()
+    };
+    
+    res.json(serializedResult);
   } catch (err) {
     next(err);
   }
@@ -96,7 +103,14 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
     const { productId } = req.params;
     const updateFields = req.body;
     const result = await updateProductDb(parseInt(productId, 10), updateFields);
-    res.json(result);
+    
+    // Convert BigInt id to string for JSON serialization
+    const serializedResult = {
+      ...result,
+      id: result.id.toString()
+    };
+    
+    res.json(serializedResult);
   } catch (err) {
     next(err);
   }
@@ -108,7 +122,14 @@ export async function setProductArchiveStatus(req: Request, res: Response, next:
     const { productId } = req.params;
     const { isArchived } = req.body;
     const result = await setProductArchiveStatusDb(parseInt(productId, 10), isArchived);
-    res.json(result);
+    
+    // Convert BigInt id to string for JSON serialization
+    const serializedResult = {
+      ...result,
+      id: result.id.toString()
+    };
+    
+    res.json(serializedResult);
   } catch (err) {
     next(err);
   }
