@@ -273,7 +273,14 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       throw new InputError('No matched products found to create a QuickBooks estimate.');
     }
     
-    const lineItems = matchedItems.map((item: MatchedLineItem) => ({
+    // Sort matched items by SKU before creating line items
+    const sortedMatchedItems = matchedItems.sort((a, b) => {
+      const skuA = a.sku || '';
+      const skuB = b.sku || '';
+      return skuA.localeCompare(skuB);
+    });
+    
+    const lineItems = sortedMatchedItems.map((item: MatchedLineItem) => ({
       DetailType: 'SalesItemLineDetail',
       Description: item.productName,
       Amount: item.quantity * item.price,
