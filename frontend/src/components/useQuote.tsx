@@ -1,5 +1,5 @@
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSnackbarContext } from './SnackbarContext';
 import { useAuth } from '../hooks/useAuth';
 
@@ -30,11 +30,16 @@ import { useCallback, useMemo } from 'react';
 export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const location = useLocation();
     const { handleOpenSnackbar } = useSnackbarContext();
     const { connectionType } = useAuth();
 
+    // Get status from URL params
+    const urlParams = new URLSearchParams(location.search);
+    const statusFromUrl = urlParams.get('status');
+
     const { data: quoteData } = useSuspenseQuery<QuoteData, HttpError>({
-        queryKey: ['quote', quoteId],
+        queryKey: ['quote', quoteId, statusFromUrl],
         queryFn: async () => {
             const response = await extractQuote(quoteId);
             if (response.data.error) {
@@ -59,7 +64,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     });
 
     const invalidateAndRefetch = () => {
-        queryClient.invalidateQueries({ queryKey: ['quote', quoteId] });
+        queryClient.invalidateQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
     };
 
     // ====================================================================================
@@ -114,7 +119,16 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     });
     
     const saveNote = useMutation({ mutationFn: (note: string) => savePickerNote(quoteId, note), onSuccess: () => handleOpenSnackbar('Note saved!', 'success'), onError: (error) => handleOpenSnackbar(error.message, 'error'), });
-    const setQuoteChecking = useMutation({ mutationFn: (newStatus: string) => updateQuoteStatus(quoteId, newStatus), onSuccess: () => { handleOpenSnackbar(`Quote status updated!`, 'success'); navigate('/dashboard'); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
+    const setQuoteChecking = useMutation({ 
+        mutationFn: (newStatus: string) => updateQuoteStatus(quoteId, newStatus), 
+        onSuccess: (_, newStatus) => { 
+            handleOpenSnackbar(`Quote status updated!`, 'success'); 
+            // Update URL to include status
+            const newUrl = `/quote?id=${quoteId}&status=${newStatus}`;
+            navigate(newUrl);
+        }, 
+        onError: (error) => handleOpenSnackbar(error.message, 'error'), 
+    });
     const finaliseInvoice = useMutation({ 
         mutationFn: () => updateQuoteInAccountingService(quoteId), 
         onSuccess: (response) => { 
@@ -140,7 +154,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             
             handleOpenSnackbar(`Quote finalised and opened in ${serviceName}!`, 'success'); 
             invalidateAndRefetch(); // This will refresh the quote data
-            navigate('/dashboard'); 
+            // Update URL to include finalised status
+            const newUrl = `/quote?id=${quoteId}&status=finalised`;
+            navigate(newUrl); 
         }, 
         onError: (error: Error) => {
             const serviceName = connectionType === 'xero' ? 'Xero' : 'QuickBooks';
