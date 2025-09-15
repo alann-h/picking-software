@@ -11,6 +11,10 @@ const ProductNotFoundErrorPage: React.FC<Props> = ({ errorData }) => {
 
   const handleGoBack = () => {
     window.history.back();
+    // Refresh the page after going back to ensure fresh data
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   return (
@@ -38,7 +42,7 @@ const ProductNotFoundErrorPage: React.FC<Props> = ({ errorData }) => {
             <div className="mt-5">
               <button
                 onClick={handleGoBack}
-                className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-800 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-800 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Go Back

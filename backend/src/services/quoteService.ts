@@ -1,7 +1,7 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { roundQuantity, formatTimestampForSydney } from '../helpers.js';
 import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
-import { getProductsFromDBByIds, productIdToExternalId } from './productService.js';
+import { getProductsFromDBByIds, getProductsFromDBBySkus, productIdToExternalId } from './productService.js';
 import { tokenService } from './tokenService.js';
 import { authSystem } from './authSystem.js';
 import { ConnectionType } from '../types/auth.js';
@@ -271,20 +271,20 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
 
 async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError> {
   const lineItems = quote.lineItems || [];
-  
-  const itemIds = lineItems
+  console.log('lineItems', lineItems);
+  const skus = lineItems
     .filter(item => item.itemCode)
     .map(item => item.itemCode!);
-
-  const productsFromDB: Product[] = await getProductsFromDBByIds(itemIds, companyId); 
-  const productMap = new Map(productsFromDB.map(p => [p.externalItemId, p]));
+  console.log('skus', skus);
+  const productsFromDB: Product[] = await getProductsFromDBBySkus(skus, companyId); 
+  const productMap = new Map(productsFromDB.map(p => [p.sku, p]));
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const lineItem of lineItems) {
     if (!lineItem.itemCode) continue;
 
-    const itemId = lineItem.itemCode;
-    const itemLocal = productMap.get(itemId);
+    const sku = lineItem.itemCode;
+    const itemLocal = productMap.get(sku);
 
     if (!itemLocal) {
       return {

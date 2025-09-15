@@ -32,6 +32,10 @@ class ErrorBoundary extends Component<Props, State> {
 
   private handleGoBack = () => {
     window.history.back();
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   private getErrorMessage = (error: Error | HttpError): string => {
@@ -86,13 +90,13 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="mt-4 flex gap-4 justify-center">
               <button
                 onClick={this.handleGoBack}
-                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
               >
                 Go Back
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
               >
                 Reload Page
               </button>

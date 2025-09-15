@@ -15,7 +15,7 @@ import {
 } from '../types/product.js';
 import { ConnectionType } from '../types/auth.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
-import { XeroClient, Item, Contact } from 'xero-node';
+import { XeroClient } from 'xero-node';
 import { prisma } from '../lib/prisma.js';
 
 export async function productIdToExternalId(productId: number): Promise<string> {
@@ -270,6 +270,27 @@ export async function getProductsFromDBByIds(itemIds: string[], companyId: strin
   } catch (err: unknown) {
     console.log(err);
     throw new AccessError('Error accessing the database while fetching products');
+  }
+}
+
+export async function getProductsFromDBBySkus(skus: string[], companyId: string): Promise<Product[]> {
+  if (!skus || skus.length === 0) {
+    return [];
+  }
+
+  try {
+    const results = await prisma.product.findMany({
+      where: {
+        sku: { in: skus },
+        companyId: companyId,
+        isArchived: false,
+      },
+    });
+
+    return results;
+  } catch (err: unknown) {
+    console.log(err);
+    throw new AccessError('Error accessing the database while fetching products by SKU');
   }
 }
 
