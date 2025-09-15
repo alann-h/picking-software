@@ -2,6 +2,7 @@ import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { prisma } from '../lib/prisma.js';
 import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { fetchCustomersLocal } from './customerService.js';
+import { parseAustralianDate } from '../helpers.js';
 import {
   KyteOrder,
   KyteLineItem,
@@ -46,7 +47,7 @@ export async function parseKyteCSV(csvContent: string): Promise<KyteOrder[]> {
       if (status.toLowerCase() === 'pending order') {
         const order: KyteOrder = {
           number: values[numberIndex]?.trim(),
-          date: values[dateIndex]?.trim(),
+          date: parseAustralianDate(values[dateIndex]?.trim() || ''),
           itemsDescription: values[itemsIndex]?.trim(),
           total: parseFloat(values[totalIndex]) || 0,
           customerId: null, // Will be set by user
@@ -194,8 +195,9 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
     }
     
     return matchedItems;
-  } catch (error: any) {
-    throw new AccessError(`Failed to match products: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new AccessError(`Failed to match products: ${errorMessage}`);
   }
 }
 
@@ -325,16 +327,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       const errorDetail = response.json.Fault.Error?.[0] || {};
       const errorMessage = errorDetail.Message || 'Unknown QuickBooks error';
       const errorCode = errorDetail.code || 'Unknown';
-      const detail = errorDetail.Detail || '';
-      
-      console.error('QuickBooks API Error Details:', {
-        code: errorCode,
-        message: errorMessage,
-        detail: detail,
-        fullResponse: response.json
-      });
-      
-      throw new Error(`QuickBooks API Error (${errorCode}): ${errorMessage}${detail ? ` - ${detail}` : ''}`);
+      throw new Error(`QuickBooks API Error (${errorCode}): ${errorMessage}`);
     }
     
     const webUrl = baseURL.includes('sandbox') 

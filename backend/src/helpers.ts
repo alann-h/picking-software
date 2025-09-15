@@ -101,3 +101,34 @@ export function isValidUUID(uuid: string) {
 export function safeUUID(uuid: string) {
   return isValidUUID(uuid) ? uuid : null;
 }
+
+/**
+ * Parse Australian date format (dd/mm/yyyy) to ISO format
+ * @param {string} dateString - Date string in Australian format
+ * @returns {string} ISO date string (yyyy-mm-dd)
+ */
+export function parseAustralianDate(dateString: string): string {
+  if (!dateString) return new Date().toISOString().split('T')[0];
+  
+  // Try parsing as dd/mm/yyyy first (most common Australian format)
+  const match = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (match) {
+    const [, day, month, year] = match;
+    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    
+    // Validate the date
+    const date = new Date(isoDate);
+    if (!isNaN(date.getTime())) {
+      return isoDate;
+    }
+  }
+  
+  // Fallback: try parsing as-is
+  const fallbackDate = new Date(dateString);
+  if (!isNaN(fallbackDate.getTime())) {
+    return fallbackDate.toISOString().split('T')[0];
+  }
+  
+  // If all else fails, return current date
+  return new Date().toISOString().split('T')[0];
+}
