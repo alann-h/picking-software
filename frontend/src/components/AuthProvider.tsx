@@ -16,6 +16,7 @@ interface AuthContextType {
   userCompanyId: string | null;
   userName: string | null;
   userEmail: string | null;
+  connectionType: 'qbo' | 'xero' | 'none';
   isAuthenticated: boolean;
   isLoading: boolean;
   
@@ -35,7 +36,7 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { isAdmin, userCompanyId, isLoadingStatus, userName, userEmail } = useUserStatus();
+  const { isAdmin, userCompanyId, isLoadingStatus, userName, userEmail, connectionType } = useUserStatus();
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
   const [permissionsLoading, setPermissionsLoading] = useState(true);
 
@@ -151,6 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     userCompanyId,
     userName,
     userEmail,
+    connectionType,
     isAuthenticated: !!userCompanyId,
     isLoading: isLoadingStatus || permissionsLoading,
     

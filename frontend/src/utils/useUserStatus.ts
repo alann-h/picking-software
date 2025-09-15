@@ -21,6 +21,7 @@ export const useUserStatus = () => {
     userCompanyId: data?.companyId ?? null,
     userName: data?.name ?? null,
     userEmail: data?.email ?? null,
+    connectionType: data?.connectionType ?? 'none',
     isLoadingStatus,
     isError,
   };

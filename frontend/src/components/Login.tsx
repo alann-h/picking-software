@@ -128,7 +128,7 @@ const Login: React.FC = () => {
       const user = await loginWithCredentials(data.email, data.password, rememberMe);
 
       if (user.qboReAuthRequired) {
-        handleOpenSnackbar('Your QuickBooks connection has expired. Redirecting to reconnect...', 'warning');
+        handleOpenSnackbar('Your accounting connection has expired. Redirecting to reconnect...', 'warning');
         setTimeout(() => {
           handleQuickBooksLogin();
         }, 3000);

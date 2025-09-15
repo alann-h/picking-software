@@ -575,7 +575,8 @@ app.get('/api/user-status', isAuthenticated, asyncHandler(async (req: Request, r
     userId: req.session.userId,
     companyId: req.session.companyId,
     name: req.session.name,
-    email: req.session.email
+    email: req.session.email,
+    connectionType: req.session.connectionType || 'none'
   });
 }));
 

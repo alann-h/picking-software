@@ -1,6 +1,7 @@
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbarContext } from './SnackbarContext';
+import { useAuth } from '../hooks/useAuth';
 
 import { OpenModalFunction } from '../utils/modalState';
 import { QuoteData, ProductDetail } from '../utils/types';
@@ -14,7 +15,7 @@ import {
     addProductToQuote,
     savePickerNote,
     updateQuoteStatus,
-    updateQuoteInQuickBooks,
+    updateQuoteInAccountingService,
 } from '../api/quote';
 import {
     getProductInfo,
@@ -30,6 +31,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const { handleOpenSnackbar } = useSnackbarContext();
+    const { connectionType } = useAuth();
 
     const { data: quoteData } = useSuspenseQuery<QuoteData, HttpError>({
         queryKey: ['quote', quoteId],
@@ -114,25 +116,43 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     const saveNote = useMutation({ mutationFn: (note: string) => savePickerNote(quoteId, note), onSuccess: () => handleOpenSnackbar('Note saved!', 'success'), onError: (error) => handleOpenSnackbar(error.message, 'error'), });
     const setQuoteChecking = useMutation({ mutationFn: (newStatus: string) => updateQuoteStatus(quoteId, newStatus), onSuccess: () => { handleOpenSnackbar(`Quote status updated!`, 'success'); navigate('/dashboard'); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
     const finaliseInvoice = useMutation({ 
-        mutationFn: () => updateQuoteInQuickBooks(quoteId), 
-        onSuccess: () => { 
-            const qbWindow = window.open('https://qbo.intuit.com/', '_blank'); 
-            setTimeout(() => { 
-                if (qbWindow) qbWindow.location.href = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`; 
-            }, 3000); 
+        mutationFn: () => updateQuoteInAccountingService(quoteId), 
+        onSuccess: (response) => { 
+            const serviceName = connectionType === 'xero' ? 'Xero' : 'QuickBooks';
+
+            if (connectionType === 'xero') {
+                // For Xero, use the constructed URL from backend
+                if (response.redirectUrl) {
+                    window.open(response.redirectUrl, '_blank');
+                } else {
+                    // Fallback to general quotes page
+                    window.open('https://go.xero.com/app/quotes', '_blank');
+                }
+            } else {
+                // For QuickBooks, use the constructed URL from backend
+                if (response.redirectUrl) {
+                    window.open(response.redirectUrl, '_blank');
+                } else {
+                    // Fallback to general QuickBooks page
+                    window.open('https://qbo.intuit.com/', '_blank');
+                }
+            }
             
-            handleOpenSnackbar('Quote finalised and opened in QuickBooks!', 'success'); 
+            handleOpenSnackbar(`Quote finalised and opened in ${serviceName}!`, 'success'); 
+            invalidateAndRefetch(); // This will refresh the quote data
             navigate('/dashboard'); 
         }, 
-        onError: (error: any) => {
-            // Handle specific QuickBooks errors
+        onError: (error: Error) => {
+            const serviceName = connectionType === 'xero' ? 'Xero' : 'QuickBooks';
+            
+            // Handle specific service errors
             if (error.message?.includes('re-authentication required')) {
-                handleOpenSnackbar('QuickBooks connection expired. Please reconnect your account in settings.', 'error');
+                handleOpenSnackbar(`${serviceName} connection expired. Please reconnect your account in settings.`, 'error');
                 navigate('/settings'); // Redirect to settings to reconnect
-            } else if (error.message?.includes('Access denied by QuickBooks')) {
-                handleOpenSnackbar('QuickBooks access denied. Please check your permissions.', 'error');
+            } else if (error.message?.includes('Access denied by')) {
+                handleOpenSnackbar(`${serviceName} access denied. Please check your permissions.`, 'error');
             } else {
-                handleOpenSnackbar(error.message, 'error');
+                handleOpenSnackbar(error instanceof Error ? error.message : 'An error occurred', 'error');
             }
         }, 
     });
@@ -155,10 +175,10 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
                 availableQty: product.pickingQty,
                 onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
             });
-        } catch (error: any) {
-            handleOpenSnackbar(error.message, 'error');
+        } catch (error: unknown) {
+            handleOpenSnackbar(error instanceof Error ? error.message : 'An error occurred', 'error');
         }
-    }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar, barcodeToName]);
+    }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);
 
     const openProductDetailsModal = useCallback(async (productId: number, details: ProductDetail) => {
         try {
@@ -170,10 +190,10 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
                     qtyOnHand: parseFloat(data.quantity_on_hand) || 0,
                 }
             });
-        } catch (error: any) {
-            handleOpenSnackbar(error.message, 'error');
+        } catch (error: unknown) {
+            handleOpenSnackbar(error instanceof Error ? error.message : 'An error occurred', 'error');
         }
-    }, [openModal, handleOpenSnackbar, getProductInfo]);
+    }, [openModal, handleOpenSnackbar]);
 
     // ====================================================================================
     // 4. RETURN VALUE

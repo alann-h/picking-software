@@ -130,7 +130,7 @@ const baseConfig = {
       redirectUri: process.env.XERO_REDIRECT_URI!,
       scopes: [
         'offline_access',
-        'accounting.transactions.read',
+        'accounting.transactions',
         'accounting.contacts.read',
         'accounting.settings.read'
       ]

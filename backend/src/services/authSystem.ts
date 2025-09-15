@@ -135,7 +135,7 @@ export class AuthSystem {
         try {
             const tokenSet: TokenSet = await xeroClient.apiCallback(url);
             xeroClient.setTokenSet(tokenSet);
-            const tenantId = await this.getXeroTenantId(xeroClient);
+            const { tenantId } = await this.getXeroTenantId(xeroClient);
             return {
                 access_token: tokenSet.access_token!,
                 refresh_token: tokenSet.refresh_token!,
@@ -189,7 +189,7 @@ export class AuthSystem {
         try {
             const tokenSet = await xeroClient.refreshWithRefreshToken(this.xeroClientId, this.xeroClientSecret, token.refresh_token);
             xeroClient.setTokenSet(tokenSet);
-            const tenantId = await this.getXeroTenantId(xeroClient);
+            const { tenantId } = await this.getXeroTenantId(xeroClient);
             return {
                 access_token: tokenSet.access_token!,
                 refresh_token: tokenSet.refresh_token!,
@@ -238,16 +238,18 @@ export class AuthSystem {
     }
 
     /**
-     * Get Xero tenant ID from token
+     * Get Xero tenant ID and shortCode from token
      * @param {XeroClient} xeroClient - Xero OAuth client
-     * @returns {Promise<string>} Tenant ID
+     * @returns {Promise<{tenantId: string; shortCode?: string}>} Tenant ID and shortCode
      */
-    async getXeroTenantId(xeroClient: XeroClient): Promise<string> {
+    async getXeroTenantId(xeroClient: XeroClient): Promise<{ tenantId: string; shortCode?: string }> {
         let tenantId: string = '';
+        let shortCode: string | undefined;
         try {
             const tenants = await xeroClient.updateTenants();
             if (tenants && tenants.length > 0) {
                 tenantId = tenants[0].tenantId!;
+                shortCode = tenants[0].orgData?.shortCode;
             }
         } catch (error: unknown) {
             if (error instanceof Error) {
@@ -256,7 +258,7 @@ export class AuthSystem {
                 console.warn('Could not fetch Xero tenant ID due to an unknown error.');
             }
         }
-        return tenantId;
+        return { tenantId, shortCode };
     }
     /**
      * Revoke QBO token

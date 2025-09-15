@@ -5,7 +5,14 @@ import { validate } from './authValidator.js'; // Reuse the error handler
 
 // For any route with a :productId in the URL
 export const productIdRule = () => [
-  param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer.'),
+  param('productId').custom((value) => {
+    // Accept both integers and strings that can be converted to positive integers
+    const numValue = Number(value);
+    if (Number.isInteger(numValue) && numValue > 0) {
+      return true;
+    }
+    throw new Error('Product ID must be a positive integer.');
+  }),
 ];
 
 // For the barcode lookup route
@@ -22,7 +29,14 @@ export const addProductRules = () => [
 
 // For updating a product
 export const updateProductRules = () => [
-  param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer.'),
+  param('productId').custom((value) => {
+    // Accept both integers and strings that can be converted to positive integers
+    const numValue = Number(value);
+    if (Number.isInteger(numValue) && numValue > 0) {
+      return true;
+    }
+    throw new Error('Product ID must be a positive integer.');
+  }),
   body('productName').optional().trim().escape(),
   body('sku').optional().trim().escape(),
   body('barcode').optional().trim().escape(),
@@ -30,12 +44,35 @@ export const updateProductRules = () => [
 
 // For routes that link a product to a quote
 export const quoteProductRules = () => [
-    body('quoteId').isInt({ min: 1 }).withMessage('Quote ID must be a positive integer.'),
-    body('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer.'),
+    body('quoteId').custom((value) => {
+      // Accept both integers (QBO) and strings (Xero UUIDs)
+      if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+        return true;
+      }
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return true;
+      }
+      throw new Error('Quote ID must be a positive integer or a non-empty string.');
+    }),
+    body('productId').custom((value) => {
+      // Accept both integers and strings that can be converted to positive integers
+      const numValue = Number(value);
+      if (Number.isInteger(numValue) && numValue > 0) {
+        return true;
+      }
+      throw new Error('Product ID must be a positive integer.');
+    }),
 ];
 
 export const setArchiveStatusRules = () => [
-  param('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer.'),
+  param('productId').custom((value) => {
+    // Accept both integers and strings that can be converted to positive integers
+    const numValue = Number(value);
+    if (Number.isInteger(numValue) && numValue > 0) {
+      return true;
+    }
+    throw new Error('Product ID must be a positive integer.');
+  }),
   body('isArchived').isBoolean().withMessage('The "isArchived" status must be a boolean (true or false).'),
 ];
 

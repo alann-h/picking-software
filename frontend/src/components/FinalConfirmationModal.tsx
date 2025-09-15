@@ -3,6 +3,7 @@ import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@
 import { CheckCircle2, AlertTriangle, LoaderCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { ProductDetail } from '../utils/types';
+import { useAuth } from '../hooks/useAuth';
 
 interface FinalConfirmationModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
   isLoading,
   backorderProducts,
 }) => {
+  const { connectionType } = useAuth();
   const hasBackorder = backorderProducts.length > 0;
 
   const handleConfirm = () => {
@@ -99,7 +101,7 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
                         <h3 className="text-lg font-medium">Ready to Finalise</h3>
                       </div>
                       <div className="mt-2 ml-8 text-base">
-                        All items are accounted for. Are you sure you want to finalise this invoice and send it to QuickBooks?
+                        All items are accounted for. Are you sure you want to finalise this invoice and send it to {connectionType === 'xero' ? 'Xero' : 'QuickBooks'}?
                       </div>
                     </div>
                   )}

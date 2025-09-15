@@ -54,7 +54,7 @@ export function getRealmId(oauthClient: IntuitOAuthClient): string {
 }
 
 export async function getTenantId(oauthClient: XeroClient): Promise<string> {
-  return await authSystem.getXeroTenantId(oauthClient);
+  return (await authSystem.getXeroTenantId(oauthClient)).tenantId;
 }
 
 export async function handleCallback(url: string, connectionType: ConnectionType): Promise<QboToken | XeroToken> {

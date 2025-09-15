@@ -7,7 +7,7 @@ import {
   getEstimateById,
   listQuotes,
   updateStatus,
-  syncToQuickBooks,
+  syncToAccountingService,
   addProduct,
   adjustQty,
   scanProduct,
@@ -58,8 +58,8 @@ router.get('/:quoteId', quoteIdRule(), validate, asyncHandler(getEstimateById));
 router.get('/', listQuotesRules(), validate, asyncHandler(listQuotes));
 router.put('/status', updateStatusRules(), validate, asyncHandler(updateStatus));
 router.put('/picker-note', pickerNoteRules(), validate, asyncHandler(savePickerNoteController));
-// Sync with QuickBooks
-router.put('/:quoteId/quickbooks', quoteIdRule(), validate, asyncHandler(syncToQuickBooks));
+// Sync with accounting service (QuickBooks or Xero)
+router.put('/:quoteId/sync', quoteIdRule(), validate, asyncHandler(syncToAccountingService));
 
 // Quote item endpoints
 router.put('/products', addProductRules(), validate, asyncHandler(addProduct));

@@ -89,7 +89,7 @@ async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<C
 
 async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Customer, 'company_id'>[]> {
   try {
-    const tenantId = await authSystem.getXeroTenantId(oauthClient);
+    const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
 
     if (!tenantId) {
         throw new Error('Xero tenant ID not found.');

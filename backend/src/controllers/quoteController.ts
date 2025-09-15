@@ -7,7 +7,7 @@ import {
   estimateToDB,
   getQuotesWithStatus,
   setOrderStatus,
-  updateQuoteInQuickBooks,
+  updateQuoteInAccountingService,
   addProductToQuote,
   adjustProductQuantity,
   processBarcode,
@@ -84,7 +84,7 @@ export async function getEstimateById(req: Request, res: Response, next: NextFun
 export async function listQuotes(req: Request, res: Response, next: NextFunction) {
   try {
     const status = req.query.status as string;
-    if (status && !['pending', 'in_progress', 'completed', 'finalised', 'all'].includes(status)) {
+    if (status && !['pending', 'checking', 'finalised', 'cancelled', 'assigned', 'all'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status value' });
     }
     const quotes = await getQuotesWithStatus(status as OrderStatus | 'all');
@@ -105,8 +105,8 @@ export async function updateStatus(req: Request, res: Response, next: NextFuncti
   }
 }
 
-// PUT /quotes/:quoteId/quickbooks
-export async function syncToQuickBooks(req: Request, res: Response, next: NextFunction) {
+// PUT /quotes/:quoteId/sync
+export async function syncToAccountingService(req: Request, res: Response, next: NextFunction) {
   try {
     const { quoteId } = req.params;
     const companyId = req.session.companyId;
@@ -124,8 +124,8 @@ export async function syncToQuickBooks(req: Request, res: Response, next: NextFu
     if (!rawData || typeof rawData !== 'object') {
       return res.status(500).json({ error: 'Failed to fetch quote data' });
     }
-    const result = await updateQuoteInQuickBooks(quoteId, localQuote, rawData as Record<string, unknown>, companyId);
-    res.json({ message: result.message });
+    const result = await updateQuoteInAccountingService(quoteId, localQuote, rawData as Record<string, unknown>, companyId, connectionType);
+    res.json({ message: result.message, redirectUrl: result.redirectUrl });
   } catch (err) {
     next(err);
   }

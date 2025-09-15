@@ -23,7 +23,7 @@ const Quote: React.FC = () => {
   const query = useQuery();
   const quoteId = query.get('id') || '';
   const { modalState, closeModal, openModal } = useModalState();
-  const { isAdmin } = useAuth();
+  const { isAdmin, connectionType } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const { quoteData, actions, pendingStates } = useQuoteManager(quoteId, openModal);
@@ -253,7 +253,7 @@ const Quote: React.FC = () => {
 
         {/* Picker's Note */}
         <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Picker's Note</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Picker&apos;s Note</h3>
           <textarea 
             placeholder="Add any notes about preparing this order..."
             rows={4}
@@ -281,7 +281,7 @@ const Quote: React.FC = () => {
             className="flex items-center gap-2 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg font-medium cursor-pointer"
           >
             <Receipt size={20} />
-            {pendingStates.isFinalising ? 'Processing...' : (quoteData.orderStatus === 'checking' ? "Send To Quickbooks" : "Send To Admin")}
+            {pendingStates.isFinalising ? 'Processing...' : (quoteData.orderStatus === 'checking' ? `Send To ${connectionType === 'xero' ? 'Xero' : 'QuickBooks'}` : "Send To Admin")}
           </button>
         </div>
       </div>

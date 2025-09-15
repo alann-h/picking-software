@@ -9,6 +9,7 @@ import { IntuitOAuthClient } from '../types/authSystem.js';
 import { XeroClient, Quote as XeroQuote } from 'xero-node';
 import { Product, PickingStatus } from '../types/product.js';
 import { prisma } from '../lib/prisma.js';
+import { Decimal } from '@prisma/client/runtime/library';
 import {
     CustomerQuote,
     FilteredQuote,
@@ -78,7 +79,7 @@ async function getQboCustomerQuotes(oauthClient: IntuitOAuthClient, customerId: 
 
 async function getXeroCustomerQuotes(oauthClient: XeroClient, customerId: string): Promise<CustomerQuote[]> {
   try {
-    const tenantId = await authSystem.getXeroTenantId(oauthClient);
+    const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
 
     const response = await oauthClient.accountingApi.getQuotes(
       tenantId,
@@ -140,7 +141,7 @@ export async function getEstimate(quoteId: string, companyId: string, rawDataNee
 
 async function getXeroEstimate(oauthClient: XeroClient, quoteId: string): Promise<XeroQuote> {
   try {
-    const tenantId = await authSystem.getXeroTenantId(oauthClient);
+    const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
 
     const response = await oauthClient.accountingApi.getQuote(tenantId, quoteId);
     const estimate = response.body.quotes?.[0];
@@ -609,19 +610,45 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
     });
 
     if (addNewProduct && totalAmount) {
-      const totalAmountData = totalAmount as Record<string, unknown>;
+      const totalAmountData = totalAmount as { totalAmount: Decimal; updatedAt: Date };
+      const newProduct = addNewProduct as any;
       return {
         status: 'new',
-        productInfo: addNewProduct,
-        totalAmount: (totalAmountData.totalAmount as { toNumber(): number }).toNumber().toString(),
-        lastModified: totalAmountData.updatedAt as Date,
+        productInfo: {
+          quote_id: newProduct.quoteId,
+          product_id: Number(newProduct.productId),
+          product_name: newProduct.productName,
+          original_quantity: newProduct.originalQuantity.toString(),
+          picking_quantity: newProduct.pickingQuantity.toString(),
+          picking_status: newProduct.pickingStatus,
+          sku: newProduct.sku,
+          price: newProduct.price.toString(),
+          company_id: newProduct.companyId || '',
+          barcode: newProduct.barcode || null,
+          tax_code_ref: newProduct.taxCodeRef || null,
+        },
+        totalAmount: totalAmountData.totalAmount.toString(),
+        lastModified: totalAmountData.updatedAt,
       };
     } else if (addExistingProduct && totalAmount) {
-      const totalAmountData = totalAmount as Record<string, unknown>;
+      const totalAmountData = totalAmount as { totalAmount: Decimal };
+      const existingProduct = addExistingProduct as any;
       return {
         status: 'exists',
-        productInfo: addExistingProduct,
-        totalAmount: (totalAmountData.totalAmount as { toNumber(): number }).toNumber().toString(),
+        productInfo: {
+          quote_id: existingProduct.quoteId,
+          product_id: Number(existingProduct.productId),
+          product_name: existingProduct.productName,
+          original_quantity: existingProduct.originalQuantity.toString(),
+          picking_quantity: existingProduct.pickingQuantity.toString(),
+          picking_status: existingProduct.pickingStatus,
+          sku: existingProduct.sku,
+          price: existingProduct.price.toString(),
+          company_id: existingProduct.companyId || '',
+          barcode: existingProduct.barcode || null,
+          tax_code_ref: existingProduct.taxCodeRef || null,
+        },
+        totalAmount: totalAmountData.totalAmount.toString(),
       };
     } else {
       throw new AccessError('Failed to add product to quote');
@@ -885,7 +912,25 @@ export async function deleteQuotesBulk(quoteIds: string[]): Promise<BulkDeleteRe
   }
 }
 
-export async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQuote, rawQuoteData: Record<string, unknown>, companyId: string): Promise<{ message: string }> {
+export async function updateQuoteInAccountingService(quoteId: string, quoteLocalDb: FilteredQuote, rawQuoteData: Record<string, unknown>, companyId: string, connectionType: ConnectionType): Promise<{ message: string; redirectUrl?: string }> {
+  try {
+    if (connectionType === 'qbo') {
+      return await updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, companyId);
+    } else if (connectionType === 'xero') {
+      return await updateQuoteInXero(quoteId, quoteLocalDb, rawQuoteData, companyId);
+    } else {
+      throw new AccessError(`Unsupported connection type: ${connectionType}`);
+    }
+  } catch (error: unknown) {
+    console.error(`Error updating quote in ${connectionType}:`, error);
+    if (error instanceof Error) {
+      throw new AccessError(`Failed to update quote in ${connectionType === 'qbo' ? 'QuickBooks' : 'Xero'}: ${error.message}`);
+    }
+    throw new AccessError(`An unknown error occurred while updating the quote in ${connectionType === 'qbo' ? 'QuickBooks' : 'Xero'}.`);
+  }
+}
+
+async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQuote, rawQuoteData: Record<string, unknown>, companyId: string): Promise<{ message: string; redirectUrl?: string }> {
   try {
     const oauthClient = await getOAuthClient(companyId, 'qbo') as IntuitOAuthClient;
     
@@ -956,13 +1001,101 @@ export async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: Fil
     });
 
     await setOrderStatus(quoteId, 'finalised');
-    return { message: 'Quote updated successfully in QuickBooks'};
+    
+    // Construct the QuickBooks URL using the estimate ID
+    const quickbooksUrl = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`;
+    
+    return { 
+      message: 'Quote updated successfully in QuickBooks',
+      redirectUrl: quickbooksUrl
+    };
   } catch (error: unknown) {
     console.error('Error updating quote in QuickBooks:', error);
     if (error instanceof Error) {
       throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
     }
     throw new AccessError('An unknown error occurred while updating the quote in QuickBooks.');
+  }
+}
+
+async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, rawQuoteData: Record<string, unknown>, companyId: string): Promise<{ message: string; redirectUrl?: string }> {
+  try {
+    const oauthClient = await getOAuthClient(companyId, 'xero') as XeroClient;
+    const { tenantId, shortCode } = await authSystem.getXeroTenantId(oauthClient);
+    
+    // Get the existing Xero quote
+    const xeroQuote = rawQuoteData as XeroQuote;
+    if (!xeroQuote || !xeroQuote.quoteID) {
+      throw new AccessError('Invalid Xero quote data or missing quoteID');
+    }
+    
+    // Prepare line items for Xero
+    const lineItems: Array<{
+      description: string;
+      quantity: number;
+      unitAmount: number;
+      accountCode: string;
+      itemCode: string;
+      taxType: string;
+    }> = [];
+    
+    for (const localItem of Object.values(quoteLocalDb.productInfo)) {
+      if (localItem.pickingStatus === 'unavailable') {
+        continue;
+      }
+      
+      if (localItem.pickingStatus === 'pending') {
+        throw new AccessError('Quote must not have any products pending!');
+      }
+      
+      const lineItem = {
+        description: localItem.productName,
+        quantity: Number(localItem.originalQty),
+        unitAmount: Number(localItem.price),
+        accountCode: "200", // Default sales account - you may want to make this configurable
+        itemCode: localItem.sku,
+        taxType: localItem.tax_code_ref || "NONE"
+      };
+      
+      lineItems.push(lineItem);
+    }
+    
+    if (lineItems.length === 0) {
+      throw new AccessError('No products found to update in Xero');
+    }
+
+    // Update the quote using the correct Xero API method
+    const updatedQuote = {
+      quoteID: xeroQuote.quoteID,
+      contact: {
+        contactID: xeroQuote.contact?.contactID
+      },
+      lineItems: lineItems,
+      date: xeroQuote.date
+    };
+
+    await oauthClient.accountingApi.updateQuote(tenantId, xeroQuote.quoteID!, {
+      quotes: [updatedQuote]
+    });
+
+    await setOrderStatus(quoteId, 'finalised');
+    
+    // Construct the Xero URL if we have the shortCode and quote ID
+    let xeroUrl: string | undefined;
+    if (shortCode && xeroQuote.quoteID) {
+      xeroUrl = `https://go.xero.com/app/${shortCode}/quotes/edit/${xeroQuote.quoteID}`;
+    }
+    
+    return { 
+      message: 'Quote updated successfully in Xero',
+      redirectUrl: xeroUrl
+    };
+  } catch (error: unknown) {
+    console.error('Error updating quote in Xero:', error);
+    if (error instanceof Error) {
+      throw new AccessError('Failed to update quote in Xero: ' + error.message);
+    }
+    throw new AccessError('An unknown error occurred while updating the quote in Xero.');
   }
 }
 
@@ -1063,7 +1196,7 @@ async function getXeroEstimatesBulk(quoteIds: string[], companyId: string): Prom
     try {
         const oauthClient = await getOAuthClient(companyId, 'xero') as XeroClient;
 
-        const tenantId = await authSystem.getXeroTenantId(oauthClient);
+        const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
         
         const estimates: XeroQuote[] = [];
         

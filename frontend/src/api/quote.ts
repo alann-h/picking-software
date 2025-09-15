@@ -33,8 +33,8 @@ export const updateQuoteStatus = async (quoteId: string, newStatus: string) => {
   return response;
 };
 
-export const updateQuoteInQuickBooks = async (quoteId: string) => {
-  const response = await apiCallPut(`${QUOTES_BASE}/${quoteId}/quickbooks`, {});
+export const updateQuoteInAccountingService = async (quoteId: string) => {
+  const response = await apiCallPut(`${QUOTES_BASE}/${quoteId}/sync`, {});
   return response;
 };
 

@@ -8,8 +8,13 @@ export const SnackbarProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<SnackbarSeverity>('info');
 
-  const handleOpenSnackbar = useCallback((message: string, severity: SnackbarSeverity) => {
-    setSnackbarMessage(message);
+  const handleOpenSnackbar = useCallback((message: string | object, severity: SnackbarSeverity) => {
+    // Convert object to string if needed
+    const messageString = typeof message === 'string' 
+      ? message 
+      : JSON.stringify(message, null, 2);
+    
+    setSnackbarMessage(messageString);
     setSnackbarSeverity(severity);
     setOpenSnackbar(true);
   }, []);

@@ -44,7 +44,7 @@ export interface SnackbarContextType {
     openSnackbar: boolean;
     snackbarMessage: string;
     snackbarSeverity: SnackbarSeverity;
-    handleOpenSnackbar: (_message: string, _severity: 'error' | 'success' | 'info' | 'warning') => void;
+    handleOpenSnackbar: (_message: string | object, _severity: 'error' | 'success' | 'info' | 'warning') => void;
     handleCloseSnackbar: () => void;
 }
 export interface Product {
@@ -116,6 +116,7 @@ export interface UserStatusResponse {
   companyId: string | null;
   name: string | null;
   email: string | null;
+  connectionType: 'qbo' | 'xero' | 'none';
 }
 
 export interface ApiErrorPayload {

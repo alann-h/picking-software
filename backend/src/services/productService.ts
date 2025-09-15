@@ -103,7 +103,7 @@ export async function enrichWithXeroData(products: EnrichableProduct[], companyI
 
     for (const product of products) {
       try {
-        const tenantId = await authSystem.getXeroTenantId(oauthClient as XeroClient);
+        const { tenantId } = await authSystem.getXeroTenantId(oauthClient as XeroClient);
         
         const response = await (oauthClient as XeroClient).accountingApi.getItems(
           tenantId,

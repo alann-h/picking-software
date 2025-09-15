@@ -23,7 +23,7 @@ const UsersManagement = () => {
     
     const navigate = useNavigate();
     const { handleOpenSnackbar } = useSnackbarContext();
-    const { getCompanyUserPermissions, updateUserPermissions } = useAdminFunctions();
+    const { getCompanyUserPermissions, updateUserPermissions, connectionType } = useAdminFunctions();
     const queryClient = useQueryClient();
 
     // Query for fetching users with permissions
@@ -184,18 +184,20 @@ const UsersManagement = () => {
         }
     };
 
-    // Mutation for disconnecting QuickBooks
+    // Mutation for disconnecting accounting service
     const disconnectQBMutation = useMutation({
         mutationFn: async () => {
             return await disconnectQB();
         },
         onSuccess: () => {
             navigate('/');
-            handleOpenSnackbar('All QuickBooks data removed successfully', 'success');
+            const serviceName = connectionType === 'xero' ? 'Xero' : 'QuickBooks';
+            handleOpenSnackbar(`All ${serviceName} data removed successfully`, 'success');
         },
         onError: (error) => {
-            console.error('Failed to disconnect QuickBooks:', error);
-            handleOpenSnackbar('Failed to disconnect from QuickBooks. Please try again.', 'error');
+            console.error(`Failed to disconnect ${connectionType === 'xero' ? 'Xero' : 'QuickBooks'}:`, error);
+            const serviceName = connectionType === 'xero' ? 'Xero' : 'QuickBooks';
+            handleOpenSnackbar(`Failed to disconnect from ${serviceName}. Please try again.`, 'error');
         },
     });
 
@@ -337,7 +339,7 @@ const UsersManagement = () => {
                     </ul>
                 </div>
 
-                {/* QuickBooks Disconnect */}
+                {/* Accounting Service Disconnect */}
                 <div className="border border-red-300 bg-red-50 rounded-lg p-6">
                     <div className="flex justify-between items-center">
                         <div>

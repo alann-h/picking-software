@@ -282,7 +282,7 @@ const QuoteCard: React.FC<{ quote: QuoteSummary; isSelected: boolean; onSelect: 
       >
         <div className="p-4">
           <div className="flex justify-between items-start mb-3">
-            <h2 className="text-xl font-bold text-blue-600">#{quote.id}</h2>
+            <h2 className="text-xl font-bold text-blue-600">#{quote.quoteNumber || quote.id}</h2>
             <StatusChip status={quote.orderStatus || 'Unknown'} />
           </div>
 
