@@ -325,7 +325,16 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       const errorDetail = response.json.Fault.Error?.[0] || {};
       const errorMessage = errorDetail.Message || 'Unknown QuickBooks error';
       const errorCode = errorDetail.code || 'Unknown';
-      throw new Error(`QuickBooks API Error (${errorCode}): ${errorMessage}`);
+      const detail = errorDetail.Detail || '';
+      
+      console.error('QuickBooks API Error Details:', {
+        code: errorCode,
+        message: errorMessage,
+        detail: detail,
+        fullResponse: response.json
+      });
+      
+      throw new Error(`QuickBooks API Error (${errorCode}): ${errorMessage}${detail ? ` - ${detail}` : ''}`);
     }
     
     const webUrl = baseURL.includes('sandbox') 
