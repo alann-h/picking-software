@@ -365,24 +365,67 @@ export async function addProductDb(product: NewProductData[], companyId: string,
 
     const { price, quantity_on_hand, external_item_id, tax_code_ref } = enrichedProduct[0];
     
-    const result = await prisma.product.upsert({
+    // Check if product exists by SKU first
+    const existingBySku = await prisma.product.findUnique({
       where: {
         companyId_sku: {
           companyId: companyId,
           sku: sku,
         },
       },
-      update: {
-        productName: productName,
-        barcode: barcode === '' ? null : barcode,
-        externalItemId: external_item_id,
-        category: null, // category is not in the original data
-        taxCodeRef: tax_code_ref,
-        price: price || 0,
-        quantityOnHand: quantity_on_hand || 0,
-        isArchived: false,
-      },
-      create: {
+    });
+
+    if (existingBySku) {
+      // Update existing product by SKU
+      const result = await prisma.product.update({
+        where: { id: existingBySku.id },
+        data: {
+          productName: productName,
+          barcode: barcode === '' ? null : barcode,
+          externalItemId: external_item_id,
+          category: null,
+          taxCodeRef: tax_code_ref,
+          price: price || 0,
+          quantityOnHand: quantity_on_hand || 0,
+          isArchived: false,
+        },
+      });
+      return result.sku;
+    }
+
+    // Check if product exists by external_item_id
+    if (external_item_id) {
+      const existingByExternalId = await prisma.product.findUnique({
+        where: {
+          companyId_externalItemId: {
+            companyId: companyId,
+            externalItemId: external_item_id,
+          },
+        },
+      });
+
+      if (existingByExternalId) {
+        // Update existing product by external_item_id
+        const result = await prisma.product.update({
+          where: { id: existingByExternalId.id },
+          data: {
+            productName: productName,
+            sku: sku,
+            barcode: barcode === '' ? null : barcode,
+            category: null,
+            taxCodeRef: tax_code_ref,
+            price: price || 0,
+            quantityOnHand: quantity_on_hand || 0,
+            isArchived: false,
+          },
+        });
+        return result.sku;
+      }
+    }
+
+    // Create new product if neither exists
+    const result = await prisma.product.create({
+      data: {
         companyId: companyId,
         productName: productName,
         sku: sku,
