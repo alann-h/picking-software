@@ -1,8 +1,7 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { ensureQuotesExistInDB } from './quoteService.js';
 import { ConnectionType } from '../types/auth.js';
-import { Run, RunStatus, RunWithDetails, RunItemFromDB, QuoteInRun } from '../types/run.js';
-import { OrderStatus } from '../types/quote.js';
+import { Run, RunStatus, RunWithDetails, QuoteInRun } from '../types/run.js';
 import { prisma } from '../lib/prisma.js';
 
 async function getNextRunNumber(companyId: string): Promise<number> {

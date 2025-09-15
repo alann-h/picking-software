@@ -57,7 +57,7 @@ const Runs: React.FC = () => {
 
           {/* Create Run Section */}
           <div>
-            <div className="border border-gray-200 rounded-xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-200">
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
               <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 sm:p-6">
                 <h2 className="text-xl font-semibold">
                   Create New Run

@@ -17,7 +17,16 @@ export const runCreateRules = () => [
         .isArray({ min: 1 }).withMessage('orderedQuoteIds must be an array with at least one quote.'),
     
     body('orderedQuoteIds.*')
-        .isInt({ gt: 0 }).withMessage('Each Quote ID in the array must be a positive integer.'),
+        .custom((value) => {
+            // Allow both positive integers and valid UUIDs
+            const isPositiveInt = Number.isInteger(value) && value > 0;
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+            
+            if (!isPositiveInt && !isUUID) {
+                throw new Error('Each Quote ID must be either a positive integer or a valid UUID.');
+            }
+            return true;
+        }),
 
     ...companyIdBodyRule()
 ];
@@ -38,7 +47,16 @@ export const runUpdateRules = () => [
         .isArray().withMessage('orderedQuoteIds must be an array (it can be empty).'),
     
     body('orderedQuoteIds.*')
-        .isInt({ gt: 0 }).withMessage('Each Quote ID in the array must be a positive integer.')
+        .custom((value) => {
+            // Allow both positive integers and valid UUIDs
+            const isPositiveInt = Number.isInteger(value) && value > 0;
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+            
+            if (!isPositiveInt && !isUUID) {
+                throw new Error('Each Quote ID must be either a positive integer or a valid UUID.');
+            }
+            return true;
+        })
 ];
 
 export { validate };

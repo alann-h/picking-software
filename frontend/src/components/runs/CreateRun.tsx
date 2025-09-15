@@ -1,6 +1,6 @@
 import React, { useState, useMemo, Suspense, useTransition, Fragment } from 'react';
-import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check } from 'lucide-react';
-import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
+import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles } from 'lucide-react';
+import { DndContext, DragEndEvent, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { createPortal } from 'react-dom';
@@ -16,24 +16,37 @@ import { AvailableQuotesSkeleton } from '../Skeletons'
 import { useAuth } from '../../hooks/useAuth';
 
 // --- UI COMPONENTS ---
-const EmptyState = ({ text, className = "" }: { text: string, className?: string }) => (
-    <div className={`flex flex-col justify-center items-center h-full p-2 text-gray-500 text-center ${className}`}>
-        <Inbox className="w-12 h-12 mb-2 text-gray-400" />
-        <p className="text-sm">{text}</p>
+const EmptyState = ({ text, className = "", icon: Icon = Inbox }: { text: string, className?: string, icon?: React.ComponentType<React.SVGProps<SVGSVGElement>> }) => (
+    <div className={`flex flex-col justify-center items-center h-full p-6 text-center ${className}`}>
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4">
+            <Icon className="w-8 h-8 text-gray-400" />
+        </div>
+        <p className="text-sm text-gray-600 font-medium">{text}</p>
     </div>
 );
 
 const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = ({ quote, onStage }) => (
-    <div className="p-2 mb-1 flex justify-between items-center border border-gray-200 rounded-md transition-colors hover:border-blue-500 hover:shadow-sm bg-white">
-        <div className="flex flex-col">
-            <p className="text-sm font-bold">Quote #{quote.id}</p>
-            <div className="flex items-center space-x-3 text-gray-500 mt-1">
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800">${(quote.totalAmount || 0).toFixed(2)}</span>
-                <div className="flex items-center space-x-1"><Calendar className="w-3 h-3"/> <p className="text-xs">{quote.lastModified ? new Date(quote.lastModified).toLocaleDateString() : 'N/A'}</p></div>
+    <div className="group p-4 mb-3 flex justify-between items-center border border-gray-200 rounded-xl transition-all duration-200 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-50 bg-white">
+        <div className="flex flex-col flex-1">
+            <div className="flex items-center space-x-2 mb-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <p className="text-sm font-semibold text-gray-900">Quote #{quote.quoteNumber}</p>
+            </div>
+            <div className="flex items-center space-x-4 text-gray-600">
+                <div className="flex items-center space-x-1">
+                    <span className="text-sm font-bold text-green-600">${(quote.totalAmount || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                    <Calendar className="w-3 h-3 text-gray-400"/>
+                    <p className="text-xs">{quote.lastModified ? new Date(quote.lastModified).toLocaleDateString() : 'N/A'}</p>
+                </div>
             </div>
         </div>
-        <button onClick={onStage} className="p-1 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-100 cursor-pointer">
-            <ListPlus className="w-5 h-5" />
+        <button 
+            onClick={onStage} 
+            className="p-2 text-blue-600 hover:text-white rounded-lg hover:bg-blue-600 transition-all duration-200 cursor-pointer group-hover:scale-105"
+        >
+            <ListPlus className="w-4 h-4" />
         </button>
     </div>
 );
@@ -43,19 +56,27 @@ const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: string
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition: isDragging ? 'none' : transition,
-        boxShadow: isDragging ? '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' : '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-        opacity: isDragging ? 0.5 : 1,
+        boxShadow: isDragging ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04)' : '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px 0 rgb(0 0 0 / 0.06)',
+        opacity: isDragging ? 0.8 : 1,
     };
     return (
-        <div ref={setNodeRef} style={style} className="p-2 mb-1 select-none flex items-center bg-white border rounded-md">
-            <div {...attributes} {...listeners} className="cursor-grab pr-2 text-gray-400 touch-none"><GripVertical /></div>
-            <div className="flex-grow">
-                <p className="text-sm font-bold">Quote #{quote.id}</p>
-                <p className="text-xs text-gray-500">{quote.customerName}</p>
+        <div ref={setNodeRef} style={style} className="group p-3 mb-2 select-none flex items-center bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200">
+            <div {...attributes} {...listeners} className="cursor-grab pr-3 text-gray-400 hover:text-gray-600 touch-none transition-colors">
+                <GripVertical className="w-4 h-4" />
+            </div>
+            <div className="flex-grow min-w-0">
+                <div className="flex items-center space-x-2 mb-1">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                    <p className="text-sm font-semibold text-gray-900 truncate">Quote #{quote.quoteNumber}</p>
+                </div>
+                <p className="text-xs text-gray-600 truncate">{quote.customerName}</p>
             </div>
             {onRemove && (
-                <button className="p-1 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 cursor-pointer" onClick={() => onRemove(quote.id)}>
-                    <Trash2 className="w-4 h-4" />
+                <button 
+                    className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 cursor-pointer transition-all duration-200 opacity-0 group-hover:opacity-100" 
+                    onClick={() => onRemove(quote.id)}
+                >
+                    <Trash2 className="w-3.5 h-3.5" />
                 </button>
             )}
         </div>
@@ -66,19 +87,30 @@ const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: strin
     const { setNodeRef } = useDroppable({ id: run.id });
 
     return (
-        <div className="min-w-[280px] w-[280px] p-2 bg-gray-100 flex flex-col border border-gray-300 rounded-lg">
-            <div className="flex justify-between items-center mb-1">
-                <p className="text-md font-bold">New Run {index + 1}</p>
-                <button className="p-1 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 cursor-pointer" onClick={() => onRemove(run.id)}>
+        <div className="min-w-[300px] w-[300px] p-4 bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col border border-blue-200 rounded-xl shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <Package className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900">Run {index + 1}</p>
+                        <p className="text-xs text-gray-600">{run.quotes.length} quote{run.quotes.length !== 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+                <button 
+                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 cursor-pointer transition-all duration-200" 
+                    onClick={() => onRemove(run.id)}
+                >
                     <Trash2 className="w-4 h-4" />
                 </button>
             </div>
             <SortableContext id={run.id} items={run.quotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                <div ref={setNodeRef} className="flex-grow bg-gray-50 rounded p-1 overflow-y-auto">
+                <div ref={setNodeRef} className="flex-grow bg-white rounded-lg p-2 overflow-y-auto border border-blue-100 min-h-[200px]">
                     {run.quotes.length > 0 ? (
                         run.quotes.map(q => <DraggableQuoteCard key={q.id} quote={q} />)
                     ) : (
-                        <EmptyState className="p-1 h-full" text="Drag quotes here." />
+                        <EmptyState className="p-2 h-full" text="Drag quotes here" icon={ArrowRight} />
                     )}
                 </div>
             </SortableContext>
@@ -97,23 +129,24 @@ interface RunBuilder {
         queryKey: ['quotes', customer.customerId],
         queryFn: () => getCustomerQuotes(customer.customerId),
     });
-
     const availableQuotes = quotesData
         .filter(q => !stagedQuoteIds.has(q.id))
         .map(quote => ({ ...quote, customerId: customer.customerId }));
 
     return (
-        <div className="flex-grow p-1 overflow-y-auto bg-gray-50 rounded-md">
+        <div className="flex-grow p-3 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
             {availableQuotes.length > 0 ? (
-                availableQuotes.map(q => <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />)
+                <div className="space-y-2">
+                    {availableQuotes.map(q => <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />)}
+                </div>
             ) : (
-                <EmptyState text="No available quotes found for this customer." />
+                <EmptyState text="No available quotes found for this customer." icon={Users} />
             )}
         </div>
     );
 };
 // --- MAIN COMPONENT ---
-export const CreateRun: React.FC<{}> = () => {
+export const CreateRun: React.FC = () => {
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
     const { handleOpenSnackbar } = useSnackbarContext();
@@ -158,7 +191,7 @@ export const CreateRun: React.FC<{}> = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs'] });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             handleOpenSnackbar(error.message || 'Failed to create one or more runs.', 'error');
         }
     });
@@ -207,7 +240,7 @@ export const CreateRun: React.FC<{}> = () => {
         setRunsToCreate(prev => prev.filter(r => r.id !== runId));
     };
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-    const handleDragStart = (event: any) => {
+    const handleDragStart = (event: DragStartEvent) => {
       const { active } = event;
       const allQuotes = [...stagedQuotes, ...runsToCreate.flatMap(r => r.quotes)];
       const currentItem = allQuotes.find(q => q.id === active.id);
@@ -259,147 +292,200 @@ export const CreateRun: React.FC<{}> = () => {
     };
 
     return (
-        <div className="flex flex-col space-y-4">
-            <div className="border border-gray-200 rounded-lg p-4 md:p-6">
-                <h2 className="text-lg font-semibold mb-4">Step 1: Find & Stage Quotes</h2>
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                    <div className="md:col-span-5">
-                        <p className="text-md font-medium mb-2">Select a Customer</p>
-                        <Combobox value={selectedCustomer} onChange={handleCustomerChange}>
-                            <div className="relative">
-                                <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
-                                    <Search className="pointer-events-none absolute top-3 left-3 h-5 w-5 text-gray-400" aria-hidden="true" />
-                                    <ComboboxInput
-                                        className="w-full border-none py-2 pl-10 pr-4 text-sm leading-5 text-gray-900 focus:ring-0"
-                                        displayValue={(customer: Customer | null) => customer?.customerName || ''}
-                                        onChange={(event) => setCustomerQuery(event.target.value)}
-                                        placeholder="Search by customer name..."
-                                    />
-                                </div>
-                                <Transition
-                                    as={Fragment}
-                                    leave="transition ease-in duration-100"
-                                    leaveFrom="opacity-100"
-                                    leaveTo="opacity-0"
-                                    afterLeave={() => setCustomerQuery('')}
-                                >
-                                    <ComboboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10">
-                                    {filteredCustomers.length === 0 && customerQuery !== '' ? (
-                                        <div className="relative cursor-default select-none px-4 py-2 text-gray-700">
-                                        Nothing found.
-                                        </div>
-                                    ) : (
-                                        filteredCustomers.map((customer) => (
-                                        <ComboboxOption
-                                            key={customer.customerId}
-                                            className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-gray-100"
-                                            value={customer}
-                                        >
-                                            {({ selected }) => (
-                                            <>
-                                                <span
-                                                className={`block truncate ${
-                                                    selected ? 'font-medium' : 'font-normal'
-                                                }`}
-                                                >
-                                                {customer.customerName}
-                                                </span>
-                                                 {selected ? (
-                                                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600 group-data-[active]:text-blue-600">
-                                                    <Check className="h-5 w-5" aria-hidden="true" />
-                                                  </span>
-                                                ) : null}
-                                            </>
-                                            )}
-                                        </ComboboxOption>
-                                        ))
-                                    )}
-                                    </ComboboxOptions>
-                                </Transition>
-                            </div>
-                        </Combobox>
-                    </div>
-                    <div className="md:col-span-7">
-                        <p className="text-md font-medium mb-2">Available Quotes</p>
-                        <div className="h-[250px] flex flex-col">
-                            {isPending ? (
-                                <AvailableQuotesSkeleton />
-                            ) : (
-                                <Suspense fallback={<AvailableQuotesSkeleton />}>
-                                    {selectedCustomer ? (
-                                        <AvailableQuotes
-                                            key={selectedCustomer.customerId}
-                                            customer={selectedCustomer}
-                                            stagedQuoteIds={stagedQuoteIds}
-                                            onStageQuote={handleStageQuote}
-                                        />
-                                    ) : (
-                                        <EmptyState text="Select a customer to see their quotes." />
-                                    )}
-                                </Suspense>
-                            )}
+        <div className="min-h-screen p-6">
+            <div className="max-w-7xl mx-auto space-y-8">
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <div className="flex items-center justify-center space-x-3 mb-4">
+                        <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                            <Sparkles className="w-6 h-6 text-white" />
                         </div>
+                        <h1 className="text-3xl font-bold text-gray-900">Create Picking Runs</h1>
                     </div>
+                    <p className="text-gray-600 max-w-2xl mx-auto">Organize quotes into efficient picking runs for your warehouse operations</p>
                 </div>
-            </div>
 
-            <div className="border border-gray-200 rounded-lg p-4 md:p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold">Step 2: Build Picking Runs</h2>
-                    <button
-                        onClick={handleFinalizeRuns}
-                        disabled={createRunMutation.isPending}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                        {createRunMutation.isPending ? (
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        ) : (
-                            <PlusCircle className="-ml-1 mr-2 h-5 w-5" />
-                        )}
-                        Create Runs
-                    </button>
-                </div>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                        <div className="md:col-span-4">
-                            <h3 className="text-md font-semibold text-gray-600 mb-2">Staging Pool ({stagedQuotes.length})</h3>
-                            <div className="h-[450px] p-2 bg-gray-100 rounded-lg overflow-y-auto">
-                                <SortableContext id="staged-quotes" items={stagedQuotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                                    {stagedQuotes.length > 0 ? stagedQuotes.map(q => <DraggableQuoteCard key={q.id} quote={q} onRemove={handleUnstageQuote} />) : <EmptyState text="Add quotes from the list above to stage them for a run." />}
-                                </SortableContext>
-                            </div>
+                {/* Step 1 */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+                    <div className="flex items-center space-x-3 mb-6">
+                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">1</span>
                         </div>
-                        <div className="md:col-span-8">
-                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-md font-semibold text-gray-600">Run Columns</h3>
-                                <button onClick={handleAddNewRun} className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
-                                    <PlusCircle className="w-4 h-4 mr-1" />
-                                    Add New Run
-                                </button>
+                        <h2 className="text-xl font-semibold text-gray-900">Find & Stage Quotes</h2>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                        <div className="lg:col-span-5">
+                            <div className="flex items-center space-x-2 mb-4">
+                                <Users className="w-5 h-5 text-blue-500" />
+                                <p className="text-lg font-medium text-gray-900">Select a Customer</p>
                             </div>
-                            <div className="border border-gray-200 rounded-lg flex overflow-x-auto p-2 min-h-[442px] bg-gray-100">
-                                {runsToCreate.length > 0 ? (
-                                    <div className="flex space-x-3 min-h-[410px]">
-                                        {runsToCreate.map((run, index) => (
-                                            <RunColumn key={run.id} run={run} index={index} onRemove={handleRemoveRun} />
-                                        ))}
+                            <Combobox value={selectedCustomer} onChange={handleCustomerChange}>
+                                <div className="relative">
+                                    <div className="relative w-full cursor-default overflow-hidden rounded-xl bg-white text-left shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+                                        <Search className="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-gray-400" aria-hidden="true" />
+                                        <ComboboxInput
+                                            className="w-full border-none py-3 pl-12 pr-4 text-sm leading-5 text-gray-900 focus:ring-0 placeholder-gray-500"
+                                            displayValue={(customer: Customer | null) => customer?.customerName || ''}
+                                            onChange={(event) => setCustomerQuery(event.target.value)}
+                                            placeholder="Search by customer name..."
+                                        />
                                     </div>
+                                    <Transition
+                                        as={Fragment}
+                                        leave="transition ease-in duration-100"
+                                        leaveFrom="opacity-100"
+                                        leaveTo="opacity-0"
+                                        afterLeave={() => setCustomerQuery('')}
+                                    >
+                                        <ComboboxOptions className="absolute mt-2 max-h-60 w-full overflow-auto rounded-xl bg-white py-2 text-base shadow-xl ring-1 ring-black/5 focus:outline-none sm:text-sm z-20 border border-gray-200">
+                                        {filteredCustomers.length === 0 && customerQuery !== '' ? (
+                                            <div className="relative cursor-default select-none px-4 py-3 text-gray-500 text-center">
+                                            No customers found.
+                                            </div>
+                                        ) : (
+                                            filteredCustomers.map((customer) => (
+                                            <ComboboxOption
+                                                key={customer.customerId}
+                                                className="group relative cursor-pointer select-none py-3 pl-12 pr-4 text-gray-900 data-[active]:bg-blue-50 hover:bg-blue-50 transition-colors"
+                                                value={customer}
+                                            >
+                                                {({ selected }) => (
+                                                <>
+                                                    <span
+                                                    className={`block truncate ${
+                                                        selected ? 'font-semibold text-blue-900' : 'font-normal'
+                                                    }`}
+                                                    >
+                                                    {customer.customerName}
+                                                    </span>
+                                                     {selected ? (
+                                                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-blue-600">
+                                                        <Check className="h-5 w-5" aria-hidden="true" />
+                                                      </span>
+                                                    ) : null}
+                                                </>
+                                                )}
+                                            </ComboboxOption>
+                                            ))
+                                        )}
+                                        </ComboboxOptions>
+                                    </Transition>
+                                </div>
+                            </Combobox>
+                        </div>
+                        <div className="lg:col-span-7">
+                            <div className="flex items-center space-x-2 mb-4">
+                                <Package className="w-5 h-5 text-blue-500" />
+                                <p className="text-lg font-medium text-gray-900">Available Quotes</p>
+                            </div>
+                            <div className="h-[300px] flex flex-col">
+                                {isPending ? (
+                                    <AvailableQuotesSkeleton />
                                 ) : (
-                                    <EmptyState text="Click 'Add New Run' to create your first run column." className="w-full"/>
+                                    <Suspense fallback={<AvailableQuotesSkeleton />}>
+                                        {selectedCustomer ? (
+                                            <AvailableQuotes
+                                                key={selectedCustomer.customerId}
+                                                customer={selectedCustomer}
+                                                stagedQuoteIds={stagedQuoteIds}
+                                                onStageQuote={handleStageQuote}
+                                            />
+                                        ) : (
+                                            <EmptyState text="Select a customer to see their quotes." icon={Users} />
+                                        )}
+                                    </Suspense>
                                 )}
                             </div>
                         </div>
                     </div>
-                    {createPortal(
-                        <DragOverlay>
-                            {activeDraggedItem ? <DraggableQuoteCard quote={activeDraggedItem} /> : null}
-                        </DragOverlay>,
-                        document.body
-                    )}
-                </DndContext>
+                </div>
+
+                {/* Step 2 */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                                <span className="text-white font-bold text-sm">2</span>
+                            </div>
+                            <h2 className="text-xl font-semibold text-gray-900">Build Picking Runs</h2>
+                        </div>
+                        <button
+                            onClick={handleFinalizeRuns}
+                            disabled={createRunMutation.isPending}
+                            className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl shadow-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:from-blue-300 disabled:to-blue-400 cursor-pointer disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                            {createRunMutation.isPending ? (
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : (
+                                <Sparkles className="-ml-1 mr-2 h-5 w-5" />
+                            )}
+                            Create Runs
+                        </button>
+                    </div>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            <div className="lg:col-span-4">
+                                <div className="flex items-center space-x-2 mb-4">
+                                    <div className="w-6 h-6 bg-orange-500 rounded-lg flex items-center justify-center">
+                                        <span className="text-white font-bold text-xs">S</span>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900">Staging Pool</h3>
+                                    <div className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold">
+                                        {stagedQuotes.length}
+                                    </div>
+                                </div>
+                                <div className="h-[500px] p-3 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl border border-orange-200 overflow-y-auto">
+                                    <SortableContext id="staged-quotes" items={stagedQuotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                                        {stagedQuotes.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {stagedQuotes.map(q => <DraggableQuoteCard key={q.id} quote={q} onRemove={handleUnstageQuote} />)}
+                                            </div>
+                                        ) : (
+                                            <EmptyState text="Add quotes from the list above to stage them for a run." icon={Package} />
+                                        )}
+                                    </SortableContext>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-8">
+                                 <div className="flex justify-between items-center mb-4">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
+                                            <span className="text-white font-bold text-xs">R</span>
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-900">Run Columns</h3>
+                                    </div>
+                                    <button 
+                                        onClick={handleAddNewRun} 
+                                        className="inline-flex items-center px-4 py-2 text-sm font-semibold text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 rounded-lg cursor-pointer transition-all duration-200 hover:scale-105"
+                                    >
+                                        <PlusCircle className="w-4 h-4 mr-2" />
+                                        Add New Run
+                                    </button>
+                                </div>
+                                <div className="border border-gray-200 rounded-xl flex overflow-x-auto p-4 min-h-[500px] bg-gradient-to-br from-gray-50 to-gray-100">
+                                    {runsToCreate.length > 0 ? (
+                                        <div className="flex space-x-4 min-h-[460px]">
+                                            {runsToCreate.map((run, index) => (
+                                                <RunColumn key={run.id} run={run} index={index} onRemove={handleRemoveRun} />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <EmptyState text="Click 'Add New Run' to create your first run column." className="w-full" icon={ArrowRight}/>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        {createPortal(
+                            <DragOverlay>
+                                {activeDraggedItem ? <DraggableQuoteCard quote={activeDraggedItem} /> : null}
+                            </DragOverlay>,
+                            document.body
+                        )}
+                    </DndContext>
+                </div>
             </div>
         </div>
     );
