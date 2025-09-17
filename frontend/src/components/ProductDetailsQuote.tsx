@@ -139,7 +139,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                         <InventoryIcon className="h-6 w-6 text-gray-600 mt-1" />
                         <div>
                           <p className="text-sm font-medium text-gray-500 uppercase">On Hand</p>
-                          <p className="font-semibold text-lg text-gray-900">{localProductDetails.qtyOnHand}</p>
+                          <p className="font-semibold text-lg text-gray-900">{localProductDetails.quantityOnHand}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-4">

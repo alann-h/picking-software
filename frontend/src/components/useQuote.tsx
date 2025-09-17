@@ -203,7 +203,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
                 name: data.productname,
                 details: { 
                     ...details,
-                    qtyOnHand: parseFloat(data.quantity_on_hand) || 0,
+                    quantityOnHand: parseFloat(data.quantityOnHand) || 0,
                 }
             });
         } catch (error: unknown) {

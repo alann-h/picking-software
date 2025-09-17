@@ -396,7 +396,11 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
     const quote = await prisma.quote.findUnique({
       where: { id: quoteId },
       include: {
-        quoteItems: true,
+        quoteItems: {
+          include: {
+            product: true,
+          },
+        },
         customer: {
           select: { customerName: true },
         },
@@ -408,7 +412,6 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
     }
 
     const formattedTime = formatTimestampForSydney(quote.updatedAt);
-
     const filteredQuote: FilteredQuote = {
       quoteId: quote.id,
       quoteNumber: quote.quoteNumber || '',
@@ -432,9 +435,9 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
         sku: item.sku,
         price: item.price.toNumber(),
         companyId: quote.companyId,
-        barcode: '', // Will be populated from product relation if needed
+        barcode: item.product.barcode || '',
         tax_code_ref: item.taxCodeRef,
-        quantityOnHand: 0,
+        quantityOnHand: item.product.quantityOnHand.toNumber(),
       };
     });
 

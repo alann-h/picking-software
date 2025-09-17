@@ -315,7 +315,7 @@ const Dashboard: React.FC = () => {
                                                             filteredCustomers.map((customer) => (
                                                                 <ComboboxOption
                                                                     key={customer.customerId}
-                                                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-gray-100"
+                                                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-blue-50 hover:bg-blue-50 transition-colors"
                                                                     value={customer}
                                                                 >
                                                                     {({ selected }) => (

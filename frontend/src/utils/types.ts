@@ -6,7 +6,7 @@ export interface ProductDetail {
     productName: string;
     productId: number;
     barcode: string;
-    qtyOnHand: number;
+    quantityOnHand: number;
     price: number;
 }
   
