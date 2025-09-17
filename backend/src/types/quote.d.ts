@@ -36,6 +36,7 @@ export interface FilteredQuote {
     lastModified: string;
     companyId: string;
     orderNote: string | null;
+    externalSyncUrl: string | null;
 }
 
 export interface QuoteFetchError {

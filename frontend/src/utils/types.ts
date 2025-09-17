@@ -27,6 +27,7 @@ export interface QuoteData {
   companyId: string;
   pickerNote?: string;
   orderNote?: string;
+  externalSyncUrl?: string;
 }
 
 export interface BarcodeListenerProps {
@@ -89,6 +90,7 @@ export interface QuoteSummary {
     timeStarted: string;
     timeTaken: string;
     pickerNote?: string;
+    externalSyncUrl?: string;
 }
 
 export interface Run {

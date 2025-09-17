@@ -266,7 +266,8 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
       orderStatus: 'pending',
       lastModified: formatTimestampForSydney(metaData.LastUpdatedTime as string),
       companyId,
-      orderNote: customerMemo?.value as string || null
+      orderNote: customerMemo?.value as string || null,
+      externalSyncUrl: null
     };
 }
 
@@ -321,7 +322,8 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
     orderStatus: 'pending',
     lastModified: formatTimestampForSydney(quote.updatedDateUTC!),
     companyId,
-    orderNote: quote.reference || null
+    orderNote: quote.reference || null,
+    externalSyncUrl: null
   };
 }
 
@@ -423,6 +425,7 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
       productInfo: {},
       companyId: quote.companyId,
       orderNote: quote.orderNote,
+      externalSyncUrl: quote.externalSyncUrl,
     };
 
     quote.quoteItems.forEach(item => {
@@ -774,7 +777,7 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<
         
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
           const diffMs = end.getTime() - start.getTime();
-          
+
           if (diffMs >= 0) {
             const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
             const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -806,6 +809,7 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<
         companyId: quote.companyId,
         preparerNames: quote.preparerNames,
         pickerNote: quote.pickerNote,
+        externalSyncUrl: quote.externalSyncUrl,
       };
     });
   } catch (error: unknown) {
@@ -1008,6 +1012,12 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     // Construct the QuickBooks URL using the estimate ID
     const quickbooksUrl = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`;
     
+    // Save the URL to the database
+    await prisma.quote.update({
+      where: { id: quoteId },
+      data: { externalSyncUrl: quickbooksUrl }
+    });
+    
     return { 
       message: 'Quote updated successfully in QuickBooks',
       redirectUrl: quickbooksUrl
@@ -1087,6 +1097,12 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
     let xeroUrl: string | undefined;
     if (shortCode && xeroQuote.quoteID) {
       xeroUrl = `https://go.xero.com/app/${shortCode}/quotes/edit/${xeroQuote.quoteID}`;
+      
+      // Save the URL to the database
+      await prisma.quote.update({
+        where: { id: quoteId },
+        data: { externalSyncUrl: xeroUrl }
+      });
     }
     
     return { 

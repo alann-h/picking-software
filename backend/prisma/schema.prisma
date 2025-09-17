@@ -157,21 +157,22 @@ model Customer {
 }
 
 model Quote {
-  id            String       @id
-  companyId     String       @map("company_id") @db.Uuid
-  customerId    String       @map("customer_id")
-  status        order_status @default(pending)
-  totalAmount   Decimal      @map("total_amount") @db.Decimal(12, 2)
-  preparerNames String?      @map("preparer_names")
-  orderNote     String?      @map("order_note")
-  pickerNote    String?      @map("picker_note")
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  quoteNumber   String?      @map("quote_number") @db.VarChar(50)
-  quoteItems    QuoteItem[]
-  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  customer      Customer     @relation(fields: [customerId], references: [id], onUpdate: NoAction)
-  runItems      RunItem[]
+  id              String       @id
+  companyId       String       @map("company_id") @db.Uuid
+  customerId      String       @map("customer_id")
+  status          order_status @default(pending)
+  totalAmount     Decimal      @map("total_amount") @db.Decimal(12, 2)
+  preparerNames   String?      @map("preparer_names")
+  orderNote       String?      @map("order_note")
+  pickerNote      String?      @map("picker_note")
+  externalSyncUrl String?      @map("external_sync_url")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  quoteNumber     String?      @map("quote_number") @db.VarChar(50)
+  quoteItems      QuoteItem[]
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  customer        Customer     @relation(fields: [customerId], references: [id], onUpdate: NoAction)
+  runItems        RunItem[]
 
   @@index([companyId, customerId, createdAt(sort: Desc)], map: "quotes_company_customer_date_idx")
   @@index([companyId])

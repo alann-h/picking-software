@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Camera, Receipt, Barcode } from 'lucide-react';
+import { Plus, Camera, Receipt, Barcode, ExternalLink } from 'lucide-react';
 
 import BarcodeListener from './BarcodeListener';
 import CameraScannerModal from './CameraScannerModal';
@@ -179,6 +179,27 @@ const Quote: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* External Sync URL - Only show for finalized orders */}
+      {quoteData.orderStatus === 'finalised' && quoteData.externalSyncUrl && (
+        <div className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
+          <div className="flex items-center justify-center gap-3">
+            <ExternalLink className="w-5 h-5 text-green-600" />
+            <span className="text-sm font-medium text-green-800">
+              Order has been synced to {quoteData.externalSyncUrl.includes('xero.com') ? 'Xero' : 'QuickBooks'}
+            </span>
+            <a
+              href={quoteData.externalSyncUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium cursor-pointer"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View in {quoteData.externalSyncUrl.includes('xero.com') ? 'Xero' : 'QuickBooks'}
+            </a>
+          </div>
+        </div>
+      )}
       
       {/* Actions and Filters */}
       <div className="mb-4">

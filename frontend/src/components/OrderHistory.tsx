@@ -12,7 +12,8 @@ import {
   ListFilter,
   FileText,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  ExternalLink
 } from 'lucide-react';
 import { Listbox, Transition, Disclosure, DisclosureButton, DisclosurePanel, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/react'
 
@@ -53,6 +54,7 @@ const useOrderHistory = () => {
     enabled: !!userStatus?.isAdmin,
     staleTime: 5 * 60 * 1000,
   });
+
   const deleteQuoteMutation = useMutation({
     mutationFn: (quoteIds: string[]) => deleteQuotesBulk(quoteIds),
     onSuccess: () => {
@@ -315,6 +317,21 @@ const QuoteCard: React.FC<{ quote: QuoteSummary; isSelected: boolean; onSelect: 
                 <p className="font-medium">{quote.lastModified}</p>
               </div>
             </div>
+
+            {quote.externalSyncUrl && (
+              <div className="flex items-center gap-2 text-sm">
+                <ExternalLink className="w-5 h-5 text-blue-500" />
+                <a
+                  href={quote.externalSyncUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  View in {quote.externalSyncUrl.includes('xero.com') ? 'Xero' : 'QuickBooks'}
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>
