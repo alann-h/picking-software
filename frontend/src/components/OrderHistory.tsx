@@ -145,7 +145,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, 
                       </ListboxButton>
                       <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
                         <ListboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10">
-                          <ListboxOption value="" className={({ active }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
+                          <ListboxOption value="" className={({ focus }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ focus ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
                             {({ selected }) => (
                               <>
                                 <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>All Statuses</span>
@@ -154,7 +154,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, 
                             )}
                           </ListboxOption>
                           {orderStatuses.map((status) => (
-                            <ListboxOption key={status} value={status} className={({ active }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
+                            <ListboxOption key={status} value={status} className={({ focus }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ focus ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
                               {({ selected }) => (
                                 <>
                                   <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{status}</span>
