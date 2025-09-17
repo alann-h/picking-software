@@ -14,7 +14,7 @@ import {
   Check,
   ChevronsUpDown
 } from 'lucide-react';
-import { Listbox, Transition, Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react'
+import { Listbox, Transition, Disclosure, DisclosureButton, DisclosurePanel, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/react'
 
 
 // Context and API Imports
@@ -53,7 +53,6 @@ const useOrderHistory = () => {
     enabled: !!userStatus?.isAdmin,
     staleTime: 5 * 60 * 1000,
   });
-
   const deleteQuoteMutation = useMutation({
     mutationFn: (quoteIds: string[]) => deleteQuotesBulk(quoteIds),
     onSuccess: () => {
@@ -138,33 +137,33 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, 
                 <div>
                   <Listbox value={filters.orderStatus} onChange={(value) => onFilterChange('orderStatus', value)}>
                     <div className="relative">
-                      <Listbox.Button className="relative w-full cursor-pointer rounded-md bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm">
+                      <ListboxButton className="relative w-full cursor-pointer rounded-md bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm">
                         <span className="block truncate">{filters.orderStatus || 'All Statuses'}</span>
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                           <ChevronsUpDown className="h-5 w-5 text-gray-400" aria-hidden="true" />
                         </span>
-                      </Listbox.Button>
+                      </ListboxButton>
                       <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10">
-                          <Listbox.Option value="" className={({ active }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
+                        <ListboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10">
+                          <ListboxOption value="" className={({ active }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
                             {({ selected }) => (
                               <>
                                 <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>All Statuses</span>
                                 {selected ? <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600"><Check className="h-5 w-5" aria-hidden="true" /></span> : null}
                               </>
                             )}
-                          </Listbox.Option>
+                          </ListboxOption>
                           {orderStatuses.map((status) => (
-                            <Listbox.Option key={status} value={status} className={({ active }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
+                            <ListboxOption key={status} value={status} className={({ active }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
                               {({ selected }) => (
                                 <>
                                   <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{status}</span>
                                   {selected ? <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600"><Check className="h-5 w-5" aria-hidden="true" /></span> : null}
                                 </>
                               )}
-                            </Listbox.Option>
+                            </ListboxOption>
                           ))}
-                        </Listbox.Options>
+                        </ListboxOptions>
                       </Transition>
                     </div>
                   </Listbox>
@@ -313,7 +312,7 @@ const QuoteCard: React.FC<{ quote: QuoteSummary; isSelected: boolean; onSelect: 
               <Clock className="w-5 h-5 text-gray-500" />
               <div>
                 <p className="text-xs text-gray-500">Last Modified</p>
-                <p className="font-medium">{new Date(quote.lastModified).toLocaleDateString()}</p>
+                <p className="font-medium">{quote.lastModified}</p>
               </div>
             </div>
           </div>
@@ -342,7 +341,7 @@ const OrderHistory: React.FC = () => {
     return quotes.filter(quote => 
       (!filters.customerName || quote.customerName.toLowerCase().includes(filters.customerName.toLowerCase())) &&
       (!filters.orderStatus || quote.orderStatus === filters.orderStatus) &&
-      (!filters.quoteNumber || quote.id.toString().includes(filters.quoteNumber))
+      (!filters.quoteNumber || quote.quoteNumber?.toLowerCase().includes(filters.quoteNumber.toLowerCase()))
     );
   }, [quotes, filters]);
 
