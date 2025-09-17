@@ -18,6 +18,7 @@ export const useUserStatus = () => {
 
   return {
     isAdmin: data?.isAdmin ?? false,
+    userId: data?.userId ?? null,
     userCompanyId: data?.companyId ?? null,
     userName: data?.name ?? null,
     userEmail: data?.email ?? null,

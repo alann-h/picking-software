@@ -7,7 +7,7 @@ import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Run, RunQuote } from '../../utils/types';
-import { updateRunQuotes, updateRunStatus } from '../../api/runs';
+import { updateRunQuotes, updateRunStatus, updateRunName } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import {
   Disclosure,
@@ -56,7 +56,9 @@ export const RunItem: React.FC<{
     onDeleteRun: (runId: string) => void;
 }> = ({ run, isAdmin, userCompanyId, onDeleteRun }) => {
     const [isEditing, setIsEditing] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
     const [editableQuotes, setEditableQuotes] = useState<RunQuote[]>([]);
+    const [editableRunName, setEditableRunName] = useState(run.run_name || '');
     
     const queryClient = useQueryClient();
     const { handleOpenSnackbar } = useSnackbarContext();
@@ -89,6 +91,18 @@ export const RunItem: React.FC<{
         },
         onError: () => {
             handleOpenSnackbar('Failed to update run status.', 'error');
+        }
+    });
+
+    const updateRunNameMutation = useMutation({
+        mutationFn: ({ runId, runName }: { runId: string; runName: string }) => updateRunName(runId, runName),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
+            handleOpenSnackbar('Run name updated.', 'success');
+            setIsEditingName(false);
+        },
+        onError: () => {
+            handleOpenSnackbar('Failed to update run name.', 'error');
         }
     });
 
@@ -137,6 +151,24 @@ export const RunItem: React.FC<{
         updateStatusMutation.mutate({ runId: run.id, newStatus });
     };
 
+    const handleEditNameToggle = () => {
+        setIsEditingName(!isEditingName);
+        setEditableRunName(run.run_name || '');
+    };
+
+    const handleSaveName = () => {
+        if (editableRunName.trim()) {
+            updateRunNameMutation.mutate({ runId: run.id, runName: editableRunName.trim() });
+        } else {
+            setIsEditingName(false);
+        }
+    };
+
+    const handleCancelNameEdit = () => {
+        setIsEditingName(false);
+        setEditableRunName(run.run_name || '');
+    };
+
     return (
         <div className="border border-gray-200 rounded-lg overflow-hidden">
         <Disclosure>
@@ -144,7 +176,50 @@ export const RunItem: React.FC<{
             <>
               <DisclosureButton className="w-full flex justify-between items-center p-4 bg-white hover:bg-gray-50 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75 cursor-pointer">
                 <div className="flex items-center gap-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Run #{run.run_number}</h3>
+                  <div className="flex-1">
+                    {isEditingName ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editableRunName}
+                          onChange={(e) => setEditableRunName(e.target.value)}
+                          className="text-lg font-semibold text-gray-800 bg-white border border-gray-300 rounded px-2 py-1 w-full max-w-xs"
+                          placeholder="Enter run name"
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleSaveName}
+                          disabled={updateRunNameMutation.isPending}
+                          className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleCancelNameEdit}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {run.run_name ? `${run.run_name}` : `Run #${run.run_number}`}
+                        </h3>
+                        {isAdmin && (
+                          <button
+                            onClick={handleEditNameToggle}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {run.run_name && !isEditingName && (
+                      <p className="text-sm text-gray-500">Run #{run.run_number}</p>
+                    )}
+                  </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusChipClasses(run.status)}`}>
                     {run.status}
                   </span>

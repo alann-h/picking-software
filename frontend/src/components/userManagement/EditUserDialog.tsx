@@ -150,14 +150,14 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <DialogPanel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
+                            <DialogPanel className="w-full max-w-xl transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
                                 <form onSubmit={handleSubmit}>
                                     <div className="p-6">
                                         <DialogTitle as="h3" className="text-xl font-bold text-gray-900 flex items-center gap-2">
                                             <User className="h-6 w-6 text-blue-600" />
                                             Edit User: {user.display_email}
                                         </DialogTitle>
-                                        <div className="mt-6 space-y-4">
+                                        <div className="mt-6 space-y-6">
                                             <div>
                                                 <label htmlFor="given_name" className="block text-sm font-medium text-gray-700">First Name</label>
                                                 <input
@@ -165,7 +165,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
                                                     type="text"
                                                     value={formData.given_name || ''}
                                                     onChange={(e) => handleChange('given_name', e.target.value)}
-                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm", errors.given_name && "border-red-500")}
+                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base", errors.given_name && "border-red-500")}
                                                     maxLength={50}
                                                     required
                                                 />
@@ -178,7 +178,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
                                                     type="text"
                                                     value={formData.family_name || ''}
                                                     onChange={(e) => handleChange('family_name', e.target.value)}
-                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm", errors.family_name && "border-red-500")}
+                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base", errors.family_name && "border-red-500")}
                                                     maxLength={50}
                                                     required
                                                 />
@@ -191,7 +191,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
                                                     type="email"
                                                     value={formData.display_email || ''}
                                                     onChange={(e) => handleChange('display_email', e.target.value)}
-                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm", errors.display_email && "border-red-500")}
+                                                    className={clsx("mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-4 py-3 text-base", errors.display_email && "border-red-500")}
                                                     maxLength={255}
                                                     required
                                                 />
@@ -230,14 +230,14 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
                                             type="button"
                                             onClick={handleClose}
                                             disabled={isLoading}
-                                            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={isLoading || !hasChanges}
-                                            className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                                            className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer"
                                         >
                                             <Save className="mr-2 h-4 w-4" />
                                             {isLoading ? 'Saving...' : 'Save Changes'}

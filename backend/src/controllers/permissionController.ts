@@ -32,6 +32,7 @@ export async function getCompanyUserPermissions(req: Request, res: Response, nex
 export async function updateUserPermissions(req: Request, res: Response, next: NextFunction) {
   try {
     const { userId } = req.params;
+    console.log('Updating user permissions:', userId);
     const { companyId, permissions } = req.body;
     const currentUserId = req.session.userId;
 

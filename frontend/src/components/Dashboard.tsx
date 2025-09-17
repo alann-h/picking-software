@@ -61,9 +61,14 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-4 flex justify-between items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                 <div className="flex items-center gap-4">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                        Run #{run.run_number || run.id.substring(0, 8)}
-                    </h3>
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                            {run.run_name ? `${run.run_name}` : `Run #${run.run_number || run.id.substring(0, 8)}`}
+                        </h3>
+                        {run.run_name && (
+                            <p className="text-sm text-gray-500">Run #{run.run_number || run.id.substring(0, 8)}</p>
+                        )}
+                    </div>
                     <RunStatusChip status={run.status} />
                 </div>
                 <div className="flex items-center gap-4">

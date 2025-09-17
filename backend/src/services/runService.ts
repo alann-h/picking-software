@@ -12,7 +12,7 @@ async function getNextRunNumber(companyId: string): Promise<number> {
     return Number(result._max.runNumber || 0) + 1;
 }
 
-export async function createBulkRun(orderedQuoteIds: string[], companyId: string, connectionType: ConnectionType): Promise<Run> {
+export async function createBulkRun(orderedQuoteIds: string[], companyId: string, connectionType: ConnectionType, runName?: string): Promise<Run> {
     try {
         await ensureQuotesExistInDB(orderedQuoteIds, companyId, connectionType);
         return await prisma.$transaction(async (tx) => {
@@ -39,6 +39,7 @@ export async function createBulkRun(orderedQuoteIds: string[], companyId: string
                 data: {
                     companyId,
                     runNumber: nextRunNumber,
+                    runName: runName || null,
                     status: 'pending',
                 },
                 select: {
@@ -46,6 +47,7 @@ export async function createBulkRun(orderedQuoteIds: string[], companyId: string
                     companyId: true,
                     createdAt: true,
                     runNumber: true,
+                    runName: true,
                     status: true,
                 },
             });
@@ -74,6 +76,7 @@ export async function createBulkRun(orderedQuoteIds: string[], companyId: string
                 company_id: newRun.companyId,
                 created_at: newRun.createdAt,
                 run_number: Number(newRun.runNumber),
+                run_name: newRun.runName,
                 status: newRun.status,
             };
         });
@@ -96,6 +99,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
                 companyId: true,
                 createdAt: true,
                 runNumber: true,
+                runName: true,
                 status: true,
             },
         });
@@ -140,6 +144,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
             company_id: run.companyId,
             created_at: run.createdAt,
             run_number: Number(run.runNumber),
+            run_name: run.runName,
             status: run.status,
             quotes: itemsByRunId.get(run.id) || [],
         }));
@@ -167,6 +172,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
                 companyId: true,
                 createdAt: true,
                 runNumber: true,
+                runName: true,
                 status: true,
             },
         });
@@ -176,6 +182,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
             company_id: updatedRun.companyId,
             created_at: updatedRun.createdAt,
             run_number: Number(updatedRun.runNumber),
+            run_name: updatedRun.runName,
             status: updatedRun.status,
         };
     } catch (error: unknown) {
@@ -218,6 +225,39 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: string[]):
 
     } catch (error: unknown) {
         console.error(`Error updating quotes for run ${runId}:`, error);
+        throw error;
+    }
+}
+
+export async function updateRunName(runId: string, runName: string): Promise<Run> {
+    try {
+        const updatedRun = await prisma.run.update({
+            where: { id: runId },
+            data: { runName },
+            select: {
+                id: true,
+                companyId: true,
+                createdAt: true,
+                runNumber: true,
+                runName: true,
+                status: true,
+            },
+        });
+
+        return {
+            id: updatedRun.id,
+            company_id: updatedRun.companyId,
+            created_at: updatedRun.createdAt,
+            run_number: Number(updatedRun.runNumber),
+            run_name: updatedRun.runName,
+            status: updatedRun.status,
+        };
+    } catch (error: unknown) {
+        if (error instanceof Object && 'code' in error && error.code === 'P2025') {
+            // Prisma error for record not found
+            throw new InputError(`Run with ID ${runId} not found.`);
+        }
+        console.error('Error in updateRunName service:', error);
         throw error;
     }
 }

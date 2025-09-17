@@ -82,7 +82,7 @@ const UserTable: React.FC<UserTableProps> = ({
                             <select
                                 value={user.access_level || 'read'}
                                 onChange={(e) => onPermissionUpdate(user.id, 'access_level', e.target.value)}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md disabled:opacity-50"
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md disabled:opacity-50 cursor-pointer"
                                 disabled={!canChangePerms || updatePermissionsMutation.isPending}
                             >
                                 <option value="read">Read</option>
@@ -97,7 +97,7 @@ const UserTable: React.FC<UserTableProps> = ({
                                 {canEdit && (
                                     <button
                                         onClick={() => onEditUser(user)}
-                                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                                         aria-label="Edit user"
                                     >
                                         <Edit className="h-5 w-5" />
@@ -106,7 +106,7 @@ const UserTable: React.FC<UserTableProps> = ({
                                 {canDelete && (
                                     <button
                                         onClick={() => onDeleteUser(user)}
-                                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
                                         aria-label="Delete user"
                                     >
                                         <Trash2 className="h-5 w-5" />

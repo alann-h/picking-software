@@ -28,6 +28,12 @@ export const runCreateRules = () => [
             return true;
         }),
 
+    body('runName')
+        .optional()
+        .isString().withMessage('Run name must be a string.')
+        .isLength({ min: 1, max: 100 }).withMessage('Run name must be between 1 and 100 characters.')
+        .trim(),
+
     ...companyIdBodyRule()
 ];
 
@@ -57,6 +63,14 @@ export const runUpdateRules = () => [
             }
             return true;
         })
+];
+
+export const runNameUpdateRules = () => [
+    body('runName')
+        .exists().withMessage('Run name is required.')
+        .isString().withMessage('Run name must be a string.')
+        .isLength({ min: 1, max: 100 }).withMessage('Run name must be between 1 and 100 characters.')
+        .trim()
 ];
 
 export { validate };

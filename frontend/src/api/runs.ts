@@ -5,12 +5,13 @@ import { RUNS_BASE } from './config';
 
 /**
  * Creates a new run entry.
- * @param {number} quoteId The ID of the quote to associate with the run.
+ * @param {string[]} orderedQuoteIds The IDs of the quotes to associate with the run.
  * @param {string} companyId The ID of the company creating the run.
+ * @param {string} runName Optional name for the run.
  * @returns {Promise<Run>} The newly created run object.
  */
-export const createRunFromQuotes  = async (orderedQuoteIds: string[], companyId: string): Promise<Run> => {
-  const data = await apiCallPost(`${RUNS_BASE}/bulk`, { orderedQuoteIds, companyId });
+export const createRunFromQuotes  = async (orderedQuoteIds: string[], companyId: string, runName?: string): Promise<Run> => {
+  const data = await apiCallPost(`${RUNS_BASE}/bulk`, { orderedQuoteIds, companyId, runName });
   return data;
 };
 
@@ -37,6 +38,11 @@ export const updateRunStatus = async (runId: string, status: 'pending' | 'checki
 
 export const updateRunQuotes  = async (runId: string, orderedQuoteIds: string[]): Promise<Run> => {
   const data = await apiCallPost(`${RUNS_BASE}/${runId}`, { orderedQuoteIds });
+  return data;
+};
+
+export const updateRunName = async (runId: string, runName: string): Promise<Run> => {
+  const data = await apiCallPut(`${RUNS_BASE}/${runId}/name`, { runName });
   return data;
 };
 

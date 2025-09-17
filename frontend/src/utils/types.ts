@@ -98,6 +98,7 @@ export interface Run {
   company_id: string;
   created_at: string;
   run_number: number;
+  run_name?: string;
   status: 'pending' | 'checking' | 'finalised';
   customer_name?: string;
   total_amount?: number;
@@ -115,6 +116,7 @@ export interface RunQuote {
 
 export interface UserStatusResponse {
   isAdmin: boolean;
+  userId: string | null;
   companyId: string | null;
   name: string | null;
   email: string | null;

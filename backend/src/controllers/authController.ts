@@ -170,47 +170,42 @@ export async function deleteUser(req: Request, res: Response, next: NextFunction
     console.log(`User ${currentUserId} from company ${companyId} is deleting user ${userId}`);
     
     const sessionId = req.session.userId === userId ? req.session.id : null;
-    if (!sessionId) {
-      // Handle the case where the session ID is null, maybe just delete the user without touching sessions
-      await authService.deleteUser(userId, ''); // Or handle differently
-    } else {
-      const deleted = await authService.deleteUser(userId, sessionId);
+    const deleted = await authService.deleteUser(userId, sessionId || '');
 
-      if (sessionId) {
-        // User is deleting their own account, destroy session
-        console.log(`User ${userId} is deleting their own account, destroying session`);
+    if (sessionId) {
+      // User is deleting their own account, destroy session
+      console.log(`User ${userId} is deleting their own account, destroying session`);
+      
+      req.session.destroy(err => {
+        if (err) {
+          console.error('Error destroying session during user deletion:', err);
+          return next(err);
+        }
         
-        req.session.destroy(err => {
-          if (err) {
-            console.error('Error destroying session during user deletion:', err);
-            return next(err);
-          }
-          
-          // Clear the session cookie
-          res.clearCookie('connect.sid', {
-            httpOnly: true,
-            secure: process.env.VITE_APP_ENV === 'production',
-            sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-            domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
-            path: '/'
-          });
-          
-          console.log(`Successfully deleted user ${userId} and destroyed their session`);
-          res.json({
-            ...deleted,
-            message: 'User account deleted and session terminated',
-            timestamp: new Date().toISOString()
-          });
+        // Clear the session cookie
+        res.clearCookie('connect.sid', {
+          httpOnly: true,
+          secure: process.env.VITE_APP_ENV === 'production',
+          sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
+          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+          path: '/'
         });
-      } else {
-        // Admin is deleting another user's account
-        console.log(`Admin ${currentUserId} successfully deleted user ${userId}`);
+        
+        console.log(`Successfully deleted user ${userId} and destroyed their session`);
         res.json({
           ...deleted,
-          message: 'User account deleted successfully',
+          message: 'User account deleted and session terminated',
           timestamp: new Date().toISOString()
         });
-      }
+      });
+    } else {
+      // Admin is deleting another user's account
+      console.log(`Admin ${currentUserId} successfully deleted user ${userId}`);
+      res.json({
+        ...deleted,
+        message: 'User account deleted successfully',
+        timestamp: new Date().toISOString()
+      });
     }
   } catch (err) {
     console.error('Error deleting user:', err);

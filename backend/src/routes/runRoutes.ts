@@ -6,7 +6,8 @@ import {
     getCompanyRunsController,
     updateRunStatusController,
     updateRunQuotesController,
-    deleteRunController
+    deleteRunController,
+    updateRunNameController
 } from '../controllers/runController.js';
 import {
     validate,
@@ -14,7 +15,8 @@ import {
     companyIdRule,
     runIdRule,
     runStatusUpdateRules,
-    runUpdateRules
+    runUpdateRules,
+    runNameUpdateRules
 } from '../validators/runValidator.js';
 
 const router = Router();
@@ -22,6 +24,7 @@ router.use(isAuthenticated);
 
 router.post('/bulk', isAdmin, runCreateRules(), validate, asyncHandler(createBulkRunController));
 router.put('/:runId/status', isAdmin, runIdRule(), runStatusUpdateRules(), validate, asyncHandler(updateRunStatusController));
+router.put('/:runId/name', isAdmin, runIdRule(), runNameUpdateRules(), validate, asyncHandler(updateRunNameController));
 
 router.get('/company/:companyId', companyIdRule(), validate, asyncHandler(getCompanyRunsController));
 router.put('/:runId', isAdmin, runUpdateRules(), validate, updateRunQuotesController);

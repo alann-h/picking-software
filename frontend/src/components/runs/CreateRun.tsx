@@ -83,7 +83,7 @@ const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: string
     );
 };
 
-const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: string) => void }> = ({ run, index, onRemove }) => {
+const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: string) => void, onUpdateName: (id: string, name: string) => void }> = ({ run, index, onRemove, onUpdateName }) => {
     const { setNodeRef } = useDroppable({ id: run.id });
 
     return (
@@ -93,8 +93,14 @@ const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: strin
                     <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                         <Package className="w-4 h-4 text-white" />
                     </div>
-                    <div>
-                        <p className="text-sm font-semibold text-gray-900">Run {index + 1}</p>
+                    <div className="flex-1">
+                        <input
+                            type="text"
+                            placeholder={`Run ${index + 1} Name`}
+                            value={run.runName || ''}
+                            onChange={(e) => onUpdateName(run.id, e.target.value)}
+                            className="text-sm font-semibold text-gray-900 bg-transparent border-none outline-none w-full placeholder-gray-500"
+                        />
                         <p className="text-xs text-gray-600">{run.quotes.length} quote{run.quotes.length !== 1 ? 's' : ''}</p>
                     </div>
                 </div>
@@ -120,6 +126,7 @@ const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: strin
 interface RunBuilder {
   id: string;
   quotes: QuoteSummary[];
+  runName?: string;
 }
 
 
@@ -187,7 +194,7 @@ export const CreateRun: React.FC = () => {
 
     const stagedQuoteIds = useMemo(() => new Set(stagedQuotes.map(q => q.id)), [stagedQuotes]);
     const createRunMutation = useMutation({
-        mutationFn: (quoteIds: string[]) => createRunFromQuotes(quoteIds, userCompanyId!),
+        mutationFn: ({ quoteIds, runName }: { quoteIds: string[], runName?: string }) => createRunFromQuotes(quoteIds, userCompanyId!, runName),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs'] });
         },
@@ -205,7 +212,10 @@ export const CreateRun: React.FC = () => {
         }
         
         const creationPromises = validRuns.map(run =>
-            createRunMutation.mutateAsync(run.quotes.map(q => q.id))
+            createRunMutation.mutateAsync({ 
+                quoteIds: run.quotes.map(q => q.id),
+                runName: run.runName || undefined
+            })
         );
         
         try {
@@ -232,12 +242,15 @@ export const CreateRun: React.FC = () => {
         if (!quoteToUnstage) return;
         setStagedQuotes(prev => prev.filter(q => q.id !== quoteId));
     };
-    const handleAddNewRun = () => setRunsToCreate(prev => [...prev, { id: `run-builder-${Date.now()}`, quotes: [] }]);
+    const handleAddNewRun = () => setRunsToCreate(prev => [...prev, { id: `run-builder-${Date.now()}`, quotes: [], runName: '' }]);
     const handleRemoveRun = (runId: string) => {
         const runToRemove = runsToCreate.find(r => r.id === runId);
         if (!runToRemove) return;
         setStagedQuotes(prev => [...runToRemove.quotes, ...prev]);
         setRunsToCreate(prev => prev.filter(r => r.id !== runId));
+    };
+    const handleUpdateRunName = (runId: string, runName: string) => {
+        setRunsToCreate(prev => prev.map(r => r.id === runId ? { ...r, runName } : r));
     };
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
     const handleDragStart = (event: DragStartEvent) => {
@@ -469,7 +482,7 @@ export const CreateRun: React.FC = () => {
                                     {runsToCreate.length > 0 ? (
                                         <div className="flex space-x-4 min-h-[460px]">
                                             {runsToCreate.map((run, index) => (
-                                                <RunColumn key={run.id} run={run} index={index} onRemove={handleRemoveRun} />
+                                                <RunColumn key={run.id} run={run} index={index} onRemove={handleRemoveRun} onUpdateName={handleUpdateRunName} />
                                             ))}
                                         </div>
                                     ) : (

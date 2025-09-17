@@ -8,6 +8,7 @@ export interface UserPermissions {
 }
 
 export interface PermissionUpdateRequest {
+  userId: string;
   companyId: string;
   permissions: Partial<UserPermissions>;
 }
@@ -58,13 +59,14 @@ export const getCompanyUserPermissions = async (companyId: string): Promise<Comp
   return response;
 };
 
-export const updateUserPermissions = async (request: PermissionUpdateRequest): Promise<any> => {
-  const url = `${PERMISSIONS_BASE}/user/${request.companyId}`;
+export const updateUserPermissions = async (request: PermissionUpdateRequest): Promise<UserPermissions> => {
+  console.log('Updating user permissions:', request);
+  const url = `${PERMISSIONS_BASE}/user/${request.userId}`;
   const response = await apiCallPost(url, request);
   return response;
 };
 
-export const revokeUserPermissions = async (userId: string, companyId: string): Promise<any> => {
+export const revokeUserPermissions = async (userId: string, companyId: string): Promise<{ message: string; revokedPermissions: UserPermissions }> => {
   const url = `${PERMISSIONS_BASE}/user/${userId}?companyId=${companyId}`;
   const response = await apiCallDelete(url);
   return response;

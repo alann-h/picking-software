@@ -130,7 +130,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
             />
             {isPassword && (
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-1 text-gray-500 hover:text-gray-700">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-1 text-gray-500 hover:text-gray-700 cursor-pointer">
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                 </div>
@@ -265,7 +265,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
                                     <button
                                         type="button"
                                         onClick={handleClose}
-                                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
                                     >
                                         Cancel
                                     </button>
@@ -273,7 +273,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
                                         type="button"
                                         onClick={handleSubmit}
                                         disabled={isSubmitting}
-                                        className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                                        className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 cursor-pointer"
                                     >
                                         {isSubmitting ? 'Adding User...' : 'Add User'}
                                     </button>

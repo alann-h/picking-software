@@ -1,13 +1,16 @@
 // src/api/auth.ts
 
-import React, { createContext, ReactNode, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useEffect, useState, useCallback } from 'react';
 import { useUserStatus } from '../utils/useUserStatus';
 import { 
   getCompanyUserPermissions, 
   updateUserPermissions, 
   getCompanyAuditLogs, 
   getConnectionHealth,
-  UserPermissions 
+  UserPermissions,
+  CompanyUserPermission,
+  AuditLog,
+  ConnectionHealth
 } from '../api/permissions';
 
 interface AuthContextType {
@@ -28,35 +31,28 @@ interface AuthContextType {
   
   // Permission management (admin only)
   updateUserPermissions: (userId: string, permissions: Partial<UserPermissions>) => Promise<void>;
-  getCompanyUserPermissions: () => Promise<any[]>;
-  getAuditLogs: () => Promise<any[]>;
-  getConnectionHealth: () => Promise<any[]>;
+  getCompanyUserPermissions: () => Promise<CompanyUserPermission[]>;
+  getAuditLogs: () => Promise<AuditLog[]>;
+  getConnectionHealth: () => Promise<ConnectionHealth[]>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { isAdmin, userCompanyId, isLoadingStatus, userName, userEmail, connectionType } = useUserStatus();
+  const { isAdmin, userId, userCompanyId, isLoadingStatus, userName, userEmail, connectionType } = useUserStatus();
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
   const [permissionsLoading, setPermissionsLoading] = useState(true);
 
-  // Load user permissions when authenticated
-  useEffect(() => {
-    if (userCompanyId && !permissions) {
-      loadUserPermissions();
-    }
-  }, [userCompanyId, permissions]);
-
-  const loadUserPermissions = async () => {
-    if (!userCompanyId) return;
+  const loadUserPermissions = useCallback(async () => {
+    if (!userCompanyId || !userId) return;
     
     try {
       setPermissionsLoading(true);
       const response = await getCompanyUserPermissions(userCompanyId);
       
-      // Find current user's permissions by email (since userCompanyId is actually the company ID)
+      // Find current user's permissions by userId
       const currentUserPermissions = response.find(
-        (user: any) => user.display_email === userEmail
+        (user: CompanyUserPermission) => user.id === userId
       );
       
       if (currentUserPermissions) {
@@ -73,7 +69,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setPermissionsLoading(false);
     }
-  };
+  }, [userCompanyId, userId, isAdmin]);
+
+  // Load user permissions when authenticated
+  useEffect(() => {
+    if (userCompanyId && userId && !permissions) {
+      loadUserPermissions();
+    }
+  }, [userCompanyId, userId, permissions, loadUserPermissions]);
 
   // Permission checking functions
   const hasPermission = (permission: keyof UserPermissions): boolean => {
@@ -99,18 +102,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Admin functions
-  const updateUserPermissionsLocal = async (userId: string, newPermissions: Partial<UserPermissions>) => {
-    if (!userCompanyId || !hasAccessLevel('admin')) {
+  const updateUserPermissionsLocal = async (targetUserId: string, newPermissions: Partial<UserPermissions>) => {
+    if (!userCompanyId || !userId || !hasAccessLevel('admin')) {
       throw new Error('Insufficient permissions');
     }
 
     await updateUserPermissions({
+      userId: targetUserId,
       companyId: userCompanyId,
       permissions: newPermissions
     });
 
     // Reload permissions if updating current user
-    if (userId === userCompanyId) {
+    if (targetUserId === userId) {
       await loadUserPermissions();
     }
   };

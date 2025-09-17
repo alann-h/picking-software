@@ -4,6 +4,7 @@ import {
     updateRunStatus,
     updateRunQuotes as updateRunQuotesService,
     deleteRunById as deleteRunByIdService,
+    updateRunName,
 } from '../services/runService.js'; // New service file for runs
 import { Request, Response, NextFunction } from 'express';
 import { RunStatus } from '../types/run.js';
@@ -13,13 +14,13 @@ import { RunStatus } from '../types/run.js';
  * Accessible by Admins only.
  */
 export async function createBulkRunController(req: Request, res: Response, next: NextFunction) {
-    const { orderedQuoteIds, companyId } = req.body;
+    const { orderedQuoteIds, companyId, runName } = req.body;
     const connectionType = req.session.connectionType;
     if (!connectionType) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-        const newRun = await createBulkRun(orderedQuoteIds, companyId, connectionType);
+        const newRun = await createBulkRun(orderedQuoteIds, companyId, connectionType, runName);
         res.status(201).json(newRun);
     } catch (error) {
         next(error);
@@ -72,6 +73,22 @@ export async function updateRunQuotesController(req: Request, res: Response, nex
         }
         const result = await updateRunQuotesService(runId, orderedQuoteIds);
         res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateRunNameController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { runId } = req.params;
+        const { runName } = req.body;
+        
+        if (!runName || typeof runName !== 'string') {
+            return res.status(400).json({ error: 'runName is required and must be a string' });
+        }
+        
+        const updatedRun = await updateRunName(runId, runName);
+        res.status(200).json(updatedRun);
     } catch (error) {
         next(error);
     }
