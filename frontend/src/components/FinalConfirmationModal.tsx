@@ -39,7 +39,7 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/20 bg-black/30" />
         </TransitionChild>
 
         <div className="fixed inset-0 overflow-y-auto">

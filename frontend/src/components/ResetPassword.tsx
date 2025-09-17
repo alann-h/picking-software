@@ -93,7 +93,7 @@ const ResetPassword: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="rounded-2xl border border-white/20 bg-black/30 p-6 shadow-2xl backdrop-blur-sm">
+              <div className="rounded-2xl border border-white/20 bg-black/30 p-6 shadow-2xl bg-black/30">
                 <div className="mb-3 text-center">
                   <h1 className="mb-2 bg-gradient-to-r from-blue-500 to-blue-300 bg-clip-text text-2xl font-bold text-transparent">
                     Invalid Reset Link
@@ -133,7 +133,7 @@ const ResetPassword: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="rounded-2xl border border-white/20 bg-black/30 p-6 shadow-2xl backdrop-blur-sm">
+            <div className="rounded-2xl border border-white/20 bg-black/30 p-6 shadow-2xl bg-black/30">
               <div className="mb-4 text-center">
                 <h1 className="mb-1 bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-3xl font-bold text-transparent">
                   Reset Password

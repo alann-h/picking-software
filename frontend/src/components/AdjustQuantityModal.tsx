@@ -129,7 +129,7 @@ const AdjustQuantityModal: React.FC<AdjustQuantityModalProps> = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/5 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/5 bg-black/30" />
         </TransitionChild>
 
         <div className="fixed inset-0 overflow-y-auto">

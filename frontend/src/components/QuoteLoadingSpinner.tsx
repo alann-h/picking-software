@@ -3,7 +3,7 @@ import { FileText, Loader2 } from 'lucide-react';
 
 const QuoteLoadingSpinner: React.FC = () => {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 bg-black/30">
       <div className="flex flex-col items-center gap-6 rounded-2xl bg-white p-8 sm:p-12 shadow-2xl ring-1 ring-black ring-opacity-5">
         <FileText className="h-16 w-16 text-blue-500 opacity-80" />
         <Loader2 className="h-20 w-20 animate-spin text-blue-600" />

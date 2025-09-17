@@ -271,13 +271,13 @@ const AboutUs: React.FC = () => {
                   Join businesses that have eliminated picking errors and streamlined their order fulfillment process from quote to completion.
                 </p>
                 <div className="flex flex-col flex-wrap items-center justify-center gap-3 sm:flex-row">
-                  <span className="inline-block rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
+                  <span className="inline-block rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white bg-black/30">
                     ✓ 100% Accuracy Guarantee
                   </span>
-                  <span className="inline-block rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
+                  <span className="inline-block rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white bg-black/30">
                     ✓ QuickBooks & Xero Native
                   </span>
-                  <span className="inline-block rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
+                  <span className="inline-block rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white bg-black/30">
                     ✓ Mobile First & Offline Capable
                   </span>
                 </div>

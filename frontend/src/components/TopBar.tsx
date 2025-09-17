@@ -368,7 +368,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
       {/* Confirmation Dialog for Logout from All Devices */}
       {logoutAllDialogOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 bg-black/30"
           aria-labelledby="logout-all-dialog-title"
           role="dialog"
           aria-modal="true"

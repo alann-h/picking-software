@@ -124,7 +124,9 @@ const ProductList: React.FC<ProductListProps> = ({
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, 
     type: string = 'text', 
     readOnly: boolean = false,
-    required: boolean = false
+    required: boolean = false,
+    placeholder: string = '',
+    borderColorClass: string = 'border-gray-300'
   ) => (
     <div>
       <label htmlFor={label} className="block text-sm font-medium text-gray-700">{label}</label>
@@ -135,7 +137,8 @@ const ProductList: React.FC<ProductListProps> = ({
         onChange={onChange}
         readOnly={readOnly}
         required={required}
-        className="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100"
+        placeholder={placeholder}
+        className={`mt-1 block w-full rounded-md ${borderColorClass} px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100`}
         disabled={readOnly}
       />
     </div>
@@ -159,7 +162,7 @@ const ProductList: React.FC<ProductListProps> = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/30 bg-black/30" />
         </TransitionChild>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -318,9 +321,9 @@ const ProductList: React.FC<ProductListProps> = ({
                   </div>
                 </div>
               </div>
-              {renderInputField('Product Name', newProductName, (e) => setNewProductName(e.target.value), 'text', false, true)}
-              {renderInputField('SKU', newSku, (e) => setNewSku(e.target.value), 'text', false, true)}
-              {renderInputField('Barcode', newBarcode, (e) => setNewBarcode(e.target.value))}
+              {renderInputField('Product Name', newProductName, (e) => setNewProductName(e.target.value), 'text', false, true, "New product name", "border-black")}
+              {renderInputField('SKU', newSku, (e) => setNewSku(e.target.value), 'text', false, true, "Product SKU", "border-black")}
+              {renderInputField('Barcode', newBarcode, (e) => setNewBarcode(e.target.value), 'text', false, false, "Product barcode", "border-black")}
             </div>,
             <>
               <button onClick={handleCloseAdd} className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">

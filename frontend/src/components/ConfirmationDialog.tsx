@@ -23,7 +23,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ open, ti
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/40 bg-black/30" />
         </TransitionChild>
 
         <div className="fixed inset-0 overflow-y-auto">

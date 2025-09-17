@@ -54,7 +54,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/20 bg-black/30" />
         </TransitionChild>
 
         {/* Modal content container */}
