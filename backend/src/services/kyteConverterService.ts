@@ -33,8 +33,9 @@ export async function parseKyteCSV(csvContent: string): Promise<KyteOrder[]> {
     const itemsIndex = headers.findIndex(h => h.toLowerCase().includes('items') || h.toLowerCase().includes('description'));
     const totalIndex = headers.findIndex(h => h.toLowerCase().trim() === 'total');
     const observationIndex = headers.findIndex(h => h.toLowerCase().includes('observation'));
+    const customerNameIndex = headers.findIndex(h => h.toLowerCase().includes('customer'));
 
-    if (numberIndex === -1 || dateIndex === -1 || statusIndex === -1 || itemsIndex === -1 || totalIndex === -1) {
+    if (numberIndex === -1 || dateIndex === -1 || statusIndex === -1 || itemsIndex === -1 || totalIndex === -1 || customerNameIndex === -1) {
       throw new InputError('CSV file is missing required columns: Number, Date, Status, Items Description, Total');
     }
 
@@ -50,6 +51,7 @@ export async function parseKyteCSV(csvContent: string): Promise<KyteOrder[]> {
           date: parseAustralianDate(values[dateIndex]?.trim() || ''),
           itemsDescription: values[itemsIndex]?.trim(),
           total: parseFloat(values[totalIndex]) || 0,
+          customerName: values[customerNameIndex]?.trim(),
           customerId: null, // Will be set by user
           lineItems: parseItemsDescription(values[itemsIndex]?.trim() || ''),
           observation: values[observationIndex]?.trim() || ''

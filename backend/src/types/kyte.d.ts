@@ -24,6 +24,7 @@ export interface KyteOrder {
   date: string;
   itemsDescription: string;
   total: number;
+  customerName: string;
   customerId: string | null;
   lineItems: KyteLineItem[] | MatchedLineItem[];
   observation: string;
