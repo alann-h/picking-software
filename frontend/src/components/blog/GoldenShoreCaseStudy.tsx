@@ -121,9 +121,10 @@ const GoldenShoreCaseStudy: React.FC = () => {
   return (
     <>
       <SEO 
-        title="Case Study: How Golden Shore Products Increased Picking Speed by 40% | Smart Picker Success Story"
-        description="Discover how Golden Shore Products eliminated paper-based order processing and achieved 40% faster picking speeds with Smart Picker's barcode scanning and digital workflow features."
-        keywords="case study, Golden Shore Products, warehouse efficiency, picking speed, barcode scanning, order processing, Smart Picker success story, inventory management"
+        title="Case Study: Golden Shore's 95% Picking Accuracy with Smart Picker"
+        description="Discover how Golden Shore, a leading seafood supplier, achieved 95% picking accuracy and saved 20+ hours weekly with Smart Picker's warehouse management software."
+        keywords="case study, warehouse management, picking accuracy, seafood supplier, Golden Shore, Smart Picker success story, inventory management efficiency"
+        canonicalUrl="https://smartpicker.au/blog/golden-shore-case-study"
         structuredData={{
           "@context": "https://schema.org",
           "@type": "Article",

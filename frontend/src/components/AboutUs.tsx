@@ -122,11 +122,10 @@ const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number }>
 const AboutUs: React.FC = () => {
   return (
     <>
-      <SEO 
-        title="About Smart Picker | Warehouse Management & Accounting Integration"
-        description="Learn how Smart Picker transforms warehouse operations with barcode scanning, digital workflows, and seamless QuickBooks & Xero integration. Discover our features and solutions."
-        keywords="warehouse management, QuickBooks integration, Xero integration, barcode scanning, digital workflows, order fulfillment, inventory management, Smart Picker features"
-        structuredData={getPageStructuredData('faq')}
+      <SEO
+        title="About Us - Smart Picker"
+        description="Learn about the mission and team behind Smart Picker, dedicated to revolutionizing warehouse management for small and medium businesses."
+        canonicalUrl="https://smartpicker.au/about-us"
       />
       
       <main className="min-h-screen overflow-hidden bg-white">

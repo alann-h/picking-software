@@ -174,10 +174,10 @@ const itemVariants = {
 const TermsOfService: React.FC = () => {
   return (
     <>
-      <SEO 
+      <SEO
         title="Terms of Service - Smart Picker"
-        description="Terms of Service for Smart Picker - Professional inventory management software. Read our terms, conditions, and policies."
-        keywords="terms of service, terms and conditions, smart picker, legal, australia, NSW"
+        description="Read the Terms of Service for using Smart Picker warehouse management software."
+        canonicalUrl="https://smartpicker.au/terms-of-service"
       />
       
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

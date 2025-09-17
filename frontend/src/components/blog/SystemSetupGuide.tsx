@@ -42,12 +42,13 @@ const SystemSetupGuide: React.FC = () => {
   return (
     <>
       <SEO 
-        title="Complete System Setup Guide: QuickBooks, Xero & User Management - Smart Picker"
-        description="Step-by-step guide to setting up Smart Picker with your accounting software and managing multiple users. Learn how to integrate with QuickBooks or Xero and configure user access."
-        keywords="Smart Picker setup, QuickBooks integration setup, Xero integration setup, user management, warehouse software configuration, accounting software integration"
+        title="System Setup Guide - Smart Picker"
+        description="A step-by-step guide to setting up Smart Picker for your warehouse, including QuickBooks integration, user setup, and first run configuration."
+        keywords="system setup, getting started, Smart Picker guide, QuickBooks integration setup, user management, warehouse configuration, order picking workflow"
+        canonicalUrl="https://smartpicker.au/blog/system-setup-guide"
         structuredData={{
           "@context": "https://schema.org",
-          "@type": "BlogPosting",
+          "@type": "HowTo",
           "headline": "Complete System Setup Guide: QuickBooks, Xero & User Management",
           "description": "Step-by-step guide to setting up Smart Picker with your accounting software and managing multiple users.",
           "datePublished": "2025-09-05",

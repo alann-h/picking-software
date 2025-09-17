@@ -128,9 +128,9 @@ const FAQ: React.FC = () => {
   return (
     <>
       <SEO 
-        title="FAQ - Smart Picker Order Picking Software | Common Questions"
-        description="Find answers to frequently asked questions about Smart Picker order picking software, barcode scanning, QuickBooks & Xero integration, pricing, and support."
-        keywords="Smart Picker FAQ, order picking software questions, barcode scanning help, QuickBooks integration support, Xero integration support, warehouse management software"
+        title="FAQ - Smart Picker"
+        description="Find answers to frequently asked questions about Smart Picker, including features, integration, pricing, and support."
+        canonicalUrl="https://smartpicker.au/faq"
         structuredData={getPageStructuredData('faq')}
       />
       

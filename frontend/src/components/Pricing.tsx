@@ -166,6 +166,7 @@ const Pricing: React.FC = () => {
         title="Pricing - Smart Picker | Free Warehouse Management Software"
         description="Compare Smart Picker's free warehouse management software with competitors. See how we stack up against Fishbowl, NetSuite, and Cin7 with transparent pricing."
         keywords="Smart Picker pricing, warehouse management software cost, free inventory management, Fishbowl pricing comparison, NetSuite WMS pricing, Cin7 pricing"
+        canonicalUrl="https://smartpicker.au/pricing"
         structuredData={getPageStructuredData('webPage')}
       />
       

@@ -60,9 +60,9 @@ const TechnologyStack: React.FC = () => {
   return (
     <>
       <SEO 
-        title="Technology Stack - Smart Picker | Built with Modern Technologies"
-        description="Discover the modern technology stack powering Smart Picker. Built with React, Node.js, PostgreSQL, AWS, and seamless QuickBooks & Xero integration."
-        keywords="technology stack, React, Node.js, PostgreSQL, AWS, QuickBooks API, Xero API, warehouse management technology, modern web development"
+        title="Technology Stack - Smart Picker"
+        description="Learn about the modern technology stack that powers Smart Picker, ensuring a fast, reliable, and scalable warehouse management solution."
+        canonicalUrl="https://smartpicker.au/technology"
       />
       
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 sm:py-20">

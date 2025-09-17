@@ -111,32 +111,9 @@ const Blog: React.FC = () => {
   return (
     <>
       <SEO 
-        title="Blog & Resources - Smart Picker Warehouse Management Tips"
-        description="Expert insights, tips, and case studies for warehouse management, order picking efficiency, and QuickBooks & Xero integration. Stay updated with the latest industry trends."
-        keywords="warehouse management blog, order picking tips, QuickBooks integration guide, Xero integration guide, warehouse efficiency, inventory management trends, barcode scanning best practices"
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "Blog",
-          "name": "Smart Picker Blog",
-          "description": "Expert insights and tips for warehouse management and order picking efficiency",
-          "url": "https://smartpicker.au/blog",
-          "publisher": {
-            "@type": "Organization",
-            "name": "Smart Picker",
-            "url": "https://smartpicker.au"
-          },
-          "blogPost": blogPosts.map(post => ({
-            "@type": "BlogPosting",
-            "headline": post.title,
-            "description": post.excerpt,
-            "datePublished": post.publishDate,
-            "author": {
-              "@type": "Organization",
-              "name": "Smart Picker Team"
-            },
-            "url": `https://smartpicker.au/blog/${post.slug}`
-          }))
-        }}
+        title="Blog - Smart Picker"
+        description="Read the latest articles, tips, and case studies from the Smart Picker team on warehouse management, order picking, and inventory control."
+        canonicalUrl="https://smartpicker.au/blog"
       />
       
       <BreadcrumbNavigation />

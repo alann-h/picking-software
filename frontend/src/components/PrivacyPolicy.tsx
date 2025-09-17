@@ -250,10 +250,10 @@ const itemVariants = {
 const PrivacyPolicy: React.FC = () => {
   return (
     <>
-      <SEO 
+      <SEO
         title="Privacy Policy - Smart Picker"
-        description="Smart Picker Privacy Policy - Learn how we collect, use, and protect your personal information in compliance with Australian privacy law."
-        keywords="privacy policy, data protection, personal information, Smart Picker, australia, NSW, privacy act"
+        description="Read the Privacy Policy for Smart Picker warehouse management software."
+        canonicalUrl="https://smartpicker.au/privacy-policy"
       />
       
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

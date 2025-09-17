@@ -151,9 +151,9 @@ const Login: React.FC = () => {
   return (
     <LoginErrorBoundary>
       <SEO 
-        title="Login | Smart Picker - Order Picking Software"
-        description="Sign in to Smart Picker - the smart order picking app with barcode scanning and digital lists. Access your dashboard and manage warehouse operations."
-        keywords="login, sign in, Smart Picker, order picking software, warehouse management"
+        title="Login - Smart Picker" 
+        description="Access your Smart Picker dashboard to manage orders, track inventory, and streamline your warehouse operations."
+        canonicalUrl="https://smartpicker.au/login"
       />
       <LoadingWrapper isLoading={loading} height="100vh">
         {/* New Split Screen Layout */}
