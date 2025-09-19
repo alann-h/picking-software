@@ -431,7 +431,7 @@ export async function getAllUsers(companyId: string): Promise<UserForFrontend[]>
         companyId: true,
       },
     });
-    
+
     return users.map(user => ({
       id: user.id,
       display_email: user.displayEmail,

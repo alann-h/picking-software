@@ -25,7 +25,6 @@ const ProductRow: React.FC<ProductRowProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const initialScrollPos = useRef({ x: 0, y: 0, containerX: 0 });
 
   const handleProductClick = (event: React.MouseEvent | React.TouchEvent) => {
     event.preventDefault();
@@ -53,47 +52,24 @@ const ProductRow: React.FC<ProductRowProps> = ({
   const toggleMenu = () => {
     if (!isMenuOpen) {
       calculateMenuPosition();
-      initialScrollPos.current = {
-        x: window.scrollX,
-        y: window.scrollY,
-        containerX: scrollContainerRef.current?.scrollLeft || 0,
-      };
     }
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // Close menu on outside click or scroll
+  // Close menu on outside click
   useEffect(() => {
     const handleInteraction = (event: MouseEvent | TouchEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
     };
-    
-    const handleScroll = () => {
-      if (!isMenuOpen) return;
-
-      const deltaY = Math.abs(window.scrollY - initialScrollPos.current.y);
-      const deltaContainerX = Math.abs((scrollContainerRef.current?.scrollLeft || 0) - initialScrollPos.current.containerX);
-      const scrollThreshold = 200; // px
-
-      if (deltaY > scrollThreshold || deltaContainerX > scrollThreshold) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    const scrollContainer = scrollContainerRef.current;
 
     document.addEventListener('mousedown', handleInteraction);
-    window.addEventListener('scroll', handleScroll, true);
-    scrollContainer?.addEventListener('scroll', handleScroll, true);
 
     return () => {
       document.removeEventListener('mousedown', handleInteraction);
-      window.removeEventListener('scroll', handleScroll, true);
-      scrollContainer?.removeEventListener('scroll', handleScroll, true);
     };
-  }, [isMenuOpen, scrollContainerRef]);
+  }, [isMenuOpen]);
 
   const isAnyActionLoading = Object.values(pendingStates).some(status => status);
 

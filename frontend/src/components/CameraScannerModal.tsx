@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState, Fragment } from 'react';
-import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { X, LoaderCircle } from 'lucide-react';
 import { useSnackbarContext } from './SnackbarContext';
@@ -156,75 +155,47 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     };
   }, [isOpen, onScanSuccess, onClose, handleOpenSnackbar]); 
 
+  if (!isOpen) return null;
+
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <TransitionChild
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/20 bg-black/30" />
-        </TransitionChild>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/20 bg-black/30" />
+      <div className="relative z-50 w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+        <h3 className="text-lg font-medium leading-6 text-gray-900 flex justify-between items-center">
+          Scan Barcode
+          <button
+            type="button"
+            className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
+            onClick={onClose}
+          >
+            <X className="h-6 w-6 text-gray-500" />
+          </button>
+        </h3>
 
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <TransitionChild
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                <DialogTitle
-                  as="h3"
-                  className="text-lg font-medium leading-6 text-gray-900 flex justify-between items-center"
-                >
-                  Scan Barcode
-                  <button
-                    type="button"
-                    className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
-                    onClick={onClose}
-                  >
-                    <X className="h-6 w-6 text-gray-500" />
-                  </button>
-                </DialogTitle>
+        <div className="mt-4">
+          {isLoading && (
+            <div className="flex flex-col justify-center items-center h-[250px] mt-2">
+              <LoaderCircle className="animate-spin h-10 w-10 text-gray-500" />
+              <p className="mt-4 text-gray-500">Initializing camera...</p>
+            </div>
+          )}
 
-                <div className="mt-4">
-                  {isLoading && (
-                    <div className="flex flex-col justify-center items-center h-[250px] mt-2">
-                      <LoaderCircle className="animate-spin h-10 w-10 text-gray-500" />
-                      <p className="mt-4 text-gray-500">Initializing camera...</p>
-                    </div>
-                  )}
+          {errorMessage && (
+            <div className="text-center mt-2 p-4 bg-red-50 text-red-700 rounded-lg">
+              <p>{errorMessage}</p>
+            </div>
+          )}
 
-                  {errorMessage && (
-                    <div className="text-center mt-2 p-4 bg-red-50 text-red-700 rounded-lg">
-                      <p>{errorMessage}</p>
-                    </div>
-                  )}
+          {!isLoading && !errorMessage && (
+            <div id={QRCODE_REGION_ID} className="w-full mt-2 min-h-[250px] border rounded-lg overflow-hidden" />
+          )}
 
-                  {!isLoading && !errorMessage && (
-                    <div id={QRCODE_REGION_ID} className="w-full mt-2 min-h-[250px] border rounded-lg overflow-hidden" />
-                  )}
-
-                  <p className="mt-4 text-sm text-center text-gray-500">
-                    Position a barcode inside the scanning area.
-                  </p>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
+          <p className="mt-4 text-sm text-center text-gray-500">
+            Position a barcode inside the scanning area.
+          </p>
         </div>
-      </Dialog>
-    </Transition>
+      </div>
+    </div>
   );
 };
 

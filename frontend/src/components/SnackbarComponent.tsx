@@ -1,5 +1,4 @@
-import React, { Fragment, useEffect } from 'react';
-import { Transition } from '@headlessui/react';
+import React, { Fragment, useEffect, useState } from 'react';
 // Assuming the context provider exists at this path
 import { useSnackbarContext } from './SnackbarContext'; 
 // Replaced MUI icons with Lucide-React for a modern look
@@ -44,9 +43,18 @@ const severityStyles = {
  */
 const SnackbarComponent: React.FC = () => {
   const { openSnackbar, handleCloseSnackbar, snackbarMessage, snackbarSeverity } = useSnackbarContext();
+  const [isVisible, setIsVisible] = useState(false);
 
   // Fallback to 'info' if an unknown severity is provided
   const currentStyle = severityStyles[snackbarSeverity] || severityStyles.info;
+
+  useEffect(() => {
+    if (openSnackbar) {
+      setIsVisible(true);
+    } else {
+      setIsVisible(false);
+    }
+  }, [openSnackbar]);
 
   useEffect(() => {
     // Only auto-hide for non-critical messages
@@ -65,19 +73,9 @@ const SnackbarComponent: React.FC = () => {
   return (
     // Positioning container for the snackbar
     <div className="pointer-events-none fixed bottom-0 left-0 z-50 w-full p-4 sm:w-auto sm:p-6">
-      <Transition
-        show={openSnackbar}
-        as={Fragment}
-        enter="transform ease-out duration-300 transition"
-        // Animate up on mobile, and from the left on desktop
-        enterFrom="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-[-100%]"
-        enterTo="translate-y-0 opacity-100 sm:translate-x-0"
-        leave="transition ease-in duration-200"
-        leaveFrom="opacity-100"
-        leaveTo="opacity-0"
-      >
+      {isVisible && (
         <div
-          className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border p-4 shadow-lg ${currentStyle.containerClasses}`}
+          className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border p-4 shadow-lg transform ease-out duration-300 transition translate-y-0 opacity-100 sm:translate-x-0 ${currentStyle.containerClasses}`}
         >
           {/* Icon */}
           <currentStyle.Icon
@@ -102,7 +100,7 @@ const SnackbarComponent: React.FC = () => {
             </button>
           </div>
         </div>
-      </Transition>
+      )}
     </div>
   );
 };

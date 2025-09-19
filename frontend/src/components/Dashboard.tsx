@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { AvailableQuotesSkeleton, RunListSkeleton } from './Skeletons';
 import { useAuth } from '../hooks/useAuth';
-import { Combobox, Transition, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption } from '@headlessui/react';
+import PortalDropdown from './PortalDropdown';
 
 // ====================================================================================
 // Reusable & Child Components
@@ -55,7 +55,18 @@ const QuoteStatusChip: React.FC<{ status: RunQuote['orderStatus'] }> = ({ status
 const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const navigate = useNavigate();
-    const { quoteCount } = useMemo(() => ({ quoteCount: (run.quotes || []).length }), [run.quotes]);
+    const { quoteCount, completedQuotes, progressPercentage } = useMemo(() => {
+        const quotes = run.quotes || [];
+        const completed = quotes.filter(quote => quote.orderStatus === 'finalised').length;
+        const total = quotes.length;
+        const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        return { 
+            quoteCount: total, 
+            completedQuotes: completed,
+            progressPercentage: percentage
+        };
+    }, [run.quotes]);
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -72,7 +83,16 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                     <RunStatusChip status={run.status} />
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium text-gray-600">{quoteCount} quotes</span>
+                    <div className="text-right">
+                        <span className="text-sm font-medium text-gray-600">{completedQuotes}/{quoteCount} quotes</span>
+                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                            <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out" 
+                                style={{ width: `${progressPercentage}%` }}
+                            ></div>
+                        </div>
+                        <span className="text-xs text-gray-500">{progressPercentage}% complete</span>
+                    </div>
                     <button aria-label="expand run">
                         {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-500 cursor-pointer" /> : <ChevronDown className="w-5 h-5 text-gray-500 cursor-pointer" />}
                     </button>
@@ -152,16 +172,82 @@ const InfoBox: React.FC<{ icon: React.ElementType, title: string, message: strin
     </div>
 );
 
-const ActiveRunsList: React.FC = () => {
-    const { userCompanyId } = useAuth();
-    const { data: allRuns } = useSuspenseQuery<Run[]>({
-        queryKey: ['runs', userCompanyId],
-        queryFn: () => getRuns(userCompanyId!),
-    });
+const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
+    const stats = useMemo(() => {
+        const totalRuns = runs.length;
+        const activeRuns = runs.filter(run => run.status !== 'finalised').length;
+        const totalQuotes = runs.reduce((sum, run) => sum + (run.quotes?.length || 0), 0);
+        const completedQuotes = runs.reduce((sum, run) => 
+            sum + (run.quotes?.filter(quote => quote.orderStatus === 'finalised').length || 0), 0
+        );
+        
+        return {
+            totalRuns,
+            activeRuns,
+            totalQuotes,
+            completedQuotes,
+            completionRate: totalQuotes > 0 ? Math.round((completedQuotes / totalQuotes) * 100) : 0
+        };
+    }, [runs]);
 
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                        <Zap className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-500">Total Runs</p>
+                        <p className="text-2xl font-semibold text-gray-900">{stats.totalRuns}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                        <Building2 className="h-8 w-8 text-green-600" />
+                    </div>
+                    <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-500">Active Runs</p>
+                        <p className="text-2xl font-semibold text-gray-900">{stats.activeRuns}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                        <Receipt className="h-8 w-8 text-purple-600" />
+                    </div>
+                    <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-500">Total Quotes</p>
+                        <p className="text-2xl font-semibold text-gray-900">{stats.totalQuotes}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                        <Check className="h-8 w-8 text-emerald-600" />
+                    </div>
+                    <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-500">Completed</p>
+                        <p className="text-2xl font-semibold text-gray-900">{stats.completedQuotes}</p>
+                        <p className="text-xs text-gray-500">{stats.completionRate}% completion rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ActiveRunsList: React.FC<{ runs: Run[] }> = ({ runs }) => {
     const activeRuns = useMemo(() => {
-        return (allRuns || []).filter(run => run.status !== 'finalised');
-    }, [allRuns]);
+        return (runs || []).filter(run => run.status !== 'finalised');
+    }, [runs]);
 
     if (activeRuns.length === 0) return (
         <InfoBox icon={Zap} title="No active runs found" message="Create a new run to get started with order picking." />
@@ -209,10 +295,18 @@ const Dashboard: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [isPending, startTransition] = useTransition();
     const [query, setQuery] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const triggerRef = React.useRef<HTMLDivElement>(null);
+    const { userCompanyId } = useAuth();
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],
         queryFn: getCustomers,
+    });
+
+    const { data: allRuns } = useSuspenseQuery<Run[]>({
+        queryKey: ['runs', userCompanyId],
+        queryFn: () => getRuns(userCompanyId!),
     });
 
     const selectedCustomer = useMemo(() => {
@@ -225,6 +319,7 @@ const Dashboard: React.FC = () => {
         startTransition(() => {
             setSearchParams(customer ? { customer: customer.customerId } : {});
         });
+        setIsDropdownOpen(false);
     };
 
     const filteredCustomers =
@@ -254,6 +349,23 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Statistics Cards */}
+                    <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 animate-pulse">
+                                <div className="flex items-center">
+                                    <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                                    <div className="ml-4">
+                                        <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                                        <div className="h-6 bg-gray-200 rounded w-12"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>}>
+                        <StatsCards runs={allRuns || []} />
+                    </Suspense>
+
                     {/* Active Runs Section */}
                     <div>
                         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -267,7 +379,7 @@ const Dashboard: React.FC = () => {
                             </div>
                             <div className="p-4 sm:p-5">
                                 <Suspense fallback={<RunListSkeleton />}>
-                                    <ActiveRunsList />
+                                    <ActiveRunsList runs={allRuns || []} />
                                 </Suspense>
                             </div>
                         </div>
@@ -291,57 +403,48 @@ const Dashboard: React.FC = () => {
                                             <Building2 className="w-5 h-5 text-blue-600" />
                                             <h3 className="text-lg font-semibold text-gray-800">Select Customer</h3>
                                         </div>
-                                        <Combobox value={selectedCustomer} onChange={handleCustomerChange}>
-                                            <div className="relative">
-                                                <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
-                                                    <ComboboxInput
-                                                        className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
-                                                        displayValue={(customer: Customer | null) => customer?.customerName || ''}
-                                                        onChange={(event) => setQuery(event.target.value)}
-                                                        placeholder="Search customers..."
-                                                    />
-                                                    <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
-                                                        <ChevronDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
-                                                    </ComboboxButton>
-                                                </div>
-                                                <Transition
-                                                    as={Fragment}
-                                                    leave="transition ease-in duration-100"
-                                                    leaveFrom="opacity-100"
-                                                    leaveTo="opacity-0"
-                                                    afterLeave={() => setQuery('')}
+                                        <div ref={triggerRef} className="relative">
+                                            <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                                                <input
+                                                    className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
+                                                    value={selectedCustomer?.customerName || query}
+                                                    onChange={(event) => setQuery(event.target.value)}
+                                                    onFocus={() => setIsDropdownOpen(true)}
+                                                    placeholder="Search customers..."
+                                                />
+                                                <button 
+                                                    className="absolute inset-y-0 right-0 flex items-center pr-2"
+                                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                                 >
-                                                    <ComboboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm z-10">
-                                                        {filteredCustomers.length === 0 && query !== '' ? (
-                                                            <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
-                                                                Nothing found.
-                                                            </div>
-                                                        ) : (
-                                                            filteredCustomers.map((customer) => (
-                                                                <ComboboxOption
-                                                                    key={customer.customerId}
-                                                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 data-[active]:bg-blue-50 hover:bg-blue-50 transition-colors"
-                                                                    value={customer}
-                                                                >
-                                                                    {({ selected }) => (
-                                                                        <>
-                                                                            <span className={`block truncate ${ selected ? 'font-medium' : 'font-normal' }`}>
-                                                                                {customer.customerName}
-                                                                            </span>
-                                                                            {selected ? (
-                                                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600 group-data-[active]:text-blue-600">
-                                                                                  <Check className="h-5 w-5" aria-hidden="true" />
-                                                                                </span>
-                                                                            ) : null}
-                                                                        </>
-                                                                    )}
-                                                                </ComboboxOption>
-                                                            ))
-                                                        )}
-                                                    </ComboboxOptions>
-                                                </Transition>
+                                                    <ChevronDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
+                                                </button>
                                             </div>
-                                        </Combobox>
+                                            
+                                            <PortalDropdown isOpen={isDropdownOpen} triggerRef={triggerRef} setIsDropdownOpen={setIsDropdownOpen}>
+                                                {filteredCustomers.length === 0 && query !== '' ? (
+                                                    <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                                                        Nothing found.
+                                                    </div>
+                                                ) : (
+                                                    filteredCustomers.map((customer) => (
+                                                        <div
+                                                            key={customer.customerId}
+                                                            className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-blue-50 transition-colors"
+                                                            onClick={() => handleCustomerChange(customer)}
+                                                        >
+                                                            <span className={`block truncate ${selectedCustomer?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
+                                                                {customer.customerName}
+                                                            </span>
+                                                            {selectedCustomer?.customerId === customer.customerId ? (
+                                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600">
+                                                                  <Check className="h-5 w-5" aria-hidden="true" />
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </PortalDropdown>
+                                        </div>
                                     </div>
                                 </div>
 

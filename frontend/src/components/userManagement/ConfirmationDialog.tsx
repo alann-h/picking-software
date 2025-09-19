@@ -1,5 +1,4 @@
-import React, { Fragment } from 'react';
-import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { AlertTriangle, Info, CheckCircle, XCircle } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -22,6 +21,16 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   confirmText = 'Confirm',
   confirmColor = 'primary',
 }) => {
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            setIsVisible(true);
+        } else {
+            setIsVisible(false);
+        }
+    }, [open]);
+
     const colorSchemes = {
         primary: {
             bg: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
@@ -51,74 +60,49 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
     const scheme = colorSchemes[confirmColor] || colorSchemes.primary;
 
-    return (
-        <Transition appear show={open} as={Fragment}>
-            <Dialog as="div" className="relative z-10" onClose={onClose}>
-                <TransitionChild
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0"
-                    enterTo="opacity-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100"
-                    leaveTo="opacity-0"
-                >
-                    <div className="fixed inset-0 bg-black/30 bg-black/30" />
-                </TransitionChild>
+    if (!open) return null;
 
-                <div className="fixed inset-0 overflow-y-auto">
-                    <div className="flex min-h-full items-center justify-center p-4 text-center">
-                        <TransitionChild
-                            as={Fragment}
-                            enter="ease-out duration-300"
-                            enterFrom="opacity-0 scale-95"
-                            enterTo="opacity-100 scale-100"
-                            leave="ease-in duration-200"
-                            leaveFrom="opacity-100 scale-100"
-                            leaveTo="opacity-0 scale-95"
-                        >
-                            <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                                <div className="flex items-start gap-4">
-                                    <div className="flex-shrink-0">
-                                        {scheme.icon}
-                                    </div>
-                                    <div className="flex-1">
-                                        <DialogTitle as="h3" className="text-lg font-bold leading-6 text-gray-900">
-                                            {title}
-                                        </DialogTitle>
-                                        <div className="mt-2">
-                                            <p className="text-sm text-gray-600">
-                                                {content}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="mt-6 flex justify-end gap-3">
-                                    <button
-                                        type="button"
-                                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
-                                        onClick={onClose}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={clsx(
-                                            'inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer',
-                                            scheme.bg
-                                        )}
-                                        onClick={onConfirm}
-                                    >
-                                        {confirmText}
-                                    </button>
-                                </div>
-                            </DialogPanel>
-                        </TransitionChild>
+    return (
+        <div className="fixed inset-0 z-10 flex items-center justify-center">
+            <div className="fixed inset-0 bg-black/30 bg-black/30" />
+            <div className="relative z-10 w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                        {scheme.icon}
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-lg font-bold leading-6 text-gray-900">
+                            {title}
+                        </h3>
+                        <div className="mt-2">
+                            <p className="text-sm text-gray-600">
+                                {content}
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </Dialog>
-        </Transition>
+                
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
+                        onClick={onClose}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        className={clsx(
+                            'inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer',
+                            scheme.bg
+                        )}
+                        onClick={onConfirm}
+                    >
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 };
 

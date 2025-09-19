@@ -1,8 +1,7 @@
-import React, { useState, useMemo, Fragment } from 'react';
-import { Dialog, Transition, Switch as HeadlessSwitch, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Product } from '../utils/types';
 import { useSnackbarContext } from './SnackbarContext';
-import { Loader2, Plus, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, AlertTriangle, X } from 'lucide-react';
 import clsx from 'clsx';
 
 interface ProductListProps {
@@ -14,6 +13,62 @@ interface ProductListProps {
   addProductDb: (_productName: string, _sku: string, _barcode: string) => Promise<string>;
   isAdmin: boolean;
 }
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  actions: React.ReactNode;
+}
+
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, actions }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 bg-black/30">
+      <div
+        ref={modalRef}
+        className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all cursor-default"
+      >
+        <div className="flex justify-between items-center text-lg font-medium leading-6 text-gray-900">
+          <h3>{title}</h3>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
+          >
+            <X className="h-6 w-6 text-gray-500" />
+          </button>
+        </div>
+        <div className="mt-2">
+          <hr className="-mx-6" />
+        </div>
+        <div className="mt-4">
+          {children}
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          {actions}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ProductList: React.FC<ProductListProps> = ({
   products,
@@ -50,11 +105,11 @@ const ProductList: React.FC<ProductListProps> = ({
     setOpenEdit(false);
   };
 
-  const handleChangeEdit = <K extends keyof Product>(field: K, value: Product[K]) => {
+  const handleChangeEdit = useCallback(<K extends keyof Product>(field: K, value: Product[K]) => {
     if (selectedProduct) {
       setSelectedProduct({ ...selectedProduct, [field]: value });
     }
-  };
+  }, [selectedProduct]);
 
   const handleSaveEdit = async () => {
     if (!selectedProduct) return;
@@ -77,12 +132,11 @@ const ProductList: React.FC<ProductListProps> = ({
   const handleArchiveAction = async () => {
     if (!selectedProduct) return;
 
-    const newStatus = !selectedProduct.isArchived; 
+    const newStatus = !selectedProduct.isArchived;
     const successMessage = newStatus ? 'Product archived successfully' : 'Product restored successfully';
 
     try {
       await setProductArchiveStatus(selectedProduct.productId, newStatus);
-      
       handleOpenSnackbar(successMessage, 'success');
       onRefresh();
       handleCloseEdit();
@@ -119,10 +173,10 @@ const ProductList: React.FC<ProductListProps> = ({
   };
 
   const renderInputField = (
-    label: string, 
-    value: string | number | null | undefined, 
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, 
-    type: string = 'text', 
+    label: string,
+    value: string | number | null | undefined,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+    type: string = 'text',
     readOnly: boolean = false,
     required: boolean = false,
     placeholder: string = '',
@@ -138,60 +192,13 @@ const ProductList: React.FC<ProductListProps> = ({
         readOnly={readOnly}
         required={required}
         placeholder={placeholder}
-        className={`mt-1 block w-full rounded-md ${borderColorClass} px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100`}
+        className={clsx(
+          `mt-1 block w-full rounded-md px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100`,
+          borderColorClass
+        )}
         disabled={readOnly}
       />
     </div>
-  );
-
-  const renderModal = (
-    isOpen: boolean,
-    onClose: () => void,
-    title: string,
-    children: React.ReactNode,
-    actions: React.ReactNode
-  ) => (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={onClose}>
-        <TransitionChild
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/30 bg-black/30" />
-        </TransitionChild>
-
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <TransitionChild
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                <DialogTitle as="h3" className="text-lg font-medium leading-6 text-gray-900">
-                  {title}
-                </DialogTitle>
-                <div className="mt-4">
-                  {children}
-                </div>
-                <div className="mt-6 flex justify-end gap-3">
-                  {actions}
-                </div>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
-        </div>
-      </Dialog>
-    </Transition>
   );
 
   return (
@@ -213,10 +220,10 @@ const ProductList: React.FC<ProductListProps> = ({
             </button>
             <div className="flex items-center">
               <label htmlFor="show-archived" className="mr-2 text-sm font-medium text-gray-700">Show Archived</label>
-              <HeadlessSwitch
+              <button
+                type="button"
                 id="show-archived"
-                checked={showArchived}
-                onChange={setShowArchived}
+                onClick={() => setShowArchived(!showArchived)}
                 className={clsx(
                   'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
                   showArchived ? 'bg-blue-600' : 'bg-gray-200'
@@ -228,7 +235,7 @@ const ProductList: React.FC<ProductListProps> = ({
                     showArchived ? 'translate-x-5' : 'translate-x-0'
                   )}
                 />
-              </HeadlessSwitch>
+              </button>
             </div>
           </div>
           <p className="text-sm text-gray-600 mb-4">
@@ -273,72 +280,80 @@ const ProductList: React.FC<ProductListProps> = ({
           </div>
 
           {/* -------- Edit Product Dialog -------- */}
-          {renderModal(
-            openEdit,
-            handleCloseEdit,
-            'Edit Product',
-            <div className="space-y-4">
-              {renderInputField('Product Name', selectedProduct?.productName, (e) => handleChangeEdit('productName', e.target.value), 'text', !isAdmin)}
-              {renderInputField('Price', selectedProduct?.price, (e) => handleChangeEdit('price', parseFloat(e.target.value)), 'number', !isAdmin)}
-              {renderInputField('Barcode', selectedProduct?.barcode, (e) => handleChangeEdit('barcode', e.target.value), 'text', !isAdmin)}
-              {renderInputField('Quantity On Hand', selectedProduct?.quantityOnHand, (e) => handleChangeEdit('quantityOnHand', parseInt(e.target.value, 10)), 'number', !isAdmin)}
-              {renderInputField('SKU', selectedProduct?.sku, (e) => handleChangeEdit('sku', e.target.value), 'text', !isAdmin)}
-            </div>,
-            <>
-              <button onClick={handleArchiveAction} className={clsx(
-                "inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer",
-                selectedProduct?.isArchived ? "bg-green-100 text-green-900 hover:bg-green-200 focus:ring-green-500" : "bg-red-100 text-red-900 hover:bg-red-200 focus:ring-red-500"
-              )}>
-                {selectedProduct?.isArchived ? 'Restore' : 'Archive'}
-              </button>
-              <button onClick={handleCloseEdit} className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
-                Cancel
-              </button>
-              <button onClick={handleSaveEdit} className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
-                Save
-              </button>
-            </>
-          )}
+          <Modal
+            isOpen={openEdit}
+            onClose={handleCloseEdit}
+            title="Edit Product"
+            children={
+              <div className="space-y-4">
+                {renderInputField('Product Name', selectedProduct?.productName, (e) => handleChangeEdit('productName', e.target.value), 'text', !isAdmin)}
+                {renderInputField('Price', selectedProduct?.price, (e) => handleChangeEdit('price', parseFloat(e.target.value)), 'number', !isAdmin)}
+                {renderInputField('Barcode', selectedProduct?.barcode, (e) => handleChangeEdit('barcode', e.target.value), 'text', !isAdmin)}
+                {renderInputField('Quantity On Hand', selectedProduct?.quantityOnHand, (e) => handleChangeEdit('quantityOnHand', parseInt(e.target.value, 10)), 'number', !isAdmin)}
+                {renderInputField('SKU', selectedProduct?.sku, (e) => handleChangeEdit('sku', e.target.value), 'text', !isAdmin)}
+              </div>
+            }
+            actions={
+              <>
+                <button onClick={handleArchiveAction} className={clsx(
+                  "inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer",
+                  selectedProduct?.isArchived ? "bg-green-100 text-green-900 hover:bg-green-200 focus:ring-green-500" : "bg-red-100 text-red-900 hover:bg-red-200 focus:ring-red-500"
+                )}>
+                  {selectedProduct?.isArchived ? 'Restore' : 'Archive'}
+                </button>
+                <button onClick={handleCloseEdit} className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+                  Cancel
+                </button>
+                <button onClick={handleSaveEdit} className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+                  Save
+                </button>
+              </>
+            }
+          />
 
           {/* -------- Add Product Dialog -------- */}
-          {renderModal(
-            openAdd,
-            handleCloseAdd,
-            'Add New Product',
-            <div className="space-y-4">
-              <div className="rounded-md bg-yellow-50 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">Warning</h3>
-                    <div className="mt-2 text-sm text-yellow-700">
-                      <p>
-                        This product must already exist in QuickBooks with the exact same name and SKU, otherwise enrichment will fail.
-                      </p>
+          <Modal
+            isOpen={openAdd}
+            onClose={handleCloseAdd}
+            title="Add New Product"
+            children={
+              <div className="space-y-4">
+                <div className="rounded-md bg-yellow-50 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-yellow-800">Warning</h3>
+                      <div className="mt-2 text-sm text-yellow-700">
+                        <p>
+                          This product must already exist in QuickBooks with the exact same name and SKU, otherwise enrichment will fail.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
+                {renderInputField('Product Name', newProductName, (e) => setNewProductName(e.target.value), 'text', false, true, "New product name", "border-black")}
+                {renderInputField('SKU', newSku, (e) => setNewSku(e.target.value), 'text', false, true, "Product SKU", "border-black")}
+                {renderInputField('Barcode', newBarcode, (e) => setNewBarcode(e.target.value), 'text', false, false, "Product barcode", "border-black")}
               </div>
-              {renderInputField('Product Name', newProductName, (e) => setNewProductName(e.target.value), 'text', false, true, "New product name", "border-black")}
-              {renderInputField('SKU', newSku, (e) => setNewSku(e.target.value), 'text', false, true, "Product SKU", "border-black")}
-              {renderInputField('Barcode', newBarcode, (e) => setNewBarcode(e.target.value), 'text', false, false, "Product barcode", "border-black")}
-            </div>,
-            <>
-              <button onClick={handleCloseAdd} className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
-                Cancel
-              </button>
-              <button
-                onClick={handleAdd}
-                disabled={isAdding}
-                className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isAdding ? 'Adding…' : 'Add'}
-              </button>
-            </>
-          )}
+            }
+            actions={
+              <>
+                <button onClick={handleCloseAdd} className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAdd}
+                  disabled={isAdding}
+                  className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isAdding ? 'Adding…' : 'Add'}
+                </button>
+              </>
+            }
+          />
         </>
       )}
     </>

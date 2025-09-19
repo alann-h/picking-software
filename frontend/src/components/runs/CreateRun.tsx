@@ -1,11 +1,10 @@
 import React, { useState, useMemo, Suspense, useTransition, Fragment } from 'react';
-import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles } from 'lucide-react';
+import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles, ChevronDown } from 'lucide-react';
 import { DndContext, DragEndEvent, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Combobox, Transition, ComboboxInput, ComboboxOption, ComboboxOptions } from '@headlessui/react'
 import { Customer, QuoteSummary } from '../../utils/types';
 import { getCustomers } from '../../api/customers';
 import { getCustomerQuotes } from '../../api/quote';
@@ -14,6 +13,7 @@ import { useSnackbarContext } from '../SnackbarContext';
 import { useSearchParams } from 'react-router-dom';
 import { AvailableQuotesSkeleton } from '../Skeletons'
 import { useAuth } from '../../hooks/useAuth';
+import PortalDropdown from '../PortalDropdown';
 
 // --- UI COMPONENTS ---
 const EmptyState = ({ text, className = "", icon: Icon = Inbox }: { text: string, className?: string, icon?: React.ComponentType<React.SVGProps<SVGSVGElement>> }) => (
@@ -165,6 +165,8 @@ export const CreateRun: React.FC = () => {
     const [runsToCreate, setRunsToCreate] = useState<RunBuilder[]>([]);
     const [activeDraggedItem, setActiveDraggedItem] = useState<QuoteSummary | null>(null);
     const [customerQuery, setCustomerQuery] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const triggerRef = React.useRef<HTMLDivElement>(null);
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],
@@ -190,6 +192,7 @@ export const CreateRun: React.FC = () => {
         startTransition(() => {
             setSearchParams(customer ? { customerId: customer.customerId } : {});
         });
+        setIsDropdownOpen(false);
     };
 
     const stagedQuoteIds = useMemo(() => new Set(stagedQuotes.map(q => q.id)), [stagedQuotes]);
@@ -332,59 +335,49 @@ export const CreateRun: React.FC = () => {
                                 <Users className="w-5 h-5 text-blue-500" />
                                 <p className="text-lg font-medium text-gray-900">Select a Customer</p>
                             </div>
-                            <Combobox value={selectedCustomer} onChange={handleCustomerChange}>
-                                <div className="relative">
-                                    <div className="relative w-full cursor-default overflow-hidden rounded-xl bg-white text-left shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
-                                        <Search className="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-gray-400" aria-hidden="true" />
-                                        <ComboboxInput
-                                            className="w-full border-none py-3 pl-12 pr-4 text-sm leading-5 text-gray-900 focus:ring-0 placeholder-gray-500"
-                                            displayValue={(customer: Customer | null) => customer?.customerName || ''}
-                                            onChange={(event) => setCustomerQuery(event.target.value)}
-                                            placeholder="Search by customer name..."
-                                        />
-                                    </div>
-                                    <Transition
-                                        as={Fragment}
-                                        leave="transition ease-in duration-100"
-                                        leaveFrom="opacity-100"
-                                        leaveTo="opacity-0"
-                                        afterLeave={() => setCustomerQuery('')}
+                            <div ref={triggerRef} className="relative">
+                                <div className="relative w-full cursor-default overflow-hidden rounded-xl bg-white text-left shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+                                    <Search className="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-gray-400" aria-hidden="true" />
+                                    <input
+                                        className="w-full border-none py-3 pl-12 pr-10 text-sm leading-5 text-gray-900 focus:ring-0 placeholder-gray-500 bg-transparent"
+                                        value={selectedCustomer?.customerName || customerQuery}
+                                        onChange={(event) => setCustomerQuery(event.target.value)}
+                                        onFocus={() => setIsDropdownOpen(true)}
+                                        placeholder="Search customers..."
+                                    />
+                                    <button 
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3"
+                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                     >
-                                        <ComboboxOptions className="absolute mt-2 max-h-60 w-full overflow-auto rounded-xl bg-white py-2 text-base shadow-xl ring-1 ring-black/5 focus:outline-none sm:text-sm z-20 border border-gray-200">
-                                        {filteredCustomers.length === 0 && customerQuery !== '' ? (
-                                            <div className="relative cursor-default select-none px-4 py-3 text-gray-500 text-center">
-                                            No customers found.
-                                            </div>
-                                        ) : (
-                                            filteredCustomers.map((customer) => (
-                                            <ComboboxOption
-                                                key={customer.customerId}
-                                                className="group relative cursor-pointer select-none py-3 pl-12 pr-4 text-gray-900 data-[active]:bg-blue-50 hover:bg-blue-50 transition-colors"
-                                                value={customer}
-                                            >
-                                                {({ selected }) => (
-                                                <>
-                                                    <span
-                                                    className={`block truncate ${
-                                                        selected ? 'font-semibold text-blue-900' : 'font-normal'
-                                                    }`}
-                                                    >
-                                                    {customer.customerName}
-                                                    </span>
-                                                     {selected ? (
-                                                      <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-blue-600">
-                                                        <Check className="h-5 w-5" aria-hidden="true" />
-                                                      </span>
-                                                    ) : null}
-                                                </>
-                                                )}
-                                            </ComboboxOption>
-                                            ))
-                                        )}
-                                        </ComboboxOptions>
-                                    </Transition>
+                                        <ChevronDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
+                                    </button>
                                 </div>
-                            </Combobox>
+                                
+                                <PortalDropdown isOpen={isDropdownOpen} triggerRef={triggerRef} setIsDropdownOpen={setIsDropdownOpen}>
+                                    {filteredCustomers.length === 0 && customerQuery !== '' ? (
+                                        <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                                            Nothing found.
+                                        </div>
+                                    ) : (
+                                        filteredCustomers.map((customer) => (
+                                            <div
+                                                key={customer.customerId}
+                                                className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-blue-50 transition-colors"
+                                                onClick={() => handleCustomerChange(customer)}
+                                            >
+                                                <span className={`block truncate ${selectedCustomer?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
+                                                    {customer.customerName}
+                                                </span>
+                                                {selectedCustomer?.customerId === customer.customerId ? (
+                                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600">
+                                                      <Check className="h-5 w-5" aria-hidden="true" />
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                        ))
+                                    )}
+                                </PortalDropdown>
+                            </div>
                         </div>
                         <div className="lg:col-span-7">
                             <div className="flex items-center space-x-2 mb-4">

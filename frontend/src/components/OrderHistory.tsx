@@ -15,7 +15,6 @@ import {
   ChevronsUpDown,
   ExternalLink
 } from 'lucide-react';
-import { Listbox, Transition, Disclosure, DisclosureButton, DisclosurePanel, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/react'
 
 
 // Context and API Imports
@@ -104,97 +103,73 @@ interface FilterSectionProps {
 }
 
 const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, onClearFilters, orderStatuses }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <Disclosure as="div" className="p-4 md:p-6 mb-4 rounded-lg bg-gray-50">
-      {({ open }) => (
-        <>
-          <DisclosureButton className="w-full flex justify-between items-center text-left cursor-pointer">
-            <h2 className="text-lg font-semibold text-gray-800">Filters</h2>
-            <div className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800">
-              {open ? 'Hide' : 'Show'} Filters <ListFilter className="w-4 h-4" />
+    <div className="p-4 md:p-6 mb-4 rounded-lg bg-gray-50">
+      <button 
+        className="w-full flex justify-between items-center text-left cursor-pointer"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <h2 className="text-lg font-semibold text-gray-800">Filters</h2>
+        <div className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800">
+          {isOpen ? 'Hide' : 'Show'} Filters <ListFilter className="w-4 h-4" />
+        </div>
+      </button>
+      
+      {isOpen && (
+        <div className="mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Customer Name Filter */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Customer Name"
+                value={filters.customerName}
+                onChange={(e) => onFilterChange('customerName', e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+              />
             </div>
-          </DisclosureButton>
-          <Transition
-            enter="transition duration-100 ease-out"
-            enterFrom="transform scale-95 opacity-0"
-            enterTo="transform scale-100 opacity-100"
-            leave="transition duration-75 ease-out"
-            leaveFrom="transform scale-100 opacity-100"
-            leaveTo="transform scale-95 opacity-0"
-          >
-            <DisclosurePanel as="div" className="mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {/* Customer Name Filter */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Customer Name"
-                    value={filters.customerName}
-                    onChange={(e) => onFilterChange('customerName', e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  />
-                </div>
-                {/* Order Status Filter */}
-                <div>
-                  <Listbox value={filters.orderStatus} onChange={(value) => onFilterChange('orderStatus', value)}>
-                    <div className="relative">
-                      <ListboxButton className="relative w-full cursor-pointer rounded-md bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm">
-                        <span className="block truncate">{filters.orderStatus || 'All Statuses'}</span>
-                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                          <ChevronsUpDown className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                        </span>
-                      </ListboxButton>
-                      <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
-                        <ListboxOptions className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10">
-                          <ListboxOption value="" className={({ focus }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ focus ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
-                            {({ selected }) => (
-                              <>
-                                <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>All Statuses</span>
-                                {selected ? <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600"><Check className="h-5 w-5" aria-hidden="true" /></span> : null}
-                              </>
-                            )}
-                          </ListboxOption>
-                          {orderStatuses.map((status) => (
-                            <ListboxOption key={status} value={status} className={({ focus }) =>`relative cursor-pointer select-none py-2 pl-10 pr-4 ${ focus ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}>
-                              {({ selected }) => (
-                                <>
-                                  <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>{status}</span>
-                                  {selected ? <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600"><Check className="h-5 w-5" aria-hidden="true" /></span> : null}
-                                </>
-                              )}
-                            </ListboxOption>
-                          ))}
-                        </ListboxOptions>
-                      </Transition>
-                    </div>
-                  </Listbox>
-                </div>
-                {/* Quote Number Filter */}
-                <div className="relative">
-                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Quote Number"
-                    value={filters.quoteNumber}
-                    onChange={(e) => onFilterChange('quoteNumber', e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end mt-4">
-                <button
-                  onClick={onClearFilters}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+            {/* Order Status Filter */}
+            <div>
+              <div className="relative">
+                <select
+                  value={filters.orderStatus}
+                  onChange={(e) => onFilterChange('orderStatus', e.target.value)}
+                  className="relative w-full cursor-pointer rounded-md bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
                 >
-                  <X className="w-4 h-4" /> Clear All Filters
-                </button>
+                  <option value="">All Statuses</option>
+                  {orderStatuses.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+                <ChevronsUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
               </div>
-            </DisclosurePanel>
-          </Transition>
-        </>
+            </div>
+            {/* Quote Number Filter */}
+            <div className="relative">
+              <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Quote Number"
+                value={filters.quoteNumber}
+                onChange={(e) => onFilterChange('quoteNumber', e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={onClearFilters}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+            >
+              <X className="w-4 h-4" /> Clear All Filters
+            </button>
+          </div>
+        </div>
       )}
-    </Disclosure>
+    </div>
   );
 };
 

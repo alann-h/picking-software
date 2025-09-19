@@ -1,5 +1,4 @@
-import React, { Fragment } from 'react';
-import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, LoaderCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { ProductDetail, QuoteData } from '../utils/types';
@@ -19,6 +18,16 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
   onProceed,
   isLoading,
 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsVisible(true);
+    } else {
+      setIsVisible(false);
+    }
+  }, [isOpen]);
+
   const productsToReview = React.useMemo(() => {
     if (!quoteData?.productInfo) return [];
     return Object.values(quoteData.productInfo).filter((product) =>
@@ -111,75 +120,47 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
     );
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={onClose}>
-        <TransitionChild
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/20 bg-black/30" />
-        </TransitionChild>
-
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <TransitionChild
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <DialogPanel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                <DialogTitle
-                  as="h3"
-                  className="text-lg font-medium leading-6 text-gray-900 flex items-center gap-2"
-                >
-                  <AlertTriangle className="text-blue-600" />
-                  Review Before Sending To Admin
-                </DialogTitle>
-                <div className="mt-4">
-                  {renderContent()}
-                </div>
-
-                <div className="mt-6 flex justify-end gap-4">
-                  <button
-                    type="button"
-                    className="inline-flex justify-center rounded-md border border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 disabled:opacity-50 cursor-pointer"
-                    onClick={onClose}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex justify-center items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:bg-blue-300 disabled:cursor-not-allowed cursor-pointer"
-                    onClick={handleProceed}
-                    disabled={hasPendingProducts || isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <LoaderCircle className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-                        Processing...
-                      </>
-                    ) : (
-                      'Confirm & Send'
-                    )}
-                  </button>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
+    <div className="fixed inset-0 z-10 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/20 bg-black/30" />
+      <div className="relative z-10 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+        <h3 className="text-lg font-medium leading-6 text-gray-900 flex items-center gap-2">
+          <AlertTriangle className="text-blue-600" />
+          Review Before Sending To Admin
+        </h3>
+        <div className="mt-4">
+          {renderContent()}
         </div>
-      </Dialog>
-    </Transition>
+
+        <div className="mt-6 flex justify-end gap-4">
+          <button
+            type="button"
+            className="inline-flex justify-center rounded-md border border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 disabled:opacity-50 cursor-pointer"
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="inline-flex justify-center items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:bg-blue-300 disabled:cursor-not-allowed cursor-pointer"
+            onClick={handleProceed}
+            disabled={hasPendingProducts || isLoading}
+          >
+            {isLoading ? (
+              <>
+                <LoaderCircle className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
+                Processing...
+              </>
+            ) : (
+              'Confirm & Send'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

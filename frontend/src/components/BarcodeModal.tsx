@@ -1,5 +1,4 @@
-import React, { useState, useEffect, ChangeEvent, Fragment } from 'react';
-import { Dialog, Transition, RadioGroup, DialogPanel, DialogTitle, Label, Radio, TransitionChild } from '@headlessui/react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { QrCode, X, Plus, Minus, Calculator, Sigma } from 'lucide-react';
 import { cn } from '../utils/other';
 
@@ -76,7 +75,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirmClick = () => {
     onConfirm(parsedQty);
     onClose();
   };
@@ -91,185 +90,151 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
     return 'text-green-600 border-green-200 bg-green-50';
   }
 
+  if (!isOpen) return null;
+
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <TransitionChild
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/30" />
-        </TransitionChild>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/30" />
+      <div className="relative z-50 w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all cursor-default">
+        {/* Header */}
+        <div className="flex justify-between items-center text-lg font-medium leading-6 text-gray-900">
+          <div className="flex items-center gap-2">
+            <QrCode className="h-6 w-6 text-indigo-600" />
+            <span>Barcode Scan</span>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
+            <X className="h-6 w-6 text-gray-500" />
+          </button>
+        </div>
+        <p className="text-sm text-gray-500 mt-1">{productName}</p>
 
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center cursor-pointer">
-            <TransitionChild
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all cursor-default">
-                <DialogTitle
-                  as="h3"
-                  className="text-lg font-medium leading-6 text-gray-900 flex justify-between items-center"
-                >
-                  <div className="flex items-center gap-2">
-                    <QrCode className="h-6 w-6 text-indigo-600" />
-                    <span>Barcode Scan</span>
-                  </div>
-                  <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
-                    <X className="h-6 w-6 text-gray-500" />
-                  </button>
-                </DialogTitle>
-                <p className="text-sm text-gray-500 mt-1">{productName}</p>
+        {/* Content */}
+        <div className="mt-4 space-y-4">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm font-medium text-blue-800">Available Quantity</p>
+            <p className="text-2xl font-bold text-blue-800">{availableQty}</p>
+          </div>
 
-                <div className="mt-4 space-y-4">
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                    <p className="text-sm font-medium text-blue-800">Available Quantity</p>
-                    <p className="text-2xl font-bold text-blue-800">{availableQty}</p>
-                  </div>
+          <div>
+            <div className="flex space-x-2">
+              <label className="sr-only">Input Method</label>
+              <button
+                type="button"
+                onClick={() => setIsFractionMode(false)}
+                className={cn(
+                  'flex-1 cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:outline-none',
+                  !isFractionMode
+                    ? 'border-indigo-600 bg-indigo-600 text-white'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                )}
+              >
+                <div className="flex items-center justify-center">
+                  <Calculator className="mr-2 h-4 w-4" />
+                  Decimal
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsFractionMode(true)}
+                className={cn(
+                  'flex-1 cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:outline-none',
+                  isFractionMode
+                    ? 'border-indigo-600 bg-indigo-600 text-white'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                )}
+              >
+                <div className="flex items-center justify-center">
+                  <Sigma className="mr-2 h-4 w-4" />
+                  Fraction
+                </div>
+              </button>
+            </div>
+          </div>
 
-                  <div>
-                    <RadioGroup
-                      value={isFractionMode ? 'fraction' : 'decimal'}
-                      onChange={(value) => setIsFractionMode(value === 'fraction')}
-                      className="flex space-x-2"
-                    >
-                      <Label className="sr-only">Input Method</Label>
-                      <Radio
-                        value="decimal"
-                        className={({ checked }) =>
-                          `flex-1 cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
-                            checked
-                              ? 'border-indigo-600 bg-indigo-600 text-white'
-                              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                          }`
-                        }
-                      >
-                        <div className="flex items-center justify-center">
-                          <Calculator className="mr-2 h-4 w-4" />
-                          Decimal
-                        </div>
-                      </Radio>
-                      <Radio
-                        value="fraction"
-                        className={({ checked }) =>
-                          `flex-1 cursor-pointer rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
-                            checked
-                              ? 'border-indigo-600 bg-indigo-600 text-white'
-                              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                          }`
-                        }
-                      >
-                        <div className="flex items-center justify-center">
-                          <Sigma className="mr-2 h-4 w-4" />
-                          Fraction
-                        </div>
-                      </Radio>
-                    </RadioGroup>
-                  </div>
-
-                  {isFractionMode ? (
-                    <div className="space-y-4">
-                       <div>
-                         <label htmlFor="numerator" className="block text-sm font-medium text-gray-700">Units</label>
-                         <input id="numerator" type="number" value={numeratorInput} onChange={handleNumeratorChange} min={0} step={1} className="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                       </div>
-                       <div>
-                         <label htmlFor="denominator" className="block text-sm font-medium text-gray-700">Units in Box</label>
-                         <input id="denominator" type="number" value={denominatorInput} onChange={handleDenominatorChange} min={1} step={1} className={cn('mt-1 block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm', isInvalidFraction && 'border-red-500 ring-red-500 focus:border-red-500 focus:ring-red-500')} />
-                         {isInvalidFraction && <p className="mt-1 text-sm text-red-600">Denominator must be greater than 0</p>}
-                       </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Quantity</label>
-                      <div className="relative mt-1 flex rounded-md shadow-sm">
-                        <button
-                          type="button"
-                          onClick={handleDecrement}
-                          className={cn(
-                            'relative inline-flex items-center rounded-l-md border bg-gray-50 px-3 text-gray-500 hover:bg-gray-100 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50',
-                            (isTooLow || isTooHigh) ? 'border-red-300' : 'border-gray-300',
-                            (isTooLow || isTooHigh) && 'focus:border-red-500 focus:ring-red-500'
-                          )}
-                        >
-                          <Minus className="h-4 w-4"/>
-                        </button>
-                        <input
-                          id="quantity"
-                          type="number"
-                          value={decimalInput}
-                          onChange={handleDecimalChange}
-                          min={0}
-                          step={1.00}
-                          className={cn(
-                            '-ml-px block w-full flex-1 border py-2 text-center sm:text-sm focus:z-10 focus:outline-none focus:ring-1',
-                            (isTooLow || isTooHigh)
-                              ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
-                              : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-                          )}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleIncrement}
-                          className={cn(
-                            'relative -ml-px inline-flex items-center rounded-r-md border bg-gray-50 px-3 text-gray-500 hover:bg-gray-100 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50',
-                            (isTooLow || isTooHigh) ? 'border-red-300' : 'border-gray-300',
-                            (isTooLow || isTooHigh) && 'focus:border-red-500 focus:ring-red-500'
-                          )}
-                        >
-                          <Plus className="h-4 w-4"/>
-                        </button>
-                      </div>
-                      {isTooLow && <p className="mt-1 text-sm text-red-600">Quantity must be greater than 0</p>}
-                      {isTooHigh && <p className="mt-1 text-sm text-yellow-600">{`Cannot exceed available quantity (${availableQty})`}</p>}
-                    </div>
+          {isFractionMode ? (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="numerator" className="block text-sm font-medium text-gray-700">Units</label>
+                <input id="numerator" type="number" value={numeratorInput} onChange={handleNumeratorChange} min={0} step={1} className="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+              </div>
+              <div>
+                <label htmlFor="denominator" className="block text-sm font-medium text-gray-700">Units in Box</label>
+                <input id="denominator" type="number" value={denominatorInput} onChange={handleDenominatorChange} min={1} step={1} className={cn('mt-1 block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm', isInvalidFraction && 'border-red-500 ring-red-500 focus:border-red-500 focus:ring-red-500')} />
+                {isInvalidFraction && <p className="mt-1 text-sm text-red-600">Denominator must be greater than 0</p>}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">Quantity</label>
+              <div className="relative mt-1 flex rounded-md shadow-sm">
+                <button
+                  type="button"
+                  onClick={handleDecrement}
+                  className={cn(
+                    'relative inline-flex items-center rounded-l-md border bg-gray-50 px-3 text-gray-500 hover:bg-gray-100 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50',
+                    (isTooLow || isTooHigh) ? 'border-red-300' : 'border-gray-300',
                   )}
+                >
+                  <Minus className="h-4 w-4"/>
+                </button>
+                <input
+                  id="quantity"
+                  type="number"
+                  value={decimalInput}
+                  onChange={handleDecimalChange}
+                  min={0}
+                  step={1.00}
+                  className={cn(
+                    '-ml-px block w-full flex-1 border py-2 text-center sm:text-sm focus:z-10 focus:outline-none focus:ring-1',
+                    (isTooLow || isTooHigh)
+                      ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  className={cn(
+                    'relative -ml-px inline-flex items-center rounded-r-md border bg-gray-50 px-3 text-gray-500 hover:bg-gray-100 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50',
+                    (isTooLow || isTooHigh) ? 'border-red-300' : 'border-gray-300',
+                  )}
+                >
+                  <Plus className="h-4 w-4"/>
+                </button>
+              </div>
+              {isTooLow && <p className="mt-1 text-sm text-red-600">Quantity must be greater than 0</p>}
+              {isTooHigh && <p className="mt-1 text-sm text-yellow-600">{`Cannot exceed available quantity (${availableQty})`}</p>}
+            </div>
+          )}
 
-                  <div className={cn(
-                      "mt-4 rounded-lg border p-4",
-                      getCalculatedValueColor()
-                    )}>
-                    <p className="text-sm">Calculated Value:</p>
-                    <p className='text-2xl font-bold'>
-                      {typeof parsedQty === 'number' && !isNaN(parsedQty) ? parsedQty.toFixed(2) : '0.00'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex justify-end gap-4">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleConfirm}
-                    disabled={isTooLow || isTooHigh || isInvalidFraction}
-                    className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  >
-                    Confirm
-                  </button>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
+          <div className={cn("mt-4 rounded-lg border p-4", getCalculatedValueColor())}>
+            <p className="text-sm">Calculated Value:</p>
+            <p className='text-2xl font-bold'>
+              {typeof parsedQty === 'number' && !isNaN(parsedQty) ? parsedQty.toFixed(2) : '0.00'}
+            </p>
           </div>
         </div>
-      </Dialog>
-    </Transition>
+
+        {/* Footer */}
+        <div className="mt-6 flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmClick}
+            disabled={isTooLow || isTooHigh || isInvalidFraction}
+            className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -20,7 +20,9 @@ export async function createBulkRunController(req: Request, res: Response, next:
         return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-        const newRun = await createBulkRun(orderedQuoteIds, companyId, connectionType, runName);
+        // Convert quote IDs to strings to match database schema
+        const stringQuoteIds = orderedQuoteIds.map((id: any) => String(id));
+        const newRun = await createBulkRun(stringQuoteIds, companyId, connectionType, runName);
         res.status(201).json(newRun);
     } catch (error) {
         next(error);

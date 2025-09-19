@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Upload,
   ChevronDown,
@@ -10,9 +10,9 @@ import {
   Check,
   ChevronsUpDown,
 } from 'lucide-react';
-import { Combobox, Transition, Disclosure, DisclosureButton, DisclosurePanel, ComboboxInput, ComboboxButton, ComboboxOptions, ComboboxOption } from '@headlessui/react';
 import { uploadKyteCSV, getCustomersForMapping, createQuickBooksEstimates, getConversionHistory } from '../api/kyteConverter';
 import ItemDescription from './ItemDescription';
+import PortalDropdown from './PortalDropdown';
 
 // Interfaces (remain the same)
 interface Customer { customerId: string; customerName: string; }
@@ -60,6 +60,10 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [conversionHistory, setConversionHistory] = useState<ConversionHistoryItem[]>([]);
   const [query, setQuery] = useState('');
+  const [openDropdowns, setOpenDropdowns] = useState<{ [orderNumber: string]: boolean }>({});
+  const [expandedItems, setExpandedItems] = useState<{ [orderNumber: string]: boolean }>({});
+  const [showHistory, setShowHistory] = useState(false);
+  const dropdownRefs = useRef<{ [orderNumber: string]: React.RefObject<HTMLDivElement | null> }>({});
 
   useEffect(() => {
     loadCustomers();
@@ -117,17 +121,24 @@ const KyteToQuickBooksConverter: React.FC = () => {
 
   const handleCustomerChange = (orderNumber: string, customer: Customer | null) => {
     setOrders(prev => prev.map(order => order.number === orderNumber ? { ...order, customerId: customer?.customerId || '' } : order));
+    setOpenDropdowns(prev => ({ ...prev, [orderNumber]: false }));
   };
 
-  const filteredCustomers = query === ''
-    ? customers
-    : customers.filter((customer) =>
-        customer.customerName
-          .toLowerCase()
-          .replace(/\s+/g, '')
-          .includes(query.toLowerCase().replace(/\s+/g, ''))
-      );
+  const getDropdownRef = (orderNumber: string): React.RefObject<HTMLDivElement | null> => {
+    if (!dropdownRefs.current[orderNumber]) {
+      dropdownRefs.current[orderNumber] = React.createRef<HTMLDivElement | null>();
+    }
+    return dropdownRefs.current[orderNumber];
+  };
 
+  const toggleDropdown = (orderNumber: string) => {
+    setOpenDropdowns(prev => ({ ...prev, [orderNumber]: !prev[orderNumber] }));
+  };
+
+  const toggleItemsExpansion = (orderNumber: string) => {
+    setExpandedItems(prev => ({ ...prev, [orderNumber]: !prev[orderNumber] }));
+  };
+  
   const handleCreateEstimates = async () => {
     const unmappedOrders = orders.filter(order => !order.customerId);
     if (unmappedOrders.length > 0) {
@@ -183,6 +194,22 @@ const KyteToQuickBooksConverter: React.FC = () => {
       {orders.length > 0 && (
         <div className="p-6 rounded-lg bg-white shadow-sm">
           <h3 className="text-xl font-semibold mb-4">Step 2: Map Customers & Review Orders</h3>
+          {/* Moved the search bar here */}
+          <div className="mb-4">
+            <label htmlFor="customer-search" className="sr-only">Search Customers</label>
+            <div className="relative w-full rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+              <input
+                id="customer-search"
+                className="w-full border-none py-2.5 pl-4 pr-12 text-base leading-6 text-gray-900 focus:ring-0"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search customers..."
+              />
+              <span className="absolute inset-y-0 right-0 flex items-center pr-4">
+                <ChevronsUpDown className="h-6 w-6 text-gray-400" aria-hidden="true" />
+              </span>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -208,82 +235,93 @@ const KyteToQuickBooksConverter: React.FC = () => {
                           Customer on kyte order: <span className="font-medium text-gray-700">{order.customerName}</span>
                         </p>
                       )}
-                      <Combobox value={customers.find(c => c.customerId === order.customerId) || null} onChange={(customer) => handleCustomerChange(order.number, customer)}>
-                        <div className="relative">
-                          <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
-                            <ComboboxInput
-                              className="w-full border-none py-2.5 pl-4 pr-12 text-base leading-6 text-gray-900 focus:ring-0"
-                              displayValue={(customer: Customer | null) => customer?.customerName || ''}
-                              onChange={(event) => setQuery(event.target.value)}
-                              placeholder="Search customers..."
-                            />
-                            <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-4">
-                              <ChevronsUpDown className="h-6 w-6 text-gray-400 cursor-pointer" aria-hidden="true" />
-                            </ComboboxButton>
-                          </div>
-                          <Transition
-                            leave="transition ease-in duration-100"
-                            leaveFrom="opacity-100"
-                            leaveTo="opacity-0"
-                            afterLeave={() => setQuery('')}
+                      <div ref={getDropdownRef(order.number)} className="relative">
+                        <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                          <input
+                            className="w-full border-none py-2.5 pl-4 pr-12 text-base leading-6 text-gray-900 focus:ring-0"
+                            value={customers.find(c => c.customerId === order.customerId)?.customerName || ''}
+                            readOnly
+                            placeholder="Select customer..."
+                          />
+                          <button 
+                            className="absolute inset-y-0 right-0 flex items-center pr-4"
+                            onClick={() => toggleDropdown(order.number)}
                           >
-                            <ComboboxOptions className="absolute mt-1 max-h-72 w-full overflow-auto rounded-md bg-white py-2 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-[9999] border border-gray-300">
-                              {filteredCustomers.length === 0 && query !== '' ? (
-                                <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
-                                  Nothing found.
-                                </div>
-                              ) : (
-                                filteredCustomers.map((customer) => (
-                                  <ComboboxOption
-                                    key={customer.customerId}
-                                    className="group relative cursor-pointer select-none py-3 pl-12 pr-4 text-gray-900 data-[active]:bg-gray-100"
-                                    value={customer}
-                                  >
-                                    {({ selected }) => (
-                                      <div>
-                                        <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
-                                          {customer.customerName}
-                                        </span>
-                                        {selected ? (
-                                          <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-blue-600 group-data-[active]:text-blue-600">
-                                            <Check className="h-6 w-6" />
-                                          </span>
-                                        ) : null}
-                                      </div>
-                                    )}
-                                  </ComboboxOption>
-                                ))
-                              )}
-                            </ComboboxOptions>
-                          </Transition>
+                            <ChevronsUpDown className="h-6 w-6 text-gray-400 cursor-pointer" aria-hidden="true" />
+                          </button>
                         </div>
-                      </Combobox>
+                        
+                        <PortalDropdown 
+                          isOpen={openDropdowns[order.number] || false} 
+                          triggerRef={getDropdownRef(order.number)} 
+                          setIsDropdownOpen={(open) => setOpenDropdowns(prev => ({ ...prev, [order.number]: open }))}
+                          className="max-h-72 w-full overflow-auto rounded-md bg-white py-2 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-300"
+                        >
+                          {customers
+                            .filter((customer) =>
+                                customer.customerName
+                                .toLowerCase()
+                                .replace(/\s+/g, '')
+                                .includes(query.toLowerCase().replace(/\s+/g, ''))
+                            )
+                            .length === 0 && query !== '' ? (
+                            <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                              Nothing found.
+                            </div>
+                          ) : (
+                            customers
+                            .filter((customer) =>
+                                customer.customerName
+                                .toLowerCase()
+                                .replace(/\s+/g, '')
+                                .includes(query.toLowerCase().replace(/\s+/g, ''))
+                            )
+                            .map((customer) => (
+                              <div
+                                key={customer.customerId}
+                                className="group relative cursor-pointer select-none py-3 pl-12 pr-4 text-gray-900 hover:bg-gray-100 transition-colors"
+                                onClick={() => handleCustomerChange(order.number, customer)}
+                              >
+                                <span className={`block truncate ${customers.find(c => c.customerId === order.customerId)?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
+                                  {customer.customerName}
+                                </span>
+                                {customers.find(c => c.customerId === order.customerId)?.customerId === customer.customerId ? (
+                                  <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-blue-600">
+                                    <Check className="h-6 w-6" />
+                                  </span>
+                                ) : null}
+                              </div>
+                            ))
+                          )}
+                        </PortalDropdown>
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-sm">
-                      <Disclosure>
-                        {({ open }) => (
-                          <div>
-                            <DisclosureButton className="flex items-center gap-1 text-sm text-blue-600 cursor-pointer">
-                              {order.lineItems.length} items <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'transform rotate-180' : ''}`} />
-                            </DisclosureButton>
-                            <DisclosurePanel className="mt-2 space-y-2">
-                              {order.lineItems
-                                .slice()
-                                .sort((a, b) => Number(a.matched) - Number(b.matched))
-                                .map((item, index) => (
-                                <div key={index} className="p-2 rounded-md bg-gray-50">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    {item.matched ? <CheckCircle className="w-4 h-4 text-green-500" /> : <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-                                    <p className="text-sm font-semibold">{item.quantity}x {item.productName}</p>
-                                    <span className={`px-2 py-0.5 text-xs rounded-full ${item.matched ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{item.matched ? 'Matched' : 'No Match'}</span>
-                                  </div>
-                                  {item.matched && <p className="text-xs text-gray-500">SKU: {item.sku} | Price: ${item.price.toFixed(2)}</p>}
+                      <div>
+                        <button 
+                          className="flex items-center gap-1 text-sm text-blue-600 cursor-pointer hover:text-blue-800"
+                          onClick={() => toggleItemsExpansion(order.number)}
+                        >
+                          {order.lineItems.length} items <ChevronDown className={`w-4 h-4 transition-transform ${expandedItems[order.number] ? 'transform rotate-180' : ''}`} />
+                        </button>
+                        {expandedItems[order.number] && (
+                          <div className="mt-2 space-y-2">
+                            {order.lineItems
+                              .slice()
+                              .sort((a, b) => Number(a.matched) - Number(b.matched))
+                              .map((item, index) => (
+                              <div key={index} className="p-2 rounded-md bg-gray-50">
+                                <div className="flex items-center gap-2 mb-1">
+                                  {item.matched ? <CheckCircle className="w-4 h-4 text-green-500" /> : <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+                                  <p className="text-sm font-semibold">{item.quantity}x {item.productName}</p>
+                                  <span className={`px-2 py-0.5 text-xs rounded-full ${item.matched ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{item.matched ? 'Matched' : 'No Match'}</span>
                                 </div>
-                              ))}
-                            </DisclosurePanel>
+                                {item.matched && <p className="text-xs text-gray-500">SKU: {item.sku} | Price: ${item.price.toFixed(2)}</p>}
+                              </div>
+                            ))}
                           </div>
                         )}
-                      </Disclosure>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -339,48 +377,49 @@ const KyteToQuickBooksConverter: React.FC = () => {
 
       {/* History */}
       {conversionHistory.length > 0 && (
-        <Disclosure as="div" className="p-6 rounded-lg bg-white shadow-sm">
-          {({ open }) => (
-            <div>
-              <DisclosureButton className="w-full flex justify-between items-center text-left cursor-pointer">
-                <h3 className="text-xl font-semibold">Conversion History</h3>
-                <div className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800">
-                  <History className="w-5 h-5" /> {open ? 'Hide' : 'Show'} History <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'transform rotate-180' : ''}`} />
-                </div>
-              </DisclosureButton>
-              <DisclosurePanel className="mt-4 overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+        <div className="p-6 rounded-lg bg-white shadow-sm">
+          <button 
+            className="w-full flex justify-between items-center text-left cursor-pointer"
+            onClick={() => setShowHistory(!showHistory)}
+          >
+            <h3 className="text-xl font-semibold">Conversion History</h3>
+            <div className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800">
+              <History className="w-5 h-5" /> {showHistory ? 'Hide' : 'Show'} History <ChevronDown className={`w-4 h-4 transition-transform ${showHistory ? 'transform rotate-180' : ''}`} />
+            </div>
+          </button>
+          {showHistory && (
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {conversionHistory.map((item) => (
+                    <tr key={`${item.orderNumber}-${item.createdAt}`}>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">{item.orderNumber}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                         {item.status === 'success' ? <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" />Success</span> : <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"><AlertCircle className="w-3 h-3" />Failed</span>}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(item.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        {item.status === 'success' && item.quickbooksUrl && (
+                          <a href={item.quickbooksUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline cursor-pointer">
+                            View in QuickBooks <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {conversionHistory.map((item) => (
-                      <tr key={`${item.orderNumber}-${item.createdAt}`}>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm">{item.orderNumber}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm">
-                           {item.status === 'success' ? <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" />Success</span> : <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"><AlertCircle className="w-3 h-3" />Failed</span>}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(item.createdAt).toLocaleString()}</td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm">
-                          {item.status === 'success' && item.quickbooksUrl && (
-                            <a href={item.quickbooksUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline cursor-pointer">
-                              View in QuickBooks <ExternalLink className="w-4 h-4" />
-                            </a>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </DisclosurePanel>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-        </Disclosure>
+        </div>
       )}
     </div>
   );

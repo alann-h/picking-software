@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             vendor: ['react', 'react-dom'],
             router: ['react-router-dom'],
-            ui: ['@headlessui/react', 'framer-motion'],
+            ui: ['framer-motion'],
             query: ['@tanstack/react-query', '@tanstack/react-query-devtools'],
             icons: ['lucide-react'],
             forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
