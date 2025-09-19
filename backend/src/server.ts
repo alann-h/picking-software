@@ -45,6 +45,9 @@ import config from './config/index.js';
 import { ConnectionType } from './types/auth.js';
 
 const app = express();
+
+app.use('/api/webhooks', webhookRoutes);
+
 const unlinkAsync = promisify(fsUnlink);
 
 // — CORS
@@ -335,7 +338,6 @@ app.use('/api/quotes', quoteRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/runs', runRoutes);
 app.use('/api/permissions', permissionRoutes);
-app.use('/api/webhooks', webhookRoutes);
 
 // Utility routes
 app.get('/api/verifyUser', asyncHandler(async (req: Request, res: Response) => {

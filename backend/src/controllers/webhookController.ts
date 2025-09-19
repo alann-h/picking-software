@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { handleQBOEventNotifications } from '../services/qboWebhookService.js';
 
 // Middleware to verify the webhook signature from QuickBooks
 export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction) => {
@@ -32,21 +33,10 @@ export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction
 export const handleQBOWebhook = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { eventNotifications } = req.body;
+    const companyId = "fbba99e2-c99e-429e-87b2-c510c1f680c7";
 
-    if (!eventNotifications || !Array.isArray(eventNotifications)) {
-        console.warn('Webhook received without eventNotifications');
-        return res.status(200).send('OK'); // Acknowledge webhook even if empty
-    }
-    
-    // Process notifications
-    for (const notification of eventNotifications) {
-      if (notification.dataChangeEvent && notification.dataChangeEvent.entities) {
-        for (const event of notification.dataChangeEvent.entities) {
-          console.log(`Processing webhook event for company ${notification.realmId}:`, event);
-          // TODO: Implement logic to handle the event (e.g., update local database)
-        }
-      }
-    }
+    await handleQBOEventNotifications(eventNotifications, companyId); // Call the new service function
+
     res.status(200).send('OK');
   } catch (err: any) {
     console.error('Error handling QBO webhook:', err);
