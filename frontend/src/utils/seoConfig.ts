@@ -2,9 +2,9 @@
 export const seoConfig = {
   // Default meta tags
   default: {
-    title: "Smart Picker - Efficient Order Preparation | Barcode Scanning App",
-    description: "Boost efficiency with Smart Picker. The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately.",
-    keywords: "order picking, barcode scanning, warehouse management, inventory management, QuickBooks integration, Xero integration, mobile app, efficiency, digital lists",
+    title: "Smart Picker - Order Picking Software with QuickBooks & Xero Integration",
+    description: "Smart Picker - The smart order picking app with barcode scanning and digital lists. Seamless QuickBooks & Xero integration for Australian warehouses.",
+    keywords: "smart picker, order picking software, barcode scanning, warehouse management, QuickBooks integration, Xero integration, inventory management, mobile app, efficiency, digital lists, Australian warehouse software",
     image: "https://smartpicker.au/SP.png",
     url: "https://smartpicker.au",
     type: "website" as const,
@@ -15,9 +15,9 @@ export const seoConfig = {
   // Page-specific SEO configurations
   pages: {
     home: {
-      title: "Smart Picker - Efficient Order Preparation | Barcode Scanning App",
-      description: "Boost efficiency with Smart Picker. The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately. Perfect for warehouses and distribution centers.",
-      keywords: "order picking software, barcode scanning app, warehouse management system, inventory management, QuickBooks integration, Xero integration, mobile order picking, warehouse efficiency"
+      title: "Smart Picker - Order Picking Software with QuickBooks & Xero Integration",
+      description: "Smart Picker - The smart order picking app with barcode scanning and digital lists. Perfect for Australian warehouses with QuickBooks & Xero integration.",
+      keywords: "smart picker, order picking software, barcode scanning app, warehouse management system, QuickBooks integration, Xero integration, mobile order picking, warehouse efficiency, Australian warehouse software"
     },
     about: {
       title: "About Smart Picker - Leading Order Picking Software | Our Story",
