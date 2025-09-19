@@ -7,7 +7,7 @@ export interface Run {
     company_id: string;
     created_at: Date;
     run_number: number;
-    run_name?: string;
+    run_name: string | null;
     status: RunStatus;
 }
 
