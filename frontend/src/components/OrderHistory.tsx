@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Fragment } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,7 +11,6 @@ import {
   Trash2,
   ListFilter,
   FileText,
-  Check,
   ChevronsUpDown,
   ExternalLink
 } from 'lucide-react';
@@ -333,7 +332,7 @@ const OrderHistory: React.FC = () => {
     return quotes.filter(quote => 
       (!filters.customerName || quote.customerName.toLowerCase().includes(filters.customerName.toLowerCase())) &&
       (!filters.orderStatus || quote.orderStatus === filters.orderStatus) &&
-      (!filters.quoteNumber || quote.quoteNumber?.toLowerCase().includes(filters.quoteNumber.toLowerCase()))
+      (!filters.quoteNumber || (quote.quoteNumber || quote.id)?.toLowerCase().includes(filters.quoteNumber.toLowerCase()))
     );
   }, [quotes, filters]);
 

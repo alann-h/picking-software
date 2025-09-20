@@ -30,7 +30,7 @@ const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: string) 
                 <GripVertical className="w-5 h-5" />
             </div>
             <div className="flex-grow">
-                <p className="text-sm font-medium text-gray-800">Quote #{quote.quoteNumber}</p>
+                <p className="text-sm font-medium text-gray-800">Quote #{quote.quoteNumber || quote.quoteId}</p>
                 <p className="text-xs text-gray-500">{quote.customerName}</p>
             </div>
             <button className="text-red-500 hover:text-red-700 cursor-pointer" onClick={() => onRemove(quote.quoteId)}>
@@ -278,7 +278,7 @@ export const RunItem: React.FC<{
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {run.quotes?.map((quote: RunQuote) => (
                                                 <tr key={quote.quoteId}>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-600">#{quote.quoteNumber}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.quoteId}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{quote.customerName}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${

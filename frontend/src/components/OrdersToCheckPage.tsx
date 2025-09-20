@@ -164,7 +164,7 @@ const QuoteCard: React.FC<{ quote: EnhancedQuoteSummary }> = ({ quote }) => {
       <div className="p-6">
         {/* Header */}
         <div className="mb-4 flex items-start justify-between">
-          <h2 className="text-2xl font-bold text-blue-600">#{quote.quoteNumber}</h2>
+          <h2 className="text-2xl font-bold text-blue-600">#{quote.quoteNumber || quote.id}</h2>
         </div>
 
         {/* Customer Info */}
@@ -201,7 +201,7 @@ const QuoteCard: React.FC<{ quote: EnhancedQuoteSummary }> = ({ quote }) => {
           <div className="flex items-start gap-3">
             <PreparerIcon className="mt-0.5 h-6 w-6 text-gray-500" />
             <div className="flex-1">
-              <p className="mb-0.5 text-sm text-gray-500">Picker's Note</p>
+              <p className="mb-0.5 text-sm text-gray-500">Picker&apos;s Note</p>
               <p
                 className={`break-words text-sm ${
                   quote.pickerNote

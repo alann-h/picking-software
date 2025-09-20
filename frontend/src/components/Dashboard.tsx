@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, useState, useTransition, Fragment } from 'react';
+import React, { Suspense, useMemo, useState, useTransition } from 'react';
 import {
   Receipt,
   Search,
@@ -123,7 +123,7 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                                                           {quote.priority + 1}
                                                       </span>
                                                   </td>
-                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">#{quote.quoteNumber}</td>
+                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">#{quote.quoteNumber || quote.quoteId}</td>
                                                   <td className="px-4 py-3 whitespace-nowrap"><QuoteStatusChip status={quote.orderStatus} /></td>
                                                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{quote.customerName}</td>
                                               </tr>
@@ -143,7 +143,7 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
         <div onClick={onClick} className="w-full bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md hover:border-blue-400 cursor-pointer transition-all duration-200 ease-in-out flex items-center justify-between">
             <div className="flex items-center">
                 <div className="mr-4">
-                    <p className="text-sm font-semibold text-blue-600">#{quote.quoteNumber}</p>
+                    <p className="text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.id}</p>
                 </div>
                 <div>
                     <p className="font-medium text-gray-800">{quote.customerName}</p>

@@ -30,7 +30,7 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
         <div className="flex flex-col flex-1">
             <div className="flex items-center space-x-2 mb-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <p className="text-sm font-semibold text-gray-900">Quote #{quote.quoteNumber}</p>
+                <p className="text-sm font-semibold text-gray-900">Quote #{quote.quoteNumber || quote.id}</p>
             </div>
             <div className="flex items-center space-x-4 text-gray-600">
                 <div className="flex items-center space-x-1">
@@ -67,7 +67,7 @@ const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: string
             <div className="flex-grow min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                    <p className="text-sm font-semibold text-gray-900 truncate">Quote #{quote.quoteNumber}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">Quote #{quote.quoteNumber || quote.id}</p>
                 </div>
                 <p className="text-xs text-gray-600 truncate">{quote.customerName}</p>
             </div>
