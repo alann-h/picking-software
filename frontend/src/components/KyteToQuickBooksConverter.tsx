@@ -59,10 +59,10 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const [results, setResults] = useState<ProcessingResult[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [conversionHistory, setConversionHistory] = useState<ConversionHistoryItem[]>([]);
-  const [query, setQuery] = useState('');
   const [openDropdowns, setOpenDropdowns] = useState<{ [orderNumber: string]: boolean }>({});
   const [expandedItems, setExpandedItems] = useState<{ [orderNumber: string]: boolean }>({});
   const [showHistory, setShowHistory] = useState(false);
+  const [customerQueries, setCustomerQueries] = useState<{ [orderNumber: string]: string }>({});
   const dropdownRefs = useRef<{ [orderNumber: string]: React.RefObject<HTMLDivElement | null> }>({});
 
   useEffect(() => {
@@ -122,6 +122,15 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const handleCustomerChange = (orderNumber: string, customer: Customer | null) => {
     setOrders(prev => prev.map(order => order.number === orderNumber ? { ...order, customerId: customer?.customerId || '' } : order));
     setOpenDropdowns(prev => ({ ...prev, [orderNumber]: false }));
+    setCustomerQueries(prev => ({ ...prev, [orderNumber]: customer?.customerName || '' }));
+  };
+
+  const handleCustomerQueryChange = (orderNumber: string, query: string) => {
+    setCustomerQueries(prev => ({ ...prev, [orderNumber]: query }));
+    // Clear customer selection if search is empty
+    if (query === '') {
+      setOrders(prev => prev.map(order => order.number === orderNumber ? { ...order, customerId: '' } : order));
+    }
   };
 
   const getDropdownRef = (orderNumber: string): React.RefObject<HTMLDivElement | null> => {
@@ -194,22 +203,6 @@ const KyteToQuickBooksConverter: React.FC = () => {
       {orders.length > 0 && (
         <div className="p-6 rounded-lg bg-white shadow-sm">
           <h3 className="text-xl font-semibold mb-4">Step 2: Map Customers & Review Orders</h3>
-          {/* Moved the search bar here */}
-          <div className="mb-4">
-            <label htmlFor="customer-search" className="sr-only">Search Customers</label>
-            <div className="relative w-full rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
-              <input
-                id="customer-search"
-                className="w-full border-none py-2.5 pl-4 pr-12 text-base leading-6 text-gray-900 focus:ring-0"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search customers..."
-              />
-              <span className="absolute inset-y-0 right-0 flex items-center pr-4">
-                <ChevronsUpDown className="h-6 w-6 text-gray-400" aria-hidden="true" />
-              </span>
-            </div>
-          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -236,18 +229,19 @@ const KyteToQuickBooksConverter: React.FC = () => {
                         </p>
                       )}
                       <div ref={getDropdownRef(order.number)} className="relative">
-                        <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                        <div className="relative w-full cursor-default overflow-hidden rounded-md bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
                           <input
-                            className="w-full border-none py-2.5 pl-4 pr-12 text-base leading-6 text-gray-900 focus:ring-0"
-                            value={customers.find(c => c.customerId === order.customerId)?.customerName || ''}
-                            readOnly
-                            placeholder="Select customer..."
+                            className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
+                            value={customerQueries[order.number] || customers.find(c => c.customerId === order.customerId)?.customerName || ''}
+                            onChange={(event) => handleCustomerQueryChange(order.number, event.target.value)}
+                            onFocus={() => setOpenDropdowns(prev => ({ ...prev, [order.number]: true }))}
+                            placeholder="Search customers..."
                           />
                           <button 
-                            className="absolute inset-y-0 right-0 flex items-center pr-4"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3"
                             onClick={() => toggleDropdown(order.number)}
                           >
-                            <ChevronsUpDown className="h-6 w-6 text-gray-400 cursor-pointer" aria-hidden="true" />
+                            <ChevronsUpDown className="h-4 w-4 text-gray-400 cursor-pointer" aria-hidden="true" />
                           </button>
                         </div>
                         
@@ -255,17 +249,17 @@ const KyteToQuickBooksConverter: React.FC = () => {
                           isOpen={openDropdowns[order.number] || false} 
                           triggerRef={getDropdownRef(order.number)} 
                           setIsDropdownOpen={(open) => setOpenDropdowns(prev => ({ ...prev, [order.number]: open }))}
-                          className="max-h-72 w-full overflow-auto rounded-md bg-white py-2 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-300"
+                          className="max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-sm shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-300"
                         >
                           {customers
                             .filter((customer) =>
                                 customer.customerName
                                 .toLowerCase()
                                 .replace(/\s+/g, '')
-                                .includes(query.toLowerCase().replace(/\s+/g, ''))
+                                .includes((customerQueries[order.number] || '').toLowerCase().replace(/\s+/g, ''))
                             )
-                            .length === 0 && query !== '' ? (
-                            <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                            .length === 0 && customerQueries[order.number] !== '' ? (
+                            <div className="relative cursor-default select-none py-1.5 px-3 text-gray-700 text-sm">
                               Nothing found.
                             </div>
                           ) : (
@@ -274,20 +268,20 @@ const KyteToQuickBooksConverter: React.FC = () => {
                                 customer.customerName
                                 .toLowerCase()
                                 .replace(/\s+/g, '')
-                                .includes(query.toLowerCase().replace(/\s+/g, ''))
+                                .includes((customerQueries[order.number] || '').toLowerCase().replace(/\s+/g, ''))
                             )
                             .map((customer) => (
                               <div
                                 key={customer.customerId}
-                                className="group relative cursor-pointer select-none py-3 pl-12 pr-4 text-gray-900 hover:bg-gray-100 transition-colors"
+                                className="group relative cursor-pointer select-none py-2 pl-8 pr-3 text-gray-900 hover:bg-gray-100 transition-colors text-sm"
                                 onClick={() => handleCustomerChange(order.number, customer)}
                               >
                                 <span className={`block truncate ${customers.find(c => c.customerId === order.customerId)?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
                                   {customer.customerName}
                                 </span>
                                 {customers.find(c => c.customerId === order.customerId)?.customerId === customer.customerId ? (
-                                  <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-blue-600">
-                                    <Check className="h-6 w-6" />
+                                  <span className="absolute inset-y-0 left-0 flex items-center pl-2 text-blue-600">
+                                    <Check className="h-4 w-4" />
                                   </span>
                                 ) : null}
                               </div>
