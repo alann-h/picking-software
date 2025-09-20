@@ -329,7 +329,21 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       const errorDetail = response.json.Fault.Error?.[0] || {};
       const errorMessage = errorDetail.Message || 'Unknown QuickBooks error';
       const errorCode = errorDetail.code || 'Unknown';
-      throw new Error(`QuickBooks API Error (${errorCode}): ${errorMessage}`);
+      
+      // Handle specific error codes with more descriptive messages
+      // Common QuickBooks API error codes:
+      // 6210: Duplicate DocNumber (quote number already exists)
+      // 6200: Customer not found
+      // 6201: Item not found
+      if (errorCode === '6210') {
+        throw new Error(`Quote number "${orderData.number}" already exists in QuickBooks. Please use a unique quote number or modify the existing quote.`);
+      } else if (errorCode === '6200') {
+        throw new Error(`Customer not found in QuickBooks. Please ensure the customer is properly set up in QuickBooks.`);
+      } else if (errorCode === '6201') {
+        throw new Error(`Item not found in QuickBooks. Please ensure all products are properly set up in QuickBooks.`);
+      } else {
+        throw new Error(`QuickBooks API Error (${errorCode}): ${errorMessage}`);
+      }
     }
     
     const webUrl = baseURL.includes('sandbox') 
