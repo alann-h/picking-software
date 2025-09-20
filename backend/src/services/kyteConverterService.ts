@@ -491,9 +491,10 @@ export async function processKyteToQuickBooks(orders: ProcessedKyteOrder[], comp
         
         const result = await createQuickBooksEstimateWithRetry(order, companyId);
         
+        
         // Save successful conversion to database
         await saveConversionToDatabase({
-          kyteOrderNumber: order.number,
+          kyteOrderNumber: result.estimateNumber || order.number,
           quickbooksEstimateId: result.estimateId,
           quickbooksUrl: result.quickbooksUrl,
           status: 'success',
@@ -501,7 +502,7 @@ export async function processKyteToQuickBooks(orders: ProcessedKyteOrder[], comp
         }, companyId);
         
         results.push({
-          orderNumber: order.number,
+          orderNumber: result.estimateNumber || order.number,
           success: true,
           estimateId: result.estimateId,
           estimateNumber: result.estimateNumber,
