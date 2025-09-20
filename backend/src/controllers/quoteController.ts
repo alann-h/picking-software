@@ -84,10 +84,11 @@ export async function getEstimateById(req: Request, res: Response, next: NextFun
 export async function listQuotes(req: Request, res: Response, next: NextFunction) {
   try {
     const status = req.query.status as string;
+    const companyId = req.session.companyId;
     if (status && !['pending', 'checking', 'finalised', 'cancelled', 'assigned', 'all'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status value' });
     }
-    const quotes = await getQuotesWithStatus(status as OrderStatus | 'all');
+    const quotes = await getQuotesWithStatus(status as OrderStatus | 'all', companyId as string);
     res.json(quotes);
   } catch (err) {
     next(err);

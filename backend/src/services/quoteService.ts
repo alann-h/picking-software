@@ -757,10 +757,10 @@ export async function setOrderStatus(quoteId: string, newStatus: OrderStatus): P
   }
 }
 
-export async function getQuotesWithStatus(status: OrderStatus | 'all'): Promise<Array<Record<string, unknown>>> {
+export async function getQuotesWithStatus(status: OrderStatus | 'all', companyId: string): Promise<Array<Record<string, unknown>>> {
   try {
     const quotes = await prisma.quote.findMany({
-      where: status === 'all' ? {} : { status },
+      where: status === 'all' ? { companyId } : { status, companyId },
       include: {
         customer: {
           select: { customerName: true },
