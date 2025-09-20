@@ -262,9 +262,10 @@ export async function getConversionHistory(companyId: string, limit = 50): Promi
  * Create QuickBooks estimate from processed order data
  * @param {Object} orderData - Processed order data
  * @param {string} companyId - Company ID
+ * @param {string} retrySuffix - Optional suffix to append to quote number for retry attempts
  * @returns {Object} QuickBooks estimate creation result
  */
-export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, companyId: string): Promise<QuickBooksEstimateResult> {
+export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, companyId: string, retrySuffix?: string): Promise<QuickBooksEstimateResult> {
   try {
     const oauthClient: IntuitOAuthClient = await getOAuthClient(companyId, 'qbo') as IntuitOAuthClient;
     const baseURL: string = await getBaseURL(oauthClient, 'qbo');
@@ -302,6 +303,9 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
     
     const txnDate = new Date(orderData.date).toISOString().split('T')[0];
     
+    // Use retry suffix if provided (for duplicate quote number handling)
+    const docNumber = retrySuffix ? `${orderData.number}-${retrySuffix}` : orderData.number;
+    
     const estimatePayload = {
       CustomerRef: {
         value: orderData.customerId
@@ -312,7 +316,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       Line: [
         ...lineItems
       ],
-      DocNumber: orderData.number,
+      DocNumber: docNumber,
       TxnDate: txnDate,
       PrivateNote: `Imported from Kyte - Order ${orderData.number}`
     };
@@ -325,6 +329,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       },
       body: JSON.stringify(estimatePayload)
     });
+
     if (response.json?.Fault) {
       const errorDetail = response.json.Fault.Error?.[0] || {};
       const errorMessage = errorDetail.Message || 'Unknown QuickBooks error';
@@ -336,7 +341,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       // 6200: Customer not found
       // 6201: Item not found
       if (errorCode === '6210') {
-        throw new Error(`Quote number "${orderData.number}" already exists in QuickBooks. Please use a unique quote number or modify the existing quote.`);
+        throw new Error(`Quote number "${docNumber}" already exists in QuickBooks. Please use a unique quote number or modify the existing quote.`);
       } else if (errorCode === '6200') {
         throw new Error(`Customer not found in QuickBooks. Please ensure the customer is properly set up in QuickBooks.`);
       } else if (errorCode === '6201') {
@@ -356,12 +361,27 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       estimateId: response.json?.Estimate?.Id,
       estimateNumber: response.json?.Estimate?.DocNumber,
       quickbooksUrl: quickbooksUrl,
-      message: 'Estimate created successfully'
+      message: retrySuffix ? `Estimate created successfully with modified quote number: ${docNumber}` : 'Estimate created successfully'
     };
     
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new InputError(`Failed to create QuickBooks estimate: ${errorMessage}`);
+    
+    // Handle HTTP errors (like 400) that might indicate duplicate quote numbers
+    if (errorMessage.includes('400') || errorMessage.includes('Request failed')) {
+      throw new Error(`Quote number "${retrySuffix ? `${orderData.number}-${retrySuffix}` : orderData.number}" already exists in QuickBooks. Please use a unique quote number or modify the existing quote.`);
+    }
+    
+    // Handle specific QuickBooks API errors that were already processed
+    if (errorMessage.includes('already exists in QuickBooks') || 
+        errorMessage.includes('Customer not found') || 
+        errorMessage.includes('Item not found') ||
+        errorMessage.includes('QuickBooks API Error')) {
+      throw error; // Re-throw already processed errors
+    }
+    
+    // Handle other errors
+    throw new Error(`Failed to create QuickBooks estimate: ${errorMessage}`);
   }
 }
 
@@ -420,6 +440,35 @@ export async function saveConversionToDatabase(conversionData: ConversionData, c
 }
 
 /**
+ * Create QuickBooks estimate with automatic retry for duplicate quote numbers
+ * @param {Object} orderData - Processed order data
+ * @param {string} companyId - Company ID
+ * @returns {Object} QuickBooks estimate creation result
+ */
+export async function createQuickBooksEstimateWithRetry(orderData: ProcessedKyteOrder, companyId: string): Promise<QuickBooksEstimateResult> {
+  const retrySuffixes = ['retry', 'copy', 'dup', 'alt', 'new'];
+  
+  for (let i = 0; i < retrySuffixes.length; i++) {
+    try {
+      const suffix = i === 0 ? undefined : retrySuffixes[i - 1];
+      return await createQuickBooksEstimate(orderData, companyId, suffix);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('already exists in QuickBooks') && i < retrySuffixes.length - 1) {
+        console.log(`Quote number "${orderData.number}" already exists, trying with suffix "${retrySuffixes[i]}"`);
+        continue;
+      }
+      
+      // If it's not a duplicate error or we've exhausted all suffixes, wrap in InputError
+      throw new InputError(`Failed to create QuickBooks estimate: ${errorMessage}`);
+    }
+  }
+  
+  throw new InputError(`Failed to create estimate after trying all suffix variations for quote ${orderData.number}`);
+}
+
+/**
  * Process complete Kyte to QuickBooks conversion
  * @param {Array} orders - Array of orders with customer mappings
  * @param {string} companyId - Company ID
@@ -440,7 +489,7 @@ export async function processKyteToQuickBooks(orders: ProcessedKyteOrder[], comp
           continue;
         }
         
-        const result = await createQuickBooksEstimate(order, companyId);
+        const result = await createQuickBooksEstimateWithRetry(order, companyId);
         
         // Save successful conversion to database
         await saveConversionToDatabase({
