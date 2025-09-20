@@ -277,6 +277,8 @@ app.post('/api/upload', isAuthenticated, upload.single('input'), asyncHandler(as
   })
 );
 
+app.use('/webhooks', webhookRoutes);
+
 app.use(doubleCsrfProtection);
 
 // Rate limiting for security
@@ -335,7 +337,6 @@ app.use('/api/quotes', quoteRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/runs', runRoutes);
 app.use('/api/permissions', permissionRoutes);
-app.use('/api/webhooks', webhookRoutes);
 
 // Utility routes
 app.get('/api/verifyUser', asyncHandler(async (req: Request, res: Response) => {
