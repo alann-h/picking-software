@@ -41,7 +41,7 @@ const IntegrationSection: React.FC = () => {
                 Seamless Accounting Integration
               </h2>
               <p className="text-base sm:text-lg md:text-xl opacity-95 leading-relaxed mb-6">
-                SmartPicker automatically syncs with both QuickBooks Online and Xero, keeping your inventory,
+                Smart Picker automatically syncs with both QuickBooks Online and Xero, keeping your inventory,
                 orders, and financial data perfectly aligned. No more manual data entry or reconciliation.
               </p>
               <div className="mt-8">

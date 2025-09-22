@@ -16,14 +16,12 @@ import PortalDropdown from './PortalDropdown';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { extractErrorMessage } from '../utils/apiHelpers';
 
-// Interfaces (remain the same)
 interface Customer { customerId: string; customerName: string; }
 interface LineItem { quantity: number; productName: string; originalText: string; productId?: string; sku?: string; barcode?: string; price: number; externalItemId?: string; matched: boolean; }
 interface Order { number: string; date: string; itemsDescription: string; total: number; customerName: string | null; customerId: string | null; lineItems: LineItem[]; }
 interface ProcessingResult { orderNumber: string; success: boolean; message: string; estimateId?: string; estimateNumber?: string; quickbooksUrl?: string; }
 interface ConversionHistoryItem { orderNumber: string; estimateId?: string; quickbooksUrl?: string; status: 'success' | 'failed'; errorMessage?: string; createdAt: string; }
 
-// Reusable UI Components
 const ErrorAlert: React.FC<{ message: string }> = ({ message }) => (
   <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
     <div className="flex items-center">
@@ -70,7 +68,6 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const [customerQueries, setCustomerQueries] = useState<{ [orderNumber: string]: string }>({});
   const dropdownRefs = useRef<{ [orderNumber: string]: React.RefObject<HTMLDivElement | null> }>({});
   
-  // Pagination state for conversion history
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -101,13 +98,11 @@ const KyteToQuickBooksConverter: React.FC = () => {
   };
 
   useEffect(() => {
-    // Only load data once on component mount
     const loadInitialData = async () => {
-      if (hasLoadedData.current) return; // Prevent multiple calls
+      if (hasLoadedData.current) return;
       
       hasLoadedData.current = true;
       try {
-        // Load customers
         try {
           const customersResponse = await getCustomersForMapping() as { customers: Customer[] };
           setCustomers(customersResponse.customers);
@@ -116,27 +111,24 @@ const KyteToQuickBooksConverter: React.FC = () => {
           setError('Failed to load customers');
         }
 
-        // Load conversion history (first page)
         try {
           await reloadConversionHistory(1);
         } catch (err) {
           showError(err, { operation: 'Loading conversion history', component: 'KyteToQuickBooksConverter' });
         }
       } catch (error) {
-        // This catch block is for any unexpected errors
         console.error('Unexpected error during initial data load:', error);
       }
     };
     
     loadInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array to run only once
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type === 'text/csv') {
-      // Check file size (5MB limit)
-      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
         showWarning('File size must be less than 5MB');
         setError('File size must be less than 5MB');
@@ -183,7 +175,6 @@ const KyteToQuickBooksConverter: React.FC = () => {
 
   const handleCustomerQueryChange = (orderNumber: string, query: string) => {
     setCustomerQueries(prev => ({ ...prev, [orderNumber]: query }));
-    // Clear customer selection if search is empty
     if (query === '') {
       setOrders(prev => prev.map(order => order.number === orderNumber ? { ...order, customerId: '' } : order));
     }
@@ -240,7 +231,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
         <h2 className="text-2xl font-light opacity-90">Kyte to QuickBooks Converter</h2>
       </div>
 
-      {/* Step 1: Upload */}
+      {/* Upload */}
       <div className="p-6 rounded-lg bg-white shadow-sm">
         <h3 className="text-xl font-semibold mb-4">Step 1: Upload CSV File</h3>
         <p className="text-sm text-gray-600 mb-4">Maximum file size: 5MB</p>
@@ -265,7 +256,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
         {error && <ErrorAlert message={error} />}
       </div>
 
-      {/* Step 2: Map Customers */}
+      {/* Map Customers */}
       {orders.length > 0 && (
         <div className="p-6 rounded-lg bg-white shadow-sm">
           <h3 className="text-xl font-semibold mb-4">Step 2: Map Customers & Review Orders</h3>

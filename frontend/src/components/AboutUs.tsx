@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import SEO from './SEO';
-import { getPageStructuredData } from '../utils/structuredData';
 import {
   Search,
   ClipboardList,
@@ -27,7 +26,7 @@ const features = [
   {
     icon: <ClipboardList size={32} className="text-blue-600" />,
     title: 'Smart Run System',
-    description: 'Organize and prioritize warehouse operations with intelligent run management. Create work queues that optimize picker efficiency and order fulfillment.',
+    description: 'Organise and prioritise warehouse operations with intelligent run management. Create work queues that optimize picker efficiency and order fulfillment.',
     benefits: ['Priority-based workflows', 'Batch processing', 'Progress tracking']
   },
   {
@@ -38,14 +37,14 @@ const features = [
   },
   {
     icon: <Gauge size={32} className="text-blue-600" />,
-    title: 'Digitalized Order Preparation',
+    title: 'Digitalised Order Preparation',
     description: 'Replace paper-based processes with a modern, digital workflow. Real-time updates, instant feedback, and seamless order progression.',
     benefits: ['Paperless operations', 'Real-time updates', 'Digital audit trail']
   },
   {
     icon: <Users size={32} className="text-blue-600" />,
     title: 'Comprehensive User Management',
-    description: 'Role-based access control with Admin and Picker roles. Secure, scalable user management that grows with your business.',
+    description: 'Role based access control with Admin and Picker roles. Secure, scalable user management that grows with your business.',
     benefits: ['Role-based permissions', 'Secure access control', 'Scalable user system']
   },
   {
@@ -100,11 +99,8 @@ const solutionList = [
   '100% accurate, barcode-verified picking',
   'Digital audit trails for every order',
   'Instant validation against the live quote',
-  'Secure, role-based "Picker" access'
+  'Role based access control'
 ];
-
-
-// --- Reusable Animated Component ---
 
 const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number }> = ({ children, delay = 0 }) => (
   <motion.div
@@ -116,8 +112,6 @@ const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number }>
     {children}
   </motion.div>
 );
-
-// --- Main Page Component ---
 
 const AboutUs: React.FC = () => {
   return (
@@ -134,7 +128,7 @@ const AboutUs: React.FC = () => {
           {/* Hero Section */}
           <AnimatedComponent>
             <section className="mb-16 text-center lg:mb-24">
-              <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-blue-900 sm:text-5xl lg:text-6xl">
+              <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
                 Smart Picker
               </h1>
               <h2 className="mb-6 text-2xl font-semibold text-slate-700 sm:text-3xl lg:text-4xl">

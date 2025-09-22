@@ -33,7 +33,7 @@ const Demo: React.FC = () => {
               
               {heroState?.source === 'hero' && (
                 <p className="mt-2 text-gray-600">
-                  Welcome from the Hero section! You're viewing the {heroState.section} demo.
+                  Welcome from the Hero section! You&apos;re viewing the {heroState.section} demo.
                 </p>
               )}
             </div>
@@ -44,18 +44,6 @@ const Demo: React.FC = () => {
                     <h2 className="text-xl font-semibold">Demo Video Placeholder</h2>
                 </div>
             </div>
-
-            <p className="text-gray-700 leading-relaxed">
-              This is where you would embed your demo video or interactive demo. You could use:
-            </p>
-
-            <ul className="list-disc list-inside text-gray-700 mt-2 space-y-1">
-              <li>YouTube embed</li>
-              <li>Vimeo embed</li>
-              <li>Custom video player</li>
-              <li>Interactive product tour</li>
-              <li>Screen recording walkthrough</li>
-            </ul>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <button

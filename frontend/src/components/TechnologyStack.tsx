@@ -71,7 +71,7 @@ const TechnologyStack: React.FC = () => {
           <AnimatedCard>
             <div className="text-center mb-16">
               <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-blue-800 mb-4"
+                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 mb-4"
               >
                 Technology Stack
               </h1>

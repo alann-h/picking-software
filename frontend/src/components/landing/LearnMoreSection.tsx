@@ -25,11 +25,10 @@ const LearnMoreSection: React.FC = () => {
       <div className="max-w-screen-xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-center">
 
-          {/* Left Column: Text content and CTA */}
           <div>
             <AnimatedSection>
               <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
-                Discover Smart Picker's Full Potential
+                Discover Smart Picker&apos;s Full Potential
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed mb-6">
                 Learn how our comprehensive warehouse management platform combines advanced customer search, 
@@ -56,7 +55,6 @@ const LearnMoreSection: React.FC = () => {
             </AnimatedSection>
           </div>
 
-          {/* Right Column: Highlight box */}
           <div>
             <AnimatedSection delay={0.2}>
               <div className="bg-gradient-to-br from-blue-800 to-blue-500 rounded-2xl p-8 text-white text-center shadow-2xl">
