@@ -191,8 +191,8 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
     }, [runs]);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
                         <Zap className="h-8 w-8 text-blue-600" />
@@ -204,7 +204,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
                 </div>
             </div>
             
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
                         <Building2 className="h-8 w-8 text-green-600" />
@@ -216,7 +216,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
                 </div>
             </div>
             
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
                         <Receipt className="h-8 w-8 text-purple-600" />
@@ -228,7 +228,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
                 </div>
             </div>
             
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
                         <Check className="h-8 w-8 text-emerald-600" />
@@ -268,7 +268,10 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
     const navigate = useNavigate();
     const { data: quotes } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', customer.customerId],
-        queryFn: () => getCustomerQuotes(customer.customerId),
+        queryFn: async () => {
+            const response = await getCustomerQuotes(customer.customerId) as QuoteSummary[];
+            return response;
+        },
     });
 
      if (quotes.length === 0) {
@@ -301,12 +304,18 @@ const Dashboard: React.FC = () => {
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],
-        queryFn: getCustomers,
+        queryFn: async () => {
+            const response = await getCustomers() as Customer[];
+            return response;
+        },
     });
 
     const { data: allRuns } = useSuspenseQuery<Run[]>({
         queryKey: ['runs', userCompanyId],
-        queryFn: () => getRuns(userCompanyId!),
+        queryFn: async () => {
+            const response = await getRuns(userCompanyId!) as Run[];
+            return response;
+        },
     });
 
     const selectedCustomer = useMemo(() => {
@@ -350,9 +359,9 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Statistics Cards */}
-                    <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                         {[...Array(4)].map((_, i) => (
-                            <div key={i} className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 animate-pulse">
+                            <div key={i} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 animate-pulse">
                                 <div className="flex items-center">
                                     <div className="h-8 w-8 bg-gray-200 rounded"></div>
                                     <div className="ml-4">
