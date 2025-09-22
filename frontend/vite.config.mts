@@ -68,14 +68,8 @@ export default defineConfig(({ mode }) => {
         }
       }
     },
-    // Modern CSS optimization
     css: {
-      devSourcemap: true,
-      preprocessorOptions: {
-        css: {
-          charset: false
-        }
-      }
+      devSourcemap: true
     }
   }
 });

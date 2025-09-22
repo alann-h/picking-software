@@ -12,7 +12,7 @@ const BarcodeIcon: React.FC<{className?: string}> = ({className}) => (
 
 // --- Hero Component ---
 const Hero: React.FC = () => {
-  const navigate = useNavigate(); // This should be used in the parent component that has a Router context
+  const navigate = useNavigate();
   return (
     <main className="min-h-screen bg-gray-50 text-gray-800 flex items-center">
       <div className="container mx-auto px-6 py-12 lg:py-20">
