@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Package } from 'lucide-react';
 import { useSnackbarContext } from './SnackbarContext';
 import { CreateRun } from './runs/CreateRun';
 import { RunList } from './runs/RunList';
@@ -14,10 +14,8 @@ const Runs: React.FC = () => {
 
   // Redirect non-admin users
   if (!isAdmin) {
-    React.useEffect(() => {
       handleOpenSnackbar('You do not have permission to view this page.', 'error');
       navigate('/dashboard');
-    }, [handleOpenSnackbar, navigate]);
     return null;
   }
 
@@ -41,19 +39,23 @@ const Runs: React.FC = () => {
   return (
     <>
       <title>Smart Picker | Manage Runs</title>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-        <div className="flex flex-col space-y-4 sm:space-y-5">
-          {/* Header Section */}
-          <div>
-            <div className="text-center sm:text-left">
-              <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent mb-1">
-                Manage Picking Runs
-              </h1>
-              <p className="text-lg text-gray-500 font-light">
+      <div className="mx-auto my-4 max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="mb-2 flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <Package className="h-6 w-6 text-blue-800" />
+            </div>
+            <div>
+              <h1 className="mb-1 text-3xl font-bold">Manage Picking Runs</h1>
+              <p className="text-gray-500">
                 Create, organize, and track your warehouse picking operations
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="flex flex-col space-y-4 sm:space-y-5">
 
           {/* Create Run Section */}
           <div>

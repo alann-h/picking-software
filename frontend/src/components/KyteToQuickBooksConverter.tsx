@@ -9,6 +9,7 @@ import {
   History,
   Check,
   ChevronsUpDown,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { uploadKyteCSV, getCustomersForMapping, createQuickBooksEstimates, getConversionHistory } from '../api/kyteConverter';
 import ItemDescription from './ItemDescription';
@@ -223,43 +224,64 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const allCustomersMapped = orders.length > 0 && orders.every(order => order.customerId);
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="mx-auto my-4 max-w-7xl px-4 sm:px-6 lg:px-8">
       <title>Smart Picker | Kyte Converter</title>
 
-      <div className="text-center p-6 rounded-lg text-white bg-gradient-to-r from-purple-500 to-indigo-600 shadow-lg">
-        <h1 className="text-3xl font-bold">Smart Picker</h1>
-        <h2 className="text-2xl font-light opacity-90">Kyte to QuickBooks Converter</h2>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="mb-2 flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+            <ArrowRightLeft className="h-6 w-6 text-blue-800" />
+          </div>
+          <div>
+            <h1 className="mb-1 text-3xl font-bold">Kyte to QuickBooks Converter</h1>
+            <p className="text-gray-500">
+              Convert your Kyte CSV exports into QuickBooks estimates seamlessly
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Upload */}
-      <div className="p-6 rounded-lg bg-white shadow-sm">
-        <h3 className="text-xl font-semibold mb-4">Step 1: Upload CSV File</h3>
-        <p className="text-sm text-gray-600 mb-4">Maximum file size: 5MB</p>
-        <div className="flex flex-wrap items-center gap-4 mb-4">
-          <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 disabled:bg-blue-300">
-            <Upload className="w-5 h-5 mr-2" />
-            <span>Select CSV File</span>
-            <input type="file" accept=".csv" hidden onChange={handleFileSelect} disabled={uploading} />
-          </label>
-          {selectedFile && (
-            <div className="text-sm text-gray-600">
-              <p>Selected: {selectedFile.name}</p>
-              <p>Size: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-            </div>
-          )}
-          <button onClick={handleFileUpload} disabled={!selectedFile || uploading} className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md cursor-pointer hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed">
-            {uploading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> : null}
-            <span>Upload & Process</span>
-          </button>
+      <div className="mb-8">
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <h3 className="mb-4 text-xl font-semibold">Step 1: Upload CSV File</h3>
+          <p className="mb-6 text-sm text-gray-600">Maximum file size: 5MB</p>
+          
+          <div className="flex flex-wrap items-center gap-4 mb-6">
+            <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 disabled:bg-blue-300 transition-colors">
+              <Upload className="w-5 h-5 mr-2" />
+              <span>Select CSV File</span>
+              <input type="file" accept=".csv" hidden onChange={handleFileSelect} disabled={uploading} />
+            </label>
+            
+            {selectedFile && (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2">
+                <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
+                <p className="text-xs text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+              </div>
+            )}
+            
+            <button 
+              onClick={handleFileUpload} 
+              disabled={!selectedFile || uploading} 
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md cursor-pointer hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed transition-colors"
+            >
+              {uploading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> : null}
+              <span>Upload & Process</span>
+            </button>
+          </div>
+          
+          {success && <SuccessAlert message={success} />}
+          {error && <ErrorAlert message={error} />}
         </div>
-        {success && <SuccessAlert message={success} />}
-        {error && <ErrorAlert message={error} />}
       </div>
 
       {/* Map Customers */}
       {orders.length > 0 && (
-        <div className="p-6 rounded-lg bg-white shadow-sm">
-          <h3 className="text-xl font-semibold mb-4">Step 2: Map Customers & Review Orders</h3>
+        <div className="mb-8">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="mb-6 text-xl font-semibold">Step 2: Map Customers & Review Orders</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -379,20 +401,26 @@ const KyteToQuickBooksConverter: React.FC = () => {
               </tbody>
             </table>
           </div>
-          <div className="mt-4 flex items-center gap-4">
-            <button onClick={handleCreateEstimates} disabled={!allCustomersMapped || processing} className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-md font-semibold cursor-pointer hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed">
-              {processing ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> : null}
-              Create QuickBooks Estimates
-            </button>
-            {!allCustomersMapped && <WarningAlert message="Please map customers for all orders before creating estimates." />}
+            <div className="mt-6 flex items-center gap-4">
+              <button 
+                onClick={handleCreateEstimates} 
+                disabled={!allCustomersMapped || processing} 
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-md font-semibold cursor-pointer hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {processing ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> : null}
+                Create QuickBooks Estimates
+              </button>
+              {!allCustomersMapped && <WarningAlert message="Please map customers for all orders before creating estimates." />}
+            </div>
           </div>
         </div>
       )}
 
       {/* Results */}
       {results.length > 0 && (
-        <div className="p-6 rounded-lg bg-white shadow-sm">
-          <h3 className="text-xl font-semibold mb-4">Processing Results</h3>
+        <div className="mb-8">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="mb-6 text-xl font-semibold">Processing Results</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -423,12 +451,14 @@ const KyteToQuickBooksConverter: React.FC = () => {
               </tbody>
             </table>
           </div>
+          </div>
         </div>
       )}
 
       {/* History */}
       {conversionHistory.length > 0 && (
-        <div className="p-6 rounded-lg bg-white shadow-sm">
+        <div className="mb-8">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
           <button 
             className="w-full flex justify-between items-center text-left cursor-pointer"
             onClick={() => setShowHistory(!showHistory)}
@@ -532,6 +562,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
               )}
             </div>
           )}
+          </div>
         </div>
       )}
     </div>
