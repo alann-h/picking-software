@@ -12,7 +12,6 @@ interface FeatureCardProps {
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) => (
   <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out flex flex-col items-center text-center h-full">
     <div className="flex-shrink-0 bg-indigo-100 text-indigo-600 rounded-full p-4 mb-6">
-      {/* Lucide icons are sized with h-8 w-8 */}
       {icon}
     </div>
     <div className="flex-grow">
