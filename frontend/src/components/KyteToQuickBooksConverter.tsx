@@ -79,25 +79,20 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const reloadConversionHistory = async (page: number = 1) => {
     try {
       setIsLoadingHistory(true);
-      const historyResponse = await getConversionHistory(ITEMS_PER_PAGE) as { 
+      const historyResponse = await getConversionHistory(ITEMS_PER_PAGE, page) as { 
         history: ConversionHistoryItem[];
-        totalCount?: number;
-        totalPages?: number;
+        pagination: {
+          currentPage: number;
+          totalPages: number;
+          totalCount: number;
+          limit: number;
+          offset: number;
+        };
       };
       
       setConversionHistory(historyResponse.history);
-      
-      // Calculate total pages if not provided by API
-      if (historyResponse.totalPages) {
-        setTotalPages(historyResponse.totalPages);
-      } else if (historyResponse.totalCount) {
-        setTotalPages(Math.ceil(historyResponse.totalCount / ITEMS_PER_PAGE));
-      } else {
-        // Fallback: assume we have more pages if we got a full page
-        setTotalPages(historyResponse.history.length === ITEMS_PER_PAGE ? page + 1 : page);
-      }
-      
-      setCurrentPage(page);
+      setTotalPages(historyResponse.pagination.totalPages);
+      setCurrentPage(historyResponse.pagination.currentPage);
     } catch (err) {
       showError(err, { operation: 'Reloading conversion history', component: 'KyteToQuickBooksConverter' });
     } finally {
@@ -309,7 +304,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                             placeholder="Search customers..."
                           />
                           <button 
-                            className="absolute inset-y-0 right-0 flex items-center pr-3"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer"
                             onClick={() => toggleDropdown(order.number)}
                           >
                             <ChevronsUpDown className="h-4 w-4 text-gray-400 cursor-pointer" aria-hidden="true" />
@@ -506,7 +501,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                     <button
                       onClick={() => reloadConversionHistory(currentPage - 1)}
                       disabled={currentPage === 1 || isLoadingHistory}
-                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       Previous
                     </button>
@@ -522,7 +517,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                             key={pageNum}
                             onClick={() => reloadConversionHistory(pageNum)}
                             disabled={isLoadingHistory}
-                            className={`px-3 py-2 text-sm font-medium rounded-md ${
+                            className={`px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${
                               pageNum === currentPage
                                 ? 'bg-blue-600 text-white'
                                 : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
@@ -537,7 +532,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                     <button
                       onClick={() => reloadConversionHistory(currentPage + 1)}
                       disabled={currentPage === totalPages || isLoadingHistory}
-                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       Next
                     </button>

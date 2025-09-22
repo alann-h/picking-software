@@ -16,8 +16,14 @@ export const createQuickBooksEstimates = async (orders: any[]) => {
   return response;
 };
 
-export const getConversionHistory = async (limit?: number) => {
-  const params = limit ? `?limit=${limit}` : '';
-  const response = await apiCallGet(`${QUOTES_BASE}/kyte-history${params}`);
+export const getConversionHistory = async (limit?: number, page?: number) => {
+  const params = new URLSearchParams();
+  if (limit) params.append('limit', limit.toString());
+  if (page) params.append('page', page.toString());
+  
+  const queryString = params.toString();
+  const url = `${QUOTES_BASE}/kyte-history${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await apiCallGet(url);
   return response;
 };

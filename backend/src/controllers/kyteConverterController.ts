@@ -136,16 +136,25 @@ export async function getConversionHistoryController(req: Request, res: Response
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const offset = (page - 1) * limit;
     
-    const history = await getConversionHistory(companyId, limit);
+    const result = await getConversionHistory(companyId, limit, offset);
     
     res.status(200).json({
-      history,
+      history: result.history,
+      pagination: {
+        currentPage: result.currentPage,
+        totalPages: result.totalPages,
+        totalCount: result.totalCount,
+        limit,
+        offset
+      },
       summary: {
-        total: history.length,
-        successful: history.filter(h => h.status === 'success').length,
-        failed: history.filter(h => h.status === 'failed').length
+        total: result.totalCount,
+        successful: result.history.filter(h => h.status === 'success').length,
+        failed: result.history.filter(h => h.status === 'failed').length
       }
     });
 

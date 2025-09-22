@@ -223,13 +223,25 @@ export async function getAvailableCustomers(companyId: string): Promise<Frontend
 }
 
 /**
- * Get conversion history for a company
+ * Get conversion history for a company with pagination
  * @param {string} companyId - Company ID
  * @param {number} limit - Number of records to return (default: 50)
- * @returns {Array} Array of conversion records
+ * @param {number} offset - Number of records to skip (default: 0)
+ * @returns {Object} Object containing history records and pagination info
  */
-export async function getConversionHistory(companyId: string, limit = 50): Promise<ConversionHistoryRecord[]> {
+export async function getConversionHistory(companyId: string, limit = 20, offset = 0): Promise<{
+  history: ConversionHistoryRecord[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+}> {
   try {
+    // Get total count for pagination
+    const totalCount = await prisma.kyteConversion.count({
+      where: { companyId },
+    });
+
+    // Get paginated records
     const conversions = await prisma.kyteConversion.findMany({
       where: { companyId },
       select: {
@@ -242,9 +254,10 @@ export async function getConversionHistory(companyId: string, limit = 50): Promi
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
+      skip: offset,
     });
     
-    return conversions.map(record => ({
+    const history = conversions.map(record => ({
       orderNumber: record.kyteOrderNumber,
       estimateId: record.quickbooksEstimateId,
       quickbooksUrl: record.quickbooksUrl,
@@ -252,6 +265,16 @@ export async function getConversionHistory(companyId: string, limit = 50): Promi
       errorMessage: record.errorMessage,
       createdAt: record.createdAt,
     }));
+
+    const totalPages = Math.ceil(totalCount / limit);
+    const currentPage = Math.floor(offset / limit) + 1;
+
+    return {
+      history,
+      totalCount,
+      totalPages,
+      currentPage,
+    };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new AccessError(`Failed to fetch conversion history: ${errorMessage}`);
