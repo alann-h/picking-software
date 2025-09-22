@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Info, X } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 interface CookieConsentProps {
   onAccept: () => void;
@@ -22,11 +22,6 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept }) => {
     onAccept();
   };
 
-
-  const handleClose = () => {
-    handleAcknowledge();
-  };
-
   if (!isVisible) return null;
 
   return (
@@ -34,14 +29,6 @@ const CookieConsent: React.FC<CookieConsentProps> = ({ onAccept }) => {
         <div
           className="relative mx-auto max-w-6xl rounded-lg bg-gradient-to-br from-blue-800 to-blue-500 p-6 text-white shadow-2xl"
         >
-          <button
-            type="button"
-            aria-label="Close cookie banner"
-            onClick={handleClose}
-            className="absolute top-1 right-1 rounded-full p-1 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer" 
-          >
-            <X size={20} />
-          </button>
 
           <div className="flex flex-col items-center gap-4 md:flex-row md:gap-6">
             <div className="flex shrink-0 items-center gap-3">

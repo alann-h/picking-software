@@ -32,6 +32,14 @@
     <!-- Preload critical resources -->
     <link rel="preload" href="/SP.png" as="image" type="image/png">
     <link rel="preload" href="https://www.smartpicker.au/cdn-cgi/image/width=1600,format=auto,quality=95/https://smartpicker-images.s3.ap-southeast-1.amazonaws.com/smartpicker-dashboard.png" as="image" type="image/png">
+    
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    
+    <!-- Preload critical JavaScript chunks -->
+    <link rel="modulepreload" href="/src/index.tsx">
+    <link rel="modulepreload" href="/src/App.tsx">
      
     <!-- Performance meta tags -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -40,14 +48,16 @@
     
     <!-- Critical CSS for above-the-fold content -->
     <style>
-      /* Critical rendering path CSS */
-      
+
       #root {
         min-height: 100vh;
         display: flex;
         flex-direction: column;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
       }
-      
+    
     </style>
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />    
