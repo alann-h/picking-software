@@ -23,7 +23,11 @@ const baseConfig = {
   // Server configuration
   server: {
     port: parseInt(process.env.BACKEND_PORT || '5033', 10),
-    trustProxy: process.env.TRUST_PROXY === 'true' ? 1 : 0
+    trustProxy: process.env.TRUST_PROXY === 'true' ? 1 : 0,
+    bodyParser: {
+      limit: process.env.BODY_PARSER_LIMIT || '5mb', // Default 50MB for large CSV files
+      uploadLimit: process.env.UPLOAD_LIMIT || '5mb' // Default 50MB for file uploads
+    }
   },
 
   // Database configuration

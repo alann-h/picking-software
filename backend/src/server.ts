@@ -75,8 +75,14 @@ setInterval(() => {
 }, config.session.store.pruneInterval);
 
 // — Body parsing & logging
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+// Increase body parser limits for large CSV files
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: config.server.bodyParser.limit // Configurable limit for large CSV files
+}));
+app.use(express.json({ 
+  limit: config.server.bodyParser.limit // Configurable limit for large CSV files
+}));
 app.use(morgan(config.logging.morgan));
 
 // Additional security headers
