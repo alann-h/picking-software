@@ -29,8 +29,10 @@
     <link rel="preconnect" href="https://www.smartpicker.au">
     <link rel="preconnect" href="https://smartpicker-images.s3.ap-southeast-1.amazonaws.com">
     
-    <!-- Preload critical resources -->
+    <!-- Modern resource hints -->
     <link rel="preload" href="/SP.png" as="image" type="image/png">
+    <link rel="preload" href="/src/index.tsx" as="script" crossorigin>
+    <link rel="modulepreload" href="/src/App.tsx">
      
     <!-- Performance meta tags -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -135,26 +137,26 @@
     
     <title>Smart Picker</title>
     
-    <!-- Async CSS loading for non-critical styles -->
+    <!-- Modern CSS loading - let Vite handle it -->
     <script>
-      // Function to load CSS asynchronously
-      function loadCSS(href, onload) {
-        var link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'style';
-        link.href = href;
-        link.onload = function() {
-          this.rel = 'stylesheet';
-          if (onload) onload();
-        };
-        document.head.appendChild(link);
+      // Modern CSS loading strategy
+      if ('requestIdleCallback' in window) {
+        // Use requestIdleCallback for better performance
+        requestIdleCallback(() => {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = '/assets/index-BoGEKE7e.css';
+          document.head.appendChild(link);
+        });
+      } else {
+        // Fallback for older browsers
+        setTimeout(() => {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = '/assets/index-BoGEKE7e.css';
+          document.head.appendChild(link);
+        }, 0);
       }
-      
-      // Load main CSS asynchronously after page load
-      window.addEventListener('load', function() {
-        // This will be replaced by Vite build process with actual CSS file
-        loadCSS('/assets/index-C91Q8DJd.css');
-      });
     </script>
     </head>
   <body>
