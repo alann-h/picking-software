@@ -69,13 +69,39 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [customerQueries, setCustomerQueries] = useState<{ [orderNumber: string]: string }>({});
   const dropdownRefs = useRef<{ [orderNumber: string]: React.RefObject<HTMLDivElement | null> }>({});
+  
+  // Pagination state for conversion history
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const ITEMS_PER_PAGE = 20;
 
-  const reloadConversionHistory = async () => {
+  const reloadConversionHistory = async (page: number = 1) => {
     try {
-      const historyResponse = await getConversionHistory(20) as { history: ConversionHistoryItem[] };
+      setIsLoadingHistory(true);
+      const historyResponse = await getConversionHistory(ITEMS_PER_PAGE) as { 
+        history: ConversionHistoryItem[];
+        totalCount?: number;
+        totalPages?: number;
+      };
+      
       setConversionHistory(historyResponse.history);
+      
+      // Calculate total pages if not provided by API
+      if (historyResponse.totalPages) {
+        setTotalPages(historyResponse.totalPages);
+      } else if (historyResponse.totalCount) {
+        setTotalPages(Math.ceil(historyResponse.totalCount / ITEMS_PER_PAGE));
+      } else {
+        // Fallback: assume we have more pages if we got a full page
+        setTotalPages(historyResponse.history.length === ITEMS_PER_PAGE ? page + 1 : page);
+      }
+      
+      setCurrentPage(page);
     } catch (err) {
       showError(err, { operation: 'Reloading conversion history', component: 'KyteToQuickBooksConverter' });
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
@@ -95,10 +121,9 @@ const KyteToQuickBooksConverter: React.FC = () => {
           setError('Failed to load customers');
         }
 
-        // Load conversion history
+        // Load conversion history (first page)
         try {
-          const historyResponse = await getConversionHistory(20) as { history: ConversionHistoryItem[] };
-          setConversionHistory(historyResponse.history);
+          await reloadConversionHistory(1);
         } catch (err) {
           showError(err, { operation: 'Loading conversion history', component: 'KyteToQuickBooksConverter' });
         }
@@ -199,7 +224,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
       setResults(response.results);
       showSuccess(response.message);
       setSuccess(response.message);
-      await reloadConversionHistory();
+      await reloadConversionHistory(currentPage);
     } catch (err: unknown) {
       const errorMessage = extractErrorMessage(err, 'Failed to create estimates');
       showError(err, { operation: 'Creating QuickBooks estimates', component: 'KyteToQuickBooksConverter' });
@@ -428,35 +453,97 @@ const KyteToQuickBooksConverter: React.FC = () => {
             </div>
           </button>
           {showHistory && (
-            <div className="mt-4 overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {conversionHistory.map((item) => (
-                    <tr key={`${item.orderNumber}-${item.createdAt}`}>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm">{item.orderNumber}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm">
-                         {item.status === 'success' ? <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" />Success</span> : <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"><AlertCircle className="w-3 h-3" />Failed</span>}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(item.createdAt).toLocaleString()}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm">
-                        {item.status === 'success' && item.quickbooksUrl && (
-                          <a href={item.quickbooksUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline cursor-pointer">
-                            View in QuickBooks <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4">
+              {/* Loading indicator */}
+              {isLoadingHistory && (
+                <div className="flex justify-center items-center py-8">
+                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                  <span className="text-sm text-gray-600">Loading history...</span>
+                </div>
+              )}
+              
+              {/* History table */}
+              {!isLoadingHistory && (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {conversionHistory.map((item) => (
+                        <tr key={`${item.orderNumber}-${item.createdAt}`}>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm">{item.orderNumber}</td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm">
+                             {item.status === 'success' ? <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" />Success</span> : <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"><AlertCircle className="w-3 h-3" />Failed</span>}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(item.createdAt).toLocaleString()}</td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm">
+                            {item.status === 'success' && item.quickbooksUrl && (
+                              <a href={item.quickbooksUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline cursor-pointer">
+                                View in QuickBooks <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              {/* Pagination controls */}
+              {!isLoadingHistory && totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Showing page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => reloadConversionHistory(currentPage - 1)}
+                      disabled={currentPage === 1 || isLoadingHistory}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    
+                    {/* Page numbers */}
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                        if (pageNum > totalPages) return null;
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => reloadConversionHistory(pageNum)}
+                            disabled={isLoadingHistory}
+                            className={`px-3 py-2 text-sm font-medium rounded-md ${
+                              pageNum === currentPage
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <button
+                      onClick={() => reloadConversionHistory(currentPage + 1)}
+                      disabled={currentPage === totalPages || isLoadingHistory}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
