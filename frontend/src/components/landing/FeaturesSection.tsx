@@ -36,7 +36,6 @@ const FeaturesSection = () => (
       </AnimatedSection>
 
       <StaggerAnimation staggerDelay={0.2} direction="up">
-        {/* Responsive grid for feature cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <FeatureCard
             icon={<Smartphone size={32} strokeWidth={2} />}
