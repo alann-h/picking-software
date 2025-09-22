@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 
 import { OpenModalFunction } from '../utils/modalState';
 import { QuoteData, ProductDetail } from '../utils/types';
-import { HttpError } from '../utils/apiHelpers';
+import { HttpError, extractErrorMessage } from '../utils/apiHelpers';
 
 
 import {
@@ -41,8 +41,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     const { data: quoteData } = useSuspenseQuery<QuoteData, HttpError>({
         queryKey: ['quote', quoteId, statusFromUrl],
         queryFn: async () => {
-            const response = await extractQuote(quoteId);
-            if (response.data.error) {
+            const response = await extractQuote(quoteId) as { data: QuoteData };
+            if ('error' in response.data && response.data.error) {
                 throw response.data;
             }
             return response.data;
@@ -78,34 +78,37 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             handleOpenSnackbar('Quantity adjusted successfully!', 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(error.message, 'error'),
+        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
     });
 
     const saveForLater = useMutation({
         mutationFn: (productId: number) => saveProductForLater(quoteId, productId),
         onSuccess: (data) => {
-            handleOpenSnackbar(data.message, 'success');
+            const response = data as { message: string };
+            handleOpenSnackbar(response.message, 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(error.message, 'error'),
+        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
     });
     
     const setUnavailable = useMutation({
         mutationFn: (productId: number) => setProductUnavailable(quoteId, productId),
         onSuccess: (data) => {
-            handleOpenSnackbar(data.message, 'success');
+            const response = data as { message: string };
+            handleOpenSnackbar(response.message, 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(error.message, 'error'),
+        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
     });
 
     const setFinished = useMutation({
         mutationFn: (productId: number) => setProductFinished(quoteId, productId),
         onSuccess: (data) => {
-            handleOpenSnackbar(data.message, 'success');
+            const response = data as { message: string };
+            handleOpenSnackbar(response.message, 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(error.message, 'error'),
+        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
     });
 
     const addProduct = useMutation({
@@ -115,7 +118,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             handleOpenSnackbar('Product added successfully!', 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(error.message, 'error'),
+        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
     });
     
     const saveNote = useMutation({ mutationFn: (note: string) => savePickerNote(quoteId, note), onSuccess: () => handleOpenSnackbar('Note saved!', 'success'), onError: (error) => handleOpenSnackbar(error.message, 'error'), });
@@ -127,25 +130,26 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             const newUrl = `/quote?id=${quoteId}&status=${newStatus}`;
             navigate(newUrl);
         }, 
-        onError: (error) => handleOpenSnackbar(error.message, 'error'), 
+        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), 
     });
     const finaliseInvoice = useMutation({ 
         mutationFn: () => updateQuoteInAccountingService(quoteId), 
         onSuccess: (response) => { 
             const serviceName = connectionType === 'xero' ? 'Xero' : 'QuickBooks';
+            const responseData = response as { redirectUrl?: string };
 
             if (connectionType === 'xero') {
                 // For Xero, use the constructed URL from backend
-                if (response.redirectUrl) {
-                    window.open(response.redirectUrl, '_blank');
+                if (responseData.redirectUrl) {
+                    window.open(responseData.redirectUrl, '_blank');
                 } else {
                     // Fallback to general quotes page
                     window.open('https://go.xero.com/app/quotes', '_blank');
                 }
             } else {
                 // For QuickBooks, use the constructed URL from backend
-                if (response.redirectUrl) {
-                    window.open(response.redirectUrl, '_blank');
+                if (responseData.redirectUrl) {
+                    window.open(responseData.redirectUrl, '_blank');
                 } else {
                     // Fallback to general QuickBooks page
                     window.open('https://qbo.intuit.com/', '_blank');
@@ -160,23 +164,25 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         }, 
         onError: (error: Error) => {
             const serviceName = connectionType === 'xero' ? 'Xero' : 'QuickBooks';
+            const errorMessage = extractErrorMessage(error);
             
             // Handle specific service errors
-            if (error.message?.includes('re-authentication required')) {
+            if (errorMessage.includes('re-authentication required')) {
                 handleOpenSnackbar(`${serviceName} connection expired. Please reconnect your account in settings.`, 'error');
                 navigate('/settings'); // Redirect to settings to reconnect
-            } else if (error.message?.includes('Access denied by')) {
+            } else if (errorMessage.includes('Access denied by')) {
                 handleOpenSnackbar(`${serviceName} access denied. Please check your permissions.`, 'error');
             } else {
-                handleOpenSnackbar(error instanceof Error ? error.message : 'An error occurred', 'error');
+                handleOpenSnackbar(errorMessage, 'error');
             }
         }, 
     });
-    const confirmBarcodeScan = useMutation({ mutationFn: (variables: { barcode: string, quantity: number }) => barcodeScan(variables.barcode, quoteId, variables.quantity), onSuccess: () => { handleOpenSnackbar('Product scanned successfully!', 'success'); invalidateAndRefetch(); }, onError: (error) => handleOpenSnackbar(error.message, 'error'), });
+    const confirmBarcodeScan = useMutation({ mutationFn: (variables: { barcode: string, quantity: number }) => barcodeScan(variables.barcode, quoteId, variables.quantity), onSuccess: () => { handleOpenSnackbar('Product scanned successfully!', 'success'); invalidateAndRefetch(); }, onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
         try {
-            const { productName } = await barcodeToName(barcode);
+            const response = await barcodeToName(barcode) as { productName: string };
+            const { productName } = response;
             const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
             
             if (!product) {
@@ -192,22 +198,22 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
                 onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
             });
         } catch (error: unknown) {
-            handleOpenSnackbar(error instanceof Error ? error.message : 'An error occurred', 'error');
+            handleOpenSnackbar(extractErrorMessage(error), 'error');
         }
     }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);
 
     const openProductDetailsModal = useCallback(async (productId: number, details: ProductDetail) => {
         try {
-            const data = await getProductInfo(productId);
+            const response = await getProductInfo(productId) as { productname: string; quantityOnHand: string };
             openModal('productDetails', {
-                name: data.productname,
+                name: response.productname,
                 details: { 
                     ...details,
-                    quantityOnHand: parseFloat(data.quantityOnHand) || 0,
+                    quantityOnHand: parseFloat(response.quantityOnHand) || 0,
                 }
             });
         } catch (error: unknown) {
-            handleOpenSnackbar(error instanceof Error ? error.message : 'An error occurred', 'error');
+            handleOpenSnackbar(extractErrorMessage(error), 'error');
         }
     }, [openModal, handleOpenSnackbar]);
 

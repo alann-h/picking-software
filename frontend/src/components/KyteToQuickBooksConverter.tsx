@@ -13,6 +13,8 @@ import {
 import { uploadKyteCSV, getCustomersForMapping, createQuickBooksEstimates, getConversionHistory } from '../api/kyteConverter';
 import ItemDescription from './ItemDescription';
 import PortalDropdown from './PortalDropdown';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { extractErrorMessage } from '../utils/apiHelpers';
 
 // Interfaces (remain the same)
 interface Customer { customerId: string; customerName: string; }
@@ -50,10 +52,13 @@ const WarningAlert: React.FC<{ message: string }> = ({ message }) => (
 );
 
 const KyteToQuickBooksConverter: React.FC = () => {
+  const { showError, showSuccess, showWarning } = useErrorHandler();
+  
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const hasLoadedData = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [results, setResults] = useState<ProcessingResult[]>([]);
@@ -65,42 +70,70 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const [customerQueries, setCustomerQueries] = useState<{ [orderNumber: string]: string }>({});
   const dropdownRefs = useRef<{ [orderNumber: string]: React.RefObject<HTMLDivElement | null> }>({});
 
+  const reloadConversionHistory = async () => {
+    try {
+      const historyResponse = await getConversionHistory(20) as { history: ConversionHistoryItem[] };
+      setConversionHistory(historyResponse.history);
+    } catch (err) {
+      showError(err, { operation: 'Reloading conversion history', component: 'KyteToQuickBooksConverter' });
+    }
+  };
+
   useEffect(() => {
-    loadCustomers();
-    loadConversionHistory();
-  }, []);
+    // Only load data once on component mount
+    const loadInitialData = async () => {
+      if (hasLoadedData.current) return; // Prevent multiple calls
+      
+      hasLoadedData.current = true;
+      try {
+        // Load customers
+        try {
+          const customersResponse = await getCustomersForMapping() as { customers: Customer[] };
+          setCustomers(customersResponse.customers);
+        } catch (err) {
+          showError(err, { operation: 'Loading customers', component: 'KyteToQuickBooksConverter' });
+          setError('Failed to load customers');
+        }
 
-  const loadCustomers = async () => {
-    try {
-      const response = await getCustomersForMapping();
-      setCustomers(response.customers);
-    } catch (err) {
-      console.error('Failed to load customers:', err);
-      setError('Failed to load customers');
-    }
-  };
-
-  const loadConversionHistory = async () => {
-    try {
-      const response = await getConversionHistory(20);
-      setConversionHistory(response.history);
-    } catch (err) {
-      console.error('Failed to load conversion history:', err);
-    }
-  };
+        // Load conversion history
+        try {
+          const historyResponse = await getConversionHistory(20) as { history: ConversionHistoryItem[] };
+          setConversionHistory(historyResponse.history);
+        } catch (err) {
+          showError(err, { operation: 'Loading conversion history', component: 'KyteToQuickBooksConverter' });
+        }
+      } catch (error) {
+        // This catch block is for any unexpected errors
+        console.error('Unexpected error during initial data load:', error);
+      }
+    };
+    
+    loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to run only once
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type === 'text/csv') {
+      // Check file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        showWarning('File size must be less than 5MB');
+        setError('File size must be less than 5MB');
+        return;
+      }
+      
       setSelectedFile(file);
       setError(null);
     } else {
+      showWarning('Please select a valid CSV file');
       setError('Please select a valid CSV file');
     }
   };
 
   const handleFileUpload = async () => {
     if (!selectedFile) {
+      showWarning('Please select a file first');
       setError('Please select a file first');
       return;
     }
@@ -108,11 +141,14 @@ const KyteToQuickBooksConverter: React.FC = () => {
       setUploading(true);
       setError(null);
       const csvContent = await selectedFile.text();
-      const response = await uploadKyteCSV(csvContent);
+      const response = await uploadKyteCSV(csvContent) as { orders: Order[] };
       setOrders(response.orders);
-      setSuccess(`Successfully processed ${response.orders.length} pending orders`);
+      const successMessage = `Successfully processed ${response.orders.length} pending orders`;
+      showSuccess(successMessage);
+      setSuccess(successMessage);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to upload CSV';
+      const errorMessage = extractErrorMessage(err, 'Failed to upload CSV');
+      showError(err, { operation: 'Uploading CSV file', component: 'KyteToQuickBooksConverter' });
       setError(errorMessage);
     } finally {
       setUploading(false);
@@ -151,18 +187,22 @@ const KyteToQuickBooksConverter: React.FC = () => {
   const handleCreateEstimates = async () => {
     const unmappedOrders = orders.filter(order => !order.customerId);
     if (unmappedOrders.length > 0) {
-      setError(`Please map customers for orders: ${unmappedOrders.map(o => o.number).join(', ')}`);
+      const errorMessage = `Please map customers for orders: ${unmappedOrders.map(o => o.number).join(', ')}`;
+      showWarning(errorMessage);
+      setError(errorMessage);
       return;
     }
     try {
       setProcessing(true);
       setError(null);
-      const response = await createQuickBooksEstimates(orders);
+      const response = await createQuickBooksEstimates(orders) as { results: ProcessingResult[]; message: string };
       setResults(response.results);
+      showSuccess(response.message);
       setSuccess(response.message);
-      await loadConversionHistory();
+      await reloadConversionHistory();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create estimates';
+      const errorMessage = extractErrorMessage(err, 'Failed to create estimates');
+      showError(err, { operation: 'Creating QuickBooks estimates', component: 'KyteToQuickBooksConverter' });
       setError(errorMessage);
     } finally {
       setProcessing(false);
@@ -183,13 +223,19 @@ const KyteToQuickBooksConverter: React.FC = () => {
       {/* Step 1: Upload */}
       <div className="p-6 rounded-lg bg-white shadow-sm">
         <h3 className="text-xl font-semibold mb-4">Step 1: Upload CSV File</h3>
+        <p className="text-sm text-gray-600 mb-4">Maximum file size: 5MB</p>
         <div className="flex flex-wrap items-center gap-4 mb-4">
           <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 disabled:bg-blue-300">
             <Upload className="w-5 h-5 mr-2" />
             <span>Select CSV File</span>
             <input type="file" accept=".csv" hidden onChange={handleFileSelect} disabled={uploading} />
           </label>
-          {selectedFile && <p className="text-sm text-gray-600">Selected: {selectedFile.name}</p>}
+          {selectedFile && (
+            <div className="text-sm text-gray-600">
+              <p>Selected: {selectedFile.name}</p>
+              <p>Size: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+            </div>
+          )}
           <button onClick={handleFileUpload} disabled={!selectedFile || uploading} className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md cursor-pointer hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed">
             {uploading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" /> : null}
             <span>Upload & Process</span>

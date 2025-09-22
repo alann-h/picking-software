@@ -1,5 +1,8 @@
 import { CSRF_TOKEN, API_BASE } from '../api/config';
 
+// Type definitions for better TypeScript support
+type RequestInit = globalThis.RequestInit;
+
 // --- CSRF Token Management ---
 let cachedCsrfToken: string | null;
 
@@ -33,12 +36,34 @@ export const fetchAndCacheCsrfToken = async (): Promise<string> => {
 
 export class HttpError extends Error {
   response: {
-    data: any;
+    data: unknown;
     status: number;
   };
 
-  constructor(response: Response, data: any) {
-    const message = data?.message || data?.error || `HTTP error! status: ${response.status}`;
+  constructor(response: Response, data: unknown) {
+    // Extract message from backend error structure: { error: { message: "...", code: "..." } }
+    let message = `HTTP error! status: ${response.status}`;
+    
+    if (data && typeof data === 'object') {
+      const dataObj = data as Record<string, unknown>;
+      
+      // Try to get message from error.message first
+      if ('error' in dataObj && dataObj.error && typeof dataObj.error === 'object') {
+        const errorData = dataObj.error as Record<string, unknown>;
+        if ('message' in errorData) {
+          message = String(errorData.message);
+        }
+      }
+      // Try direct message property
+      else if ('message' in dataObj) {
+        message = String(dataObj.message);
+      }
+      // Try direct error property
+      else if ('error' in dataObj) {
+        message = String(dataObj.error);
+      }
+    }
+    
     super(message);
     
     this.name = 'HttpError';
@@ -48,6 +73,65 @@ export class HttpError extends Error {
     };
   }
 }
+
+/**
+ * Extracts a user-friendly error message from various error types
+ * @param error - The error object to extract message from
+ * @param fallback - Fallback message if extraction fails
+ * @returns A string error message
+ */
+export const extractErrorMessage = (error: unknown, fallback: string = 'An error occurred'): string => {
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  if (error && typeof error === 'object') {
+    const errorObj = error as Record<string, unknown>;
+    
+    // Handle backend error structure: { error: { message: "...", code: "..." } }
+    if ('error' in errorObj && errorObj.error && typeof errorObj.error === 'object') {
+      const errorData = errorObj.error as Record<string, unknown>;
+      if ('message' in errorData) {
+        return String(errorData.message);
+      }
+    }
+    
+    // Handle direct error object with message property
+    if ('message' in errorObj) {
+      return String(errorObj.message);
+    }
+    
+    // Handle HttpError response data
+    if ('response' in errorObj && errorObj.response && typeof errorObj.response === 'object') {
+      const responseObj = errorObj.response as Record<string, unknown>;
+      if ('data' in responseObj && responseObj.data && typeof responseObj.data === 'object') {
+        const responseData = responseObj.data as Record<string, unknown>;
+        if ('error' in responseData && responseData.error && typeof responseData.error === 'object') {
+          const errorData = responseData.error as Record<string, unknown>;
+          if ('message' in errorData) {
+            return String(errorData.message);
+          }
+        }
+        if ('message' in responseData) {
+          return String(responseData.message);
+        }
+      }
+    }
+    
+    // Last resort: try to stringify the object
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return fallback;
+    }
+  }
+  
+  return fallback;
+};
 
 /**
  * Returns common headers for API requests, including the CSRF token if available
@@ -82,7 +166,7 @@ const getCommonHeaders = async (method: string): Promise<Record<string, string>>
  * @returns The parsed JSON data from the response.
  * @throws Error if the response is not OK or if a specific CSRF error occurs.
  */
-export const handleResponse = async (response: Response): Promise<any> => {
+export const handleResponse = async (response: Response): Promise<unknown> => {
   if (!response.ok) {
     let errorData;
     try {

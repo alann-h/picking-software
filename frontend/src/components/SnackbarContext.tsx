@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { SnackbarContextType, SnackbarSeverity } from '../utils/types';
+import { extractErrorMessage } from '../utils/apiHelpers';
 
 const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
 
@@ -9,10 +10,10 @@ export const SnackbarProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [snackbarSeverity, setSnackbarSeverity] = useState<SnackbarSeverity>('info');
 
   const handleOpenSnackbar = useCallback((message: string | object, severity: SnackbarSeverity) => {
-    // Convert object to string if needed
+    // Use extractErrorMessage to properly handle error objects
     const messageString = typeof message === 'string' 
       ? message 
-      : JSON.stringify(message, null, 2);
+      : extractErrorMessage(message, 'An error occurred');
     
     setSnackbarMessage(messageString);
     setSnackbarSeverity(severity);
