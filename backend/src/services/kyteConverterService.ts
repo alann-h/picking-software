@@ -153,11 +153,7 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
         where: {
           companyId,
           isArchived: false,
-          OR: [
-            { productName: { contains: item.productName, mode: 'insensitive' } },
-            { sku: { contains: item.productName, mode: 'insensitive' } },
-            { barcode: { contains: item.productName, mode: 'insensitive' } },
-          ],
+          productName: { contains: item.productName, mode: 'insensitive' },
         },
         select: {
           id: true,
