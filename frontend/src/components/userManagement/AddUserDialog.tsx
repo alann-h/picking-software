@@ -147,7 +147,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
                 onClick={handleClose}
             />
             <div 
-                className="relative z-10 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all"
+                className="relative z-10 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all flex flex-col max-h-[90vh]"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="bg-gradient-to-br from-blue-700 to-blue-900 text-white p-6">
@@ -160,7 +160,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
                     </p>
                 </div>
                 
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-6 overflow-y-auto">
                     {/* Basic Information */}
                     <fieldset className="space-y-4">
                         <legend className="text-lg font-semibold flex items-center gap-2 text-gray-800">
