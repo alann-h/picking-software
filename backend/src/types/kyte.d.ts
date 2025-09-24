@@ -14,6 +14,7 @@ export interface MatchedLineItem extends KyteLineItem {
   sku: string | null;
   barcode: string | null;
   externalItemId: string | null;
+  price: number;
   taxCodeRef: string | null;
   matched: boolean;
 }
@@ -91,6 +92,7 @@ export interface ProductFromDB {
   product_name: string;
   sku: string;
   barcode: string;
+  price: number;
   external_item_id: string;
   tax_code_ref: string;
 }

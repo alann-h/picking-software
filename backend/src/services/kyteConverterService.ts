@@ -160,6 +160,7 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
           productName: true,
           sku: true,
           barcode: true,
+          price: true,
           externalItemId: true,
           taxCodeRef: true,
         },
@@ -171,6 +172,7 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
           productId: Number(product.id),
           sku: product.sku,
           barcode: product.barcode,
+          price: product.price.toNumber(),
           externalItemId: product.externalItemId,
           taxCodeRef: product.taxCodeRef,
           matched: true,
@@ -183,6 +185,7 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
           sku: null,
           barcode: null,
           externalItemId: null,
+          price: 0,
           taxCodeRef: null,
           matched: false
         });
@@ -304,11 +307,13 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
     const lineItems = sortedMatchedItems.map((item: MatchedLineItem) => ({
       DetailType: 'SalesItemLineDetail',
       Description: item.productName,
+      Amount: item.quantity * item.price,
       SalesItemLineDetail: {
         ItemRef: {
           value: item.externalItemId
         },
         Qty: item.quantity,
+        UnitPrice: item.price,
         TaxCodeRef: {
           value: item.taxCodeRef || "4"
         }
@@ -327,14 +332,13 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       CustomerMemo: {
         value: orderData.observation || `Imported from Kyte - Order ${orderData.number}`
       },
-      Line: [
-        ...lineItems
-      ],
+        Line: [
+          ...lineItems
+        ],
       DocNumber: docNumber,
       TxnDate: txnDate,
       PrivateNote: `Imported from Kyte - Order ${orderData.number}`
     };
-
     const response = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${realmId}/estimate?minorversion=75`,
       method: 'POST',
@@ -343,12 +347,14 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       },
       body: JSON.stringify(estimatePayload)
     });
-
     if (response.json?.Fault) {
+      console.log('Response:', JSON.stringify(response, null, 2));
       const errorDetail = response.json.Fault.Error?.[0] || {};
       const errorMessage = errorDetail.Message || 'Unknown QuickBooks error';
       const errorCode = errorDetail.code || 'Unknown';
-      
+      console.log('Error detail:', JSON.stringify(errorDetail, null, 2));
+      console.log('Error message:', errorMessage);
+      console.log('Error code:', errorCode);
       // Handle specific error codes with more descriptive messages
       // Common QuickBooks API error codes:
       // 6210: Duplicate DocNumber (quote number already exists)
