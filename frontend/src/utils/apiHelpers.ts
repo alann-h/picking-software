@@ -175,7 +175,7 @@ export const handleResponse = async (response: Response): Promise<unknown> => {
       errorData = { message: response.statusText };
     }
 
-    if (response.status === 403 && errorData.error?.includes('CSRF token mismatch')) {
+    if (response.status === 403 && typeof errorData.error === 'string' && errorData.error.includes('CSRF token mismatch')) {
       console.warn("CSRF token mismatch. Invalidating token and prompting refresh.");
       const csrfError = new HttpError(response, errorData);
       csrfError.name = 'CsrfError';
