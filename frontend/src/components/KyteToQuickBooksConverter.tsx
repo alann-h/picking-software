@@ -389,7 +389,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                                   <p className="text-sm font-semibold">{item.quantity}x {item.productName}</p>
                                   <span className={`px-2 py-0.5 text-xs rounded-full ${item.matched ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{item.matched ? 'Matched' : 'No Match'}</span>
                                 </div>
-                                {item.matched && <p className="text-xs text-gray-500">SKU: {item.sku} | Price: ${item.price.toFixed(2)}</p>}
+                                {item.matched && <p className="text-xs text-gray-500">SKU: {item.sku}</p>}
                               </div>
                             ))}
                           </div>
