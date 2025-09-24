@@ -33,7 +33,6 @@ export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction
 export const handleQBOWebhook = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { eventNotifications } = req.body;
-    console.log('eventNotifications', eventNotifications);
 
     if (!eventNotifications || !Array.isArray(eventNotifications)) {
         console.warn('Webhook received without eventNotifications');
