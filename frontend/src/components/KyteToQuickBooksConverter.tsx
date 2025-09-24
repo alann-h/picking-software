@@ -18,7 +18,7 @@ import { useErrorHandler } from '../hooks/useErrorHandler';
 import { extractErrorMessage } from '../utils/apiHelpers';
 
 interface Customer { customerId: string; customerName: string; }
-interface LineItem { quantity: number; productName: string; originalText: string; productId?: string; sku?: string; barcode?: string; price: number; externalItemId?: string; matched: boolean; }
+interface LineItem { quantity: number; productName: string; originalText: string; productId?: string; sku?: string; barcode?: string; externalItemId?: string; matched: boolean; }
 interface Order { number: string; date: string; itemsDescription: string; total: number; customerName: string | null; customerId: string | null; lineItems: LineItem[]; }
 interface ProcessingResult { orderNumber: string; success: boolean; message: string; estimateId?: string; estimateNumber?: string; quickbooksUrl?: string; }
 interface ConversionHistoryItem { orderNumber: string; estimateId?: string; quickbooksUrl?: string; status: 'success' | 'failed'; errorMessage?: string; createdAt: string; }
