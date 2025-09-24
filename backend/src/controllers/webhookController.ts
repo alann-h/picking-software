@@ -3,6 +3,11 @@ import { Request, Response, NextFunction } from 'express';
 
 // Middleware to verify the webhook signature from QuickBooks
 export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction) => {
+  console.log('=== WEBHOOK VERIFICATION START ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Headers:', req.headers);
+  console.log('Raw Body Length:', req.rawBody?.length);
+  
   const signature = req.get('intuit-signature');
   const webhookToken = process.env.QBO_WEBHOOK_VERIFIER_TOKEN;
 
