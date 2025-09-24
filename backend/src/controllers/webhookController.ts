@@ -1,13 +1,9 @@
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { WebhookService } from '../services/webhookService.js';
 
 // Middleware to verify the webhook signature from QuickBooks
 export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction) => {
-  console.log('=== WEBHOOK VERIFICATION START ===');
-  console.log('Timestamp:', new Date().toISOString());
-  console.log('Headers:', req.headers);
-  console.log('Raw Body Length:', req.rawBody?.length);
-  
   const signature = req.get('intuit-signature');
   const webhookToken = process.env.QBO_WEBHOOK_VERIFIER_TOKEN;
 
@@ -41,82 +37,25 @@ export const handleQBOWebhook = async (req: Request, res: Response, next: NextFu
 
     if (!eventNotifications || !Array.isArray(eventNotifications)) {
         console.warn('Webhook received without eventNotifications');
-        return res.status(200).send('OK'); // Acknowledge webhook even if empty
+        return res.status(200).send('OK');
     }
     
-    // Process notifications
-    for (const notification of eventNotifications) {
-      if (notification.dataChangeEvent && notification.dataChangeEvent.entities) {
-        for (const event of notification.dataChangeEvent.entities) {
-          console.log(`Processing webhook event for company ${notification.realmId}:`, event);
-          // TODO: Implement logic to handle the event (e.g., update local database)
-        }
-      }
-    }
+    // Process webhook notifications using the webhook service
+    await WebhookService.processQBOWebhook(eventNotifications);
+    
     res.status(200).send('OK');
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error handling QBO webhook:', err);
     next(err);
   }
 };
 
 export const testWebhook = async (req: Request, res: Response, next: NextFunction) => {
-  console.log('=== QBO WEBHOOK TEST ENDPOINT ===');
-  console.log('Timestamp:', new Date().toISOString());
-  
-  // QuickBooks specific headers
-  console.log('QBO Headers:');
-  console.log('  - intuit-signature:', req.get('intuit-signature'));
-  console.log('  - intuit-notification-schema-version:', req.get('intuit-notification-schema-version'));
-  console.log('  - intuit-t-id:', req.get('intuit-t-id'));
-  console.log('  - intuit-created-time:', req.get('intuit-created-time'));
-  console.log('  - user-agent:', req.get('user-agent'));
-  
-  // Test signature verification
-  console.log('\n=== SIGNATURE VERIFICATION TEST ===');
-  const signature = req.get('intuit-signature');
-  const webhookToken = process.env.QBO_WEBHOOK_VERIFIER_TOKEN || '56483a81-1614-4643-babb-55fa292f5379';
-  
-  if (!signature) {
-    console.log('❌ No signature provided');
-  } else if (!req.rawBody) {
-    console.log('❌ No raw body available for verification');
-  } else {
-    const hash = crypto.createHmac('sha256', webhookToken).update(req.rawBody).digest('base64');
-    const isValid = signature === hash;
-    
-    console.log(`  - Provided signature: ${signature}`);
-    console.log(`  - Calculated signature: ${hash}`);
-    console.log(`  - Verification result: ${isValid ? '✅ VALID' : '❌ INVALID'}`);
-    
-    if (!isValid) {
-      console.log('⚠️  Signature verification failed - this would be rejected in production');
-    }
+  try {
+    const result = await WebhookService.testWebhook();
+    res.json(result);
+  } catch (err: unknown) {
+    console.error('Error in test webhook:', err);
+    next(err);
   }
-  
-  console.log('\nFull Headers:', req.headers);
-  console.log('\nBody:', JSON.stringify(req.body, null, 2));
-  console.log('\nRaw Body:', req.rawBody);
-  
-  // Parse and display event details
-  if (req.body.eventNotifications) {
-    console.log('\n=== EVENT DETAILS ===');
-    req.body.eventNotifications.forEach((notification: any, index: number) => {
-      console.log(`Notification ${index + 1}:`);
-      console.log(`  - Realm ID: ${notification.realmId}`);
-      if (notification.dataChangeEvent?.entities) {
-        notification.dataChangeEvent.entities.forEach((entity: any, entityIndex: number) => {
-          console.log(`  - Entity ${entityIndex + 1}:`);
-          console.log(`    - Name: ${entity.name}`);
-          console.log(`    - ID: ${entity.id}`);
-          console.log(`    - Operation: ${entity.operation}`);
-          console.log(`    - Last Updated: ${entity.lastUpdated}`);
-        });
-      }
-    });
-  }
-  
-  console.log('================================');
-  
-  res.status(200).send('OK - Webhook received and logged');
 };

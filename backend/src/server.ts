@@ -3,14 +3,6 @@
 // --- Core & External Imports
 import express, { Request, Response, NextFunction } from 'express';
 
-// Extend Request interface to include rawBody
-declare global {
-  namespace Express {
-    interface Request {
-      rawBody?: Buffer;
-    }
-  }
-}
 import corsMiddleware from 'cors';
 import morgan from 'morgan';
 import session from 'express-session';
@@ -88,12 +80,14 @@ app.use(express.urlencoded({
   extended: true, 
   limit: config.server.bodyParser.limit
 }));
+
 app.use(express.json({ 
   limit: config.server.bodyParser.limit,
   verify: (req: any, res, buf) => {
-    req.rawBody = buf;
+    (req as any).rawBody = buf;
   }
 }));
+
 app.use(morgan(config.logging.morgan));
 
 // Additional security headers
