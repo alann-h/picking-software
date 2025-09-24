@@ -30,29 +30,37 @@ export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction
 
 
 export const handleQBOWebhook = async (req: Request, res: Response, next: NextFunction) => {
-  // try {
-  //   const { eventNotifications } = req.body;
-  //   console.log('eventNotifications', eventNotifications);
+  try {
+    const { eventNotifications } = req.body;
+    console.log('eventNotifications', eventNotifications);
 
-  //   if (!eventNotifications || !Array.isArray(eventNotifications)) {
-  //       console.warn('Webhook received without eventNotifications');
-  //       return res.status(200).send('OK'); // Acknowledge webhook even if empty
-  //   }
+    if (!eventNotifications || !Array.isArray(eventNotifications)) {
+        console.warn('Webhook received without eventNotifications');
+        return res.status(200).send('OK'); // Acknowledge webhook even if empty
+    }
     
-  //   // Process notifications
-  //   for (const notification of eventNotifications) {
-  //     if (notification.dataChangeEvent && notification.dataChangeEvent.entities) {
-  //       for (const event of notification.dataChangeEvent.entities) {
-  //         console.log(`Processing webhook event for company ${notification.realmId}:`, event);
-  //         // TODO: Implement logic to handle the event (e.g., update local database)
-  //       }
-  //     }
-  //   }
-  //   res.status(200).send('OK');
-  // } catch (err: any) {
-  //   console.error('Error handling QBO webhook:', err);
-  //   next(err);
-  // }
-  console.log('Received webhook request:', req.body);
-  res.status(200).send('Webhook received successfully!')
+    // Process notifications
+    for (const notification of eventNotifications) {
+      if (notification.dataChangeEvent && notification.dataChangeEvent.entities) {
+        for (const event of notification.dataChangeEvent.entities) {
+          console.log(`Processing webhook event for company ${notification.realmId}:`, event);
+          // TODO: Implement logic to handle the event (e.g., update local database)
+        }
+      }
+    }
+    res.status(200).send('OK');
+  } catch (err: any) {
+    console.error('Error handling QBO webhook:', err);
+    next(err);
+  }
+};
+
+export const testWebhook = async (req: Request, res: Response, next: NextFunction) => {
+  console.log('=== QBO WEBHOOK TEST ENDPOINT ===');
+  console.log('Headers:', req.headers);
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+  console.log('Raw Body:', req.rawBody);
+  console.log('================================');
+  
+  res.status(200).send('OK - Webhook received and logged');
 };

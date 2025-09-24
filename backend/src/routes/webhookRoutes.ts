@@ -1,8 +1,9 @@
 import express from 'express';
-import { handleQBOWebhook } from '../controllers/webhookController.js';
+import { handleQBOWebhook, testWebhook } from '../controllers/webhookController.js';
 
 const router = express.Router();
 
 router.post('/qbo', handleQBOWebhook);
+router.post('/qbo/test', testWebhook);
 
 export default router;
