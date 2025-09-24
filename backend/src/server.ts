@@ -414,33 +414,27 @@ app.post('/logout-all', asyncHandler(async (req: Request, res: Response) => {
     deletedSessionsCount = result.count;
     console.log(`Deleted ${deletedSessionsCount} sessions for user ${userId}`);
     
-    // Regenerate and destroy the current session to prevent race conditions
-    req.session.regenerate(regenerateErr => {
-      if (regenerateErr) {
-        console.error('Error regenerating session during global logout:', regenerateErr);
-        // Even if regeneration fails, try to destroy the old session
+    // Destroy current session
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Error destroying session during global logout:', err);
+        return res.status(500).json({ error: 'Failed to destroy session' });
       }
       
-      req.session.destroy(destroyErr => {
-        if (destroyErr) {
-          console.error('Error destroying session during global logout:', destroyErr);
-          return res.status(500).json({ error: 'Failed to destroy session' });
-        }
-        
-        res.clearCookie('connect.sid', {
-          httpOnly: true,
-          secure: config.session.cookie.secure,
-          sameSite: config.session.cookie.sameSite as 'none' | 'lax' | 'strict' | undefined,
-          domain: config.session.cookie.domain,
-          path: '/'
-        });
-        
-        console.log(`Successfully logged out user ${userId} from all devices`);
-        res.json({ 
-          message: 'Successfully logged out from all devices',
-          deletedSessions: deletedSessionsCount,
-          timestamp: new Date().toISOString()
-        });
+      // Clear the session cookie
+      res.clearCookie('connect.sid', {
+        httpOnly: true,
+        secure: config.session.cookie.secure,
+        sameSite: config.session.cookie.sameSite as 'none' | 'lax' | 'strict' | undefined,
+        domain: config.session.cookie.domain,
+        path: '/'
+      });
+      
+      console.log(`Successfully logged out user ${userId} from all devices`);
+      res.json({ 
+        message: 'Successfully logged out from all devices',
+        deletedSessions: deletedSessionsCount,
+        timestamp: new Date().toISOString()
       });
     });
   } catch (error: unknown) {

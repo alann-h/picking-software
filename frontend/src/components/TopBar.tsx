@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { logoutAllDevices, getUserSessions, logout } from '../api/auth';
+import { logoutAllDevices, getUserSessions } from '../api/auth';
 import {
   ClipboardList,
   Play,
@@ -175,16 +175,10 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
 
   const handleTitleClick = () => navigate(disableTopBar ? '/' : '/dashboard');
 
-  const handleMenuItemClick = async (path: string) => {
+  const handleMenuItemClick = (path: string) => {
     if (path === '/logout') {
-      try {
-        await logout();
-      } catch (error) {
-        console.error('Logout failed', error);
-      } finally {
-        localStorage.removeItem('rememberMe');
-        window.location.href = '/login';
-      }
+      localStorage.removeItem('rememberMe');
+      navigate('/login');
     } else if (path === '/logout-all') {
       setLogoutAllDialogOpen(true);
     } else if (path === '/sessions') {
@@ -206,7 +200,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
     } finally {
       localStorage.removeItem('rememberMe');
       setLogoutAllDialogOpen(false);
-      window.location.href = '/login';
+      navigate('/login');
     }
   };
 

@@ -95,13 +95,9 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       }
       
       // Set session data in new session
-      const companyService = new CompanyService();
-      const company = await companyService.getCompanyById(user.company_id);
-
       req.session.isAdmin = user.is_admin;
       req.session.userId = user.id;
       req.session.companyId = user.company_id; // Database UUID
-      req.session.connectionType = company.connectionType;
       req.session.name = user.given_name + ' ' + user.family_name;
       req.session.email = user.display_email;
       req.session.loginTime = new Date().toISOString();
@@ -313,33 +309,26 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
     
     console.log(`User ${userId} from company ${companyId} is logging out`);
     
-    // Regenerate session to invalidate old CSRF token
-    req.session.regenerate(regenerateErr => {
-      if (regenerateErr) {
-        console.error('Error regenerating session during logout:', regenerateErr);
-        return next(regenerateErr);
+    // Clear session data
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Error destroying session during logout:', err);
+        return next(err);
       }
-
-      // Then destroy the new, empty session to complete logout
-      req.session.destroy(destroyErr => {
-        if (destroyErr) {
-          console.error('Error destroying session during logout:', destroyErr);
-          return next(destroyErr);
-        }
-        
-        res.clearCookie('connect.sid', {
-          httpOnly: true,
-          secure: process.env.VITE_APP_ENV === 'production',
-          sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
-          path: '/'
-        });
-        
-        console.log(`Successfully logged out user ${userId}`);
-        res.json({ 
-          message: 'Successfully logged out',
-          timestamp: new Date().toISOString()
-        });
+      
+      // Clear the session cookie
+      res.clearCookie('connect.sid', {
+        httpOnly: true,
+        secure: process.env.VITE_APP_ENV === 'production',
+        sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
+        domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+        path: '/'
+      });
+      
+      console.log(`Successfully logged out user ${userId}`);
+      res.json({ 
+        message: 'Successfully logged out',
+        timestamp: new Date().toISOString()
       });
     });
   } catch (err) {
