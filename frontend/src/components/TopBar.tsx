@@ -206,7 +206,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
     } finally {
       localStorage.removeItem('rememberMe');
       setLogoutAllDialogOpen(false);
-      navigate('/login');
+      window.location.href = '/login';
     }
   };
 
