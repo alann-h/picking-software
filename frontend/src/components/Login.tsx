@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { loginWithCredentials, verifyUser, requestPasswordReset } from '../api/auth';
+import { loginWithCredentials, verifyUser, requestPasswordReset, logout } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
@@ -52,7 +52,7 @@ const Login: React.FC = () => {
   // --- All useEffect and Handler Functions remain identical ---
   useEffect(() => {
     verifyUser()
-      .then((response) => {
+      .then((response: any) => {
         if (response.isValid && response.user && response.user.userId) {
           const hasRememberMe = localStorage.getItem('rememberMe') === 'true';
           if (hasRememberMe) {
@@ -76,11 +76,17 @@ const Login: React.FC = () => {
       });
   }, [navigate, handleLoginError]);
 
-  const handleSwitchAccount = () => {
-    setShowSwitchAccount(true);
-    setCurrentUser(null);
-    setPreFilledEmail('');
-    localStorage.removeItem('rememberMe');
+  const handleSwitchAccount = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      setShowSwitchAccount(true);
+      setCurrentUser(null);
+      setPreFilledEmail('');
+      localStorage.removeItem('rememberMe');
+    }
   };
 
   const handleForgotPassword = () => {
@@ -125,7 +131,7 @@ const Login: React.FC = () => {
     clearError(); 
 
     try {
-      const user = await loginWithCredentials(data.email, data.password, rememberMe);
+      const user = await loginWithCredentials(data.email, data.password, rememberMe) as any;
 
       if (user.qboReAuthRequired) {
         handleOpenSnackbar('Your accounting connection has expired. Redirecting to reconnect...', 'warning');

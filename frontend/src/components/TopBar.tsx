@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { logoutAllDevices, getUserSessions } from '../api/auth';
+import { logoutAllDevices, getUserSessions, logout } from '../api/auth';
 import {
   ClipboardList,
   Play,
@@ -177,8 +177,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
 
   const handleMenuItemClick = (path: string) => {
     if (path === '/logout') {
-      localStorage.removeItem('rememberMe');
-      navigate('/login');
+      handleLogout();
     } else if (path === '/logout-all') {
       setLogoutAllDialogOpen(true);
     } else if (path === '/sessions') {
@@ -192,6 +191,17 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
     setMobileAdminMenuOpen(false);
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      localStorage.removeItem('rememberMe');
+      window.location.href = '/login';
+    }
+  };
+
   const handleLogoutAllDevices = async () => {
     try {
       await logoutAllDevices();
@@ -200,13 +210,13 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
     } finally {
       localStorage.removeItem('rememberMe');
       setLogoutAllDialogOpen(false);
-      navigate('/login');
+      window.location.href = '/login';
     }
   };
 
   const showActiveSessions = async () => {
      try {
-       const sessions = await getUserSessions();
+       const sessions = await getUserSessions() as any;
        
        if (sessions.totalSessions === 0) {
          alert('You have no active sessions.');

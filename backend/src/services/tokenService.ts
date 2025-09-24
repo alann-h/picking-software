@@ -19,11 +19,21 @@ import {
 class TokenService {
   private tokenRefreshPromises: Map<string, Promise<TokenData>>;
   private connectionHandlers: Map<string, ConnectionHandler>;
+  private oauthClients: Map<string, OauthClient>;
 
   constructor() {
     this.tokenRefreshPromises = new Map();
     this.connectionHandlers = new Map();
+    this.oauthClients = new Map();
     this.initializeConnectionHandlers();
+  }
+
+  clearCachedClient(companyId: string, connectionType: ConnectionType): void {
+    const cacheKey = `${companyId}_${connectionType}`;
+    if (this.oauthClients.has(cacheKey)) {
+      this.oauthClients.delete(cacheKey);
+      console.log(`Cleared cached OAuth client for company ${companyId} (${connectionType})`);
+    }
   }
 
   initializeConnectionHandlers(): void {
@@ -184,6 +194,7 @@ class TokenService {
     if (!handler) throw new Error(`Unsupported connection type: ${connectionType}`);
 
     try {
+      this.clearCachedClient(companyId, connectionType);
       const refreshedToken = await handler.refresh(currentToken);
       let tokenDataToStore;
       if (connectionType === 'qbo') {
@@ -235,10 +246,19 @@ class TokenService {
   }
 
   async getOAuthClient(companyId: string, connectionType: ConnectionType = 'qbo'): Promise<OauthClient> {
+    const handler = this.connectionHandlers.get(connectionType);
+    if (!handler) throw new Error(`Unsupported connection type: ${connectionType}`);
+
+    const cacheKey = `${companyId}_${connectionType}`;
+    if (this.oauthClients.has(cacheKey)) {
+      return this.oauthClients.get(cacheKey)!;
+    }
+
     const validToken = await this.getValidToken(companyId, connectionType);
-    const handler = this.connectionHandlers.get(connectionType)!;
     const client = handler.initClient();
     handler.setClientToken(client, validToken);
+
+    this.oauthClients.set(cacheKey, client);
     return client;
   }
 

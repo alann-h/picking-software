@@ -14,11 +14,25 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 2 * 60 * 1000, // 2 minutes
       gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
-      retry: 2,
+      retry: (failureCount, error: any) => {
+        // Don't retry on 401 errors (authentication failures)
+        if (error?.response?.status === 401) {
+          return false;
+        }
+        // Retry up to 2 times for other errors
+        return failureCount < 2;
+      },
       refetchOnWindowFocus: false,
     },
     mutations: {
-      retry: 1,
+      retry: (failureCount, error: any) => {
+        // Don't retry on 401 errors (authentication failures)
+        if (error?.response?.status === 401) {
+          return false;
+        }
+        // Retry up to 1 time for other errors
+        return failureCount < 1;
+      },
     },
   },
 });

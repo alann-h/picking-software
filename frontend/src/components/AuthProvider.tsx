@@ -39,7 +39,7 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { isAdmin, userId, userCompanyId, isLoadingStatus, userName, userEmail, connectionType } = useUserStatus();
+  const { isAdmin, userId, userCompanyId, isLoadingStatus, userName, userEmail, connectionType, isError } = useUserStatus();
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
   const [permissionsLoading, setPermissionsLoading] = useState(true);
 
@@ -77,6 +77,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       loadUserPermissions();
     }
   }, [userCompanyId, userId, permissions, loadUserPermissions]);
+
+  // Clear permissions when authentication fails
+  useEffect(() => {
+    if (isError || !userCompanyId) {
+      setPermissions(null);
+      setPermissionsLoading(false);
+    }
+  }, [isError, userCompanyId]);
 
   // Permission checking functions
   const hasPermission = (permission: keyof UserPermissions): boolean => {
