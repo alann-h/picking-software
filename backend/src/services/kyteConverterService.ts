@@ -160,7 +160,6 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
           productName: true,
           sku: true,
           barcode: true,
-          price: true,
           externalItemId: true,
           taxCodeRef: true,
         },
@@ -172,10 +171,9 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
           productId: Number(product.id),
           sku: product.sku,
           barcode: product.barcode,
-          price: product.price.toNumber(),
           externalItemId: product.externalItemId,
           taxCodeRef: product.taxCodeRef,
-          matched: true
+          matched: true,
         });
       } else {
         // No match found
@@ -184,7 +182,6 @@ export async function matchProductsToDatabase(lineItems: KyteLineItem[], company
           productId: null,
           sku: null,
           barcode: null,
-          price: 0,
           externalItemId: null,
           taxCodeRef: null,
           matched: false
@@ -307,13 +304,11 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
     const lineItems = sortedMatchedItems.map((item: MatchedLineItem) => ({
       DetailType: 'SalesItemLineDetail',
       Description: item.productName,
-      Amount: item.quantity * item.price,
       SalesItemLineDetail: {
         ItemRef: {
           value: item.externalItemId
         },
         Qty: item.quantity,
-        UnitPrice: item.price,
         TaxCodeRef: {
           value: item.taxCodeRef || "4"
         }
