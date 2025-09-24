@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { SnackbarProvider } from './components/SnackbarContext';
 import SnackbarComponent from './components/SnackbarComponent';
@@ -37,12 +37,7 @@ const KyteToQuickBooksConverter = React.lazy(() => import('./components/KyteToQu
 
 
 const App: React.FC = () => {
-  const csrfFetched = useRef(false);
-
   useEffect(() => {
-    if (csrfFetched.current) return;
-    csrfFetched.current = true;
-    
     fetchAndCacheCsrfToken().catch(error => {
         console.error("Initial background CSRF fetch failed:", error);
     });
