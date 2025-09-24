@@ -95,9 +95,13 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       }
       
       // Set session data in new session
+      const companyService = new CompanyService();
+      const company = await companyService.getCompanyById(user.company_id);
+
       req.session.isAdmin = user.is_admin;
       req.session.userId = user.id;
       req.session.companyId = user.company_id; // Database UUID
+      req.session.connectionType = company.connectionType;
       req.session.name = user.given_name + ' ' + user.family_name;
       req.session.email = user.display_email;
       req.session.loginTime = new Date().toISOString();
