@@ -18,6 +18,7 @@ model Company {
   qboRealmId       String?            @map("qbo_realm_id")
   xeroTenantId     String?            @map("xero_tenant_id")
   apiAuditLogs     ApiAuditLog[]
+  categories       categories[]
   connectionHealth ConnectionHealth[]
   customers        Customer[]
   jobs             Job[]
@@ -26,6 +27,7 @@ model Company {
   quotes           Quote[]
   runs             Run[]
   securityEvents   SecurityEvent[]
+  syncSettings     sync_settings?
   userPermissions  UserPermission[]
   users            User[]
 
@@ -346,4 +348,37 @@ enum security_event_type {
   password_reset_request
   password_reset_success
   user_lockout
+}
+
+model sync_settings {
+  id        String   @id @default(cuid())
+  companyId String   @db.Uuid
+  enabled   Boolean  @default(true)
+  selectedCategoryIds String[] // Array of category IDs to sync
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId])
+  @@map("sync_settings")
+}
+
+model categories {
+  id        String   @id @default(cuid())
+  companyId String   @db.Uuid
+  externalId String  // QBO category ID
+  name      String
+  fullyQualifiedName String
+  active    Boolean  @default(true)
+  lastSyncedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, externalId])
+  @@map("categories")
 }

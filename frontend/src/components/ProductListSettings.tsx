@@ -3,6 +3,7 @@ import { Product } from '../utils/types';
 import { useSnackbarContext } from './SnackbarContext';
 import { Loader2, Plus, RefreshCw, AlertTriangle, X } from 'lucide-react';
 import clsx from 'clsx';
+import { getCategories, Category } from '../api/sync';
 
 interface ProductListProps {
   products: Product[];
@@ -10,7 +11,7 @@ interface ProductListProps {
   onRefresh: () => void;
   updateProductDb: (_productId: number, _fields: Partial<Product>) => Promise<void>;
   setProductArchiveStatus: (_productId: number, _isArchived: boolean) => Promise<void>;
-  addProductDb: (_productName: string, _sku: string, _barcode: string) => Promise<string>;
+  addProductDb: (_productName: string, _sku: string, _barcode: string, _category?: string) => Promise<string>;
   isAdmin: boolean;
 }
 
@@ -87,6 +88,9 @@ const ProductList: React.FC<ProductListProps> = ({
   const [newProductName, setNewProductName] = useState('');
   const [newSku, setNewSku] = useState('');
   const [newBarcode, setNewBarcode] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -149,7 +153,22 @@ const ProductList: React.FC<ProductListProps> = ({
     setNewProductName('');
     setNewSku('');
     setNewBarcode('');
+    setNewCategory('');
     setOpenAdd(true);
+    loadCategories();
+  };
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const fetchedCategories = await getCategories();
+      setCategories(fetchedCategories);
+    } catch (err) {
+      console.error('Error loading categories:', err);
+      handleOpenSnackbar('Failed to load categories', 'error');
+    } finally {
+      setLoadingCategories(false);
+    }
   };
 
   const handleCloseAdd = () => setOpenAdd(false);
@@ -161,7 +180,7 @@ const ProductList: React.FC<ProductListProps> = ({
     }
     setIsAdding(true);
     try {
-      await addProductDb(newProductName.trim(), newSku.trim(), newBarcode.trim());
+      await addProductDb(newProductName.trim(), newSku.trim(), newBarcode.trim(), newCategory || undefined);
       handleOpenSnackbar(`Product ${newProductName} added successfully`, 'success');
       onRefresh();
       handleCloseAdd();
@@ -336,6 +355,31 @@ const ProductList: React.FC<ProductListProps> = ({
                 {renderInputField('Product Name', newProductName, (e) => setNewProductName(e.target.value), 'text', false, true, "New product name", "border-black")}
                 {renderInputField('SKU', newSku, (e) => setNewSku(e.target.value), 'text', false, true, "Product SKU", "border-black")}
                 {renderInputField('Barcode', newBarcode, (e) => setNewBarcode(e.target.value), 'text', false, false, "Product barcode", "border-black")}
+                
+                {/* Category Selection */}
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
+                  {loadingCategories ? (
+                    <div className="mt-1 flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <span className="text-sm text-gray-500">Loading categories...</span>
+                    </div>
+                  ) : (
+                    <select
+                      id="category"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    >
+                      <option value="">Select a category (optional)</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
             }
             actions={

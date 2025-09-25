@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Settings as SettingsIcon, Package as InventoryIcon, Upload as UploadFileIcon, Users as GroupIcon } from 'lucide-react';
+import { Settings as SettingsIcon, Package as InventoryIcon, Upload as UploadFileIcon, Users as GroupIcon, RefreshCw as SyncIcon } from 'lucide-react';
 import clsx from 'clsx';
 
 import { getAllProducts } from '../api/products';
@@ -9,6 +9,7 @@ import { Product } from '../utils/types';
 import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
 import UsersTab from './tabs/UsersTab';
+import SyncSettingsTab from './tabs/SyncSettingsTab';
 import { useAuth } from '../hooks/useAuth';
 
 const Settings: React.FC = () => {
@@ -28,6 +29,7 @@ const Settings: React.FC = () => {
     const path = location.pathname;
     if (path.includes('/settings/upload')) return 'upload';
     if (path.includes('/settings/users')) return 'users';
+    if (path.includes('/settings/sync')) return 'sync';
     return 'products';
   }, [location.pathname]);
 
@@ -52,6 +54,12 @@ const Settings: React.FC = () => {
       icon: <InventoryIcon className="h-5 w-5" />,
       path: 'products',
       description: 'Manage your product inventory and details'
+    },
+    {
+      label: 'Sync Settings',
+      icon: <SyncIcon className="h-5 w-5" />,
+      path: 'sync',
+      description: 'Configure automatic sync categories'
     },
     ...(isAdmin ? [
       {
@@ -161,6 +169,10 @@ const Settings: React.FC = () => {
                             isAdmin={isAdmin}
                           />
                         }
+                      />
+                      <Route 
+                        path="sync" 
+                        element={<SyncSettingsTab />} 
                       />
                       <Route 
                         path="upload" 

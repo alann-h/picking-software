@@ -50,8 +50,8 @@ export const setProductArchiveStatus = async (productId: number, isArchived: boo
   return response;  
 }
 
-export const addProductDb = async (productName: string, sku: string, barcode: string ) => {
-  const response = await apiCallPost(PRODUCTS_BASE, { productName, sku, barcode });
+export const addProductDb = async (productName: string, sku: string, barcode: string, category?: string) => {
+  const response = await apiCallPost(PRODUCTS_BASE, { productName, sku, barcode, category });
   return response;
 }
 

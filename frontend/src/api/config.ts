@@ -22,6 +22,7 @@ export const PRODUCTS_BASE = 'api/products';
 export const RUNS_BASE = 'api/runs';
 export const PERMISSIONS_BASE = 'api/permissions';
 export const WEBHOOKS_BASE = 'api/webhooks';
+export const SYNC_BASE = 'api/sync';
 
 /**
  * Utility endpoints (relative paths - apiCall functions add API_BASE)

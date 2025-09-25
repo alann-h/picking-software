@@ -11,7 +11,212 @@ export interface SyncResult {
   duration: number;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  fullyQualifiedName: string;
+  active: boolean;
+}
+
 export class ProductSyncService {
+  /**
+   * Get all categories from QuickBooks Online for a company
+   */
+  static async getCategoriesFromQBO(companyId: string): Promise<Category[]> {
+    try {
+      console.log(`🔍 Fetching categories for company: ${companyId}`);
+
+      // Get company details
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { 
+          id: true, 
+          connectionType: true, 
+          qboRealmId: true 
+        }
+      });
+
+      if (!company || company.connectionType !== 'qbo' || !company.qboRealmId) {
+        throw new Error(`Company ${companyId} is not connected to QuickBooks Online`);
+      }
+
+      // Get OAuth client
+      const oauthClient = await getOAuthClient(companyId, 'qbo');
+      const baseURL = await getBaseURL(oauthClient, 'qbo');
+      const realmId = getRealmId(oauthClient as IntuitOAuthClient);
+
+      // Fetch all item categories (Groups in QBO)
+      const queryStr = `SELECT * FROM Item WHERE Type = 'Category' ORDERBY Name`;
+      const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
+
+      const response = await (oauthClient as IntuitOAuthClient).makeApiCall({ url });
+      const categories = response.json?.QueryResponse?.Item || [];
+
+      const formattedCategories: Category[] = categories.map((cat: any) => ({
+        id: cat.Id,
+        name: cat.Name,
+        fullyQualifiedName: cat.FullyQualifiedName || cat.Name,
+        active: cat.Active !== false
+      }));
+
+      console.log(`📂 Found ${formattedCategories.length} categories`);
+      return formattedCategories;
+
+    } catch (error) {
+      console.error(`❌ Failed to fetch categories for company ${companyId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sync products with category filtering
+   */
+  static async syncProductsWithCategories(companyId: string, selectedCategoryIds: string[]): Promise<SyncResult> {
+    const startTime = Date.now();
+    const result: SyncResult = {
+      success: false,
+      totalProducts: 0,
+      updatedProducts: 0,
+      newProducts: 0,
+      errors: [],
+      duration: 0
+    };
+
+    try {
+      console.log(`🔄 Starting category-filtered product sync for company: ${companyId}`);
+      console.log(`📂 Selected categories: ${selectedCategoryIds.length} categories`);
+
+      // Get company details
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { 
+          id: true, 
+          connectionType: true, 
+          qboRealmId: true 
+        }
+      });
+
+      if (!company) {
+        throw new Error(`Company not found: ${companyId}`);
+      }
+
+      if (company.connectionType !== 'qbo') {
+        throw new Error(`Company ${companyId} is not connected to QuickBooks Online`);
+      }
+
+      if (!company.qboRealmId) {
+        throw new Error(`Company ${companyId} has no QBO realm ID`);
+      }
+
+      // Get OAuth client
+      const oauthClient = await getOAuthClient(companyId, 'qbo');
+      const baseURL = await getBaseURL(oauthClient, 'qbo');
+      const realmId = getRealmId(oauthClient as IntuitOAuthClient);
+
+      // Fetch items with category filtering
+      const allItems = await this.fetchItemsByCategories(oauthClient as IntuitOAuthClient, baseURL, realmId, selectedCategoryIds);
+      result.totalProducts = allItems.length;
+
+      console.log(`📦 Found ${allItems.length} items in selected categories`);
+
+      // Process each item
+      for (const item of allItems) {
+        try {
+          const syncResult = await this.syncSingleProduct(item, companyId);
+          if (syncResult === 'updated') {
+            result.updatedProducts++;
+          } else if (syncResult === 'created') {
+            result.newProducts++;
+          }
+        } catch (error) {
+          const errorMsg = `Failed to sync product ${item.Id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          console.error(errorMsg);
+          result.errors.push(errorMsg);
+        }
+      }
+
+      result.success = result.errors.length === 0;
+      result.duration = Date.now() - startTime;
+
+      console.log(`✅ Category-filtered product sync completed for company ${companyId}:`, {
+        total: result.totalProducts,
+        updated: result.updatedProducts,
+        new: result.newProducts,
+        errors: result.errors.length,
+        duration: `${result.duration}ms`
+      });
+
+      return result;
+
+    } catch (error) {
+      result.duration = Date.now() - startTime;
+      result.errors.push(`Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error(`❌ Category-filtered product sync failed for company ${companyId}:`, error);
+      return result;
+    }
+  }
+
+  /**
+   * Fetch items by selected categories from QuickBooks Online
+   */
+  private static async fetchItemsByCategories(
+    oauthClient: IntuitOAuthClient, 
+    baseURL: string, 
+    realmId: string,
+    selectedCategoryIds: string[]
+  ): Promise<any[]> {
+    const allItems: any[] = [];
+    let startPosition = 1;
+    const maxResults = 500; // QBO max per page
+
+    while (true) {
+      // Build query with category filtering
+      let queryStr = 'SELECT * FROM Item WHERE Active = true';
+      
+      if (selectedCategoryIds.length > 0) {
+        // Filter by selected categories (Groups in QBO)
+        const categoryConditions = selectedCategoryIds.map(id => `ParentRef = '${id}'`).join(' OR ');
+        queryStr += ` AND (${categoryConditions})`;
+      }
+      
+      queryStr += ` ORDERBY Id STARTPOSITION ${startPosition} MAXRESULTS ${maxResults}`;
+      const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
+
+      try {
+        const response = await oauthClient.makeApiCall({ url });
+        const items = response.json?.QueryResponse?.Item || [];
+
+        if (items.length === 0) {
+          break; // No more items
+        }
+
+        // Filter items that require SKU
+        const filteredItems = items.filter((item: any) => {
+          // Require SKU
+          if (!item.Sku || item.Sku.trim() === '') {
+            console.log(`🚫 Filtering out item without SKU: ${item.Name}`);
+            return false;
+          }
+          return true;
+        });
+
+        allItems.push(...filteredItems);
+        console.log(`📄 Fetched ${items.length} items, filtered to ${filteredItems.length} (total: ${allItems.length})`);
+
+        if (items.length < maxResults) {
+          break; // Last page
+        }
+
+        startPosition += maxResults;
+      } catch (error) {
+        console.error(`Error fetching items from QBO:`, error);
+        throw error;
+      }
+    }
+
+    return allItems;
+  }
+
   /**
    * Sync all products from QuickBooks Online for a company
    * This updates quantities and other product data
@@ -158,7 +363,7 @@ export class ProductSyncService {
     const productData = {
       productName: productName,
       sku: sku,
-      category: itemData.ItemCategoryRef?.name || null,
+      category: itemData.ParentRef?.name || null,
       price: parseFloat(itemData.UnitPrice) || 0,
       quantity_on_hand: parseFloat(itemData.QtyOnHand) || 0,
       tax_code_ref: itemData.SalesTaxCodeRef?.value || null,
