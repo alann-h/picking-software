@@ -173,13 +173,12 @@ export class WebhookService {
           quantityOnHand: productData.quantity_on_hand || 0,
           isArchived: !productData.is_active, // If not active in QBO, mark as archived
         }
-      });
-
+      })
       if (updatedProduct.count === 0) {
-        console.log(`Product with external ID ${itemId} not found in database, creating instead`);
-        await this.handleCreateProduct(itemId, realmId);
+        console.log(`Product with external ID ${itemId} not found in database`);
         return;
-      }
+      };
+
 
       console.log(`✅ Successfully updated product: ${productData.productName} (SKU: ${productData.sku})`);
     } catch (error) {
