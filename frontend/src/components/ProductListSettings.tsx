@@ -92,6 +92,10 @@ const ProductList: React.FC<ProductListProps> = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   
+  // Edit product state
+  const [editProduct, setEditProduct] = useState<Partial<Product>>({});
+  const [editCategory, setEditCategory] = useState('');
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -116,19 +120,25 @@ const ProductList: React.FC<ProductListProps> = ({
 
   const handleOpenEdit = (product: Product) => {
     setSelectedProduct(JSON.parse(JSON.stringify(product)));
+    setEditProduct(JSON.parse(JSON.stringify(product)));
+    setEditCategory(product.category || '');
+    loadCategories();
     setOpenEdit(true);
   };
 
   const handleCloseEdit = () => {
     setSelectedProduct(null);
+    setEditProduct({});
+    setEditCategory('');
     setOpenEdit(false);
   };
 
   const handleChangeEdit = useCallback(<K extends keyof Product>(field: K, value: Product[K]) => {
     if (selectedProduct) {
       setSelectedProduct({ ...selectedProduct, [field]: value });
+      setEditProduct({ ...editProduct, [field]: value });
     }
-  }, [selectedProduct]);
+  }, [selectedProduct, editProduct]);
 
   const handleSaveEdit = async () => {
     if (!selectedProduct) return;
@@ -139,6 +149,7 @@ const ProductList: React.FC<ProductListProps> = ({
         barcode: selectedProduct.barcode,
         quantityOnHand: selectedProduct.quantityOnHand,
         sku: selectedProduct.sku,
+        category: editCategory,
       });
       handleOpenSnackbar('Product updated successfully', 'success');
       onRefresh();
@@ -396,6 +407,33 @@ const ProductList: React.FC<ProductListProps> = ({
                 {renderInputField('Barcode', selectedProduct?.barcode, (e) => handleChangeEdit('barcode', e.target.value), 'text', !isAdmin)}
                 {renderInputField('Quantity On Hand', selectedProduct?.quantityOnHand, (e) => handleChangeEdit('quantityOnHand', parseInt(e.target.value, 10)), 'number', !isAdmin)}
                 {renderInputField('SKU', selectedProduct?.sku, (e) => handleChangeEdit('sku', e.target.value), 'text', !isAdmin)}
+                
+                {/* Category Selection */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Category
+                  </label>
+                  {loadingCategories ? (
+                    <div className="flex items-center space-x-2 text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Loading categories...</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      disabled={!isAdmin}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <option value="">No category</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
             }
             actions={

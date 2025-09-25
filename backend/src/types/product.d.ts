@@ -43,6 +43,7 @@ export interface NewProductData {
     productName: string;
     barcode: string;
     sku: string;
+    category?: string;
 }
 
 export interface UpdateProductPayload {
@@ -51,6 +52,7 @@ export interface UpdateProductPayload {
     barcode?: string;
     quantityOnHand?: number;
     sku?: string;
+    category?: string;
 }
 
 export interface QuoteItemStatusResult {
