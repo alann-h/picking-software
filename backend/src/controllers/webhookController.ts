@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { WebhookService } from '../services/webhookService.js';
+import { ProductSyncService } from '../services/productSyncService.js';
 
 // Middleware to verify the webhook signature from QuickBooks
 export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction) => {
@@ -55,6 +56,42 @@ export const testWebhook = async (req: Request, res: Response, next: NextFunctio
     res.json(result);
   } catch (err: unknown) {
     console.error('Error in test webhook:', err);
+    next(err);
+  }
+};
+
+export const syncProducts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const companyId = req.session.companyId;
+    if (!companyId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    console.log(`Manual product sync requested for company: ${companyId}`);
+    const result = await ProductSyncService.syncAllProductsFromQBO(companyId);
+    
+    res.json({
+      message: 'Product sync completed',
+      result
+    });
+  } catch (err: unknown) {
+    console.error('Manual sync error:', err);
+    next(err);
+  }
+};
+
+export const syncAllCompanies = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // This endpoint should be protected and only accessible by admins
+    console.log('Manual sync for all companies requested');
+    const results = await ProductSyncService.syncAllCompanies();
+    
+    res.json({
+      message: 'All companies sync completed',
+      results
+    });
+  } catch (err: unknown) {
+    console.error('All companies sync error:', err);
     next(err);
   }
 };

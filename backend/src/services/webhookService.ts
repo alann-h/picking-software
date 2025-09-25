@@ -114,7 +114,6 @@ export class WebhookService {
           companyId: company.id,
           productName: productData.productName,
           sku: productData.sku,
-          barcode: productData.barcode,
           externalItemId: itemId,
           category: productData.category,
           taxCodeRef: productData.tax_code_ref,
@@ -157,28 +156,66 @@ export class WebhookService {
         return;
       }
 
-      // Update existing product
-      const updatedProduct = await prisma.product.updateMany({
+      // Find the existing product by external ID
+      const existingProduct = await prisma.product.findFirst({
         where: {
           externalItemId: itemId,
           companyId: company.id
-        },
+        }
+      });
+
+      if (!existingProduct) {
+        console.log(`Product with external ID ${itemId} not found in database`);
+        return;
+      }
+
+      // Check if the new SKU conflicts with another product
+      if (productData.sku !== existingProduct.sku) {
+        const conflictingProduct = await prisma.product.findUnique({
+          where: {
+            companyId_sku: {
+              companyId: company.id,
+              sku: productData.sku
+            }
+          }
+        });
+
+        if (conflictingProduct) {
+          console.warn(`SKU conflict detected: Product ${itemId} trying to update SKU from "${existingProduct.sku}" to "${productData.sku}", but another product (ID: ${conflictingProduct.id}) already uses this SKU`);
+          
+          // Option 1: Skip the SKU update and update other fields
+          console.log(`Skipping SKU update to avoid conflict, updating other fields only`);
+          
+          await prisma.product.update({
+            where: { id: existingProduct.id },
+            data: {
+              productName: productData.productName,
+              category: productData.category,
+              taxCodeRef: productData.tax_code_ref,
+              price: productData.price || 0,
+              quantityOnHand: productData.quantity_on_hand || 0,
+              isArchived: !productData.is_active, // If not active in QBO, mark as archived
+            }
+          });
+          
+          console.log(`✅ Successfully updated product (SKU unchanged): ${productData.productName} (SKU: ${existingProduct.sku})`);
+          return;
+        }
+      }
+
+      // No SKU conflict, proceed with full update
+      await prisma.product.update({
+        where: { id: existingProduct.id },
         data: {
           productName: productData.productName,
           sku: productData.sku,
-          barcode: productData.barcode,
           category: productData.category,
           taxCodeRef: productData.tax_code_ref,
           price: productData.price || 0,
           quantityOnHand: productData.quantity_on_hand || 0,
           isArchived: !productData.is_active, // If not active in QBO, mark as archived
         }
-      })
-      if (updatedProduct.count === 0) {
-        console.log(`Product with external ID ${itemId} not found in database`);
-        return;
-      };
-
+      });
 
       console.log(`✅ Successfully updated product: ${productData.productName} (SKU: ${productData.sku})`);
     } catch (error) {
@@ -253,7 +290,6 @@ export class WebhookService {
       const productData = {
         productName: itemData.Name || '',
         sku: itemData.Sku || '',
-        barcode: itemData.Barcode || null,
         category: itemData.ItemCategoryRef?.name || null,
         price: parseFloat(itemData.UnitPrice) || 0,
         quantity_on_hand: parseFloat(itemData.QtyOnHand) || 0,

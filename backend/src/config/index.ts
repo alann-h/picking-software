@@ -46,6 +46,7 @@ const baseConfig = {
       sameSite: currentEnv === ENV.PRODUCTION ? 'none' : 'lax',
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      rolling: true,
       domain: currentEnv === ENV.PRODUCTION ? '.smartpicker.au' : undefined
     },
     store: {

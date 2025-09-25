@@ -44,6 +44,7 @@ import { tokenService } from './services/tokenService.js';
 // --- Configuration
 import config from './config/index.js';
 import { ConnectionType } from './types/auth.js';
+import { ProductSyncService } from './services/productSyncService.js';
 
 const app = express();
 const unlinkAsync = promisify(fsUnlink);
@@ -61,19 +62,44 @@ app.set('trust proxy', config.server.trustProxy);
 
 // — Sessions with Postgres store
 const PgStore = pgSession(session);
+const sessionStore = new PgStore({ pool, tableName: config.session.store.tableName });
+
 app.use(cookieParser());
 app.use(session({
-  store: new PgStore({ pool, tableName: config.session.store.tableName }),
+  store: sessionStore,
   secret: config.session.secret,
   resave: false,
   saveUninitialized: false,
   cookie: config.session.cookie as session.CookieOptions,
 }));
 
-// — Prune sessions daily
+// — Prune sessions daily using the same store instance
 setInterval(() => {
-  new PgStore({ pool, tableName: config.session.store.tableName }).pruneSessions();
+  sessionStore.pruneSessions();
 }, config.session.store.pruneInterval);
+
+
+// Sync products twice a week
+const SYNC_INTERVAL = 3.5 * 24 * 60 * 60 * 1000; // 3.5 days in milliseconds
+const SYNC_START_DELAY = 2 * 60 * 60 * 1000; // 2 hours delay on startup
+
+setTimeout(() => {
+  console.log('🔄 Starting scheduled product sync...');
+  
+  // Initial sync after 2 hours
+  ProductSyncService.syncAllCompanies().catch(error => {
+    console.error('❌ Initial product sync failed:', error);
+  });
+  
+  // Then sync every 3.5 days (twice per week)
+  setInterval(() => {
+    console.log('🔄 Running scheduled product sync...');
+    ProductSyncService.syncAllCompanies().catch(error => {
+      console.error('❌ Scheduled product sync failed:', error);
+    });
+  }, SYNC_INTERVAL);
+  
+}, SYNC_START_DELAY);
 
 // — Body parsing & logging
 app.use(express.urlencoded({ 
