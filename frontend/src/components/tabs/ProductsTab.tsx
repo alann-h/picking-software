@@ -181,11 +181,17 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                   <Package className="h-6 w-6 text-blue-600" />
                   <div>
                     <p className="text-sm text-gray-600">
-                      Showing {finalFilteredProducts.length} of {filteredProducts.length} products
+                      {finalFilteredProducts.length} products found
+                      {searchTerm && ` (filtered from ${filteredProducts.length} total)`}
                     </p>
                     {searchTerm && (
                       <p className="text-sm font-medium text-blue-700">
                         Search results for "{searchTerm}" in {searchField === 'all' ? 'all fields' : searchField === 'name' ? 'product names' : 'SKUs'}
+                      </p>
+                    )}
+                    {!searchTerm && (
+                      <p className="text-sm text-gray-500">
+                        Products are paginated (50 per page)
                       </p>
                     )}
                   </div>

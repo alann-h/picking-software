@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Product } from '../utils/types';
 import { useSnackbarContext } from './SnackbarContext';
-import { Loader2, Plus, RefreshCw, AlertTriangle, X } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { getCategories, Category } from '../api/sync';
 
@@ -91,6 +91,10 @@ const ProductList: React.FC<ProductListProps> = ({
   const [newCategory, setNewCategory] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   const [isAdding, setIsAdding] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -98,6 +102,17 @@ const ProductList: React.FC<ProductListProps> = ({
     () => products.filter((p) => p.isArchived === showArchived),
     [products, showArchived],
   );
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  // Reset to first page when products change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredProducts.length]);
 
   const handleOpenEdit = (product: Product) => {
     setSelectedProduct(JSON.parse(JSON.stringify(product)));
@@ -270,7 +285,7 @@ const ProductList: React.FC<ProductListProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <tr
                     key={product.productId}
                     onClick={() => handleOpenEdit(product)}
@@ -287,6 +302,77 @@ const ProductList: React.FC<ProductListProps> = ({
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex items-center text-sm text-gray-700">
+                <span>
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} products
+                </span>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className={clsx(
+                    'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border',
+                    currentPage === 1
+                      ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
+                  )}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={clsx(
+                          'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border cursor-pointer',
+                          currentPage === pageNum
+                            ? 'border-blue-500 bg-blue-50 text-blue-600'
+                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        )}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className={clsx(
+                    'inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border',
+                    currentPage === totalPages
+                      ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
+                  )}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 flex justify-center">
             <button
