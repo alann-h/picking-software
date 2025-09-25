@@ -22,21 +22,6 @@ export const syncProducts = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const syncAllCompanies = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // This endpoint should be protected and only accessible by admins
-    console.log('Manual sync for all companies requested');
-    const results = await ProductSyncService.syncAllCompanies();
-    
-    res.json({
-      message: 'All companies sync completed',
-      results
-    });
-  } catch (err: unknown) {
-    console.error('All companies sync error:', err);
-    next(err);
-  }
-};
 
 export const getCategories = async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -87,15 +87,15 @@ const SYNC_START_DELAY = 2 * 60 * 60 * 1000; // 2 hours delay on startup
 setTimeout(() => {
   console.log('🔄 Starting scheduled product sync...');
   
-  // Initial sync after 2 hours
-  ProductSyncService.syncAllCompanies().catch(error => {
+  // Initial sync after 2 hours (using saved settings)
+  ProductSyncService.syncAllCompaniesWithSettings().catch(error => {
     console.error('❌ Initial product sync failed:', error);
   });
   
-  // Then sync every 3.5 days (twice per week)
+  // Then sync every 3.5 days (twice per week) using saved settings
   setInterval(() => {
-    console.log('🔄 Running scheduled product sync...');
-    ProductSyncService.syncAllCompanies().catch(error => {
+    console.log('🔄 Running scheduled product sync with saved settings...');
+    ProductSyncService.syncAllCompaniesWithSettings().catch(error => {
       console.error('❌ Scheduled product sync failed:', error);
     });
   }, SYNC_INTERVAL);

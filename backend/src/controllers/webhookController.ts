@@ -2,7 +2,6 @@ import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { WebhookService } from '../services/webhookService.js';
 
-// Middleware to verify the webhook signature from QuickBooks
 export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction) => {
   const signature = req.get('intuit-signature');
   const webhookToken = process.env.QBO_WEBHOOK_VERIFIER_TOKEN;

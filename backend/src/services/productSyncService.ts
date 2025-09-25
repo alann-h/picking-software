@@ -430,11 +430,12 @@ export class ProductSyncService {
     }
   }
 
+
   /**
-   * Sync products for all companies with QBO connections
+   * Sync all companies using their saved sync settings (respects category preferences)
    */
-  static async syncAllCompanies(): Promise<{ [companyId: string]: SyncResult }> {
-    console.log('🔄 Starting product sync for all companies...');
+  static async syncAllCompaniesWithSettings(): Promise<{ [companyId: string]: SyncResult }> {
+    console.log('🔄 Starting scheduled product sync with saved settings...');
     
     const companies = await prisma.company.findMany({
       where: { 
@@ -451,7 +452,33 @@ export class ProductSyncService {
     for (const company of companies) {
       try {
         console.log(`🔄 Syncing products for company: ${company.companyName} (${company.id})`);
-        results[company.id] = await this.syncAllProductsFromQBO(company.id);
+        
+        // Get sync settings for this company
+        const syncSettings = await prisma.sync_settings.findUnique({
+          where: { companyId: company.id }
+        });
+
+        if (!syncSettings || !syncSettings.enabled) {
+          console.log(`⏭️ Skipping company ${company.companyName} - sync disabled`);
+          results[company.id] = {
+            success: true,
+            totalProducts: 0,
+            updatedProducts: 0,
+            newProducts: 0,
+            errors: [],
+            duration: 0
+          };
+          continue;
+        }
+
+        // If no categories selected, sync all products (fallback)
+        if (!syncSettings.selectedCategoryIds || syncSettings.selectedCategoryIds.length === 0) {
+          console.log(`🔄 No categories selected for ${company.companyName}, syncing all products`);
+          results[company.id] = await this.syncAllProductsFromQBO(company.id);
+        } else {
+          console.log(`🔄 Syncing ${syncSettings.selectedCategoryIds.length} selected categories for ${company.companyName}`);
+          results[company.id] = await this.syncProductsWithCategories(company.id, syncSettings.selectedCategoryIds);
+        }
       } catch (error) {
         console.error(`❌ Failed to sync company ${company.companyName}:`, error);
         results[company.id] = {
@@ -469,7 +496,7 @@ export class ProductSyncService {
     const totalNew = Object.values(results).reduce((sum, result) => sum + result.newProducts, 0);
     const totalErrors = Object.values(results).reduce((sum, result) => sum + result.errors.length, 0);
 
-    console.log(`✅ All companies sync completed:`, {
+    console.log(`✅ Scheduled sync completed with settings:`, {
       companies: companies.length,
       totalUpdated,
       totalNew,

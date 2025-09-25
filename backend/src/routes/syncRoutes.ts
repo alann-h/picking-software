@@ -1,5 +1,5 @@
 import express from 'express';
-import { syncProducts, syncAllCompanies, getCategories, syncWithCategories, getSyncSettings, saveSyncSettings, refreshCategories } from '../controllers/syncController.js';
+import { syncProducts, getCategories, syncWithCategories, getSyncSettings, saveSyncSettings, refreshCategories } from '../controllers/syncController.js';
 import { isAuthenticated } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -9,7 +9,6 @@ router.use(isAuthenticated);
 
 // Product sync endpoints
 router.post('/products', syncProducts);
-router.post('/products/all-companies', syncAllCompanies);
 
 // Category management endpoints
 router.get('/categories', getCategories);
