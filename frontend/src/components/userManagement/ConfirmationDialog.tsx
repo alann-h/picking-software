@@ -31,6 +31,23 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         }
     }, [open]);
 
+    // Handle ESC key to close modal
+    useEffect(() => {
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && open) {
+                onClose();
+            }
+        };
+
+        if (open) {
+            document.addEventListener('keydown', handleEscapeKey);
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscapeKey);
+        };
+    }, [open, onClose]);
+
     const colorSchemes = {
         primary: {
             bg: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',

@@ -20,6 +20,23 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ open, ti
     }
   }, [open]);
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && open) {
+        onClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (

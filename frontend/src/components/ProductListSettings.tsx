@@ -10,7 +10,7 @@ interface ProductListProps {
   onRefresh: () => void;
   updateProductDb: (_productId: number, _fields: Partial<Product>) => Promise<void>;
   setProductArchiveStatus: (_productId: number, _isArchived: boolean) => Promise<void>;
-  addProductDb: (_productName: string, _sku: string, _barcode: string, _category?: string) => Promise<string>;
+  addProductDb: (_productName: string, _sku: string, _barcode: string) => Promise<string>;
   isAdmin: boolean;
 }
 
@@ -31,11 +31,20 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, actions
         onClose();
       }
     };
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [isOpen, onClose]);
 

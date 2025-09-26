@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, CheckCircle, AlertCircle, Package, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { syncAllProducts, SyncResult } from '../api/sync';
@@ -51,6 +51,23 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
     setError(null);
     setSyncResult(null);
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

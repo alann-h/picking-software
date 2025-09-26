@@ -16,7 +16,10 @@ export interface ClientProduct {
     quantityOnHand: number;
     companyId: string;
     externalItemId: string;
+    taxCodeRef: string;
     isArchived: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface EnrichableProduct {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Package, X, RefreshCw } from 'lucide-react';
+import { Search, Package, X, RefreshCw, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { Product } from '../../utils/types';
 import ProductList from '../ProductListSettings';
@@ -70,9 +70,70 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     await setProductArchiveStatus(productId, isArchived);
   };
 
-  const handleAddProduct = async (productName: string, sku: string, barcode: string, category?: string) => {
-    const result = await addProductDb(productName, sku, barcode, category);
+  const handleAddProduct = async (productName: string, sku: string, barcode: string) => {
+    const result = await addProductDb(productName, sku, barcode);
     return result as string;
+  };
+
+  // Function to export products to CSV
+  const handleExportCSV = () => {
+    const productsToExport = finalFilteredProducts;
+    
+    if (productsToExport.length === 0) {
+      alert('No products to export');
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      'Product Name',
+      'SKU',
+      'Barcode',
+      'Price',
+      'Quantity on Hand',
+      'External Item ID',
+      'Tax Code Ref',
+      'Is Archived',
+      'Created At',
+      'Updated At'
+    ];
+
+    // Convert products to CSV format
+    const csvContent = [
+      headers.join(','),
+      ...productsToExport.map(product => [
+        `"${product.productName.replace(/"/g, '""')}"`,
+        `"${product.sku || ''}"`,
+        `"${product.barcode || ''}"`,
+        product.price,
+        product.quantityOnHand,
+        `"${product.externalItemId || ''}"`,
+        `"${product.taxCodeRef || ''}"`,
+        product.isArchived ? 'Yes' : 'No',
+        `"${new Date(product.createdAt).toLocaleString()}"`,
+        `"${new Date(product.updatedAt).toLocaleString()}"`
+      ].join(','))
+    ].join('\n');
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    // Generate filename with current date
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const filename = `products_export_${dateStr}.csv`;
+    
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up the URL object
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -168,24 +229,41 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                 </div>
 
                 {/* Search Results Summary */}
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
-                  <Package className="h-6 w-6 text-blue-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">
-                      {finalFilteredProducts.length} products found
-                      {searchTerm && ` (filtered from ${filteredProducts.length} total)`}
-                    </p>
-                    {searchTerm && (
-                      <p className="text-sm font-medium text-blue-700">
-                        Search results for "{searchTerm}" in {searchField === 'all' ? 'all fields' : searchField === 'name' ? 'product names' : 'SKUs'}
+                <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <Package className="h-6 w-6 text-blue-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        {finalFilteredProducts.length} products found
+                        {searchTerm && ` (filtered from ${filteredProducts.length} total)`}
                       </p>
-                    )}
-                    {!searchTerm && (
-                      <p className="text-sm text-gray-500">
-                        Products are paginated (50 per page)
-                      </p>
-                    )}
+                      {searchTerm && (
+                        <p className="text-sm font-medium text-blue-700">
+                          Search results for "{searchTerm}" in {searchField === 'all' ? 'all fields' : searchField === 'name' ? 'product names' : 'SKUs'}
+                        </p>
+                      )}
+                      {!searchTerm && (
+                        <p className="text-sm text-gray-500">
+                          Products are paginated (50 per page)
+                        </p>
+                      )}
+                    </div>
                   </div>
+                  
+                  {/* Export Button */}
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={finalFilteredProducts.length === 0}
+                    className={clsx(
+                      'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                      finalFilteredProducts.length === 0
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
+                    )}
+                  >
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                  </button>
                 </div>
               </div>
             </div>

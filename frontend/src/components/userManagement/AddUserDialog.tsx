@@ -1,5 +1,5 @@
 // AddUserDialog.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { z } from 'zod';
 import { Eye, EyeOff, CheckCircle, XCircle, Shield, User, Mail, ShieldCheck, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
@@ -73,6 +73,23 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onAddUser 
             handleClose();
         }
     };
+
+    // Handle ESC key to close modal
+    useEffect(() => {
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && open) {
+                handleClose();
+            }
+        };
+
+        if (open) {
+            document.addEventListener('keydown', handleEscapeKey);
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscapeKey);
+        };
+    }, [open]);
 
     // Password strength calculation
     const passwordStrength = useMemo(() => {

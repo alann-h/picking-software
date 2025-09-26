@@ -56,9 +56,11 @@ export interface Product {
     quantityOnHand: number;
     price: number;
     companyId: string;
-    category: string;
     externalItemId: string;
+    taxCodeRef: string;
     isArchived: boolean;
+    createdAt: string;
+    updatedAt: string;
   }
 export interface UserData {
     id: string;

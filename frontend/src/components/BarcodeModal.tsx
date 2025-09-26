@@ -34,6 +34,23 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
     }
   }, [isOpen]);
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     if (!isFractionMode) {
       const num = parseFloat(decimalInput);

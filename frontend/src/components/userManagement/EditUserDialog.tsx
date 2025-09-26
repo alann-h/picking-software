@@ -73,6 +73,23 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, user, onClose, on
         }
     }, [user]);
 
+    // Handle ESC key to close modal
+    useEffect(() => {
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && open) {
+                onClose();
+            }
+        };
+
+        if (open) {
+            document.addEventListener('keydown', handleEscapeKey);
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscapeKey);
+        };
+    }, [open, onClose]);
+
     const handleChange = (field: keyof UserUpdateData, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setHasChanges(true);

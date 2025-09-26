@@ -308,7 +308,10 @@ export async function getAllProducts(companyId: string): Promise<ClientProduct[]
       quantityOnHand: product.quantityOnHand.toNumber(),
       companyId: product.companyId,
       externalItemId: product.externalItemId ?? '',
+      taxCodeRef: product.taxCodeRef ?? '',
       isArchived: product.isArchived,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString(),
     }));
   } catch (error: unknown) {
     if (error instanceof Error) {
