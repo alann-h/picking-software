@@ -20,6 +20,7 @@ import {
   LogOut,
   MonitorSmartphone,
   X,
+  Settings,
 } from 'lucide-react';
 
 // ====================================================================================
@@ -455,6 +456,9 @@ const SettingsMenuContent: React.FC<{
           </DropdownButton>
            <DropdownButton onClick={() => handleClick('/settings/products')} icon={<Package size={18} />}>
             Current Products
+          </DropdownButton>
+           <DropdownButton onClick={() => handleClick('/settings/sync')} icon={<Settings size={18} />}>
+            Sync Settings
           </DropdownButton>
           
           {isAdmin && (
