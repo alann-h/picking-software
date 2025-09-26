@@ -1,6 +1,8 @@
 import { prisma } from '../lib/prisma.js';
 import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
+import { XeroClient } from 'xero-node';
+import { authSystem } from './authSystem.js';
 
 export interface SyncResult {
   success: boolean;
@@ -11,211 +13,10 @@ export interface SyncResult {
   duration: number;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  fullyQualifiedName: string;
-  active: boolean;
-}
 
 export class ProductSyncService {
-  /**
-   * Get all categories from QuickBooks Online for a company
-   */
-  static async getCategoriesFromQBO(companyId: string): Promise<Category[]> {
-    try {
-      console.log(`🔍 Fetching categories for company: ${companyId}`);
 
-      // Get company details
-      const company = await prisma.company.findUnique({
-        where: { id: companyId },
-        select: { 
-          id: true, 
-          connectionType: true, 
-          qboRealmId: true 
-        }
-      });
 
-      if (!company || company.connectionType !== 'qbo' || !company.qboRealmId) {
-        throw new Error(`Company ${companyId} is not connected to QuickBooks Online`);
-      }
-
-      // Get OAuth client
-      const oauthClient = await getOAuthClient(companyId, 'qbo');
-      const baseURL = await getBaseURL(oauthClient, 'qbo');
-      const realmId = getRealmId(oauthClient as IntuitOAuthClient);
-
-      // Fetch all item categories (Groups in QBO)
-      const queryStr = `SELECT * FROM Item WHERE Type = 'Category' ORDERBY Name`;
-      const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
-
-      const response = await (oauthClient as IntuitOAuthClient).makeApiCall({ url });
-      const categories = response.json?.QueryResponse?.Item || [];
-
-      const formattedCategories: Category[] = categories.map((cat: any) => ({
-        id: cat.Id,
-        name: cat.Name,
-        fullyQualifiedName: cat.FullyQualifiedName || cat.Name,
-        active: cat.Active !== false
-      }));
-
-      console.log(`📂 Found ${formattedCategories.length} categories`);
-      return formattedCategories;
-
-    } catch (error) {
-      console.error(`❌ Failed to fetch categories for company ${companyId}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Sync products with category filtering
-   */
-  static async syncProductsWithCategories(companyId: string, selectedCategoryIds: string[]): Promise<SyncResult> {
-    const startTime = Date.now();
-    const result: SyncResult = {
-      success: false,
-      totalProducts: 0,
-      updatedProducts: 0,
-      newProducts: 0,
-      errors: [],
-      duration: 0
-    };
-
-    try {
-      console.log(`🔄 Starting category-filtered product sync for company: ${companyId}`);
-      console.log(`📂 Selected categories: ${selectedCategoryIds.length} categories`);
-
-      // Get company details
-      const company = await prisma.company.findUnique({
-        where: { id: companyId },
-        select: { 
-          id: true, 
-          connectionType: true, 
-          qboRealmId: true 
-        }
-      });
-
-      if (!company) {
-        throw new Error(`Company not found: ${companyId}`);
-      }
-
-      if (company.connectionType !== 'qbo') {
-        throw new Error(`Company ${companyId} is not connected to QuickBooks Online`);
-      }
-
-      if (!company.qboRealmId) {
-        throw new Error(`Company ${companyId} has no QBO realm ID`);
-      }
-
-      // Get OAuth client
-      const oauthClient = await getOAuthClient(companyId, 'qbo');
-      const baseURL = await getBaseURL(oauthClient, 'qbo');
-      const realmId = getRealmId(oauthClient as IntuitOAuthClient);
-
-      // Fetch items with category filtering
-      const allItems = await this.fetchItemsByCategories(oauthClient as IntuitOAuthClient, baseURL, realmId, selectedCategoryIds);
-      result.totalProducts = allItems.length;
-
-      console.log(`📦 Found ${allItems.length} items in selected categories`);
-
-      // Process each item
-      for (const item of allItems) {
-        try {
-          const syncResult = await this.syncSingleProduct(item, companyId);
-          if (syncResult === 'updated') {
-            result.updatedProducts++;
-          } else if (syncResult === 'created') {
-            result.newProducts++;
-          }
-        } catch (error) {
-          const errorMsg = `Failed to sync product ${item.Id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          console.error(errorMsg);
-          result.errors.push(errorMsg);
-        }
-      }
-
-      result.success = result.errors.length === 0;
-      result.duration = Date.now() - startTime;
-
-      console.log(`✅ Category-filtered product sync completed for company ${companyId}:`, {
-        total: result.totalProducts,
-        updated: result.updatedProducts,
-        new: result.newProducts,
-        errors: result.errors.length,
-        duration: `${result.duration}ms`
-      });
-
-      return result;
-
-    } catch (error) {
-      result.duration = Date.now() - startTime;
-      result.errors.push(`Sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      console.error(`❌ Category-filtered product sync failed for company ${companyId}:`, error);
-      return result;
-    }
-  }
-
-  /**
-   * Fetch items by selected categories from QuickBooks Online
-   */
-  private static async fetchItemsByCategories(
-    oauthClient: IntuitOAuthClient, 
-    baseURL: string, 
-    realmId: string,
-    selectedCategoryIds: string[]
-  ): Promise<any[]> {
-    const allItems: any[] = [];
-    let startPosition = 1;
-    const maxResults = 500; // QBO max per page
-
-    while (true) {
-      // Build query with category filtering
-      let queryStr = 'SELECT * FROM Item WHERE Active = true';
-      
-      if (selectedCategoryIds.length > 0) {
-        // Filter by selected categories (Groups in QBO)
-        const categoryConditions = selectedCategoryIds.map(id => `ParentRef = '${id}'`).join(' OR ');
-        queryStr += ` AND (${categoryConditions})`;
-      }
-      
-      queryStr += ` ORDERBY Id STARTPOSITION ${startPosition} MAXRESULTS ${maxResults}`;
-      const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
-
-      try {
-        const response = await oauthClient.makeApiCall({ url });
-        const items = response.json?.QueryResponse?.Item || [];
-
-        if (items.length === 0) {
-          break; // No more items
-        }
-
-        // Filter items that require SKU
-        const filteredItems = items.filter((item: any) => {
-          // Require SKU
-          if (!item.Sku || item.Sku.trim() === '') {
-            console.log(`🚫 Filtering out item without SKU: ${item.Name}`);
-            return false;
-          }
-          return true;
-        });
-
-        allItems.push(...filteredItems);
-        console.log(`📄 Fetched ${items.length} items, filtered to ${filteredItems.length} (total: ${allItems.length})`);
-
-        if (items.length < maxResults) {
-          break; // Last page
-        }
-
-        startPosition += maxResults;
-      } catch (error) {
-        console.error(`Error fetching items from QBO:`, error);
-        throw error;
-      }
-    }
-
-    return allItems;
-  }
 
   /**
    * Sync all products from QuickBooks Online for a company
@@ -359,11 +160,12 @@ export class ProductSyncService {
       return 'skipped';
     }
 
+    console.log(`🔍 Syncing product: ${productName} (SKU: "${sku}", External ID: ${externalItemId})`);
+
     // Transform QBO data to our format
     const productData = {
       productName: productName,
       sku: sku,
-      category: itemData.ParentRef?.name || null,
       price: parseFloat(itemData.UnitPrice) || 0,
       quantity_on_hand: parseFloat(itemData.QtyOnHand) || 0,
       tax_code_ref: itemData.SalesTaxCodeRef?.value || null,
@@ -371,13 +173,23 @@ export class ProductSyncService {
       external_item_id: externalItemId
     };
 
-    // Check if product exists by external ID
-    const existingProduct = await prisma.product.findFirst({
+    // Check if product exists by external ID first
+    let existingProduct = await prisma.product.findFirst({
       where: {
         externalItemId: externalItemId,
         companyId: companyId
       }
     });
+
+    // If not found by external ID, check by SKU (for products that might have been created manually)
+    if (!existingProduct) {
+      existingProduct = await prisma.product.findFirst({
+        where: {
+          sku: sku,
+          companyId: companyId
+        }
+      });
+    }
 
     if (existingProduct) {
       // Update existing product
@@ -386,7 +198,7 @@ export class ProductSyncService {
         data: {
           productName: productData.productName,
           sku: productData.sku,
-          category: productData.category,
+          externalItemId: externalItemId, // Update external ID if it was missing
           taxCodeRef: productData.tax_code_ref,
           price: productData.price,
           quantityOnHand: productData.quantity_on_hand,
@@ -395,23 +207,6 @@ export class ProductSyncService {
       });
       return 'updated';
     } else {
-      // Check for SKU conflicts before creating
-      if (sku) {
-        const conflictingProduct = await prisma.product.findUnique({
-          where: {
-            companyId_sku: {
-              companyId: companyId,
-              sku: sku
-            }
-          }
-        });
-
-        if (conflictingProduct) {
-          console.warn(`SKU conflict: Cannot create product "${productName}" with SKU "${sku}" - already exists`);
-          return 'skipped';
-        }
-      }
-
       // Create new product
       await prisma.product.create({
         data: {
@@ -419,7 +214,6 @@ export class ProductSyncService {
           productName: productData.productName,
           sku: productData.sku,
           externalItemId: externalItemId,
-          category: productData.category,
           taxCodeRef: productData.tax_code_ref,
           price: productData.price,
           quantityOnHand: productData.quantity_on_hand,
@@ -432,26 +226,29 @@ export class ProductSyncService {
 
 
   /**
-   * Sync all companies using their saved sync settings (respects category preferences)
+   * Sync all companies using their saved sync settings (simplified - just sync all products)
    */
   static async syncAllCompaniesWithSettings(): Promise<{ [companyId: string]: SyncResult }> {
-    console.log('🔄 Starting scheduled product sync with saved settings...');
+    console.log('🔄 Starting scheduled product sync...');
     
     const companies = await prisma.company.findMany({
       where: { 
-        connectionType: 'qbo',
-        qboRealmId: { not: null }
+        connectionType: { in: ['qbo', 'xero'] },
+        OR: [
+          { qboRealmId: { not: null } },
+          { xeroTenantId: { not: null } }
+        ]
       },
-      select: { id: true, companyName: true }
+      select: { id: true, companyName: true, connectionType: true }
     });
 
-    console.log(`📊 Found ${companies.length} companies with QBO connections`);
+    console.log(`📊 Found ${companies.length} companies with connections`);
 
     const results: { [companyId: string]: SyncResult } = {};
 
     for (const company of companies) {
       try {
-        console.log(`🔄 Syncing products for company: ${company.companyName} (${company.id})`);
+        console.log(`🔄 Syncing products for company: ${company.companyName} (${company.id}) - ${company.connectionType}`);
         
         // Get sync settings for this company
         const syncSettings = await prisma.sync_settings.findUnique({
@@ -471,13 +268,13 @@ export class ProductSyncService {
           continue;
         }
 
-        // If no categories selected, sync all products (fallback)
-        if (!syncSettings.selectedCategoryIds || syncSettings.selectedCategoryIds.length === 0) {
-          console.log(`🔄 No categories selected for ${company.companyName}, syncing all products`);
+        // Always sync all products regardless of categories
+        if (company.connectionType === 'qbo') {
+          console.log(`🔄 Syncing all QBO products for ${company.companyName}`);
           results[company.id] = await this.syncAllProductsFromQBO(company.id);
-        } else {
-          console.log(`🔄 Syncing ${syncSettings.selectedCategoryIds.length} selected categories for ${company.companyName}`);
-          results[company.id] = await this.syncProductsWithCategories(company.id, syncSettings.selectedCategoryIds);
+        } else if (company.connectionType === 'xero') {
+          console.log(`🔄 Syncing all Xero products for ${company.companyName}`);
+          results[company.id] = await this.syncAllProductsFromXero(company.id);
         }
       } catch (error) {
         console.error(`❌ Failed to sync company ${company.companyName}:`, error);
@@ -496,7 +293,7 @@ export class ProductSyncService {
     const totalNew = Object.values(results).reduce((sum, result) => sum + result.newProducts, 0);
     const totalErrors = Object.values(results).reduce((sum, result) => sum + result.errors.length, 0);
 
-    console.log(`✅ Scheduled sync completed with settings:`, {
+    console.log(`✅ Scheduled sync completed:`, {
       companies: companies.length,
       totalUpdated,
       totalNew,
@@ -505,4 +302,160 @@ export class ProductSyncService {
 
     return results;
   }
+
+
+  /**
+   * Sync all products from Xero for a company
+   */
+  static async syncAllProductsFromXero(companyId: string): Promise<SyncResult> {
+    const startTime = Date.now();
+    console.log(`🔄 Starting Xero product sync for company: ${companyId}`);
+
+    try {
+      // Get company details
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { 
+          id: true, 
+          connectionType: true, 
+          xeroTenantId: true 
+        }
+      });
+
+      if (!company || company.connectionType !== 'xero' || !company.xeroTenantId) {
+        throw new Error(`Company ${companyId} is not connected to Xero`);
+      }
+
+      // Get OAuth client
+      const oauthClient = await getOAuthClient(companyId, 'xero') as XeroClient;
+      const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
+
+      // Fetch all items from Xero
+      const response = await oauthClient.accountingApi.getItems(tenantId);
+
+      const items = response.body.items || [];
+      console.log(`📦 Found ${items.length} items in Xero`);
+
+      let totalProducts = 0;
+      let updatedProducts = 0;
+      let newProducts = 0;
+      const errors: string[] = [];
+
+      // Process each item
+      for (const item of items) {
+        if (!item.isSold || !item.code) {
+          continue; // Skip non-sold items or items without codes
+        }
+
+        totalProducts++;
+        try {
+          const result = await this.syncSingleXeroProduct(item, companyId);
+          if (result === 'updated') {
+            updatedProducts++;
+          } else if (result === 'created') {
+            newProducts++;
+          }
+        } catch (error: unknown) {
+          const errorMsg = `Failed to sync product ${item.code}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          console.error(`❌ ${errorMsg}`);
+          errors.push(errorMsg);
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`✅ Xero sync completed for company ${companyId}: ${totalProducts} total, ${updatedProducts} updated, ${newProducts} new, ${errors.length} errors`);
+
+      return {
+        success: errors.length === 0,
+        totalProducts,
+        updatedProducts,
+        newProducts,
+        errors,
+        duration
+      };
+    } catch (error: unknown) {
+      const duration = Date.now() - startTime;
+      const errorMsg = `Xero sync failed for company ${companyId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error(`❌ ${errorMsg}`);
+      
+      return {
+        success: false,
+        totalProducts: 0,
+        updatedProducts: 0,
+        newProducts: 0,
+        errors: [errorMsg],
+        duration
+      };
+    }
+  }
+
+
+  /**
+   * Sync a single Xero product to the database
+   */
+  private static async syncSingleXeroProduct(itemData: any, companyId: string): Promise<'updated' | 'created' | 'skipped'> {
+    try {
+      const sku = itemData.code;
+      const name = itemData.name || sku;
+      
+      // Get pricing information
+      const unitPrice = itemData.salesDetails?.unitPrice || 0;
+      const quantityOnHand = itemData.isTrackedAsInventory ? (itemData.quantityOnHand || 0) : 0;
+      
+      // Check if product already exists by external ID first
+      let existingProduct = await prisma.product.findFirst({
+        where: {
+          externalItemId: itemData.itemID,
+          companyId: companyId
+        }
+      });
+
+      // If not found by external ID, check by SKU (for products that might have been created manually)
+      if (!existingProduct) {
+        existingProduct = await prisma.product.findFirst({
+          where: {
+            sku: sku,
+            companyId: companyId
+          }
+        });
+      }
+
+      const productData = {
+        sku: sku,
+        productName: name,
+        price: unitPrice,
+        quantityOnHand: quantityOnHand,
+        externalItemId: itemData.itemID || null,
+        taxCodeRef: itemData.salesDetails?.taxType || null,
+        barcode: null,
+        isArchived: false
+      };
+
+      if (existingProduct) {
+        // Update existing product
+        await prisma.product.update({
+          where: { id: existingProduct.id },
+          data: {
+            ...productData,
+            externalItemId: itemData.itemID || existingProduct.externalItemId // Update external ID if it was missing
+          }
+        });
+        return 'updated';
+      } else {
+        // Create new product
+        await prisma.product.create({
+          data: {
+            ...productData,
+            companyId: companyId,
+            externalItemId: itemData.itemID || null
+          }
+        });
+        return 'created';
+      }
+    } catch (error: unknown) {
+      console.error(`❌ Error syncing Xero product ${itemData.code}:`, error);
+      throw error;
+    }
+  }
+
 }

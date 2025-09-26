@@ -5,7 +5,6 @@ import { Product } from '../../utils/types';
 import ProductList from '../ProductListSettings';
 import { updateProductDb, setProductArchiveStatus, addProductDb } from '../../api/products'; 
 import { useQueryClient } from '@tanstack/react-query';
-import ProductSyncModal from '../ProductSyncModal';
 
 interface ProductsTabProps {
   searchTerm: string;
@@ -23,7 +22,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   isAdmin
 }) => {
   const [searchField, setSearchField] = useState<'all' | 'name' | 'sku'>('all');
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const handleSearchFieldChange = (field: 'all' | 'name' | 'sku') => {
@@ -93,13 +91,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                 Manage your product inventory, search by name or SKU, and update product details
               </p>
             </div>
-            <button
-              onClick={() => setIsSyncModalOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span className="font-medium">Sync Products</span>
-            </button>
           </div>
 
           {/* Enhanced Search Section */}
@@ -214,11 +205,6 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
           />
         </div>
 
-        {/* Product Sync Modal */}
-        <ProductSyncModal
-          isOpen={isSyncModalOpen}
-          onClose={() => setIsSyncModalOpen(false)}
-        />
       </div>
     </div>
   );

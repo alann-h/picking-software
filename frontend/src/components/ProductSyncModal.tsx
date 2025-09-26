@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, CheckCircle, AlertCircle, Package, Filter, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, RefreshCw, CheckCircle, AlertCircle, Package, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
-import { getCategories, syncWithCategories, syncAllProducts, Category, SyncResult } from '../api/sync';
+import { syncAllProducts, SyncResult } from '../api/sync';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface ProductSyncModalProps {
@@ -10,44 +10,12 @@ interface ProductSyncModalProps {
 }
 
 const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) => {
-  const [step, setStep] = useState<'categories' | 'syncing' | 'complete'>('categories');
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [step, setStep] = useState<'confirm' | 'syncing' | 'complete'>('confirm');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
-  const [syncMode, setSyncMode] = useState<'all' | 'categories'>('all');
   
   const queryClient = useQueryClient();
-
-  // Load categories when modal opens
-  useEffect(() => {
-    if (isOpen && step === 'categories') {
-      loadCategories();
-    }
-  }, [isOpen, step]);
-
-  const loadCategories = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const fetchedCategories = await getCategories();
-      setCategories(fetchedCategories);
-    } catch (err) {
-      setError('Failed to load categories from QuickBooks');
-      console.error('Error loading categories:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCategoryToggle = (categoryId: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryId) 
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  };
 
   const handleSync = async () => {
     try {
@@ -55,19 +23,7 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
       setLoading(true);
       setError(null);
 
-      let result: SyncResult;
-      
-      if (syncMode === 'all') {
-        result = await syncAllProducts();
-      } else {
-        if (selectedCategories.length === 0) {
-          setError('Please select at least one category to sync');
-          setStep('categories');
-          return;
-        }
-        result = await syncWithCategories(selectedCategories);
-      }
-
+      const result = await syncAllProducts();
       setSyncResult(result);
       setStep('complete');
       
@@ -76,7 +32,7 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
       
     } catch (err) {
       setError('Sync failed. Please try again.');
-      setStep('categories');
+      setStep('confirm');
       console.error('Sync error:', err);
     } finally {
       setLoading(false);
@@ -84,16 +40,14 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
   };
 
   const handleClose = () => {
-    setStep('categories');
-    setSelectedCategories([]);
+    setStep('confirm');
     setError(null);
     setSyncResult(null);
-    setSyncMode('all');
     onClose();
   };
 
   const handleRetry = () => {
-    setStep('categories');
+    setStep('confirm');
     setError(null);
     setSyncResult(null);
   };
@@ -111,7 +65,7 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800">Product Sync</h2>
-              <p className="text-sm text-gray-500">Sync products from QuickBooks Online</p>
+              <p className="text-sm text-gray-500">Sync products from your accounting system</p>
             </div>
           </div>
           <button
@@ -124,106 +78,30 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-          {step === 'categories' && (
+          {step === 'confirm' && (
             <div className="space-y-6">
-              {/* Sync Mode Selection */}
+              {/* Sync Information */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Sync Options</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Sync All Products</h3>
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-start space-x-2">
                     <RefreshCw className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-sm text-blue-800 font-medium">Automatic Sync</p>
-                      <p className="text-sm text-blue-700">The system automatically syncs products twice a week to keep your inventory up to date.</p>
+                      <p className="text-sm text-blue-700">The system automatically syncs all products twice a week to keep your inventory up to date.</p>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <label className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="syncMode"
-                      value="all"
-                      checked={syncMode === 'all'}
-                      onChange={(e) => setSyncMode(e.target.value as 'all' | 'categories')}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
-                    />
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Package className="h-5 w-5 text-gray-600" />
                     <div>
-                      <span className="font-medium text-gray-800">Sync All Products</span>
-                      <p className="text-sm text-gray-500">Import all products from QuickBooks Online</p>
+                      <p className="font-medium text-gray-800">What will be synced:</p>
+                      <p className="text-sm text-gray-600">All products from your accounting system (QuickBooks/Xero)</p>
                     </div>
-                  </label>
-                  <label className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="syncMode"
-                      value="categories"
-                      checked={syncMode === 'categories'}
-                      onChange={(e) => setSyncMode(e.target.value as 'all' | 'categories')}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <div>
-                      <span className="font-medium text-gray-800">Sync by Categories</span>
-                      <p className="text-sm text-gray-500">Select specific categories to sync (recommended)</p>
-                    </div>
-                  </label>
+                  </div>
                 </div>
               </div>
-
-              {/* Category Selection */}
-              {syncMode === 'categories' && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Select Categories</h3>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <Filter className="h-4 w-4" />
-                      <span>{selectedCategories.length} selected</span>
-                    </div>
-                  </div>
-
-                  {loading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                      <span className="ml-2 text-gray-600">Loading categories...</span>
-                    </div>
-                  ) : error ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <div className="flex items-center space-x-2">
-                        <AlertCircle className="h-5 w-5 text-red-600" />
-                        <span className="text-red-800">{error}</span>
-                      </div>
-                      <button
-                        onClick={loadCategories}
-                        className="mt-3 text-sm text-red-600 hover:text-red-800 underline cursor-pointer"
-                      >
-                        Try again
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {categories.map((category) => (
-                        <label
-                          key={category.id}
-                          className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedCategories.includes(category.id)}
-                            onChange={() => handleCategoryToggle(category.id)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                          />
-                          <div className="flex-1">
-                            <span className="font-medium text-gray-800">{category.name}</span>
-                            {category.fullyQualifiedName !== category.name && (
-                              <p className="text-sm text-gray-500">{category.fullyQualifiedName}</p>
-                            )}
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Error Display */}
               {error && (
@@ -243,12 +121,7 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Syncing Products</h3>
-              <p className="text-gray-500">
-                {syncMode === 'all' 
-                  ? 'Importing all products from QuickBooks Online...' 
-                  : `Syncing products from ${selectedCategories.length} selected categories...`
-                }
-              </p>
+              <p className="text-gray-500">Importing all products from your accounting system...</p>
               <p className="text-sm text-gray-400 mt-2">This may take a few moments</p>
             </div>
           )}
@@ -314,7 +187,7 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
           <div className="text-sm text-gray-500">
-            {step === 'categories' && 'Select sync options and categories'}
+            {step === 'confirm' && 'Ready to sync all products'}
             {step === 'syncing' && 'Please wait while products are syncing...'}
             {step === 'complete' && 'Sync completed successfully'}
           </div>
@@ -328,16 +201,16 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
               </button>
             )}
             <button
-              onClick={handleClose}
+              onClick={step === 'confirm' ? handleSync : handleClose}
               className={clsx(
                 'px-4 py-2 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors',
-                step === 'categories' 
+                step === 'confirm' 
                   ? 'bg-blue-600 text-white hover:bg-blue-700' 
                   : 'bg-gray-600 text-white hover:bg-gray-700'
               )}
               disabled={step === 'syncing'}
             >
-              {step === 'categories' ? 'Start Sync' : step === 'syncing' ? 'Syncing...' : 'Close'}
+              {step === 'confirm' ? 'Start Sync' : step === 'syncing' ? 'Syncing...' : 'Close'}
             </button>
           </div>
         </div>

@@ -150,7 +150,7 @@ export async function getExternalId(req: Request, res: Response, next: NextFunct
 // POST /products
 export async function addProduct(req: Request, res: Response, next: NextFunction) {
   try {
-    const { productName, sku, barcode, category } = req.body;
+    const { productName, sku, barcode } = req.body;
     const companyId = req.session.companyId;
     const connectionType = req.session.connectionType || 'qbo';
 
@@ -158,7 +158,7 @@ export async function addProduct(req: Request, res: Response, next: NextFunction
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    const productArr = [{ productName, sku, barcode, category }];
+    const productArr = [{ productName, sku, barcode }];
     const result = await addProductDb(productArr, companyId, connectionType);
     res.json(result);
   } catch (err) {

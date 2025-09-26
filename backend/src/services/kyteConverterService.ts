@@ -348,27 +348,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       body: JSON.stringify(estimatePayload)
     });
     if (response.json?.Fault) {
-      console.log('Response:', JSON.stringify(response, null, 2));
-      const errorDetail = response.json.Fault.Error?.[0] || {};
-      const errorMessage = errorDetail.Message || 'Unknown QuickBooks error';
-      const errorCode = errorDetail.code || 'Unknown';
-      console.log('Error detail:', JSON.stringify(errorDetail, null, 2));
-      console.log('Error message:', errorMessage);
-      console.log('Error code:', errorCode);
-      // Handle specific error codes with more descriptive messages
-      // Common QuickBooks API error codes:
-      // 6210: Duplicate DocNumber (quote number already exists)
-      // 6200: Customer not found
-      // 6201: Item not found
-      if (errorCode === '6210') {
-        throw new Error(`Quote number "${docNumber}" already exists in QuickBooks. Please use a unique quote number or modify the existing quote.`);
-      } else if (errorCode === '6200') {
-        throw new Error(`Customer not found in QuickBooks. Please ensure the customer is properly set up in QuickBooks.`);
-      } else if (errorCode === '6201') {
-        throw new Error(`Item not found in QuickBooks. Please ensure all products are properly set up in QuickBooks.`);
-      } else {
-        throw new Error(`QuickBooks API Error (${errorCode}): ${errorMessage}`);
-      }
+      throw new Error(response.json.Fault.Error[0].Message);
     }
     
     const webUrl = baseURL.includes('sandbox') 
@@ -390,14 +370,6 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
     // Handle HTTP errors (like 400) that might indicate duplicate quote numbers
     if (errorMessage.includes('400') || errorMessage.includes('Request failed')) {
       throw new Error(`Quote number "${retrySuffix ? `${orderData.number}-${retrySuffix}` : orderData.number}" already exists in QuickBooks. Please use a unique quote number or modify the existing quote.`);
-    }
-    
-    // Handle specific QuickBooks API errors that were already processed
-    if (errorMessage.includes('already exists in QuickBooks') || 
-        errorMessage.includes('Customer not found') || 
-        errorMessage.includes('Item not found') ||
-        errorMessage.includes('QuickBooks API Error')) {
-      throw error; // Re-throw already processed errors
     }
     
     // Handle other errors

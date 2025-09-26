@@ -15,7 +15,6 @@ export interface ClientProduct {
     price: number;
     quantityOnHand: number;
     companyId: string;
-    category: string | null;
     externalItemId: string;
     isArchived: boolean;
 }
@@ -27,7 +26,6 @@ export interface EnrichableProduct {
     price?: number | string;
     quantity_on_hand?: number | string;
     is_archived?: boolean;
-    category?: string | null;
     external_item_id?: string | null;
     tax_code_ref?: string | null;
 }
@@ -43,7 +41,6 @@ export interface NewProductData {
     productName: string;
     barcode: string;
     sku: string;
-    category?: string;
 }
 
 export interface UpdateProductPayload {
@@ -52,7 +49,6 @@ export interface UpdateProductPayload {
     barcode?: string;
     quantityOnHand?: number;
     sku?: string;
-    category?: string;
 }
 
 export interface QuoteItemStatusResult {

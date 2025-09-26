@@ -25,7 +25,6 @@ export const addProductRules = () => [
   body('productName').notEmpty().withMessage('Product name is required.').trim().escape(),
   body('sku').notEmpty().withMessage('Product SKU is required').trim().escape(),
   body('barcode').optional().trim().escape(),
-  body('category').optional().trim().escape(),
 ];
 
 // For updating a product
@@ -41,7 +40,6 @@ export const updateProductRules = () => [
   body('productName').optional().trim().escape(),
   body('sku').optional().trim().escape(),
   body('barcode').optional().trim().escape(),
-  body('category').optional().trim().escape(),
 ];
 
 // For routes that link a product to a quote

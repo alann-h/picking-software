@@ -115,7 +115,6 @@ export class WebhookService {
           productName: productData.productName,
           sku: productData.sku,
           externalItemId: itemId,
-          category: productData.category,
           taxCodeRef: productData.tax_code_ref,
           price: productData.price || 0,
           quantityOnHand: productData.quantity_on_hand || 0,
@@ -190,7 +189,6 @@ export class WebhookService {
             where: { id: existingProduct.id },
             data: {
               productName: productData.productName,
-              category: productData.category,
               taxCodeRef: productData.tax_code_ref,
               price: productData.price || 0,
               quantityOnHand: productData.quantity_on_hand || 0,
@@ -209,7 +207,6 @@ export class WebhookService {
         data: {
           productName: productData.productName,
           sku: productData.sku,
-          category: productData.category,
           taxCodeRef: productData.tax_code_ref,
           price: productData.price || 0,
           quantityOnHand: productData.quantity_on_hand || 0,
@@ -290,7 +287,6 @@ export class WebhookService {
       const productData = {
         productName: itemData.Name || '',
         sku: itemData.Sku || '',
-        category: itemData.ItemCategoryRef?.name || null,
         price: parseFloat(itemData.UnitPrice) || 0,
         quantity_on_hand: parseFloat(itemData.QtyOnHand) || 0,
         tax_code_ref: itemData.SalesTaxCodeRef?.value || null,

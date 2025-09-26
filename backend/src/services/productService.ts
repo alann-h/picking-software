@@ -185,7 +185,6 @@ export async function upsertProducts(products: EnrichableProduct[], companyId: s
         sku: product.sku,
         barcode: product.barcode ?? null,
         externalItemId: product.external_item_id,
-        category: product.category,
         taxCodeRef: product.tax_code_ref,
         price: product.price,
         quantityOnHand: product.quantity_on_hand,
@@ -308,7 +307,6 @@ export async function getAllProducts(companyId: string): Promise<ClientProduct[]
       price: product.price.toNumber(),
       quantityOnHand: product.quantityOnHand.toNumber(),
       companyId: product.companyId,
-      category: product.category ?? null,
       externalItemId: product.externalItemId ?? '',
       isArchived: product.isArchived,
     }));
@@ -326,7 +324,6 @@ const fieldToDbColumnMap: { [key in keyof UpdateProductPayload]: keyof Product |
   barcode: 'barcode',
   quantityOnHand: 'quantityOnHand',
   sku: 'sku',
-  category: 'category',
 };
 
 const fieldsToDecode: (keyof UpdateProductPayload)[] = ['productName', 'sku'];
@@ -381,7 +378,7 @@ export async function addProductDb(product: NewProductData[], companyId: string,
       enrichedProduct = await enrichWithQBOData(enrichable, companyId); // Default to QBO
     }
 
-    let { productName, barcode, sku, category } = product[0];
+    let { productName, barcode, sku } = product[0];
     if (productName) { productName = he.decode(productName); }
     if (sku) { sku = he.decode(sku); }
 
@@ -405,7 +402,6 @@ export async function addProductDb(product: NewProductData[], companyId: string,
           productName: productName,
           barcode: barcode === '' ? null : barcode,
           externalItemId: external_item_id,
-          category: category || null,
           taxCodeRef: tax_code_ref,
           price: price || 0,
           quantityOnHand: quantity_on_hand || 0,
@@ -434,7 +430,6 @@ export async function addProductDb(product: NewProductData[], companyId: string,
             productName: productName,
             sku: sku,
             barcode: barcode === '' ? null : barcode,
-            category: category || null,
             taxCodeRef: tax_code_ref,
             price: price || 0,
             quantityOnHand: quantity_on_hand || 0,
@@ -453,7 +448,6 @@ export async function addProductDb(product: NewProductData[], companyId: string,
         sku: sku,
         barcode: barcode === '' ? null : barcode,
         externalItemId: external_item_id,
-        category: category || null,
         taxCodeRef: tax_code_ref,
         price: price || 0,
         quantityOnHand: quantity_on_hand || 0,
