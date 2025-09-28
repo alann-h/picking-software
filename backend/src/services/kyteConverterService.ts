@@ -367,12 +367,6 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    // Handle HTTP errors (like 400) that might indicate duplicate quote numbers
-    if (errorMessage.includes('400') || errorMessage.includes('Request failed')) {
-      throw new Error(`Quote number "${retrySuffix ? `${orderData.number}-${retrySuffix}` : orderData.number}" already exists in QuickBooks. Please use a unique quote number or modify the existing quote.`);
-    }
-    
-    // Handle other errors
     throw new Error(`Failed to create QuickBooks estimate: ${errorMessage}`);
   }
 }
@@ -446,13 +440,8 @@ export async function createQuickBooksEstimateWithRetry(orderData: ProcessedKyte
       return await createQuickBooksEstimate(orderData, companyId, suffix);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      if (errorMessage.includes('already exists in QuickBooks') && i < retrySuffixes.length - 1) {
-        console.log(`Quote number "${orderData.number}" already exists, trying with suffix "${retrySuffixes[i]}"`);
-        continue;
-      }
-      
-      // If it's not a duplicate error or we've exhausted all suffixes, wrap in InputError
+      console.error('Failed to create QuickBooks estimate:', errorMessage);
+
       throw new InputError(`Failed to create QuickBooks estimate: ${errorMessage}`);
     }
   }
@@ -504,6 +493,7 @@ export async function processKyteToQuickBooks(orders: ProcessedKyteOrder[], comp
         
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Failed to process order:', errorMessage);
         // Save failed conversion to database
         await saveConversionToDatabase({
           kyteOrderNumber: order.number,
