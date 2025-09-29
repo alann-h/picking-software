@@ -34,6 +34,13 @@ export const fetchAndCacheCsrfToken = async (): Promise<string> => {
     }
 };
 
+/**
+ * Clear the cached CSRF token. Useful after logout or when CSRF errors occur.
+ */
+export const clearCachedCsrfToken = (): void => {
+    cachedCsrfToken = null;
+};
+
 export class HttpError extends Error {
   response: {
     data: unknown;
@@ -176,7 +183,9 @@ export const handleResponse = async (response: Response): Promise<unknown> => {
     }
 
     if (response.status === 403 && typeof errorData.error === 'string' && errorData.error.includes('CSRF token mismatch')) {
-      console.warn("CSRF token mismatch. Invalidating token and prompting refresh.");
+      console.warn("CSRF token mismatch. Invalidating cached token and prompting refresh.");
+      // Clear the cached CSRF token so it gets refetched on next request
+      cachedCsrfToken = null;
       const csrfError = new HttpError(response, errorData);
       csrfError.name = 'CsrfError';
       throw csrfError;

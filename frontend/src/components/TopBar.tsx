@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { logoutAllDevices, getUserSessions, logout } from '../api/auth';
+import { clearCachedCsrfToken } from '../utils/apiHelpers';
 import {
   ClipboardList,
   Play,
@@ -198,6 +199,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {
+      clearCachedCsrfToken(); // Clear CSRF token cache
       localStorage.removeItem('rememberMe');
       window.location.href = '/login';
     }
@@ -209,6 +211,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
     } catch (error) {
       console.error('Error logging out from all devices:', error);
     } finally {
+      clearCachedCsrfToken(); // Clear CSRF token cache
       localStorage.removeItem('rememberMe');
       setLogoutAllDialogOpen(false);
       window.location.href = '/login';

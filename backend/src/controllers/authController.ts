@@ -332,7 +332,17 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
           return next(destroyErr);
         }
         
+        // Clear session cookie
         res.clearCookie('connect.sid', {
+          httpOnly: true,
+          secure: process.env.VITE_APP_ENV === 'production',
+          sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
+          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+          path: '/'
+        });
+        
+        // Clear CSRF cookie to prevent stale token issues
+        res.clearCookie('x-csrf-token', {
           httpOnly: true,
           secure: process.env.VITE_APP_ENV === 'production',
           sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',

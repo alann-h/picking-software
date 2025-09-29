@@ -464,6 +464,15 @@ app.post('/logout-all', asyncHandler(async (req: Request, res: Response) => {
         path: '/'
       });
       
+      // Clear CSRF cookie to prevent stale token issues
+      res.clearCookie('x-csrf-token', {
+        httpOnly: true,
+        secure: config.session.cookie.secure,
+        sameSite: config.session.cookie.sameSite as 'none' | 'lax' | 'strict' | undefined,
+        domain: config.session.cookie.domain,
+        path: '/'
+      });
+      
       console.log(`Successfully logged out user ${userId} from all devices`);
       res.json({ 
         message: 'Successfully logged out from all devices',

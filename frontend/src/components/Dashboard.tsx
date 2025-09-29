@@ -9,6 +9,7 @@ import {
   DollarSign,
   ChevronRight,
   Check,
+  X,
 } from 'lucide-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Customer, QuoteSummary, Run, RunQuote } from '../utils/types';
@@ -328,6 +329,7 @@ const Dashboard: React.FC = () => {
         startTransition(() => {
             setSearchParams(customer ? { customer: customer.customerId } : {});
         });
+        setQuery('');
         setIsDropdownOpen(false);
     };
 
@@ -415,12 +417,25 @@ const Dashboard: React.FC = () => {
                                         <div ref={triggerRef} className="relative">
                                             <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
                                                 <input
-                                                    className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
+                                                    className="w-full border-none py-2 pl-3 pr-16 text-sm leading-5 text-gray-900 focus:ring-0"
                                                     value={selectedCustomer?.customerName || query}
-                                                    onChange={(event) => setQuery(event.target.value)}
+                                                    onChange={(e) => {
+                                                        setQuery(e.target.value);
+                                                        if (selectedCustomer) handleCustomerChange(null);
+                                                        setIsDropdownOpen(true);
+                                                    }}
                                                     onFocus={() => setIsDropdownOpen(true)}
                                                     placeholder="Search customers..."
                                                 />
+                                                {selectedCustomer && (
+                                                    <button 
+                                                        className="absolute inset-y-0 right-8 flex items-center pr-1"
+                                                        onClick={() => handleCustomerChange(null)}
+                                                        title="Clear selection"
+                                                    >
+                                                        <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                                                    </button>
+                                                )}
                                                 <button 
                                                     className="absolute inset-y-0 right-0 flex items-center pr-2"
                                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}

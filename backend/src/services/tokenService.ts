@@ -79,9 +79,10 @@ class TokenService {
           qboTokenData: handler.fields.includes('qboTokenData'),
           xeroTokenData: handler.fields.includes('xeroTokenData'),
           connectionType: handler.fields.includes('connectionType'),
+          qboRealmId: handler.fields.includes('qboRealmId'),
+          xeroTenantId: handler.fields.includes('xeroTenantId'),
         },
       });
-
       if (!result) {
         throw new AuthenticationError(connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
       }
@@ -92,11 +93,14 @@ class TokenService {
           connectionType: result.connectionType,
           qboTokenData: result.qboTokenData,
           xeroTokenData: result.xeroTokenData,
+          qboRealmId: result.qboRealmId,
+          xeroTenantId: result.xeroTenantId,
         } as CompanyTokenDataFromDB, connectionType, handler);
       } catch (tokenError: unknown) {
         if (tokenError instanceof AuthenticationError) throw tokenError;
         throw new AuthenticationError(connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
       }
+
       if (handler.validate(currentToken)) return currentToken;
       console.log('Refreshing token');
       const refreshPromise = this.refreshCompanyToken(companyId, currentToken, connectionType);
@@ -133,6 +137,7 @@ class TokenService {
 
   constructToken(dbRow: CompanyTokenDataFromDB, connectionType: ConnectionType, handler: ConnectionHandler): TokenData {
     const tokenField = handler.tokenField;
+
     if (!dbRow[tokenField]) {
       throw new AuthenticationError(
         connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED
@@ -148,7 +153,7 @@ class TokenService {
           refresh_token: tokenData.refresh_token,
           expires_in: tokenData.expires_in,
           x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
-          realmId: tokenData.realm_id,
+          realmId: handler.fields.includes('qboRealmId') ? dbRow.qboRealmId : tokenData.realm_id,
           created_at: tokenData.created_at
         };
       } else { // connectionType === 'xero'
@@ -156,7 +161,7 @@ class TokenService {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token,
           expires_at: tokenData.expires_at,
-          tenant_id: tokenData.tenant_id,
+          tenant_id: handler.fields.includes('xeroTenantId') ? dbRow.xeroTenantId : tokenData.tenant_id,
           created_at: tokenData.created_at
         };
       }

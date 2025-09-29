@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { loginWithCredentials, verifyUser, requestPasswordReset, logout } from '../api/auth';
+import { clearCachedCsrfToken } from '../utils/apiHelpers';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
 import LoadingWrapper from './LoadingWrapper';
@@ -82,6 +83,7 @@ const Login: React.FC = () => {
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {
+      clearCachedCsrfToken(); // Clear CSRF token cache
       setShowSwitchAccount(true);
       setCurrentUser(null);
       setPreFilledEmail('');

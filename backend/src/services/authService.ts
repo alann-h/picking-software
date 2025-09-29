@@ -177,7 +177,7 @@ export async function login(email: string, password: string, ipAddress: string |
                 refresh_token: parsedData.refresh_token,
                 expires_in: parsedData.expires_in,
                 x_refresh_token_expires_in: parsedData.x_refresh_token_expires_in,
-                realmId: parsedData.realmId,
+                realmId: parsedData.realm_id, // ✅ Fixed: Use realm_id from storage
                 created_at: parsedData.created_at
             };
         } else {
