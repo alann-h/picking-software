@@ -59,9 +59,10 @@ export class ProductSyncService {
       }
 
       // Get OAuth client
-      const oauthClient = await getOAuthClient(companyId, 'qbo');
-      const baseURL = await getBaseURL(oauthClient, 'qbo');
-      const realmId = getRealmId(oauthClient as IntuitOAuthClient);
+      const oauthClient: IntuitOAuthClient = await getOAuthClient(companyId, 'qbo') as IntuitOAuthClient;
+      const baseURL: string = await getBaseURL(oauthClient, 'qbo');
+      const realmId: string = getRealmId(oauthClient);
+
 
       // Fetch all items from QuickBooks
       const allItems = await this.fetchAllItemsFromQBO(oauthClient as IntuitOAuthClient, baseURL, realmId);
