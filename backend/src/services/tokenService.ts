@@ -222,9 +222,14 @@ class TokenService {
       const realmField = connectionType === 'qbo' ? 'qboRealmId' : 'xeroTenantId';
       const realmValue = connectionType === 'qbo' ? (refreshedToken as QboToken).realmId : (refreshedToken as XeroToken).tenant_id;
       
-      const updateData: any = {};
-      updateData[updateField] = encryptedTokenData;
-      updateData[realmField] = realmValue;
+      const updateData: any = {
+        [ updateField ]: encryptedTokenData,
+      };
+
+      // Only update realm field if we have a valid value, to prevent clearing existing realm data
+      if (realmValue) {
+        updateData[realmField] = realmValue;
+      }
       
       await prisma.company.update({
         where: { id: companyId },
@@ -387,9 +392,12 @@ class TokenService {
       
       const updateData: any = {
         [updateField]: encryptedTokenData,
-        connectionType: connectionType as any,
-        [realmField]: realmValue,
       };
+
+      // Only update realm field if we have a valid value, to prevent clearing existing realm data
+      if (realmValue) {
+        updateData[realmField] = realmValue;
+      }
       
       await prisma.company.update({
         where: { id: companyId },
