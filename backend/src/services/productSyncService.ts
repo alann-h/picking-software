@@ -65,7 +65,7 @@ export class ProductSyncService {
 
 
       // Fetch all items from QuickBooks
-      const allItems = await this.fetchAllItemsFromQBO(oauthClient as IntuitOAuthClient, baseURL, realmId);
+      const allItems = await this.fetchAllItemsFromQBO(oauthClient, baseURL, realmId);
       result.totalProducts = allItems.length;
 
       console.log(`📦 Found ${allItems.length} items in QuickBooks`);
@@ -115,6 +115,9 @@ export class ProductSyncService {
     baseURL: string, 
     realmId: string
   ): Promise<any[]> {
+    console.log('OAuth client:', oauthClient);
+    console.log('Base URL:', baseURL);
+    console.log('Realm ID:', realmId);
     const allItems: any[] = [];
     let startPosition = 1;
     const maxResults = 500; // QBO max per page
