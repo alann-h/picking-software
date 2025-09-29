@@ -234,9 +234,6 @@ export class AuthSystem {
      * @returns {string} Realm ID
      */
     getQBORealmId(oauthClient: IntuitOAuthClient): string {
-        console.log('OAuth client:', oauthClient);
-        console.log('Token:', oauthClient.getToken());
-        console.log('Realm ID:', oauthClient.getToken().realmId);
         return oauthClient.getToken().realmId;
     }
 
