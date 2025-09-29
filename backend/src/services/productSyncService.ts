@@ -110,14 +110,7 @@ export class ProductSyncService {
   /**
    * Fetch all items from QuickBooks Online using pagination
    */
-  private static async fetchAllItemsFromQBO(
-    oauthClient: IntuitOAuthClient, 
-    baseURL: string, 
-    realmId: string
-  ): Promise<any[]> {
-    console.log('OAuth client:', oauthClient);
-    console.log('Base URL:', baseURL);
-    console.log('Realm ID:', realmId);
+  private static async fetchAllItemsFromQBO(oauthClient: IntuitOAuthClient, baseURL: string, realmId: string): Promise<any[]> {
     const allItems: any[] = [];
     let startPosition = 1;
     const maxResults = 500; // QBO max per page
