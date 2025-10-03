@@ -1,6 +1,6 @@
 import React, { useRef, DragEvent, ChangeEvent, useState, useEffect } from 'react';
 import { getJobProgress } from '../api/products';
-import { UploadCloud, CheckCircle, AlertCircle } from 'lucide-react';
+import { UploadCloud, Upload, CheckCircle, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import ExcelInfoComponent from './ExcelInfoComponent';
 
@@ -59,6 +59,20 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
     if (uploadState !== 'idle') return;
     const file = event.target.files?.[0];
     if (file) {
+      // Check file size (5MB = 5 * 1024 * 1024 bytes)
+      if (file.size > 5 * 1024 * 1024) {
+        setProgressMessage('File size exceeds 5MB limit. Please choose a smaller file.');
+        setUploadState('error');
+        return;
+      }
+      
+      // Check file type
+      if (!file.name.endsWith('.csv')) {
+        setProgressMessage('Please select a CSV file.');
+        setUploadState('error');
+        return;
+      }
+      
       onFileSelect(file);
     }
   };
@@ -96,7 +110,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
   useEffect(() => {
     const poll = async (currentJobId: string) => {
       try {
-        const { state, progress: jobProgress, error } = await getJobProgress(currentJobId);
+        const result = await getJobProgress(currentJobId) as { state: string; progress: number; error?: string };
+        const { state, progress: jobProgress, error } = result;
         
         if (state === 'completed') {
           setUploadState('success');
@@ -114,8 +129,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
           return;
         }
 
-        setProgress(jobProgress?.percentage || 0);
-        setProgressMessage(jobProgress?.message || 'Processing...');
+        setProgress(jobProgress || 0);
+        setProgressMessage('Processing...');
         pollIntervalRef.current = setTimeout(() => poll(currentJobId), 2000);
 
       } catch (err) {
@@ -180,48 +195,56 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, onUpload, selecte
       case 'idle':
       default:
         return (
-          <div className="p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-1">Upload Product Data</h3>
-            <p className="text-gray-500 mb-4">
-              Upload your CSV file containing product data. Ensure it follows the format guide below.
-            </p>
-            <div
-              className={clsx(
-                "border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300",
-                isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-              )}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                ref={fileInputRef}
-                className="hidden"
-              />
-              <UploadCloud className="h-12 w-12 text-blue-500 mx-auto mb-3" />
-              {selectedFile ? (
-                <p className="text-sm text-gray-600 mt-2">
-                  Selected file: <strong>{selectedFile.name}</strong>
-                </p>
-              ) : (
-                <p className="text-gray-600">Drag & drop a CSV file here or <span className="font-semibold text-blue-600">click to select</span></p>
-              )}
+          <div className="mb-8">
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <h3 className="mb-4 text-xl font-semibold">Upload Product Data</h3>
+              <p className="mb-6 text-sm text-gray-600">Maximum file size: 5MB</p>
+              
+              <button 
+                onClick={handleUploadClick} 
+                disabled={!selectedFile} 
+                className="w-full mb-6 inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md cursor-pointer hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed transition-colors"
+              >
+                <Upload className="w-5 h-5 mr-2" />
+                <span>Upload & Process</span>
+              </button>
+              
+              <div 
+                className={clsx(
+                  "border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300 mb-4",
+                  isDragging ? 'border-blue-500 bg-blue-50' : selectedFile ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+                )}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  ref={fileInputRef}
+                  className="hidden"
+                />
+                
+                {selectedFile ? (
+                  <>
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-gray-900 mb-1">{selectedFile.name}</p>
+                    <p className="text-xs text-gray-500 mb-2">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                    <p className="text-xs text-gray-600">Click to select a different file</p>
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud className="h-12 w-12 text-blue-500 mx-auto mb-3" />
+                    <p className="text-gray-600">
+                      Drag & drop a CSV file here or <span className="font-semibold text-blue-600">click to select</span>
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
-            <button
-              onClick={handleUploadClick}
-              disabled={!selectedFile}
-              className={clsx(
-                "w-full text-white font-bold py-3 px-4 rounded-lg mt-4 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2",
-                !selectedFile ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 focus:ring-blue-500 cursor-pointer'
-              )}
-            >
-              Upload File
-            </button>
           </div>
         );
     }

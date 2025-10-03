@@ -100,7 +100,7 @@ class TokenService {
         if (tokenError instanceof AuthenticationError) throw tokenError;
         throw new AuthenticationError(connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED);
       }
-      console.log('currentToken', currentToken);
+      
       if (handler.validate(currentToken)) return currentToken;
       console.log('Refreshing token');
       const refreshPromise = this.refreshCompanyToken(companyId, currentToken, connectionType);
