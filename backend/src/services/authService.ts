@@ -50,6 +50,8 @@ export async function getBaseURL(oauthClient: OauthClient, connectionType: Conne
 }
 
 export function getRealmId(oauthClient: IntuitOAuthClient): string {
+  console.log('Getting realm id');
+  console.log(oauthClient);
   return authSystem.getQBORealmId(oauthClient);
 }
 
