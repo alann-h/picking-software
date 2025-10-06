@@ -60,7 +60,6 @@ const App: React.FC = () => {
     
   return (
     <SnackbarProvider>
-      <title>Smart Picker</title>
       <link rel="icon" type="image/png" href="/SP.png" />          
       <ErrorBoundary>
         <div className="flex flex-col min-h-screen w-full max-w-[100vw] overflow-x-hidden">

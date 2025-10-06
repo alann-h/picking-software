@@ -12,7 +12,7 @@ const LandingPage: React.FC = () => {
   return (
     <>
       <SEO 
-        title="Smart Picker - Professional Warehouse Management Software | QuickBooks & Xero Integration"
+        title="Smart Picker"
         description="Smart Picker is a professional warehouse management software with barcode scanning, QuickBooks integration, and Xero integration. Streamline order picking, eliminate errors, and boost warehouse efficiency."
         keywords="warehouse management, order picking software, barcode scanning, QuickBooks integration, Xero integration, inventory management, warehouse efficiency, mobile order picking, digital picking lists"
         canonicalUrl="https://smartpicker.au/"
