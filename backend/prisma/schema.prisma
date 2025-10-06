@@ -349,11 +349,12 @@ enum security_event_type {
 }
 
 model sync_settings {
-  id        String   @id @default(cuid())
-  companyId String   @db.Uuid
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String    @id @default(cuid())
+  companyId    String    @db.Uuid
+  enabled      Boolean   @default(true)
+  lastSyncTime DateTime? @map("last_sync_time") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Relations
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)

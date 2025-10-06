@@ -183,12 +183,22 @@ const SyncSettingsTab: React.FC = () => {
                     <Settings className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div>
                       <h4 className="text-sm font-semibold text-blue-800 mb-1">Current Status</h4>
-                      <p className="text-sm text-blue-700">
+                      <p className="text-sm text-blue-700 mb-2">
                         {syncSettings.enabled 
                           ? 'Automatic sync is enabled. Products will be synced twice a week.'
                           : 'Automatic sync is disabled. Products will not be synced automatically.'
                         }
                       </p>
+                      {syncSettings.lastSyncTime && (
+                        <p className="text-sm text-blue-600">
+                          <strong>Last sync:</strong> {new Date(syncSettings.lastSyncTime).toLocaleString()}
+                        </p>
+                      )}
+                      {!syncSettings.lastSyncTime && syncSettings.enabled && (
+                        <p className="text-sm text-blue-600">
+                          <strong>Last sync:</strong> No sync has been performed yet
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

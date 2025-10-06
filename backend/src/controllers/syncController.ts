@@ -59,6 +59,7 @@ export const getSyncSettings = async (req: Request, res: Response, next: NextFun
       select: {
         id: true,
         enabled: true,
+        lastSyncTime: true,
         createdAt: true,
         updatedAt: true
       }
@@ -106,6 +107,7 @@ export const saveSyncSettings = async (req: Request, res: Response, next: NextFu
       select: {
         id: true,
         enabled: true,
+        lastSyncTime: true,
         createdAt: true,
         updatedAt: true
       }

@@ -25,6 +25,7 @@ export const syncAllProducts = async (): Promise<SyncResult> => {
 export interface SyncSettings {
   id?: string;
   enabled: boolean;
+  lastSyncTime?: string;
   createdAt?: string;
   updatedAt?: string;
 }

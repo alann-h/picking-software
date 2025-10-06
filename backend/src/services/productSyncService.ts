@@ -97,6 +97,17 @@ export class ProductSyncService {
         duration: `${result.duration}ms`
       });
 
+      // Update last sync time in sync settings
+      await prisma.sync_settings.upsert({
+        where: { companyId },
+        update: { lastSyncTime: new Date() },
+        create: { 
+          companyId, 
+          enabled: true, 
+          lastSyncTime: new Date() 
+        }
+      });
+
       return result;
 
     } catch (error) {
@@ -361,6 +372,17 @@ export class ProductSyncService {
 
       const duration = Date.now() - startTime;
       console.log(`✅ Xero sync completed for company ${companyId}: ${totalProducts} total, ${updatedProducts} updated, ${newProducts} new, ${errors.length} errors`);
+
+      // Update last sync time in sync settings
+      await prisma.sync_settings.upsert({
+        where: { companyId },
+        update: { lastSyncTime: new Date() },
+        create: { 
+          companyId, 
+          enabled: true, 
+          lastSyncTime: new Date() 
+        }
+      });
 
       return {
         success: errors.length === 0,
