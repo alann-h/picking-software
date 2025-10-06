@@ -6,15 +6,35 @@ const AES_SECRET_KEY = crypto
   .digest();
 
 export function encryptToken(token: unknown): string {
-  const cipher = crypto.createCipheriv('aes-256-cbc', AES_SECRET_KEY, Buffer.alloc(16, 0));
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', AES_SECRET_KEY, iv);
   let encrypted = cipher.update(JSON.stringify(token), 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  return encrypted;
+  return iv.toString('hex') + ':' + encrypted;
 }
 
 export function decryptToken<T>(encryptedToken: string): T {
-  const decipher = crypto.createDecipheriv('aes-256-cbc', AES_SECRET_KEY, Buffer.alloc(16, 0));
-  let decrypted = decipher.update(encryptedToken, 'hex', 'utf8');
+  const parts = encryptedToken.split(':');
+  
+  // Handle legacy format (without IV prefix) for backward compatibility
+  if (parts.length === 1) {
+    // Legacy decryption with zero IV
+    const decipher = crypto.createDecipheriv('aes-256-cbc', AES_SECRET_KEY, Buffer.alloc(16, 0));
+    let decrypted = decipher.update(encryptedToken, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return JSON.parse(decrypted) as T;
+  }
+  
+  // New format with IV prefix
+  if (parts.length !== 2) {
+    throw new Error('Invalid encrypted token format');
+  }
+  
+  const iv = Buffer.from(parts[0], 'hex');
+  const encrypted = parts[1];
+  
+  const decipher = crypto.createDecipheriv('aes-256-cbc', AES_SECRET_KEY, iv);
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return JSON.parse(decrypted) as T;
 }

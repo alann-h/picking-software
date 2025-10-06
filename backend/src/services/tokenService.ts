@@ -194,65 +194,106 @@ class TokenService {
     return expiresAt > (now.getTime() + buffer);
   }
 
-  async refreshCompanyToken(companyId: string, currentToken: TokenData, connectionType: ConnectionType): Promise<TokenData> {
+  private async refreshWithBackoff(companyId: string, currentToken: TokenData, connectionType: ConnectionType, attempt = 1): Promise<TokenData> {
     const handler = this.connectionHandlers.get(connectionType);
     if (!handler) throw new Error(`Unsupported connection type: ${connectionType}`);
 
     try {
       this.clearCachedClient(companyId, connectionType);
       const refreshedToken = await handler.refresh(currentToken);
-      let tokenDataToStore;
-      if (connectionType === 'qbo') {
-        tokenDataToStore = {
-          access_token: refreshedToken.access_token,
-          refresh_token: refreshedToken.refresh_token,
-          expires_in: refreshedToken.expires_in,
-          x_refresh_token_expires_in: refreshedToken.x_refresh_token_expires_in,
-          realm_id: refreshedToken.realmId,
-          created_at: refreshedToken.createdAt || Date.now()
-        };
-      } else {
-        tokenDataToStore = {
-          access_token: refreshedToken.access_token,
-          refresh_token: refreshedToken.refresh_token,
-          expires_at: refreshedToken.expires_at,
-          tenant_id: refreshedToken.tenant_id,
-          created_at: Date.now()
-        };
-      }
-
-      const encryptedTokenData = encryptToken(JSON.stringify(tokenDataToStore));
-
-      const updateField = connectionType === 'qbo' ? 'qboTokenData' : 'xeroTokenData';
-      const realmField = connectionType === 'qbo' ? 'qboRealmId' : 'xeroTenantId';
-      const realmValue = connectionType === 'qbo' ? (refreshedToken as QboToken).realmId : (refreshedToken as XeroToken).tenant_id;
       
-      const updateData: any = {
-        [ updateField ]: encryptedTokenData,
-      };
-
-      // Only update realm field if we have a valid value, to prevent clearing existing realm data
-      if (realmValue) {
-        updateData[realmField] = realmValue;
+      // If successful, log the attempt count for monitoring
+      if (attempt > 1) {
+        console.log(`✅ Token refresh succeeded on attempt ${attempt} for company ${companyId} (${connectionType})`);
       }
       
-      await prisma.company.update({
-        where: { id: companyId },
-        data: updateData,
-      });
-
       return refreshedToken;
-
     } catch (error: unknown) {
-      if (error instanceof Error && (error.message.includes('REFRESH_TOKEN_EXPIRED') || error.message.includes('REAUTH_REQUIRED'))) {
-        const errorCode = connectionType === 'qbo' ? AUTH_ERROR_CODES.QBO_REAUTH_REQUIRED : AUTH_ERROR_CODES.XERO_REAUTH_REQUIRED;
-        throw new AuthenticationError(errorCode);
+      // Check if we should retry
+      if (attempt < 3 && this.isRetryableError(error)) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`⏳ Token refresh attempt ${attempt} failed for company ${companyId} (${connectionType}), retrying in ${delayMs}ms...`);
+        
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        return this.refreshWithBackoff(companyId, currentToken, connectionType, attempt + 1);
       }
-      if (error instanceof Error) {
-        throw new AccessError(`Failed to refresh ${connectionType.toUpperCase()} token: ${error.message}`);
-      }
-      throw new AccessError(`An unknown error occurred while refreshing the ${connectionType.toUpperCase()} token.`);
+      
+      // Log final failure
+      console.error(`❌ Token refresh failed after ${attempt} attempts for company ${companyId} (${connectionType}):`, error);
+      throw error;
     }
+  }
+
+  private isRetryableError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+    
+    const message = error.message.toLowerCase();
+    
+    // Don't retry authentication errors (need re-auth)
+    if (message.includes('refresh_token_expired') || 
+        message.includes('reauth_required') ||
+        message.includes('invalid_grant') ||
+        message.includes('token_revoked')) {
+      return false;
+    }
+    
+    // Retry network/temporary errors
+    return message.includes('timeout') ||
+           message.includes('network') ||
+           message.includes('econnreset') ||
+           message.includes('enotfound') ||
+           message.includes('rate limit') ||
+           message.includes('too many requests') ||
+           message.includes('service unavailable') ||
+           message.includes('internal server error');
+  }
+
+  async refreshCompanyToken(companyId: string, currentToken: TokenData, connectionType: ConnectionType): Promise<TokenData> {
+    // Use the new backoff method
+    const refreshedToken = await this.refreshWithBackoff(companyId, currentToken, connectionType);
+    let tokenDataToStore;
+    if (connectionType === 'qbo') {
+      const qboToken = refreshedToken as QboToken;
+      tokenDataToStore = {
+        access_token: qboToken.access_token,
+        refresh_token: qboToken.refresh_token,
+        expires_in: qboToken.expires_in,
+        x_refresh_token_expires_in: qboToken.x_refresh_token_expires_in,
+        realm_id: qboToken.realmId,
+        created_at: qboToken.created_at || Date.now()
+      };
+    } else {
+      const xeroToken = refreshedToken as XeroToken;
+      tokenDataToStore = {
+        access_token: xeroToken.access_token,
+        refresh_token: xeroToken.refresh_token,
+        expires_at: xeroToken.expires_at,
+        tenant_id: xeroToken.tenant_id,
+        created_at: Date.now()
+      };
+    }
+
+    const encryptedTokenData = encryptToken(JSON.stringify(tokenDataToStore));
+
+    const updateField = connectionType === 'qbo' ? 'qboTokenData' : 'xeroTokenData';
+    const realmField = connectionType === 'qbo' ? 'qboRealmId' : 'xeroTenantId';
+    const realmValue = connectionType === 'qbo' ? (refreshedToken as QboToken).realmId : (refreshedToken as XeroToken).tenant_id;
+    
+    const updateData: any = {
+      [ updateField ]: encryptedTokenData,
+    };
+
+    // Only update realm field if we have a valid value, to prevent clearing existing realm data
+    if (realmValue) {
+      updateData[realmField] = realmValue;
+    }
+    
+    await prisma.company.update({
+      where: { id: companyId },
+      data: updateData,
+    });
+
+    return refreshedToken;
   }
 
   async getOAuthClient(companyId: string, connectionType: ConnectionType = 'qbo'): Promise<OauthClient> {
