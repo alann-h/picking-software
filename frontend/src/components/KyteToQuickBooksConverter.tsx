@@ -19,7 +19,7 @@ import { extractErrorMessage } from '../utils/apiHelpers';
 
 interface Customer { customerId: string; customerName: string; }
 interface LineItem { quantity: number; productName: string; originalText: string; productId?: string; sku?: string; barcode?: string; externalItemId?: string; matched: boolean; }
-interface Order { number: string; date: string; itemsDescription: string; total: number; customerName: string | null; customerId: string | null; lineItems: LineItem[]; }
+interface Order { number: string; date: string; itemsDescription: string; total: string; customerName: string | null; customerId: string | null; lineItems: LineItem[]; }
 interface ProcessingResult { orderNumber: string; success: boolean; message: string; estimateId?: string; estimateNumber?: string; quickbooksUrl?: string; }
 interface ConversionHistoryItem { orderNumber: string; estimateId?: string; quickbooksUrl?: string; status: 'success' | 'failed'; errorMessage?: string; createdAt: string; }
 
@@ -300,7 +300,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.number}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{order.date}</td>
                     <td className="px-4 py-4 text-sm text-gray-600 max-w-xs"><ItemDescription items={order.itemsDescription.split(',').map(item => item.trim())} maxItems={3} variant="body2" showExpandButton={true} /></td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">${order.total.toFixed(2)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">${order.total}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm w-80">
                       {order.customerName && (
                         <p className="text-xs text-gray-500 mb-1">

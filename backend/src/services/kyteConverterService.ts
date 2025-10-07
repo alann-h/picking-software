@@ -50,7 +50,7 @@ export async function parseKyteCSV(csvContent: string): Promise<KyteOrder[]> {
           number: values[numberIndex]?.trim(),
           date: parseAustralianDate(values[dateIndex]?.trim() || ''),
           itemsDescription: values[itemsIndex]?.trim(),
-          total: parseFloat(values[totalIndex]) || 0,
+          total: values[totalIndex]?.trim() || '0',
           customerName: values[customerNameIndex]?.trim(),
           customerId: null, // Will be set by user
           lineItems: parseItemsDescription(values[itemsIndex]?.trim() || ''),
