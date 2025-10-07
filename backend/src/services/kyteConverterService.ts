@@ -291,7 +291,6 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
     const realmId: string = getRealmId(oauthClient);
     
     const matchedItems = orderData.lineItems.filter((item: MatchedLineItem) => item.matched && item.externalItemId);
-    // console.log('Matched items:', JSON.stringify(matchedItems, null, 2));
     
     if (matchedItems.length === 0) {
       throw new InputError('No matched products found to create a QuickBooks estimate.');
@@ -449,20 +448,30 @@ export async function saveConversionToDatabase(conversionData: ConversionData, c
  */
 export async function createQuickBooksEstimateWithRetry(orderData: ProcessedKyteOrder, companyId: string): Promise<QuickBooksEstimateResult> {
   const retrySuffixes = ['retry', 'copy', 'dup', 'alt', 'new'];
+  let lastError: Error | null = null;
   
-  for (let i = 0; i < retrySuffixes.length; i++) {
+  for (let i = 0; i <= retrySuffixes.length; i++) {
     try {
       const suffix = i === 0 ? undefined : retrySuffixes[i - 1];
       return await createQuickBooksEstimate(orderData, companyId, suffix);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to create QuickBooks estimate:', errorMessage);
-
+      lastError = error instanceof Error ? error : new Error(errorMessage);
+      
+      // Check if it's a duplicate document number error
+      if (errorMessage.includes('Duplicate Document Number')) {
+        console.log(`Duplicate document number detected, trying with suffix attempt ${i + 1}/${retrySuffixes.length + 1}`);
+        continue; // Try next suffix
+      }
+      
+      // For non-duplicate errors, throw immediately
+      console.error('Non-retryable error:', errorMessage);
       throw new InputError(`Failed to create QuickBooks estimate: ${errorMessage}`);
     }
   }
   
-  throw new InputError(`Failed to create estimate after trying all suffix variations for quote ${orderData.number}`);
+  // If we exhausted all retries
+  throw new InputError(`Failed to create estimate after trying all suffix variations for quote ${orderData.number}. Last error: ${lastError?.message || 'Unknown error'}`);
 }
 
 /**
