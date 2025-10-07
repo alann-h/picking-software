@@ -353,17 +353,18 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
         body: JSON.stringify(estimatePayload)
       });
     } catch (apiError: any) {
-      console.error('API Call Error:', apiError);
-      console.error('Error response:', apiError.response?.data || apiError.response || apiError.message);
-      throw new Error(`API call failed: ${apiError.response?.data?.Fault?.Error?.[0]?.Message || apiError.message || 'Unknown error'}`);
+      console.error('API Call Error Message:', apiError.message);
+      console.error('Error response data:', apiError.response?.data);
+      const errorMsg = apiError.response?.data?.Fault?.Error?.[0]?.Message || apiError.message || 'Unknown error';
+      throw new Error(`API call failed: ${errorMsg}`);
     }
     
-    console.log('QuickBooks API Response:', JSON.stringify(response, null, 2));
+    console.log('QuickBooks API Response:', response);
     
     if (response.json?.Fault) {
       const errorDetail = response.json.Fault.Error[0];
-      console.error('QuickBooks Error Detail:', JSON.stringify(errorDetail, null, 2));
-      throw new Error(`QuickBooks Error: ${errorDetail.Message} (Code: ${errorDetail.code}, Detail: ${errorDetail.Detail || 'N/A'})`);
+      console.error('QuickBooks Error Detail:', errorDetail);
+      throw new Error(`${errorDetail.Message}`);
     }
     
     const webUrl = baseURL.includes('sandbox') 
@@ -381,8 +382,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
     
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
-    throw new Error(`Failed to create QuickBooks estimate: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 }
 
