@@ -105,7 +105,7 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
   const items: KyteLineItem[] = [];
   // Split by commas first, then by other delimiters
   const itemStrings = itemsDescription.split(/[,;\n\r]/).filter(item => item.trim());
-  
+  console.log('Item strings:', itemStrings);
   for (const itemString of itemStrings) {
     const trimmed = itemString.trim();
     if (!trimmed) continue;
