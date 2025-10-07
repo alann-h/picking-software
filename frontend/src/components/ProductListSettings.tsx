@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Product } from '../utils/types';
 import { useSnackbarContext } from './SnackbarContext';
-import { Loader2, Plus, RefreshCw, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, AlertTriangle, X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 
 interface ProductListProps {
@@ -104,11 +104,34 @@ const ProductList: React.FC<ProductListProps> = ({
   const itemsPerPage = 50;
   const [isAdding, setIsAdding] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<'productName' | 'sku' | 'barcode' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const filteredProducts = useMemo(
-    () => products.filter((p) => p.isArchived === showArchived),
-    [products, showArchived],
-  );
+  const filteredProducts = useMemo(() => {
+    let filtered = products.filter((p) => p.isArchived === showArchived);
+    
+    if (sortField) {
+      filtered = [...filtered].sort((a, b) => {
+        const aValue = a[sortField] || '';
+        const bValue = b[sortField] || '';
+        
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          const comparison = aValue.toLowerCase().localeCompare(bValue.toLowerCase());
+          return sortDirection === 'asc' ? comparison : -comparison;
+        }
+        
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+        
+        return 0;
+      });
+    }
+    
+    return filtered;
+  }, [products, showArchived, sortField, sortDirection]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -120,6 +143,16 @@ const ProductList: React.FC<ProductListProps> = ({
   useEffect(() => {
     setCurrentPage(1);
   }, [filteredProducts.length]);
+
+  // Handle sorting
+  const handleSort = (field: 'productName' | 'sku' | 'barcode') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const handleOpenEdit = (product: Product) => {
     setSelectedProduct(JSON.parse(JSON.stringify(product)));
@@ -275,9 +308,48 @@ const ProductList: React.FC<ProductListProps> = ({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('productName')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Product Name</span>
+                      {sortField === 'productName' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUp className="h-4 w-4" /> : 
+                          <ChevronDown className="h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('sku')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>SKU</span>
+                      {sortField === 'sku' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUp className="h-4 w-4" /> : 
+                          <ChevronDown className="h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('barcode')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Barcode</span>
+                      {sortField === 'barcode' && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUp className="h-4 w-4" /> : 
+                          <ChevronDown className="h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
