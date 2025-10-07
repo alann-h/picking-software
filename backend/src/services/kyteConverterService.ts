@@ -339,7 +339,6 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       TxnDate: txnDate,
       PrivateNote: `Imported from Kyte - Order ${orderData.number}`
     };
-    console.log('Estimate payload:', JSON.stringify(estimatePayload, null, 2));
     console.log('Base URL:', baseURL);
     console.log('Realm ID:', realmId);
     console.log('OAuth client:', oauthClient);
