@@ -305,49 +305,55 @@ const ProductList: React.FC<ProductListProps> = ({
             Showing {filteredProducts.length} {showArchived ? 'archived' : 'active'} products
           </p>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <tr>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="w-2/5 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('productName')}
                   >
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center justify-between">
                       <span>Product Name</span>
-                      {sortField === 'productName' && (
-                        sortDirection === 'asc' ? 
-                          <ChevronUp className="h-4 w-4" /> : 
-                          <ChevronDown className="h-4 w-4" />
-                      )}
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        {sortField === 'productName' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="h-4 w-4" /> : 
+                            <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
                     </div>
                   </th>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('sku')}
                   >
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center justify-between">
                       <span>SKU</span>
-                      {sortField === 'sku' && (
-                        sortDirection === 'asc' ? 
-                          <ChevronUp className="h-4 w-4" /> : 
-                          <ChevronDown className="h-4 w-4" />
-                      )}
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        {sortField === 'sku' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="h-4 w-4" /> : 
+                            <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
                     </div>
                   </th>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="w-1/3 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('barcode')}
                   >
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center justify-between">
                       <span>Barcode</span>
-                      {sortField === 'barcode' && (
-                        sortDirection === 'asc' ? 
-                          <ChevronUp className="h-4 w-4" /> : 
-                          <ChevronDown className="h-4 w-4" />
-                      )}
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        {sortField === 'barcode' && (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="h-4 w-4" /> : 
+                            <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
                     </div>
                   </th>
                 </tr>
