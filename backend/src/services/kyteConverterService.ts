@@ -338,10 +338,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       TxnDate: txnDate,
       PrivateNote: `Imported from Kyte - Order ${orderData.number}`
     };
-    console.log('Base URL:', baseURL);
-    console.log('Realm ID:', realmId);
-    console.log('url:', `${baseURL}v3/company/${realmId}/estimate?minorversion=75`);
-    
+
     let response;
     try {
       response = await oauthClient.makeApiCall({
@@ -359,11 +356,8 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
       throw new Error(`API call failed: ${errorMsg}`);
     }
     
-    console.log('QuickBooks API Response:', response);
-    
     if (response.json?.Fault) {
       const errorDetail = response.json.Fault.Error[0];
-      console.error('QuickBooks Error Detail:', errorDetail);
       throw new Error(`${errorDetail.Message}`);
     }
     
@@ -460,12 +454,10 @@ export async function createQuickBooksEstimateWithRetry(orderData: ProcessedKyte
       
       // Check if it's a duplicate document number error
       if (errorMessage.includes('Duplicate Document Number')) {
-        console.log(`Duplicate document number detected, trying with suffix attempt ${i + 1}/${retrySuffixes.length + 1}`);
         continue; // Try next suffix
       }
       
       // For non-duplicate errors, throw immediately
-      console.error('Non-retryable error:', errorMessage);
       throw new InputError(`Failed to create QuickBooks estimate: ${errorMessage}`);
     }
   }

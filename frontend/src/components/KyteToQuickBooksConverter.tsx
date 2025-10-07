@@ -246,7 +246,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
       <div className="mb-8">
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="mb-4 text-xl font-semibold">Step 1: Upload CSV File</h3>
-          <p className="mb-6 text-sm text-gray-600">Maximum file size: 5MB</p>
+          <p className="mb-6 text-sm text-gray-600">Maximum file size: 1MB</p>
           
           <div className="flex flex-wrap items-center gap-4 mb-6">
             <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 disabled:bg-blue-300 transition-colors">
@@ -258,7 +258,7 @@ const KyteToQuickBooksConverter: React.FC = () => {
             {selectedFile && (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2">
                 <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                <p className="text-xs text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                <p className="text-xs text-gray-500">{(selectedFile.size / 1024).toFixed(2)} KB</p>
               </div>
             )}
             

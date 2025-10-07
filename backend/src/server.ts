@@ -235,13 +235,13 @@ app.get('/jobs/:jobId/progress', isAuthenticated, asyncHandler(async (req, res) 
 const upload = multer({ 
   dest: '/tmp/',
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 1 * 1024 * 1024, // 1MB limit
     files: 1 // Only allow one file
   },
   fileFilter: (req, file, cb) => {
     // Check file size (additional check)
-    if (file.size && file.size > 5 * 1024 * 1024) {
-      return cb(new Error('File size exceeds 5MB limit'));
+    if (file.size && file.size > 1 * 1024 * 1024) {
+      return cb(new Error('File size exceeds 1MB limit'));
     }
     
     // Check MIME type
@@ -257,14 +257,14 @@ const upload = multer({
 const fileUploadErrorHandler = (err: any, req: any, res: any, next: any) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: 'File size exceeds 5MB limit. Please choose a smaller file.' });
+      return res.status(413).json({ error: 'File size exceeds 1MB limit. Please choose a smaller file.' });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {
       return res.status(400).json({ error: 'Only one file is allowed per upload.' });
     }
   }
-  if (err.message === 'File size exceeds 5MB limit') {
-    return res.status(413).json({ error: 'File size exceeds 5MB limit. Please choose a smaller file.' });
+  if (err.message === 'File size exceeds 1MB limit') {
+    return res.status(413).json({ error: 'File size exceeds 1MB limit. Please choose a smaller file.' });
   }
   if (err.message === 'Only CSV files are allowed') {
     return res.status(400).json({ error: 'Invalid file format. Please upload a CSV file.' });
@@ -278,9 +278,9 @@ app.post('/api/upload', isAuthenticated, upload.single('input'), fileUploadError
     }
 
     // Additional file size check
-    if (req.file.size && req.file.size > 5 * 1024 * 1024) {
+    if (req.file.size && req.file.size > 1 * 1024 * 1024) {
       await unlinkAsync(req.file.path);
-      return res.status(413).json({ error: 'File size exceeds 5MB limit. Please choose a smaller file.' });
+      return res.status(413).json({ error: 'File size exceeds 1MB limit. Please choose a smaller file.' });
     }
 
     if (req.file.mimetype !== 'text/csv') {
