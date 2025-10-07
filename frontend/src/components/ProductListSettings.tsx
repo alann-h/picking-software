@@ -315,11 +315,13 @@ const ProductList: React.FC<ProductListProps> = ({
                   >
                     <div className="flex items-center justify-between">
                       <span>Product Name</span>
-                      <div className="w-4 h-4 flex items-center justify-center">
-                        {sortField === 'productName' && (
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                        {sortField === 'productName' ? (
                           sortDirection === 'asc' ? 
                             <ChevronUp className="h-4 w-4" /> : 
                             <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <div className="h-4 w-4" />
                         )}
                       </div>
                     </div>
@@ -331,11 +333,13 @@ const ProductList: React.FC<ProductListProps> = ({
                   >
                     <div className="flex items-center justify-between">
                       <span>SKU</span>
-                      <div className="w-4 h-4 flex items-center justify-center">
-                        {sortField === 'sku' && (
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                        {sortField === 'sku' ? (
                           sortDirection === 'asc' ? 
                             <ChevronUp className="h-4 w-4" /> : 
                             <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <div className="h-4 w-4" />
                         )}
                       </div>
                     </div>
@@ -347,11 +351,13 @@ const ProductList: React.FC<ProductListProps> = ({
                   >
                     <div className="flex items-center justify-between">
                       <span>Barcode</span>
-                      <div className="w-4 h-4 flex items-center justify-center">
-                        {sortField === 'barcode' && (
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                        {sortField === 'barcode' ? (
                           sortDirection === 'asc' ? 
                             <ChevronUp className="h-4 w-4" /> : 
                             <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <div className="h-4 w-4" />
                         )}
                       </div>
                     </div>
