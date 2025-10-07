@@ -300,12 +300,19 @@ class TokenService {
     const handler = this.connectionHandlers.get(connectionType);
     if (!handler) throw new Error(`Unsupported connection type: ${connectionType}`);
 
+    // Always get a valid token first (this will refresh if needed)
+    const validToken = await this.getValidToken(companyId, connectionType);
+    
     const cacheKey = `${companyId}_${connectionType}`;
+    
+    // If we have a cached client, update its token and return it
     if (this.oauthClients.has(cacheKey)) {
-      return this.oauthClients.get(cacheKey)!;
+      const cachedClient = this.oauthClients.get(cacheKey)!;
+      handler.setClientToken(cachedClient, validToken);
+      return cachedClient;
     }
 
-    const validToken = await this.getValidToken(companyId, connectionType);
+    // Otherwise create a new client
     const client = handler.initClient();
     handler.setClientToken(client, validToken);
 
