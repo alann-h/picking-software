@@ -105,7 +105,7 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
   const items: KyteLineItem[] = [];
   // Split by commas first, then by other delimiters
   const itemStrings = itemsDescription.split(/[,;\n\r]/).filter(item => item.trim());
-  console.log('Item strings:', itemStrings);
+  
   for (const itemString of itemStrings) {
     const trimmed = itemString.trim();
     if (!trimmed) continue;
@@ -341,18 +341,30 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
     };
     console.log('Base URL:', baseURL);
     console.log('Realm ID:', realmId);
-    console.log('OAuth client:', oauthClient);
     console.log('url:', `${baseURL}v3/company/${realmId}/estimate?minorversion=75`);
-    const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${realmId}/estimate?minorversion=75`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(estimatePayload)
-    });
+    
+    let response;
+    try {
+      response = await oauthClient.makeApiCall({
+        url: `${baseURL}v3/company/${realmId}/estimate?minorversion=75`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(estimatePayload)
+      });
+    } catch (apiError: any) {
+      console.error('API Call Error:', apiError);
+      console.error('Error response:', apiError.response?.data || apiError.response || apiError.message);
+      throw new Error(`API call failed: ${apiError.response?.data?.Fault?.Error?.[0]?.Message || apiError.message || 'Unknown error'}`);
+    }
+    
+    console.log('QuickBooks API Response:', JSON.stringify(response, null, 2));
+    
     if (response.json?.Fault) {
-      throw new Error(response.json.Fault.Error[0].Message);
+      const errorDetail = response.json.Fault.Error[0];
+      console.error('QuickBooks Error Detail:', JSON.stringify(errorDetail, null, 2));
+      throw new Error(`QuickBooks Error: ${errorDetail.Message} (Code: ${errorDetail.code}, Detail: ${errorDetail.Detail || 'N/A'})`);
     }
     
     const webUrl = baseURL.includes('sandbox') 
