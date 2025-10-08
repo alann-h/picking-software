@@ -1,13 +1,14 @@
 // src/components/runs/RunItem.tsx
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X, Plus } from 'lucide-react';
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Run, RunQuote } from '../../utils/types';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { Run, RunQuote, QuoteSummary } from '../../utils/types';
 import { updateRunQuotes, updateRunStatus, updateRunName } from '../../api/runs';
+import { getQuotesWithStatus } from '../../api/quote';
 import { useSnackbarContext } from '../SnackbarContext';
 
 // --- Helper Functions and Components ---
@@ -54,9 +55,19 @@ export const RunItem: React.FC<{
     const [editableQuotes, setEditableQuotes] = useState<RunQuote[]>([]);
     const [editableRunName, setEditableRunName] = useState(run.run_name || '');
     const [isExpanded, setIsExpanded] = useState(false);
+    const [showAddQuotes, setShowAddQuotes] = useState(false);
     
     const queryClient = useQueryClient();
     const { handleOpenSnackbar } = useSnackbarContext();
+    
+    // Fetch available quotes when editing
+    const { data: availableQuotes } = useSuspenseQuery<QuoteSummary[]>({
+        queryKey: ['quotes', 'pending', userCompanyId],
+        queryFn: async () => {
+            const response = await getQuotesWithStatus('pending') as QuoteSummary[];
+            return response;
+        },
+    });
 
 
     useEffect(() => {
@@ -125,6 +136,24 @@ export const RunItem: React.FC<{
     const handleRemoveQuote = (quoteIdToRemove: string) => {
         setEditableQuotes(prev => prev.filter(q => q.quoteId !== quoteIdToRemove));
     };
+    
+    const handleAddQuote = (quote: QuoteSummary) => {
+        const newQuote: RunQuote = {
+            quoteId: quote.id,
+            quoteNumber: quote.quoteNumber,
+            customerName: quote.customerName,
+            totalAmount: quote.totalAmount,
+            priority: editableQuotes.length + 1,
+            orderStatus: quote.orderStatus,
+        };
+        setEditableQuotes(prev => [...prev, newQuote]);
+    };
+    
+    // Filter out quotes that are already in the run
+    const quotesNotInRun = useMemo(() => {
+        const currentQuoteIds = new Set(editableQuotes.map(q => q.quoteId));
+        return (availableQuotes || []).filter((q: QuoteSummary) => !currentQuoteIds.has(q.id));
+    }, [availableQuotes, editableQuotes]);
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -249,6 +278,42 @@ export const RunItem: React.FC<{
                                         <EditableQuoteRow key={quote.quoteId} quote={quote} onRemove={handleRemoveQuote} />
                                     ))}
                                 </SortableContext>
+                                
+                                {/* Add Quotes Section */}
+                                {quotesNotInRun.length > 0 && (
+                                    <div className="mt-4 border-t border-gray-200 pt-4">
+                                        <button
+                                            onClick={() => setShowAddQuotes(!showAddQuotes)}
+                                            className="flex items-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer mb-2"
+                                        >
+                                            <Plus className="w-4 h-4 mr-1" />
+                                            {showAddQuotes ? 'Hide Available Quotes' : `Add Quotes (${quotesNotInRun.length} available)`}
+                                        </button>
+                                        
+                                        {showAddQuotes && (
+                                            <div className="bg-gray-50 rounded-lg p-3 max-h-60 overflow-y-auto">
+                                                <p className="text-xs text-gray-500 mb-2">Click to add quotes to this run:</p>
+                                                {quotesNotInRun.map((quote: QuoteSummary) => (
+                                                    <div
+                                                        key={quote.id}
+                                                        onClick={() => handleAddQuote(quote)}
+                                                        className="flex justify-between items-center p-2 bg-white rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer mb-2 transition-colors"
+                                                    >
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-800">#{quote.quoteNumber}</p>
+                                                            <p className="text-xs text-gray-600">{quote.customerName}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-semibold text-green-700">{formatCurrency(quote.totalAmount)}</p>
+                                                            <Plus className="w-4 h-4 text-blue-600 ml-auto" />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                
                                 <div className="flex space-x-2 mt-4 justify-end">
                                     <button onClick={handleCancelEdit} className="flex items-center text-sm px-3 py-1.5 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 cursor-pointer">
                                         <X className="w-4 h-4 mr-1" /> Cancel
