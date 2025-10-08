@@ -36,6 +36,7 @@ export interface FilteredQuote {
     lastModified: string;
     companyId: string;
     orderNote: string | null;
+    pickerNote: string | null;
     externalSyncUrl: string | null;
 }
 

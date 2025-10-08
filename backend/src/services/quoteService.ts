@@ -267,6 +267,7 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
       lastModified: formatTimestampForSydney(metaData.LastUpdatedTime as string),
       companyId,
       orderNote: customerMemo?.value as string || null,
+      pickerNote: null,
       externalSyncUrl: null
     };
 }
@@ -323,6 +324,7 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
     lastModified: formatTimestampForSydney(quote.updatedDateUTC!),
     companyId,
     orderNote: quote.reference || null,
+    pickerNote: null,
     externalSyncUrl: null
   };
 }
@@ -425,6 +427,7 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
       productInfo: {},
       companyId: quote.companyId,
       orderNote: quote.orderNote,
+      pickerNote: quote.pickerNote,
       externalSyncUrl: quote.externalSyncUrl,
     };
 
