@@ -14,7 +14,7 @@ export const getStatusColor = (status: string) => {
       case 'assigned':
         return 'bg-indigo-500';
       case 'checking':
-        return 'bg-purple-500';
+        return 'bg-yellow-500';
       case 'finalised':
         return 'bg-green-500';
       case 'backorder':
