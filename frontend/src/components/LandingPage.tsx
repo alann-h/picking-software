@@ -40,6 +40,7 @@ const LandingPage: React.FC = () => {
       <CookieConsent 
         onAccept={() => console.log('Cookies accepted')}
       />
+      
       </main>
     </>
   );
