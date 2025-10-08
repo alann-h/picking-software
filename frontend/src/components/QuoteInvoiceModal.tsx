@@ -41,9 +41,8 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
 
   const handleProceed = () => {
     onProceed();
-    // Assuming onProceed might not close the modal, but the button click should.
-    // The original code closed it. If onProceed handles it, this could be removed.
-    // onClose(); 
+    // Close the modal after proceeding
+    onClose();
   };
 
   const getStatusChipClasses = (status: string): string => {

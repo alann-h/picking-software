@@ -124,11 +124,10 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     const saveNote = useMutation({ mutationFn: (note: string) => savePickerNote(quoteId, note), onSuccess: () => handleOpenSnackbar('Note saved!', 'success'), onError: (error) => handleOpenSnackbar(error.message, 'error'), });
     const setQuoteChecking = useMutation({ 
         mutationFn: (newStatus: string) => updateQuoteStatus(quoteId, newStatus), 
-        onSuccess: (_, newStatus) => { 
+        onSuccess: () => { 
             handleOpenSnackbar(`Quote status updated!`, 'success'); 
-            // Update URL to include status
-            const newUrl = `/quote?id=${quoteId}&status=${newStatus}`;
-            navigate(newUrl);
+            // Navigate to dashboard after successful status update
+            navigate('/dashboard');
         }, 
         onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), 
     });
@@ -177,19 +176,32 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             }
         }, 
     });
-    const confirmBarcodeScan = useMutation({ mutationFn: (variables: { barcode: string, quantity: number }) => barcodeScan(variables.barcode, quoteId, variables.quantity), onSuccess: () => { handleOpenSnackbar('Product scanned successfully!', 'success'); invalidateAndRefetch(); }, onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), });
+    const confirmBarcodeScan = useMutation({ 
+        mutationFn: (variables: { barcode: string, quantity: number }) => barcodeScan(variables.barcode, quoteId, variables.quantity), 
+        onSuccess: () => { 
+            handleOpenSnackbar('Product scanned successfully!', 'success'); 
+            invalidateAndRefetch(); 
+        }, 
+        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), 
+    });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
         try {
+            // First check if product exists in database
             const response = await barcodeToName(barcode) as { productName: string };
             const { productName } = response;
+            
+            // Then check if it's in the current quote
             const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
             
             if (!product) {
-                throw new Error('Product not found in this quote.');
+                handleOpenSnackbar('This product is not included in this quote.', 'error');
+                return;
             }
+            
             if (product.pickingQty === 0) {
-                throw new Error('This product has already been fully picked.');
+                handleOpenSnackbar('This product has already been fully picked.', 'error');
+                return;
             }
 
             openModal('barcodeModal', {
@@ -198,6 +210,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
                 onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
             });
         } catch (error: unknown) {
+            // This will catch errors from barcodeToName (product not in database)
             handleOpenSnackbar(extractErrorMessage(error), 'error');
         }
     }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);

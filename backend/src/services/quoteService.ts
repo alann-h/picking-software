@@ -483,62 +483,55 @@ async function updateQuotePreparerNames(quoteId: string, userName: string): Prom
 }
 
 export async function processBarcode(barcode: string, quoteId: string, newQty: number, userName: string): Promise<BarcodeProcessResult> {
-  try {
-    // First, find the quote item by barcode through the product relation
-    const quoteItem = await prisma.quoteItem.findFirst({
-      where: {
-        quoteId: quoteId,
-        product: {
-          barcode: barcode,
-        },
+  // First, find the quote item by barcode through the product relation
+  const quoteItem = await prisma.quoteItem.findFirst({
+    where: {
+      quoteId: quoteId,
+      product: {
+        barcode: barcode,
       },
-      include: {
-        product: true,
-      },
-    });
+    },
+    include: {
+      product: true,
+    },
+  });
 
-    if (!quoteItem) {
-      throw new InputError('Quote number is invalid or scanned product does not exist on quote');
-    }
-
-    const currentStatus = quoteItem.pickingStatus;
-    
-    if (currentStatus === 'completed') {
-      throw new InputError(`This item has already been fully picked`);
-    } else if (currentStatus !== 'pending') {
-      throw new InputError(`Cannot process item. Current status is ${currentStatus}. Please change the status to 'pending' before scanning.`);
-    }
-
-    // Calculate new picking quantity and status
-    const newPickingQuantity = Math.max(quoteItem.pickingQuantity.toNumber() - newQty, 0);
-    const newPickingStatus = newPickingQuantity <= 0 ? 'completed' : quoteItem.pickingStatus;
-
-    const updatedItem = await prisma.quoteItem.update({
-      where: {
-        quoteId_productId: {
-          quoteId: quoteId,
-          productId: quoteItem.productId,
-        },
-      },
-      data: {
-        pickingQuantity: newPickingQuantity,
-        pickingStatus: newPickingStatus as PickingStatus,
-      },
-    });
-
-    await updateQuotePreparerNames(quoteId, userName);
-
-    return {
-      productName: updatedItem.productName,
-      updatedQty: updatedItem.pickingQuantity.toNumber(),
-      pickingStatus: updatedItem.pickingStatus,
-    };
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new AccessError(error.message);
-    }
-    throw new AccessError('An unknown error occurred while processing the barcode.');
+  if (!quoteItem) {
+    throw new InputError('This product is not included in this quote.');
   }
+
+  const currentStatus = quoteItem.pickingStatus;
+  
+  if (currentStatus === 'completed') {
+    throw new InputError('This product has already been fully picked.');
+  } else if (currentStatus !== 'pending') {
+    throw new InputError(`Cannot process item. Current status is ${currentStatus}. Please change the status to 'pending' before scanning.`);
+  }
+
+  // Calculate new picking quantity and status
+  const newPickingQuantity = Math.max(quoteItem.pickingQuantity.toNumber() - newQty, 0);
+  const newPickingStatus = newPickingQuantity <= 0 ? 'completed' : quoteItem.pickingStatus;
+
+  const updatedItem = await prisma.quoteItem.update({
+    where: {
+      quoteId_productId: {
+        quoteId: quoteId,
+        productId: quoteItem.productId,
+      },
+    },
+    data: {
+      pickingQuantity: newPickingQuantity,
+      pickingStatus: newPickingStatus as PickingStatus,
+    },
+  });
+
+  await updateQuotePreparerNames(quoteId, userName);
+
+  return {
+    productName: updatedItem.productName,
+    updatedQty: updatedItem.pickingQuantity.toNumber(),
+    pickingStatus: updatedItem.pickingStatus,
+  };
 }
 
 export async function addProductToQuote(productId: number, quoteId: string, qty: number, _companyId: string): Promise<AddProductResult> {
@@ -617,7 +610,19 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
 
     if (addNewProduct && totalAmount) {
       const totalAmountData = totalAmount as { totalAmount: Decimal; updatedAt: Date };
-      const newProduct = addNewProduct as any;
+      const newProduct = addNewProduct as {
+        quoteId: string;
+        productId: number;
+        productName: string;
+        originalQuantity: Decimal;
+        pickingQuantity: Decimal;
+        pickingStatus: string;
+        sku: string;
+        price: Decimal;
+        companyId?: string;
+        barcode?: string | null;
+        taxCodeRef?: string | null;
+      };
       return {
         status: 'new',
         productInfo: {
@@ -626,7 +631,7 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
           product_name: newProduct.productName,
           original_quantity: newProduct.originalQuantity.toString(),
           picking_quantity: newProduct.pickingQuantity.toString(),
-          picking_status: newProduct.pickingStatus,
+          picking_status: newProduct.pickingStatus as PickingStatus,
           sku: newProduct.sku,
           price: newProduct.price.toString(),
           company_id: newProduct.companyId || '',
@@ -638,7 +643,19 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
       };
     } else if (addExistingProduct && totalAmount) {
       const totalAmountData = totalAmount as { totalAmount: Decimal };
-      const existingProduct = addExistingProduct as any;
+      const existingProduct = addExistingProduct as {
+        quoteId: string;
+        productId: number;
+        productName: string;
+        originalQuantity: Decimal;
+        pickingQuantity: Decimal;
+        pickingStatus: string;
+        sku: string;
+        price: Decimal;
+        companyId?: string;
+        barcode?: string | null;
+        taxCodeRef?: string | null;
+      };
       return {
         status: 'exists',
         productInfo: {
@@ -647,7 +664,7 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
           product_name: existingProduct.productName,
           original_quantity: existingProduct.originalQuantity.toString(),
           picking_quantity: existingProduct.pickingQuantity.toString(),
-          picking_status: existingProduct.pickingStatus,
+          picking_status: existingProduct.pickingStatus as PickingStatus,
           sku: existingProduct.sku,
           price: existingProduct.price.toString(),
           company_id: existingProduct.companyId || '',
@@ -920,20 +937,12 @@ export async function deleteQuotesBulk(quoteIds: string[]): Promise<BulkDeleteRe
 }
 
 export async function updateQuoteInAccountingService(quoteId: string, quoteLocalDb: FilteredQuote, rawQuoteData: Record<string, unknown>, companyId: string, connectionType: ConnectionType): Promise<{ message: string; redirectUrl?: string }> {
-  try {
-    if (connectionType === 'qbo') {
-      return await updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, companyId);
-    } else if (connectionType === 'xero') {
-      return await updateQuoteInXero(quoteId, quoteLocalDb, rawQuoteData, companyId);
-    } else {
-      throw new AccessError(`Unsupported connection type: ${connectionType}`);
-    }
-  } catch (error: unknown) {
-    console.error(`Error updating quote in ${connectionType}:`, error);
-    if (error instanceof Error) {
-      throw new AccessError(`Failed to update quote in ${connectionType === 'qbo' ? 'QuickBooks' : 'Xero'}: ${error.message}`);
-    }
-    throw new AccessError(`An unknown error occurred while updating the quote in ${connectionType === 'qbo' ? 'QuickBooks' : 'Xero'}.`);
+  if (connectionType === 'qbo') {
+    return await updateQuoteInQuickBooks(quoteId, quoteLocalDb, rawQuoteData, companyId);
+  } else if (connectionType === 'xero') {
+    return await updateQuoteInXero(quoteId, quoteLocalDb, rawQuoteData, companyId);
+  } else {
+    throw new InputError(`Unsupported connection type: ${connectionType}`);
   }
 }
 
@@ -946,7 +955,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     const qbQuote = estimates[0];
     
     if (!qbQuote || !qbQuote.SyncToken) {
-      throw new AccessError('Invalid QuickBooks quote data or missing SyncToken');
+      throw new InputError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
     const updatePayload: Record<string, unknown> = {
@@ -964,14 +973,14 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       }
       
       if (localItem.pickingStatus === 'pending') {
-        throw new AccessError('Quote must not have any products pending!');
+        throw new InputError('Quote must not have any products pending!');
       }
       
       const amount = Number(localItem.price) * Number(localItem.originalQty);
       const externalId = await productIdToExternalId(localItem.productId);
       
       if (!externalId) {
-        throw new AccessError(`Product ${localItem.productName} not found in QuickBooks`);
+        throw new InputError(`Product ${localItem.productName} not found in QuickBooks`);
       }
       
       const lineItem = {
@@ -996,21 +1005,42 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     
     updatePayload.Line = lineItems;
     if (lineItems.length === 0) {
-      throw new AccessError('No products found to update in QuickBooks');
+      throw new InputError('No products found to update in QuickBooks');
     }
 
     const baseURL = await getBaseURL(oauthClient, 'qbo');
-    await oauthClient.makeApiCall( {
-      url: `${baseURL}v3/company/${companyId}/estimate?operation=update&minorversion=75`,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatePayload),
-    });
+    const realmId = getRealmId(oauthClient);
+    
+    // Make API call with proper error handling
+    let response;
+    try {
+      response = await oauthClient.makeApiCall({
+        url: `${baseURL}v3/company/${realmId}/estimate?operation=update&minorversion=75`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload),
+      });
+    } catch (apiError: unknown) {
+      const error = apiError as { message?: string; response?: { data?: { Fault?: { Error?: Array<{ Message?: string }> } } } };
+      console.error('QuickBooks API Call Error:', error.message);
+      console.error('Error response data:', error.response?.data);
+      const errorMsg = error.response?.data?.Fault?.Error?.[0]?.Message || error.message || 'Unknown error';
+      throw new Error(`Failed to update quote in QuickBooks: ${errorMsg}`);
+    }
+    
+    // Check if response contains a Fault
+    if (response.json?.Fault) {
+      const errorDetail = response.json.Fault.Error[0];
+      throw new Error(`QuickBooks error: ${errorDetail.Message}`);
+    }
 
     await setOrderStatus(quoteId, 'finalised');
     
     // Construct the QuickBooks URL using the estimate ID
-    const quickbooksUrl = `https://qbo.intuit.com/app/estimate?txnId=${quoteId}`;
+    const webUrl = baseURL.includes('sandbox') 
+      ? 'https://sandbox.qbo.intuit.com/app/'
+      : 'https://qbo.intuit.com/app/';
+    const quickbooksUrl = `${webUrl}estimate?txnId=${quoteId}`;
     
     // Save the URL to the database
     await prisma.quote.update({
@@ -1024,10 +1054,8 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     };
   } catch (error: unknown) {
     console.error('Error updating quote in QuickBooks:', error);
-    if (error instanceof Error) {
-      throw new AccessError('Failed to update quote in QuickBooks: ' + error.message);
-    }
-    throw new AccessError('An unknown error occurred while updating the quote in QuickBooks.');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(errorMessage);
   }
 }
 
@@ -1039,7 +1067,7 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
     // Get the existing Xero quote
     const xeroQuote = rawQuoteData as XeroQuote;
     if (!xeroQuote || !xeroQuote.quoteID) {
-      throw new AccessError('Invalid Xero quote data or missing quoteID');
+      throw new InputError('Invalid Xero quote data or missing quoteID');
     }
     
     // Prepare line items for Xero
@@ -1058,7 +1086,7 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
       }
       
       if (localItem.pickingStatus === 'pending') {
-        throw new AccessError('Quote must not have any products pending!');
+        throw new InputError('Quote must not have any products pending!');
       }
       
       const lineItem = {
@@ -1074,7 +1102,7 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
     }
     
     if (lineItems.length === 0) {
-      throw new AccessError('No products found to update in Xero');
+      throw new InputError('No products found to update in Xero');
     }
 
     // Update the quote using the correct Xero API method
@@ -1087,9 +1115,18 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
       date: xeroQuote.date
     };
 
-    await oauthClient.accountingApi.updateQuote(tenantId, xeroQuote.quoteID!, {
-      quotes: [updatedQuote]
-    });
+    // Make API call with proper error handling
+    try {
+      await oauthClient.accountingApi.updateQuote(tenantId, xeroQuote.quoteID!, {
+        quotes: [updatedQuote]
+      });
+    } catch (apiError: unknown) {
+      const error = apiError as { message?: string; response?: { data?: { message?: string } } };
+      console.error('Xero API Call Error:', error.message);
+      console.error('Error response data:', error.response?.data);
+      const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
+      throw new Error(`Failed to update quote in Xero: ${errorMsg}`);
+    }
 
     await setOrderStatus(quoteId, 'finalised');
     
@@ -1111,10 +1148,8 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
     };
   } catch (error: unknown) {
     console.error('Error updating quote in Xero:', error);
-    if (error instanceof Error) {
-      throw new AccessError('Failed to update quote in Xero: ' + error.message);
-    }
-    throw new AccessError('An unknown error occurred while updating the quote in Xero.');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(errorMessage);
   }
 }
 

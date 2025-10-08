@@ -233,22 +233,15 @@ export async function upsertProducts(products: EnrichableProduct[], companyId: s
 }
 
 export async function getProductName(barcode: string, companyId: string): Promise<string> {
-  try {
-    const product = await prisma.product.findFirst({
-      where: { barcode, companyId },
-      select: { productName: true },
-    });
+  const product = await prisma.product.findFirst({
+    where: { barcode, companyId },
+    select: { productName: true },
+  });
 
-    if (!product) {
-      throw new InputError('This product does not exist within the database');
-    }
-    return product.productName;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new AccessError(error.message);
-    }
-    throw new AccessError('An unknown error occurred while getting the product name.');
+  if (!product) {
+    throw new InputError('Product not found in database. Please check the barcode or add the product first.');
   }
+  return product.productName;
 }
 
 export async function getProductsFromDBByIds(itemIds: string[], companyId: string): Promise<Product[]> {
