@@ -186,33 +186,25 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
-        try {
-            // First check if product exists in database
-            const response = await barcodeToName(barcode) as { productName: string };
-            const { productName } = response;
-            
-            // Then check if it's in the current quote
-            const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
-            
-            if (!product) {
-                handleOpenSnackbar('This product is not included in this quote.', 'error');
-                return;
-            }
-            
-            if (product.pickingQty === 0) {
-                handleOpenSnackbar('This product has already been fully picked.', 'error');
-                return;
-            }
-
-            openModal('barcodeModal', {
-                productName,
-                availableQty: product.pickingQty,
-                onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
-            });
-        } catch (error: unknown) {
-            // This will catch errors from barcodeToName (product not in database)
-            handleOpenSnackbar(extractErrorMessage(error), 'error');
+        // Check if product is in the current quote (instant, no API call needed)
+        const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
+        
+        if (!product) {
+            handleOpenSnackbar('This product is not included in this quote.', 'error');
+            return;
         }
+        
+        if (product.pickingQty === 0) {
+            handleOpenSnackbar('This product has already been fully picked.', 'error');
+            return;
+        }
+
+        // Open modal instantly - no API call needed!
+        openModal('barcodeModal', {
+            productName: product.productName,
+            availableQty: product.pickingQty,
+            onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
+        });
     }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);
 
     const openProductDetailsModal = useCallback(async (productId: number, details: ProductDetail) => {
