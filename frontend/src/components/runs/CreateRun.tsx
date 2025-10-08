@@ -1,5 +1,5 @@
 import React, { useState, useMemo, Suspense, useTransition, Fragment } from 'react';
-import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles, ChevronDown } from 'lucide-react';
+import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles, ChevronDown, X } from 'lucide-react';
 import { DndContext, DragEndEvent, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -134,17 +134,17 @@ interface RunBuilder {
 
     const { data: quotesData } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', customer.customerId],
-        queryFn: () => getCustomerQuotes(customer.customerId),
+        queryFn: () => getCustomerQuotes(customer.customerId) as Promise<QuoteSummary[]>,
     });
     const availableQuotes = quotesData
-        .filter(q => !stagedQuoteIds.has(q.id))
-        .map(quote => ({ ...quote, customerId: customer.customerId }));
+        .filter((q: QuoteSummary) => !stagedQuoteIds.has(q.id))
+        .map((quote: QuoteSummary) => ({ ...quote, customerId: customer.customerId }));
 
     return (
         <div className="flex-grow p-3 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
             {availableQuotes.length > 0 ? (
                 <div className="space-y-2">
-                    {availableQuotes.map(q => <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />)}
+                    {availableQuotes.map((q: QuoteSummary) => <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />)}
                 </div>
             ) : (
                 <EmptyState text="No available quotes found for this customer." icon={Users} />
@@ -170,13 +170,13 @@ export const CreateRun: React.FC = () => {
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],
-        queryFn: getCustomers,
+        queryFn: getCustomers as () => Promise<Customer[]>,
     });
     
     const filteredCustomers =
     customerQuery === ''
       ? customers
-      : customers.filter((customer) =>
+      : customers.filter((customer: Customer) =>
           customer.customerName
             .toLowerCase()
             .replace(/\s+/g, '')
@@ -185,7 +185,7 @@ export const CreateRun: React.FC = () => {
 
     const selectedCustomer = useMemo(() => {
         const customerId = searchParams.get('customerId');
-        return customers?.find(c => c.customerId === customerId) || null;
+        return customers?.find((c: Customer) => c.customerId === customerId) || null;
     }, [customers, searchParams]);
 
     const handleCustomerChange = (customer: Customer | null) => {
@@ -339,12 +339,28 @@ export const CreateRun: React.FC = () => {
                                 <div className="relative w-full cursor-default overflow-hidden rounded-xl bg-white text-left shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
                                     <Search className="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-gray-400" aria-hidden="true" />
                                     <input
-                                        className="w-full border-none py-3 pl-12 pr-10 text-sm leading-5 text-gray-900 focus:ring-0 placeholder-gray-500 bg-transparent"
+                                        className="w-full border-none py-3 pl-12 pr-20 text-sm leading-5 text-gray-900 focus:ring-0 placeholder-gray-500 bg-transparent"
                                         value={selectedCustomer?.customerName || customerQuery}
-                                        onChange={(event) => setCustomerQuery(event.target.value)}
+                                        onChange={(event) => {
+                                            setCustomerQuery(event.target.value);
+                                            if (selectedCustomer) handleCustomerChange(null);
+                                            setIsDropdownOpen(true);
+                                        }}
                                         onFocus={() => setIsDropdownOpen(true)}
                                         placeholder="Search customers..."
                                     />
+                                    {selectedCustomer && (
+                                        <button 
+                                            className="absolute inset-y-0 right-10 flex items-center pr-1"
+                                            onClick={() => {
+                                                handleCustomerChange(null);
+                                                setCustomerQuery('');
+                                            }}
+                                            title="Clear selection"
+                                        >
+                                            <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                                        </button>
+                                    )}
                                     <button 
                                         className="absolute inset-y-0 right-0 flex items-center pr-3"
                                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -359,7 +375,7 @@ export const CreateRun: React.FC = () => {
                                             Nothing found.
                                         </div>
                                     ) : (
-                                        filteredCustomers.map((customer) => (
+                                        filteredCustomers.map((customer: Customer) => (
                                             <div
                                                 key={customer.customerId}
                                                 className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-blue-50 transition-colors"
