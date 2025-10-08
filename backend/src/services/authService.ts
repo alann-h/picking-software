@@ -497,6 +497,21 @@ export async function updateUser(userId: string, userData: UpdateUserPayload): P
       data: updateData,
     });
 
+    // Sync access_level in UserPermission table when is_admin changes
+    if ('isAdmin' in updateData && updatedUser.companyId) {
+      const newAccessLevel = updatedUser.isAdmin ? 'admin' : 'write';
+      
+      await prisma.userPermission.updateMany({
+        where: {
+          userId: userId,
+          companyId: updatedUser.companyId,
+        },
+        data: {
+          accessLevel: newAccessLevel,
+        },
+      });
+    }
+
     return {
       id: updatedUser.id,
       company_id: updatedUser.companyId!,

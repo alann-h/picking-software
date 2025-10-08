@@ -25,7 +25,7 @@ const UserTable: React.FC<UserTableProps> = ({
     if (isLoading) {
         return (
             <tr>
-                <td colSpan={7} className="text-center py-8">
+                <td colSpan={3} className="text-center py-8">
                     <p className="text-gray-500">Loading users...</p>
                 </td>
             </tr>
@@ -35,7 +35,7 @@ const UserTable: React.FC<UserTableProps> = ({
     if (userList.length === 0) {
         return (
             <tr>
-                <td colSpan={7} className="text-center py-8">
+                <td colSpan={3} className="text-center py-8">
                     <p className="text-gray-500">No users found</p>
                 </td>
             </tr>
@@ -64,17 +64,6 @@ const UserTable: React.FC<UserTableProps> = ({
                                     )}
                                 </div>
                             </div>
-                        </td>
-
-                        {/* Admin Status */}
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <input
-                                type="checkbox"
-                                checked={user.is_admin || false}
-                                onChange={(e) => onPermissionUpdate(user.id, 'is_admin', e.target.checked)}
-                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
-                                disabled={!canChangePerms || updatePermissionsMutation.isPending}
-                            />
                         </td>
 
                         {/* Access Level */}

@@ -240,7 +240,7 @@ const UsersManagement = () => {
                         <div className="flex items-center">
                             <Info className="h-5 w-5 text-blue-600 mr-3" />
                             <p className="text-sm text-blue-800">
-                                <strong>Current User:</strong> {currentUser?.display_email} ({currentUser?.is_admin ? 'Administrator' : 'User'})
+                                <strong>Current User:</strong> {currentUser?.display_email}
                             </p>
                         </div>
                     </div>
@@ -288,7 +288,6 @@ const UsersManagement = () => {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Information</th>
-                                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Status</th>
                                     <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Access Level</th>
                                     <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -296,7 +295,7 @@ const UsersManagement = () => {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={4}>
+                                        <td colSpan={3}>
                                             <UserTableSkeleton />
                                         </td>
                                     </tr>
@@ -320,20 +319,20 @@ const UsersManagement = () => {
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
                     <h3 className="text-lg font-semibold mb-3 flex items-center">
                         <KeyRound className="h-5 w-5 mr-2 text-gray-600" />
-                        Permission Levels:
+                        Access Levels:
                     </h3>
                     <ul className="space-y-2">
                         <li className="flex items-start">
                             <strong className="w-20 font-medium">Read:</strong>
-                            <span className="text-gray-600">Can view data but cannot modify</span>
+                            <span className="text-gray-600">Can view orders, products, and customers (read-only)</span>
                         </li>
                         <li className="flex items-start">
                             <strong className="w-20 font-medium">Write:</strong>
-                            <span className="text-gray-600">Can view and modify data</span>
+                            <span className="text-gray-600">Can view and modify data, pick orders, and update status</span>
                         </li>
                         <li className="flex items-start">
                             <strong className="w-20 font-medium">Admin:</strong>
-                            <span className="text-gray-600">Full access including user management</span>
+                            <span className="text-gray-600">Full system access including user management and settings</span>
                         </li>
                     </ul>
                 </div>

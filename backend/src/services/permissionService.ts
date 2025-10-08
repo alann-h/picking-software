@@ -90,6 +90,17 @@ class PermissionService {
         },
       });
 
+      // Sync is_admin flag on User table based on access level
+      // If access level is 'admin', set is_admin to true, otherwise false
+      await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          isAdmin: accessLevel === 'admin',
+        },
+      });
+
       return {
         id: userPermission.id,
         user_id: userPermission.userId,
