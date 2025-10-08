@@ -91,7 +91,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
         const runs = await prisma.run.findMany({
             where: {
                 companyId,
-                status: { in: ['pending', 'checking', 'finalised'] },
+                status: { in: ['pending', 'finalised'] },
             },
             orderBy: { runNumber: 'desc' },
             select: {
