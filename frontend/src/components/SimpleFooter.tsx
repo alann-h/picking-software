@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Mail } from 'lucide-react';
 
 const SimpleFooter: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -12,6 +13,15 @@ const SimpleFooter: React.FC = () => {
             © {currentYear} Smart Picker. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
+            <a
+              href="mailto:support@smartpicker.au"
+              className="text-gray-600 hover:text-blue-600 transition-colors"
+              aria-label="Email support"
+              title="Email support"
+            >
+              <Mail size={18} />
+            </a>
+            <span className="text-gray-300">•</span>
             <Link 
               to="/terms-of-service" 
               className="text-sm text-gray-600 hover:text-blue-600 transition-colors"

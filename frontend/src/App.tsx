@@ -37,13 +37,12 @@ const OrderHistory = React.lazy(() => import('./components/OrderHistory'));
 const KyteToQuickBooksConverter = React.lazy(() => import('./components/KyteToQuickBooksConverter'));
 
 
-// Conditional footer component - full footer on public pages, simple footer on private pages
+// Conditional footer component
 const ConditionalFooter: React.FC = () => {
   const location = useLocation();
   
-  // Private/authenticated routes get simple footer
-  const privateRoutePaths = [
-    '/dashboard',
+  // Routes with NO footer at all
+  const noFooterPaths = [
     '/settings',
     '/quote',
     '/orders-to-check',
@@ -52,10 +51,15 @@ const ConditionalFooter: React.FC = () => {
     '/kyte-converter'
   ];
   
-  const isPrivateRoute = privateRoutePaths.some(path => location.pathname.startsWith(path));
+  const shouldHideFooter = noFooterPaths.some(path => location.pathname.startsWith(path));
   
-  // Show simple footer on private routes, full footer on public routes
-  return isPrivateRoute ? <SimpleFooter /> : <Footer />;
+  const isDashboard = location.pathname === '/dashboard';
+  
+  if (shouldHideFooter) return null;
+  
+  if (isDashboard) return <SimpleFooter />;
+  
+  return <Footer />;
 };
 
 const App: React.FC = () => {
