@@ -273,6 +273,8 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
             const response = await getCustomerQuotes(customer.customerId) as QuoteSummary[];
             return response;
         },
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes - quotes don't change that often
+        gcTime: 10 * 60 * 1000, // Keep in memory for 10 minutes
     });
 
      if (quotes.length === 0) {

@@ -54,12 +54,15 @@ export const runUpdateRules = () => [
     
     body('orderedQuoteIds.*')
         .custom((value) => {
-            // Allow both positive integers and valid UUIDs
+            // Allow strings (for QuickBooks/Xero IDs), positive integers, and valid UUIDs
+            if (typeof value === 'string' && value.length > 0) {
+                return true; // Any non-empty string is valid (QuickBooks/Xero IDs)
+            }
             const isPositiveInt = Number.isInteger(value) && value > 0;
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+            const isUUID = typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
             
             if (!isPositiveInt && !isUUID) {
-                throw new Error('Each Quote ID must be either a positive integer or a valid UUID.');
+                throw new Error('Each Quote ID must be a string, positive integer, or valid UUID.');
             }
             return true;
         })

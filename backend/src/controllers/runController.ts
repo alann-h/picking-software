@@ -20,9 +20,8 @@ export async function createBulkRunController(req: Request, res: Response, next:
         return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-        // Convert quote IDs to strings to match database schema
-        const stringQuoteIds = orderedQuoteIds.map((id: any) => String(id));
-        const newRun = await createBulkRun(stringQuoteIds, companyId, connectionType, runName);
+        // Service handles conversion to strings internally
+        const newRun = await createBulkRun(orderedQuoteIds, companyId, connectionType, runName);
         res.status(201).json(newRun);
     } catch (error) {
         next(error);
@@ -69,11 +68,18 @@ export async function updateRunQuotesController(req: Request, res: Response, nex
     try {
         const { runId } = req.params;
         const { orderedQuoteIds } = req.body;
+        const companyId = req.session.companyId;
+        const connectionType = req.session.connectionType;
+
+        if (!companyId || !connectionType) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
 
         if (!orderedQuoteIds) {
             return res.status(400).json({ message: 'Missing orderedQuoteIds in request body.' });
         }
-        const result = await updateRunQuotesService(runId, orderedQuoteIds);
+        
+        const result = await updateRunQuotesService(runId, orderedQuoteIds, companyId, connectionType);
         res.status(200).json(result);
     } catch (error) {
         next(error);

@@ -27,8 +27,8 @@ router.put('/:runId/status', isAdmin, runIdRule(), runStatusUpdateRules(), valid
 router.put('/:runId/name', isAdmin, runIdRule(), runNameUpdateRules(), validate, asyncHandler(updateRunNameController));
 
 router.get('/company/:companyId', companyIdRule(), validate, asyncHandler(getCompanyRunsController));
-router.put('/:runId', isAdmin, runUpdateRules(), validate, updateRunQuotesController);
-router.delete('/:runId',isAdmin, runIdRule(), validate, deleteRunController);
+router.put('/:runId', isAdmin, runUpdateRules(), validate, asyncHandler(updateRunQuotesController));
+router.delete('/:runId',isAdmin, runIdRule(), validate, asyncHandler(deleteRunController));
 
 
 export default router;

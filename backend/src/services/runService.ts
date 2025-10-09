@@ -12,17 +12,20 @@ async function getNextRunNumber(companyId: string): Promise<number> {
     return Number(result._max.runNumber || 0) + 1;
 }
 
-export async function createBulkRun(orderedQuoteIds: string[], companyId: string, connectionType: ConnectionType, runName?: string): Promise<Run> {
+export async function createBulkRun(orderedQuoteIds: (string | number)[], companyId: string, connectionType: ConnectionType, runName?: string): Promise<Run> {
+    // Convert all quote IDs to strings to handle mixed types (integers and strings)
+    const stringQuoteIds = orderedQuoteIds.map(id => String(id));
+
     try {
-        await ensureQuotesExistInDB(orderedQuoteIds, companyId, connectionType);
+        await ensureQuotesExistInDB(stringQuoteIds, companyId, connectionType);
         return await prisma.$transaction(async (tx) => {
             // Get quotes with FOR UPDATE equivalent (Prisma handles this automatically in transactions)
             const quotes = await tx.quote.findMany({
-                where: { id: { in: orderedQuoteIds } },
+                where: { id: { in: stringQuoteIds } },
                 select: { id: true, status: true },
             });
 
-            if (quotes.length !== orderedQuoteIds.length) {
+            if (quotes.length !== stringQuoteIds.length) {
                 throw new Error('Internal Server Error: Could not retrieve all quotes for run creation.');
             }
             
@@ -55,7 +58,7 @@ export async function createBulkRun(orderedQuoteIds: string[], companyId: string
             const runId = newRun.id;
 
             // Create run items with priorities
-            const runItemsData = orderedQuoteIds.map((quoteId, index) => ({
+            const runItemsData = stringQuoteIds.map((quoteId, index) => ({
                 runId,
                 quoteId,
                 priority: index,
@@ -67,7 +70,7 @@ export async function createBulkRun(orderedQuoteIds: string[], companyId: string
 
             // Update quotes status to assigned
             await tx.quote.updateMany({
-                where: { id: { in: orderedQuoteIds } },
+                where: { id: { in: stringQuoteIds } },
                 data: { status: 'assigned' },
             });
 
@@ -194,12 +197,20 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
     }
 }
 
-export async function updateRunQuotes(runId: string, orderedQuoteIds: string[]): Promise<{message: string}> {
+export async function updateRunQuotes(runId: string, orderedQuoteIds: (string | number)[], companyId: string, connectionType: ConnectionType): Promise<{message: string}> {
     if (!Array.isArray(orderedQuoteIds)) {
         throw new InputError('Invalid data format: orderedQuoteIds must be an array.');
     }
 
+    // Convert all quote IDs to strings to handle mixed types (integers and strings)
+    const stringQuoteIds = orderedQuoteIds.map(id => String(id));
+
     try {
+        // Fetch quotes from QuickBooks/Xero if they don't exist in DB yet
+        if (stringQuoteIds.length > 0) {
+            await ensureQuotesExistInDB(stringQuoteIds, companyId, connectionType);
+        }
+
         await prisma.$transaction(async (tx) => {
             // Delete existing run items
             await tx.runItem.deleteMany({
@@ -207,8 +218,8 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: string[]):
             });
 
             // Create new run items if there are any
-            if (orderedQuoteIds.length > 0) {
-                const runItemsData = orderedQuoteIds.map((quoteId, index) => ({
+            if (stringQuoteIds.length > 0) {
+                const runItemsData = stringQuoteIds.map((quoteId, index) => ({
                     runId,
                     quoteId,
                     priority: index,
@@ -216,6 +227,12 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: string[]):
 
                 await tx.runItem.createMany({
                     data: runItemsData,
+                });
+
+                // Update quotes status to assigned
+                await tx.quote.updateMany({
+                    where: { id: { in: stringQuoteIds } },
+                    data: { status: 'assigned' },
                 });
             }
         });

@@ -135,6 +135,8 @@ interface RunBuilder {
     const { data: quotesData } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', customer.customerId],
         queryFn: () => getCustomerQuotes(customer.customerId) as Promise<QuoteSummary[]>,
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes - quotes don't change that often
+        gcTime: 10 * 60 * 1000, // Keep in memory for 10 minutes
     });
     const availableQuotes = quotesData
         .filter((q: QuoteSummary) => !stagedQuoteIds.has(q.id))
@@ -216,7 +218,8 @@ export const CreateRun: React.FC = () => {
         
         const creationPromises = validRuns.map(run =>
             createRunMutation.mutateAsync({ 
-                quoteIds: run.quotes.map(q => q.id),
+                // Convert all quote IDs to strings to ensure consistent data type
+                quoteIds: run.quotes.map(q => String(q.id)),
                 runName: run.runName || undefined
             })
         );

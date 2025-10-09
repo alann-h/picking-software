@@ -37,7 +37,7 @@ export const updateRunStatus = async (runId: string, status: 'pending' | 'checki
 };
 
 export const updateRunQuotes  = async (runId: string, orderedQuoteIds: string[]): Promise<Run> => {
-  const data = await apiCallPost(`${RUNS_BASE}/${runId}`, { orderedQuoteIds });
+  const data = await apiCallPut(`${RUNS_BASE}/${runId}`, { orderedQuoteIds });
   return data;
 };
 
