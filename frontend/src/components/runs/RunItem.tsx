@@ -225,7 +225,7 @@ export const RunItem: React.FC<{
             (q.quoteNumber && quote.quoteNumber && q.quoteNumber === quote.quoteNumber)
         );
         if (isDuplicate) {
-            handleOpenSnackbar(`Quote #${quote.quoteNumber} is already in this run`, 'warning');
+            handleOpenSnackbar(`Quote #${quote.quoteNumber || quote.id} is already in this run`, 'warning');
             return;
         }
 
@@ -238,7 +238,7 @@ export const RunItem: React.FC<{
             orderStatus: quote.orderStatus,
         };
         setEditableQuotes(prev => [...prev, newQuote]);
-        handleOpenSnackbar(`Added ${quote.customerName} - #${quote.quoteNumber}`, 'success');
+        handleOpenSnackbar(`Added ${quote.customerName} - #${quote.quoteNumber || quote.id}`, 'success');
     };
 
     const handleCustomerChange = (customer: Customer | null) => {
@@ -423,7 +423,7 @@ export const RunItem: React.FC<{
                                                         className="flex justify-between items-center p-2 bg-white rounded border border-gray-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer mb-2 transition-colors"
                                                     >
                                                         <div>
-                                                            <p className="text-sm font-semibold text-gray-800">#{quote.quoteNumber}</p>
+                                                            <p className="text-sm font-semibold text-gray-800">#{quote.quoteNumber || quote.id}</p>
                                                             <p className="text-xs text-gray-600">{quote.customerName}</p>
                                                         </div>
                                                         <div className="text-right">
@@ -514,7 +514,7 @@ export const RunItem: React.FC<{
                                                                 className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200 hover:border-green-400 hover:bg-green-50 cursor-pointer mb-2 transition-colors"
                                                             >
                                                                 <div>
-                                                                    <p className="text-sm font-semibold text-gray-800">#{quote.quoteNumber}</p>
+                                                                    <p className="text-sm font-semibold text-gray-800">#{quote.quoteNumber || quote.id}</p>
                                                                     <p className="text-xs text-gray-600">{quote.customerName}</p>
                                                                 </div>
                                                                 <div className="text-right">

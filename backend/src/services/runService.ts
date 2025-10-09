@@ -212,6 +212,13 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: (string | 
         }
 
         await prisma.$transaction(async (tx) => {
+            // Get existing run items to identify which quotes are new
+            const existingRunItems = await tx.runItem.findMany({
+                where: { runId },
+                select: { quoteId: true },
+            });
+            const existingQuoteIds = new Set(existingRunItems.map(item => item.quoteId));
+
             // Delete existing run items
             await tx.runItem.deleteMany({
                 where: { runId },
@@ -229,11 +236,17 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: (string | 
                     data: runItemsData,
                 });
 
-                // Update quotes status to assigned
-                await tx.quote.updateMany({
-                    where: { id: { in: stringQuoteIds } },
-                    data: { status: 'assigned' },
-                });
+                // Only update status to 'assigned' for NEW quotes (not already in the run)
+                const newQuoteIds = stringQuoteIds.filter(id => !existingQuoteIds.has(id));
+                if (newQuoteIds.length > 0) {
+                    await tx.quote.updateMany({
+                        where: { 
+                            id: { in: newQuoteIds },
+                            status: { in: ['pending', 'checking'] } // Only update if status allows it
+                        },
+                        data: { status: 'assigned' },
+                    });
+                }
             }
         });
 
