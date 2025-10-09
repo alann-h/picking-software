@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useOptimistic } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -53,14 +53,29 @@ const useOrderHistory = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Optimistic state for quotes
+  const [optimisticQuotes, deleteOptimisticQuotes] = useOptimistic(
+    quotes as QuoteSummary[],
+    (currentQuotes: QuoteSummary[], quoteIdsToDelete: string[]) => {
+      const deleteSet = new Set(quoteIdsToDelete);
+      return currentQuotes.filter(quote => !deleteSet.has(quote.id));
+    }
+  );
+
   const deleteQuoteMutation = useMutation({
-    mutationFn: (quoteIds: string[]) => deleteQuotesBulk(quoteIds),
+    mutationFn: async (quoteIds: string[]) => {
+      // Set optimistic state immediately
+      deleteOptimisticQuotes(quoteIds);
+      handleOpenSnackbar('Deleting quotes...', 'info');
+      return deleteQuotesBulk(quoteIds);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotes', 'history'] });
       handleOpenSnackbar('Quotes deleted successfully', 'success');
     },
     onError: (error) => {
       handleOpenSnackbar(`Failed to delete quotes: ${error.message}`, 'error');
+      // Optimistic state will automatically revert on error
     },
   });
 
@@ -82,7 +97,7 @@ const useOrderHistory = () => {
   }, [userStatus, handleOpenSnackbar, navigate]);
 
   return {
-    quotes: quotes as QuoteSummary[],
+    quotes: optimisticQuotes,
     isLoading: quotesLoading || !userStatus,
     error: userError || quotesError,
     refetchQuotes,

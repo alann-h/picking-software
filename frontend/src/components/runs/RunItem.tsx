@@ -1,6 +1,6 @@
 // src/components/runs/RunItem.tsx
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useOptimistic } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X, Plus, Search, Users } from 'lucide-react';
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -68,6 +68,12 @@ export const RunItem: React.FC<{
     
     const queryClient = useQueryClient();
     const { handleOpenSnackbar } = useSnackbarContext();
+    
+    // Optimistic state for run status
+    const [optimisticStatus, setOptimisticStatus] = useOptimistic(run.status);
+    
+    // Optimistic state for run name
+    const [optimisticRunName, setOptimisticRunName] = useOptimistic(run.run_name || '');
     
     // Fetch available quotes when editing (quotes already in DB)
     const { data: availableQuotes } = useSuspenseQuery<QuoteSummary[]>({
@@ -158,25 +164,36 @@ export const RunItem: React.FC<{
     });
     
     const updateStatusMutation = useMutation({
-        mutationFn: ({ runId, newStatus }: { runId: string; newStatus: Run['status'] }) => updateRunStatus(runId, newStatus),
+        mutationFn: async ({ runId, newStatus }: { runId: string; newStatus: Run['status'] }) => {
+            // Set optimistic state immediately
+            setOptimisticStatus(newStatus);
+            return updateRunStatus(runId, newStatus);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
             handleOpenSnackbar('Run status updated.', 'success');
         },
         onError: () => {
             handleOpenSnackbar('Failed to update run status.', 'error');
+            // Optimistic state will automatically revert on error
         }
     });
 
     const updateRunNameMutation = useMutation({
-        mutationFn: ({ runId, runName }: { runId: string; runName: string }) => updateRunName(runId, runName),
+        mutationFn: async ({ runId, runName }: { runId: string; runName: string }) => {
+            // Set optimistic state immediately
+            setOptimisticRunName(runName);
+            setIsEditingName(false);
+            return updateRunName(runId, runName);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
             handleOpenSnackbar('Run name updated.', 'success');
-            setIsEditingName(false);
         },
         onError: () => {
             handleOpenSnackbar('Failed to update run name.', 'error');
+            setIsEditingName(true);
+            // Optimistic state will automatically revert on error
         }
     });
 
@@ -300,7 +317,7 @@ export const RunItem: React.FC<{
 
     const handleEditNameToggle = () => {
         setIsEditingName(!isEditingName);
-        setEditableRunName(run.run_name || '');
+        setEditableRunName(optimisticRunName || run.run_name || '');
     };
 
     const handleSaveName = () => {
@@ -313,7 +330,7 @@ export const RunItem: React.FC<{
 
     const handleCancelNameEdit = () => {
         setIsEditingName(false);
-        setEditableRunName(run.run_name || '');
+        setEditableRunName(optimisticRunName || run.run_name || '');
     };
 
     return (
@@ -351,7 +368,7 @@ export const RunItem: React.FC<{
                         ) : (
                             <div className="flex items-center gap-2">
                                 <h3 className="text-lg font-semibold text-gray-800">
-                                    {run.run_name ? `${run.run_name}` : `Run #${run.run_number}`}
+                                    {optimisticRunName ? `${optimisticRunName}` : `Run #${run.run_number}`}
                                 </h3>
                                 {isAdmin && (
                                     <button
@@ -363,12 +380,12 @@ export const RunItem: React.FC<{
                                 )}
                             </div>
                         )}
-                        {run.run_name && !isEditingName && (
+                        {optimisticRunName && !isEditingName && (
                             <p className="text-sm text-gray-500">Run #{run.run_number}</p>
                         )}
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusChipClasses(run.status)}`}>
-                        {run.status}
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusChipClasses(optimisticStatus)}`}>
+                        {optimisticStatus}
                     </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -382,7 +399,7 @@ export const RunItem: React.FC<{
                     <div>
                         <div className="flex justify-between items-center mb-3">
                             <h4 className="text-md font-medium text-gray-700">Quotes in this Run</h4>
-                            {isAdmin && run.status === 'pending' && !isEditing && (
+                            {isAdmin && optimisticStatus === 'pending' && !isEditing && (
                                 <div className="flex space-x-2">
                                     <button onClick={handleEditToggle} className="flex items-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
                                         <Edit className="w-4 h-4 mr-1" /> Edit
@@ -580,8 +597,8 @@ export const RunItem: React.FC<{
                                 </div>
                                 {isAdmin && (
                                     <div className="flex space-x-2 mt-4 justify-end">
-                                        <button onClick={() => handleChangeRunStatus('pending')} disabled={run.status === 'pending' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Pending</button>
-                                        <button onClick={() => handleChangeRunStatus('finalised')} disabled={run.status === 'finalised' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-green-600 text-green-600 hover:bg-green-50 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Completed</button>
+                                        <button onClick={() => handleChangeRunStatus('pending')} disabled={optimisticStatus === 'pending' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Pending</button>
+                                        <button onClick={() => handleChangeRunStatus('finalised')} disabled={optimisticStatus === 'finalised' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-green-600 text-green-600 hover:bg-green-50 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Completed</button>
                                     </div>
                                 )}
                             </>

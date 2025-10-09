@@ -1,5 +1,6 @@
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useOptimistic } from 'react';
 import { useSnackbarContext } from './SnackbarContext';
 import { useAuth } from '../hooks/useAuth';
 
@@ -63,6 +64,41 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         },
     });
 
+    // Optimistic updates for product operations
+    type ProductUpdate = 
+        | { type: 'status'; productId: number; status: string }
+        | { type: 'quantity'; productId: number; quantity: number };
+
+    const [optimisticQuoteData, updateOptimisticProduct] = useOptimistic(
+        quoteData,
+        (currentData: QuoteData, update: ProductUpdate): QuoteData => {
+            const updatedProductInfo = { ...currentData.productInfo };
+            
+            if (update.type === 'status') {
+                const product = updatedProductInfo[update.productId];
+                if (product) {
+                    updatedProductInfo[update.productId] = {
+                        ...product,
+                        pickingStatus: update.status
+                    };
+                }
+            } else if (update.type === 'quantity') {
+                const product = updatedProductInfo[update.productId];
+                if (product) {
+                    updatedProductInfo[update.productId] = {
+                        ...product,
+                        pickingQty: update.quantity
+                    };
+                }
+            }
+            
+            return {
+                ...currentData,
+                productInfo: updatedProductInfo
+            };
+        }
+    );
+
     const invalidateAndRefetch = () => {
         queryClient.invalidateQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
     };
@@ -72,43 +108,74 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     // ====================================================================================
 
     const adjustQuantity = useMutation({
-        mutationFn: (variables: { productId: number; newQty: number }) =>
-            adjustProductQty(quoteId, variables.productId, variables.newQty),
+        mutationFn: async (variables: { productId: number; newQty: number }) => {
+            // Update UI instantly
+            updateOptimisticProduct({ type: 'quantity', productId: variables.productId, quantity: variables.newQty });
+            return adjustProductQty(quoteId, variables.productId, variables.newQty);
+        },
         onSuccess: () => {
             handleOpenSnackbar('Quantity adjusted successfully!', 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
+        onError: (error) => {
+            handleOpenSnackbar(extractErrorMessage(error), 'error');
+            // Optimistic state auto-reverts on error
+        },
     });
 
     const saveForLater = useMutation({
-        mutationFn: (productId: number) => saveProductForLater(quoteId, productId),
+        mutationFn: async (productId: number) => {
+            const currentProduct = optimisticQuoteData.productInfo[productId];
+            const newStatus = currentProduct?.pickingStatus === 'backorder' ? 'pending' : 'backorder';
+            // Update UI instantly
+            updateOptimisticProduct({ type: 'status', productId, status: newStatus });
+            return saveProductForLater(quoteId, productId);
+        },
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
+        onError: (error) => {
+            handleOpenSnackbar(extractErrorMessage(error), 'error');
+            // Optimistic state auto-reverts on error
+        },
     });
     
     const setUnavailable = useMutation({
-        mutationFn: (productId: number) => setProductUnavailable(quoteId, productId),
+        mutationFn: async (productId: number) => {
+            const currentProduct = optimisticQuoteData.productInfo[productId];
+            const newStatus = currentProduct?.pickingStatus === 'unavailable' ? 'pending' : 'unavailable';
+            // Update UI instantly
+            updateOptimisticProduct({ type: 'status', productId, status: newStatus });
+            return setProductUnavailable(quoteId, productId);
+        },
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
+        onError: (error) => {
+            handleOpenSnackbar(extractErrorMessage(error), 'error');
+            // Optimistic state auto-reverts on error
+        },
     });
 
     const setFinished = useMutation({
-        mutationFn: (productId: number) => setProductFinished(quoteId, productId),
+        mutationFn: async (productId: number) => {
+            // Update UI instantly
+            updateOptimisticProduct({ type: 'status', productId, status: 'completed' });
+            return setProductFinished(quoteId, productId);
+        },
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
             invalidateAndRefetch();
         },
-        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
+        onError: (error) => {
+            handleOpenSnackbar(extractErrorMessage(error), 'error');
+            // Optimistic state auto-reverts on error
+        },
     });
 
     const addProduct = useMutation({
@@ -187,7 +254,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
         // Check if product is in the current quote (instant, no API call needed)
-        const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
+        const product = Object.values(optimisticQuoteData?.productInfo || {}).find(p => p.barcode === barcode);
         
         if (!product) {
             handleOpenSnackbar('This product is not included in this quote.', 'error');
@@ -205,7 +272,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             availableQty: product.pickingQty,
             onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
         });
-    }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);
+    }, [optimisticQuoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);
 
     const openProductDetailsModal = useCallback(async (productId: number, details: ProductDetail) => {
         try {
@@ -264,7 +331,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     ]);
 
     return {
-        quoteData,
+        quoteData: optimisticQuoteData,
         actions,
         pendingStates,
     };

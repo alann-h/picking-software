@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useOptimistic } from 'react';
 import { useSnackbarContext } from './SnackbarContext';
 import { getAllUsers, registerUser, deleteUser, updateUser, getUserStatus } from '../api/user';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +52,20 @@ const UsersManagement = () => {
     });
     // Extract users and current user from query data
     const userList = usersData?.users || [];
-    const currentUser = userList.find((u: ExtendedUserData) => u.id === usersData?.currentUserId) || null;
+    
+    // Optimistic state for user permissions
+    const [optimisticUsers, updateOptimisticUsers] = useOptimistic(
+        userList,
+        (currentUsers: ExtendedUserData[], update: { userId: string; field: string; value: any }) => {
+            return currentUsers.map(user => 
+                user.id === update.userId 
+                    ? { ...user, [update.field]: update.value }
+                    : user
+            );
+        }
+    );
+    
+    const currentUser = optimisticUsers.find((u: ExtendedUserData) => u.id === usersData?.currentUserId) || null;
 
     // Mutation for adding a new user
     const addUserMutation = useMutation({
@@ -106,6 +119,9 @@ const UsersManagement = () => {
     // Mutation for updating user permissions
     const updatePermissionsMutation = useMutation({
         mutationFn: async ({ userId, field, value }: { userId: string; field: string; value: any }) => {
+            // Set optimistic state immediately
+            updateOptimisticUsers({ userId, field, value });
+            
             const currentUserData = userList.find((u: ExtendedUserData) => u.id === userId);
             if (!currentUserData) throw new Error('User not found');
 
@@ -122,6 +138,7 @@ const UsersManagement = () => {
         onError: (error) => {
             console.error('Failed to update permissions:', error);
             handleOpenSnackbar('Failed to update permissions. Please try again.', 'error');
+            // Optimistic state will automatically revert on error
         },
     });
 
@@ -262,14 +279,14 @@ const UsersManagement = () => {
                 <div className="flex justify-between items-center">
                     <button
                         onClick={() => setAddDialogOpen(true)}
-                        disabled={userList.length >= 5 || addUserMutation.isPending}
+                        disabled={optimisticUsers.length >= 5 || addUserMutation.isPending}
                         className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                         <Plus className="-ml-1 mr-2 h-5 w-5" />
                         {addUserMutation.isPending ? 'Adding...' : 'Add User'}
                     </button>
                     
-                    {userList.length >= 5 && (
+                    {optimisticUsers.length >= 5 && (
                         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-md">
                             <div className="flex items-center">
                                 <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
@@ -301,7 +318,7 @@ const UsersManagement = () => {
                                     </tr>
                                 ) : (
                                     <UserTable
-                                        userList={userList}
+                                        userList={optimisticUsers}
                                         currentUser={currentUser}
                                         isLoading={isLoading}
                                         updatePermissionsMutation={updatePermissionsMutation}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MoreVertical, Eye, Edit, Clock, AlertTriangle, CheckCircle, Loader } from 'lucide-react';
+import { MoreVertical, Eye, Edit, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 import Portal from './Portal';
 import { ProductDetail } from '../utils/types';
 import { getStatusColor } from '../utils/other';
@@ -71,6 +71,8 @@ const ProductRow: React.FC<ProductRowProps> = ({
     };
   }, [isMenuOpen]);
 
+  // No need to show loading spinners - optimistic updates handle it!
+  // We still disable buttons during operations to prevent double-clicks
   const isAnyActionLoading = Object.values(pendingStates).some(status => status);
 
   const getQuantityColorClass = () => {
@@ -139,13 +141,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
             ref={buttonRef}
             onClick={toggleMenu}
             disabled={isAnyActionLoading}
-            className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors duration-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            title={isAnyActionLoading ? "Action in progress..." : "Product actions"}
           >
-            {isAnyActionLoading ? (
-              <Loader size={16} className="animate-spin" />
-            ) : (
-              <MoreVertical size={16} />
-            )}
+            <MoreVertical size={16} />
           </button>
           
           {isMenuOpen && (
