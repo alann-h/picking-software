@@ -1,10 +1,11 @@
 import React, { Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SnackbarProvider } from './components/SnackbarContext';
 import SnackbarComponent from './components/SnackbarComponent';
 import QuoteLoadingSpinner from './components/QuoteLoadingSpinner';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
+import SimpleFooter from './components/SimpleFooter';
 import { fetchAndCacheCsrfToken } from './utils/apiHelpers';
 import { getPageStructuredData } from './utils/structuredData';
 
@@ -35,6 +36,27 @@ const ErrorBoundary = React.lazy(() => import('./components/ErrorBoundary'));
 const OrderHistory = React.lazy(() => import('./components/OrderHistory'));
 const KyteToQuickBooksConverter = React.lazy(() => import('./components/KyteToQuickBooksConverter'));
 
+
+// Conditional footer component - full footer on public pages, simple footer on private pages
+const ConditionalFooter: React.FC = () => {
+  const location = useLocation();
+  
+  // Private/authenticated routes get simple footer
+  const privateRoutePaths = [
+    '/dashboard',
+    '/settings',
+    '/quote',
+    '/orders-to-check',
+    '/order-history',
+    '/run',
+    '/kyte-converter'
+  ];
+  
+  const isPrivateRoute = privateRoutePaths.some(path => location.pathname.startsWith(path));
+  
+  // Show simple footer on private routes, full footer on public routes
+  return isPrivateRoute ? <SimpleFooter /> : <Footer />;
+};
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -104,7 +126,7 @@ const App: React.FC = () => {
             </Routes>
           </div>
           <SnackbarComponent />
-          <Footer />
+          <ConditionalFooter />
         </div>
       </ErrorBoundary>
       </SnackbarProvider>
