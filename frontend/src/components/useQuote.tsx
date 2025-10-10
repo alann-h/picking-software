@@ -76,13 +76,10 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             return adjustProductQty(quoteId, variables.productId, variables.newQty);
         },
         onMutate: async (variables: { productId: number; newQty: number }) => {
-            // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
             
-            // Get previous value for rollback
             const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
             
-            // Update cache immediately (optimistic update)
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
                 if (!old) return old;
                 return {
@@ -101,11 +98,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         },
         onSuccess: () => {
             handleOpenSnackbar('Quantity adjusted successfully!', 'success');
-            // Cache is already updated, no need to do anything
         },
         onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // Rollback to previous data on error
             if (context?.previousData) {
                 queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
             }
@@ -117,16 +112,13 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             return saveProductForLater(quoteId, productId);
         },
         onMutate: async (productId: number) => {
-            // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
             
-            // Get previous value for rollback
             const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
             
             const currentProduct = previousData?.productInfo[productId];
             const newStatus = currentProduct?.pickingStatus === 'backorder' ? 'pending' : 'backorder';
             
-            // Update cache immediately (optimistic update)
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
                 if (!old) return old;
                 return {
@@ -146,11 +138,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            // Cache is already updated, no need to do anything
         },
         onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // Rollback to previous data on error
             if (context?.previousData) {
                 queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
             }
@@ -162,16 +152,13 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             return setProductUnavailable(quoteId, productId);
         },
         onMutate: async (productId: number) => {
-            // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
             
-            // Get previous value for rollback
             const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
             
             const currentProduct = previousData?.productInfo[productId];
             const newStatus = currentProduct?.pickingStatus === 'unavailable' ? 'pending' : 'unavailable';
             
-            // Update cache immediately (optimistic update)
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
                 if (!old) return old;
                 return {
@@ -191,11 +178,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            // Cache is already updated, no need to do anything
         },
         onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // Rollback to previous data on error
             if (context?.previousData) {
                 queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
             }
@@ -207,13 +192,10 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             return setProductFinished(quoteId, productId);
         },
         onMutate: async (productId: number) => {
-            // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
             
-            // Get previous value for rollback
             const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
             
-            // Update cache immediately (optimistic update)
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
                 if (!old) return old;
                 return {
@@ -233,11 +215,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            // Cache is already updated, no need to do anything
         },
         onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // Rollback to previous data on error
             if (context?.previousData) {
                 queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
             }
@@ -258,8 +238,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     const setQuoteChecking = useMutation({ 
         mutationFn: (newStatus: string) => updateQuoteStatus(quoteId, newStatus), 
         onSuccess: () => { 
-            handleOpenSnackbar(`Quote status updated!`, 'success'); 
-            // Navigate to dashboard after successful status update
+            handleOpenSnackbar(`Quote status updated!`, 'success');
             navigate('/dashboard');
         }, 
         onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), 
@@ -271,26 +250,21 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             const responseData = response as { redirectUrl?: string };
 
             if (connectionType === 'xero') {
-                // For Xero, use the constructed URL from backend
                 if (responseData.redirectUrl) {
                     window.open(responseData.redirectUrl, '_blank');
                 } else {
-                    // Fallback to general quotes page
                     window.open('https://go.xero.com/app/quotes', '_blank');
                 }
             } else {
-                // For QuickBooks, use the constructed URL from backend
                 if (responseData.redirectUrl) {
                     window.open(responseData.redirectUrl, '_blank');
                 } else {
-                    // Fallback to general QuickBooks page
                     window.open('https://qbo.intuit.com/', '_blank');
                 }
             }
             
             handleOpenSnackbar(`Quote finalised and opened in ${serviceName}!`, 'success'); 
-            invalidateAndRefetch(); // This will refresh the quote data
-            // Update URL to include finalised status
+            invalidateAndRefetch();
             const newUrl = `/quote?id=${quoteId}&status=finalised`;
             navigate(newUrl); 
         }, 
@@ -298,10 +272,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             const serviceName = connectionType === 'xero' ? 'Xero' : 'QuickBooks';
             const errorMessage = extractErrorMessage(error);
             
-            // Handle specific service errors
             if (errorMessage.includes('re-authentication required')) {
                 handleOpenSnackbar(`${serviceName} connection expired. Please reconnect your account in settings.`, 'error');
-                navigate('/settings'); // Redirect to settings to reconnect
+                navigate('/settings');
             } else if (errorMessage.includes('Access denied by')) {
                 handleOpenSnackbar(`${serviceName} access denied. Please check your permissions.`, 'error');
             } else {
@@ -319,7 +292,6 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
-        // Check if product is in the current quote (instant, no API call needed)
         const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
         
         if (!product) {
@@ -332,7 +304,6 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             return;
         }
 
-        // Open modal instantly - no API call needed!
         openModal('barcodeModal', {
             productName: product.productName,
             availableQty: product.pickingQty,

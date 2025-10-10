@@ -18,12 +18,15 @@ export const runCreateRules = () => [
     
     body('orderedQuoteIds.*')
         .custom((value) => {
-            // Allow both positive integers and valid UUIDs
+            // Allow strings (for numeric IDs and UUIDs) and positive integers
+            if (typeof value === 'string' && value.length > 0) {
+                // Accept any non-empty string (handles numeric strings, UUIDs, and external IDs)
+                return true;
+            }
             const isPositiveInt = Number.isInteger(value) && value > 0;
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
             
-            if (!isPositiveInt && !isUUID) {
-                throw new Error('Each Quote ID must be either a positive integer or a valid UUID.');
+            if (!isPositiveInt) {
+                throw new Error('Each Quote ID must be either a non-empty string or a positive integer.');
             }
             return true;
         }),
