@@ -109,76 +109,157 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
 
     const adjustQuantity = useMutation({
         mutationFn: async (variables: { productId: number; newQty: number }) => {
-            // Update UI instantly
-            updateOptimisticProduct({ type: 'quantity', productId: variables.productId, quantity: variables.newQty });
             return adjustProductQty(quoteId, variables.productId, variables.newQty);
         },
-        onSuccess: () => {
+        onMutate: async (variables: { productId: number; newQty: number }) => {
+            // Cancel any outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
+            
+            // Update optimistically
+            updateOptimisticProduct({ type: 'quantity', productId: variables.productId, quantity: variables.newQty });
+        },
+        onSuccess: (_, variables) => {
             handleOpenSnackbar('Quantity adjusted successfully!', 'success');
-            // Delay invalidation to allow backend to fully update
-            setTimeout(() => invalidateAndRefetch(), 500);
+            
+            // Update cache directly instead of invalidating
+            queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    productInfo: {
+                        ...old.productInfo,
+                        [variables.productId]: {
+                            ...old.productInfo[variables.productId],
+                            pickingQty: variables.newQty
+                        }
+                    }
+                };
+            });
         },
         onError: (error) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // Optimistic state auto-reverts on error
+            // On error, invalidate to get fresh data
+            invalidateAndRefetch();
         },
     });
 
     const saveForLater = useMutation({
         mutationFn: async (productId: number) => {
-            const currentProduct = optimisticQuoteData.productInfo[productId];
-            const newStatus = currentProduct?.pickingStatus === 'backorder' ? 'pending' : 'backorder';
-            // Update UI instantly
-            updateOptimisticProduct({ type: 'status', productId, status: newStatus });
             return saveProductForLater(quoteId, productId);
         },
-        onSuccess: (data) => {
+        onMutate: async (productId: number) => {
+            // Cancel any outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
+            
+            const currentProduct = optimisticQuoteData.productInfo[productId];
+            const newStatus = currentProduct?.pickingStatus === 'backorder' ? 'pending' : 'backorder';
+            
+            // Update optimistically
+            updateOptimisticProduct({ type: 'status', productId, status: newStatus });
+            
+            return { productId, newStatus };
+        },
+        onSuccess: (data, _, context) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            // Delay invalidation to allow backend to fully update
-            setTimeout(() => invalidateAndRefetch(), 500);
+            
+            // Update cache directly
+            queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
+                if (!old || !context) return old;
+                return {
+                    ...old,
+                    productInfo: {
+                        ...old.productInfo,
+                        [context.productId]: {
+                            ...old.productInfo[context.productId],
+                            pickingStatus: context.newStatus
+                        }
+                    }
+                };
+            });
         },
         onError: (error) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // Optimistic state auto-reverts on error
+            invalidateAndRefetch();
         },
     });
     
     const setUnavailable = useMutation({
         mutationFn: async (productId: number) => {
-            const currentProduct = optimisticQuoteData.productInfo[productId];
-            const newStatus = currentProduct?.pickingStatus === 'unavailable' ? 'pending' : 'unavailable';
-            // Update UI instantly
-            updateOptimisticProduct({ type: 'status', productId, status: newStatus });
             return setProductUnavailable(quoteId, productId);
         },
-        onSuccess: (data) => {
+        onMutate: async (productId: number) => {
+            // Cancel any outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
+            
+            const currentProduct = optimisticQuoteData.productInfo[productId];
+            const newStatus = currentProduct?.pickingStatus === 'unavailable' ? 'pending' : 'unavailable';
+            
+            // Update optimistically
+            updateOptimisticProduct({ type: 'status', productId, status: newStatus });
+            
+            return { productId, newStatus };
+        },
+        onSuccess: (data, _, context) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            // Delay invalidation to allow backend to fully update
-            setTimeout(() => invalidateAndRefetch(), 500);
+            
+            // Update cache directly
+            queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
+                if (!old || !context) return old;
+                return {
+                    ...old,
+                    productInfo: {
+                        ...old.productInfo,
+                        [context.productId]: {
+                            ...old.productInfo[context.productId],
+                            pickingStatus: context.newStatus
+                        }
+                    }
+                };
+            });
         },
         onError: (error) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // Optimistic state auto-reverts on error
+            invalidateAndRefetch();
         },
     });
 
     const setFinished = useMutation({
         mutationFn: async (productId: number) => {
-            // Update UI instantly
-            updateOptimisticProduct({ type: 'status', productId, status: 'completed' });
             return setProductFinished(quoteId, productId);
         },
-        onSuccess: (data) => {
+        onMutate: async (productId: number) => {
+            // Cancel any outgoing refetches
+            await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
+            
+            // Update optimistically
+            updateOptimisticProduct({ type: 'status', productId, status: 'completed' });
+            
+            return { productId, newStatus: 'completed' };
+        },
+        onSuccess: (data, _, context) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            // Delay invalidation to allow backend to fully update
-            setTimeout(() => invalidateAndRefetch(), 500);
+            
+            // Update cache directly
+            queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
+                if (!old || !context) return old;
+                return {
+                    ...old,
+                    productInfo: {
+                        ...old.productInfo,
+                        [context.productId]: {
+                            ...old.productInfo[context.productId],
+                            pickingStatus: context.newStatus
+                        }
+                    }
+                };
+            });
         },
         onError: (error) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // Optimistic state auto-reverts on error
+            invalidateAndRefetch();
         },
     });
 
