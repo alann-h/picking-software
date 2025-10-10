@@ -218,7 +218,6 @@ export const CreateRun: React.FC = () => {
         
         const creationPromises = validRuns.map(run =>
             createRunMutation.mutateAsync({ 
-                // Convert all quote IDs to strings to ensure consistent data type
                 quoteIds: run.quotes.map(q => String(q.id)),
                 runName: run.runName || undefined
             })

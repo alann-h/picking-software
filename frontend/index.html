@@ -83,6 +83,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Smart Picker",
+      "alternateName": "SmartPicker",
       "description": "Smart Picker - The leading order picking software with barcode scanning, QuickBooks integration, and Xero integration. Streamline warehouse operations and eliminate picking errors.",
       "url": "https://smartpicker.au",
       "applicationCategory": "BusinessApplication",
@@ -106,8 +107,7 @@
       "screenshot": "https://smartpicker.au/SP.png",
       "author": {
         "@type": "Organization",
-        "name": "Smart Picker",
-        "url": "https://smartpicker.au"
+        "@id": "https://smartpicker.au/#organization"
       }
     }
     </script>
@@ -116,9 +116,16 @@
     {
       "@context": "https://schema.org",
       "@type": "Organization",
+      "@id": "https://smartpicker.au/#organization",
       "name": "Smart Picker",
+      "alternateName": "SmartPicker",
       "url": "https://smartpicker.au",
-      "logo": "https://smartpicker.au/SP.png",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://smartpicker.au/SP.png",
+        "width": "512",
+        "height": "512"
+      },
       "description": "Professional warehouse management software with barcode scanning and accounting integration",
       "contactPoint": {
         "@type": "ContactPoint",
@@ -140,12 +147,17 @@
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "Smart Picker",
-      "alternateName": "Smart Picker Australia",
-      "url": "https://smartpicker.au"
+      "alternateName": ["Smart Picker", "SmartPicker"],
+      "url": "https://smartpicker.au",
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://smartpicker.au/#organization",
+        "name": "Smart Picker"
+      }
     }
     </script>
     
-    <title>Smart Picker - Order Picking Software with QuickBooks & Xero Integration</title>
+    <title>Smart Picker</title>
     
     <!-- Modern CSS loading - let Vite handle it -->
     <script>
