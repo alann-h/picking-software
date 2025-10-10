@@ -318,9 +318,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
 
     const openProductDetailsModal = useCallback(async (productId: number, details: ProductDetail) => {
         try {
-            const response = await getProductInfo(productId) as { productname: string; quantityOnHand: string };
+            const response = await getProductInfo(productId) as { productName: string; quantityOnHand: string };
             openModal('productDetails', {
-                name: response.productname,
+                name: response.productName,
                 details: { 
                     ...details,
                     quantityOnHand: parseFloat(response.quantityOnHand) || 0,
