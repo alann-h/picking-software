@@ -56,8 +56,8 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
 
     const handleConfirmDelete = () => {
         if (!runIdToDelete) return;
-        handleCloseDeleteDialog();
         deleteRunMutation.mutate(runIdToDelete);
+        handleCloseDeleteDialog();
     };
 
 
