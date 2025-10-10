@@ -66,26 +66,20 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/30 bg-black/30" />
       <div className="relative z-50 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all cursor-default">
-        <div className="flex items-center justify-between text-lg font-medium leading-6 text-gray-900 cursor-default">
-          <div className="flex items-center gap-2">
-            <InventoryIcon className="h-6 w-6 text-gray-700" />
-            <h3 className="text-xl font-semibold">Product Details</h3>
+        <div className="flex items-center justify-between text-lg font-medium leading-6 text-gray-900 cursor-default mb-6">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <InventoryIcon className="h-6 w-6 text-gray-700 flex-shrink-0" />
+            <h3 className="text-xl font-semibold truncate">{productName}</h3>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer"
+            className="rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer flex-shrink-0 ml-2"
           >
             <CloseIcon className="h-6 w-6" />
           </button>
         </div>
         
         <div className="mt-4">
-          <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold text-gray-800">{productName}</h2>
-            <p className="text-md text-gray-500 italic mt-1">Product Information & Status</p>
-          </div>
-
-          <hr className="my-6" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Basic Info */}

@@ -115,7 +115,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         },
         onSuccess: () => {
             handleOpenSnackbar('Quantity adjusted successfully!', 'success');
-            invalidateAndRefetch();
+            // Delay invalidation to allow backend to fully update
+            setTimeout(() => invalidateAndRefetch(), 500);
         },
         onError: (error) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
@@ -134,7 +135,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            invalidateAndRefetch();
+            // Delay invalidation to allow backend to fully update
+            setTimeout(() => invalidateAndRefetch(), 500);
         },
         onError: (error) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
@@ -153,7 +155,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            invalidateAndRefetch();
+            // Delay invalidation to allow backend to fully update
+            setTimeout(() => invalidateAndRefetch(), 500);
         },
         onError: (error) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
@@ -170,7 +173,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         onSuccess: (data) => {
             const response = data as { message: string };
             handleOpenSnackbar(response.message, 'success');
-            invalidateAndRefetch();
+            // Delay invalidation to allow backend to fully update
+            setTimeout(() => invalidateAndRefetch(), 500);
         },
         onError: (error) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');

@@ -12,21 +12,19 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutes
-      gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+      staleTime: 1 * 60 * 1000,
+      gcTime: 5 * 60 * 1000,
       retry: (failureCount, error: any) => {
-        // Don't retry on 401 errors (authentication failures)
         if (error?.response?.status === 401) {
           return false;
         }
-        // Retry up to 2 times for other errors
         return failureCount < 2;
       },
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
     },
     mutations: {
       retry: (failureCount, error: any) => {
-        // Don't retry on 401 errors (authentication failures)
         if (error?.response?.status === 401) {
           return false;
         }
