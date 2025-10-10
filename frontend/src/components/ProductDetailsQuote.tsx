@@ -65,17 +65,17 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/30 bg-black/30" />
-      <div className="relative z-50 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all cursor-default">
-        <div className="flex items-center justify-between text-lg font-medium leading-6 text-gray-900 cursor-default mb-6">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <InventoryIcon className="h-6 w-6 text-gray-700 flex-shrink-0" />
-            <h3 className="text-xl font-semibold truncate">{productName}</h3>
+      <div className="relative z-50 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-4 sm:p-6 text-left align-middle shadow-xl transition-all cursor-default">
+        <div className="flex items-start justify-between text-lg font-medium leading-6 text-gray-900 cursor-default mb-6">
+          <div className="flex items-start gap-2 flex-1 pr-2">
+            <InventoryIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700 flex-shrink-0 mt-0.5" />
+            <h3 className="text-base sm:text-xl font-semibold text-gray-900 break-words leading-tight">{productName}</h3>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer flex-shrink-0 ml-2"
+            className="rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer flex-shrink-0"
           >
-            <CloseIcon className="h-6 w-6" />
+            <CloseIcon className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
         
