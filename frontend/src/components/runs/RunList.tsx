@@ -25,6 +25,8 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
     const { data: runs } = useSuspenseQuery<Run[]>({
         queryKey: ['runs', userCompanyId],
         queryFn: () => getRuns(userCompanyId),
+        refetchInterval: 20000,
+        refetchIntervalInBackground: false,
     });
 
     const [optimisticRuns, deleteOptimisticRun] = useOptimistic(
@@ -46,7 +48,6 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
-            handleCloseDeleteDialog();
         },
         onError: () => {
             handleOpenSnackbar('Failed to delete run. Restoring.', 'error');
@@ -55,6 +56,7 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
 
     const handleConfirmDelete = () => {
         if (!runIdToDelete) return;
+        handleCloseDeleteDialog();
         deleteRunMutation.mutate(runIdToDelete);
     };
 

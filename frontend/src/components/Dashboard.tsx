@@ -319,6 +319,8 @@ const Dashboard: React.FC = () => {
             const response = await getRuns(userCompanyId!) as Run[];
             return response;
         },
+        refetchInterval: 20000,
+        refetchIntervalInBackground: false,
     });
 
     const selectedCustomer = useMemo(() => {

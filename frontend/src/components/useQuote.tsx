@@ -61,6 +61,11 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
 
             return failureCount < 3;
         },
+        refetchInterval: (query) => {
+            const data = query.state.data as QuoteData | undefined;
+            return data?.orderStatus === 'finalised' ? false : 10000;
+        },
+        refetchIntervalInBackground: false,
     });
 
     const invalidateAndRefetch = () => {
