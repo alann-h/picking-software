@@ -1,6 +1,5 @@
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useOptimistic } from 'react';
 import { useSnackbarContext } from './SnackbarContext';
 import { useAuth } from '../hooks/useAuth';
 
@@ -64,41 +63,6 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         },
     });
 
-    // Optimistic updates for product operations
-    type ProductUpdate = 
-        | { type: 'status'; productId: number; status: string }
-        | { type: 'quantity'; productId: number; quantity: number };
-
-    const [optimisticQuoteData, updateOptimisticProduct] = useOptimistic(
-        quoteData,
-        (currentData: QuoteData, update: ProductUpdate): QuoteData => {
-            const updatedProductInfo = { ...currentData.productInfo };
-            
-            if (update.type === 'status') {
-                const product = updatedProductInfo[update.productId];
-                if (product) {
-                    updatedProductInfo[update.productId] = {
-                        ...product,
-                        pickingStatus: update.status
-                    };
-                }
-            } else if (update.type === 'quantity') {
-                const product = updatedProductInfo[update.productId];
-                if (product) {
-                    updatedProductInfo[update.productId] = {
-                        ...product,
-                        pickingQty: update.quantity
-                    };
-                }
-            }
-            
-            return {
-                ...currentData,
-                productInfo: updatedProductInfo
-            };
-        }
-    );
-
     const invalidateAndRefetch = () => {
         queryClient.invalidateQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
     };
@@ -115,13 +79,10 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
             
-            // Update optimistically
-            updateOptimisticProduct({ type: 'quantity', productId: variables.productId, quantity: variables.newQty });
-        },
-        onSuccess: (_, variables) => {
-            handleOpenSnackbar('Quantity adjusted successfully!', 'success');
+            // Get previous value for rollback
+            const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
             
-            // Update cache directly instead of invalidating
+            // Update cache immediately (optimistic update)
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
                 if (!old) return old;
                 return {
@@ -135,11 +96,19 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
                     }
                 };
             });
+            
+            return { previousData };
         },
-        onError: (error) => {
+        onSuccess: () => {
+            handleOpenSnackbar('Quantity adjusted successfully!', 'success');
+            // Cache is already updated, no need to do anything
+        },
+        onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            // On error, invalidate to get fresh data
-            invalidateAndRefetch();
+            // Rollback to previous data on error
+            if (context?.previousData) {
+                queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
+            }
         },
     });
 
@@ -151,36 +120,40 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
             
-            const currentProduct = optimisticQuoteData.productInfo[productId];
+            // Get previous value for rollback
+            const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
+            
+            const currentProduct = previousData?.productInfo[productId];
             const newStatus = currentProduct?.pickingStatus === 'backorder' ? 'pending' : 'backorder';
             
-            // Update optimistically
-            updateOptimisticProduct({ type: 'status', productId, status: newStatus });
-            
-            return { productId, newStatus };
-        },
-        onSuccess: (data, _, context) => {
-            const response = data as { message: string };
-            handleOpenSnackbar(response.message, 'success');
-            
-            // Update cache directly
+            // Update cache immediately (optimistic update)
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
-                if (!old || !context) return old;
+                if (!old) return old;
                 return {
                     ...old,
                     productInfo: {
                         ...old.productInfo,
-                        [context.productId]: {
-                            ...old.productInfo[context.productId],
-                            pickingStatus: context.newStatus
+                        [productId]: {
+                            ...old.productInfo[productId],
+                            pickingStatus: newStatus
                         }
                     }
                 };
             });
+            
+            return { productId, newStatus, previousData };
         },
-        onError: (error) => {
+        onSuccess: (data) => {
+            const response = data as { message: string };
+            handleOpenSnackbar(response.message, 'success');
+            // Cache is already updated, no need to do anything
+        },
+        onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            invalidateAndRefetch();
+            // Rollback to previous data on error
+            if (context?.previousData) {
+                queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
+            }
         },
     });
     
@@ -192,36 +165,40 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
             
-            const currentProduct = optimisticQuoteData.productInfo[productId];
+            // Get previous value for rollback
+            const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
+            
+            const currentProduct = previousData?.productInfo[productId];
             const newStatus = currentProduct?.pickingStatus === 'unavailable' ? 'pending' : 'unavailable';
             
-            // Update optimistically
-            updateOptimisticProduct({ type: 'status', productId, status: newStatus });
-            
-            return { productId, newStatus };
-        },
-        onSuccess: (data, _, context) => {
-            const response = data as { message: string };
-            handleOpenSnackbar(response.message, 'success');
-            
-            // Update cache directly
+            // Update cache immediately (optimistic update)
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
-                if (!old || !context) return old;
+                if (!old) return old;
                 return {
                     ...old,
                     productInfo: {
                         ...old.productInfo,
-                        [context.productId]: {
-                            ...old.productInfo[context.productId],
-                            pickingStatus: context.newStatus
+                        [productId]: {
+                            ...old.productInfo[productId],
+                            pickingStatus: newStatus
                         }
                     }
                 };
             });
+            
+            return { productId, newStatus, previousData };
         },
-        onError: (error) => {
+        onSuccess: (data) => {
+            const response = data as { message: string };
+            handleOpenSnackbar(response.message, 'success');
+            // Cache is already updated, no need to do anything
+        },
+        onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            invalidateAndRefetch();
+            // Rollback to previous data on error
+            if (context?.previousData) {
+                queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
+            }
         },
     });
 
@@ -233,33 +210,37 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
             
-            // Update optimistically
-            updateOptimisticProduct({ type: 'status', productId, status: 'completed' });
+            // Get previous value for rollback
+            const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
             
-            return { productId, newStatus: 'completed' };
-        },
-        onSuccess: (data, _, context) => {
-            const response = data as { message: string };
-            handleOpenSnackbar(response.message, 'success');
-            
-            // Update cache directly
+            // Update cache immediately (optimistic update)
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
-                if (!old || !context) return old;
+                if (!old) return old;
                 return {
                     ...old,
                     productInfo: {
                         ...old.productInfo,
-                        [context.productId]: {
-                            ...old.productInfo[context.productId],
-                            pickingStatus: context.newStatus
+                        [productId]: {
+                            ...old.productInfo[productId],
+                            pickingStatus: 'completed'
                         }
                     }
                 };
             });
+            
+            return { productId, previousData };
         },
-        onError: (error) => {
+        onSuccess: (data) => {
+            const response = data as { message: string };
+            handleOpenSnackbar(response.message, 'success');
+            // Cache is already updated, no need to do anything
+        },
+        onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            invalidateAndRefetch();
+            // Rollback to previous data on error
+            if (context?.previousData) {
+                queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
+            }
         },
     });
 
@@ -339,7 +320,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
         // Check if product is in the current quote (instant, no API call needed)
-        const product = Object.values(optimisticQuoteData?.productInfo || {}).find(p => p.barcode === barcode);
+        const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
         
         if (!product) {
             handleOpenSnackbar('This product is not included in this quote.', 'error');
@@ -357,7 +338,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             availableQty: product.pickingQty,
             onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
         });
-    }, [optimisticQuoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);
+    }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);
 
     const openProductDetailsModal = useCallback(async (productId: number, details: ProductDetail) => {
         try {
@@ -416,7 +397,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     ]);
 
     return {
-        quoteData: optimisticQuoteData,
+        quoteData,
         actions,
         pendingStates,
     };
