@@ -21,8 +21,7 @@ import {
     getProductInfo,
     saveProductForLater,
     setProductFinished,
-    setProductUnavailable,
-    barcodeToName
+    setProductUnavailable
 } from '../api/products';
 import { useCallback, useMemo } from 'react';
 
@@ -297,7 +296,13 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
-        const product = Object.values(quoteData?.productInfo || {}).find(p => p.barcode === barcode);
+        // Normalize the scanned barcode for comparison
+        const normalizedBarcode = barcode.trim().toLowerCase();
+        
+        const product = Object.values(quoteData?.productInfo || {}).find(p => {
+            if (!p.barcode) return false;
+            return p.barcode.trim().toLowerCase() === normalizedBarcode;
+        });
         
         if (!product) {
             handleOpenSnackbar('This product is not included in this quote.', 'error');
