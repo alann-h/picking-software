@@ -3,9 +3,8 @@ import { loginWithCredentials, verifyUser, requestPasswordReset, logout } from '
 import { clearCachedCsrfToken } from '../utils/apiHelpers';
 import { useSnackbarContext } from './SnackbarContext';
 import { useNavigate } from 'react-router-dom';
-import LoadingWrapper from './LoadingWrapper';
 import { motion } from 'framer-motion';
-import { ScanLine, Quote } from 'lucide-react';
+import { ScanLine, Quote, Loader } from 'lucide-react';
 
 import { QBO_AUTH_URI, XERO_AUTH_URI } from '../api/config';
 import SEO from './SEO';
@@ -163,8 +162,11 @@ const Login: React.FC = () => {
         description="Access your Smart Picker dashboard to manage orders, track inventory, and streamline your warehouse operations."
         canonicalUrl="https://smartpicker.au/login"
       />
-      <LoadingWrapper isLoading={loading} height="100vh">
-        {/* New Split Screen Layout */}
+      {loading ? (
+        <div className="flex justify-center items-center h-screen">
+          <Loader className="animate-spin text-blue-600" size={48} />
+        </div>
+      ) : (
         <div className="flex min-h-screen bg-white">
           
           {/* 1. Brand Panel (Visible on Desktop only) */}
@@ -242,7 +244,7 @@ const Login: React.FC = () => {
             </main>
           </div>
         </div>
-      </LoadingWrapper>
+      )}
 
       {/* Password Reset Modal (Unchanged) */}
       <ForgotPasswordModal

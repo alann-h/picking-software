@@ -1,8 +1,7 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SnackbarProvider } from './components/SnackbarContext';
 import SnackbarComponent from './components/SnackbarComponent';
-import QuoteLoadingSpinner from './components/QuoteLoadingSpinner';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 import SimpleFooter from './components/SimpleFooter';
@@ -115,11 +114,7 @@ const App: React.FC = () => {
               <Route element={<AuthLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/settings/*" element={<Settings />} />
-                <Route path="/quote" element={
-                  <Suspense fallback={<QuoteLoadingSpinner />}> 
-                    <Quote /> 
-                  </Suspense>
-                } />
+                <Route path="/quote" element={<Quote />} />
                 <Route path="/orders-to-check" element={<OrdersToCheckPage />} />
                 <Route path="/order-history" element={<OrderHistory />} />
                 <Route path="/run" element={<Runs />} />

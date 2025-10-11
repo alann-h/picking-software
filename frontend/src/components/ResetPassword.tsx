@@ -8,7 +8,6 @@ import { z } from 'zod';
 import { resetPassword } from '../api/auth';
 import { useSnackbarContext } from './SnackbarContext';
 import SEO from './SEO';
-import LoadingWrapper from './LoadingWrapper';
 
 const resetPasswordSchema = z.object({
   password: z
@@ -81,10 +80,11 @@ const ResetPassword: React.FC = () => {
 
   if (tokenError) {
     return (
-      <LoadingWrapper isLoading={false}>
+      <>
         <SEO 
           title="Reset Password - Smart Picker" 
           description="Reset your Smart Picker password"
+          canonicalUrl="https://smartpicker.au/reset-password"
         />
         <div className="flex min-h-screen items-center bg-gradient-to-br from-blue-700 via-blue-500 to-blue-400 py-4">
           <div className="container mx-auto max-w-sm">
@@ -115,12 +115,12 @@ const ResetPassword: React.FC = () => {
             </motion.div>
           </div>
         </div>
-      </LoadingWrapper>
+      </>
     );
   }
 
   return (
-    <LoadingWrapper isLoading={false}>
+    <>
       <SEO 
         title="Reset Password - Smart Picker" 
         description="Reset your Smart Picker password"
@@ -207,7 +207,7 @@ const ResetPassword: React.FC = () => {
           </motion.div>
         </div>
       </div>
-    </LoadingWrapper>
+    </>
   );
 };
 
