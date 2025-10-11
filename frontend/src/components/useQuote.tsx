@@ -92,7 +92,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
                         ...old.productInfo,
                         [variables.productId]: {
                             ...old.productInfo[variables.productId],
-                            pickingQty: variables.newQty
+                            pickingQty: variables.newQty,
+                            originalQty: variables.newQty
                         }
                     }
                 };
