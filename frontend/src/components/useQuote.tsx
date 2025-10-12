@@ -297,19 +297,15 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
-        console.log('🔍 handleBarcodeScan START - barcode:', barcode);
-        console.log('📋 quoteData:', quoteData);
-        console.log('📦 productInfo:', quoteData?.productInfo);
-        
         // Normalize the scanned barcode for comparison
         const normalizedBarcode = barcode.trim().toLowerCase();
         
         const product = Object.values(quoteData?.productInfo || {}).find(p => {
             if (!p.barcode) return false;
+            handleOpenSnackbar('Barcode scanned! Please confirm quantity.', 'info');
             return p.barcode.trim().toLowerCase() === normalizedBarcode;
         });
         
-        console.log('product', product);
         if (!product) {
             handleOpenSnackbar('This product is not included in this quote.', 'error');
             return;

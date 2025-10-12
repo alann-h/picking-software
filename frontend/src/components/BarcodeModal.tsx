@@ -195,7 +195,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
                   type="button"
                   onClick={handleDecrement}
                   className={cn(
-                    'relative inline-flex items-center rounded-l-md border bg-gray-50 px-3 text-gray-500 hover:bg-gray-100 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50',
+                    'relative inline-flex items-center rounded-l-md border bg-gray-50 px-3 text-gray-500 hover:bg-gray-100 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
                     (isTooLow || isTooHigh) ? 'border-red-300' : 'border-gray-300',
                   )}
                 >
@@ -219,7 +219,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
                   type="button"
                   onClick={handleIncrement}
                   className={cn(
-                    'relative -ml-px inline-flex items-center border bg-gray-50 px-3 text-gray-500 hover:bg-gray-100 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50',
+                    'relative -ml-px inline-flex items-center border bg-gray-50 px-3 text-gray-500 hover:bg-gray-100 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
                     (isTooLow || isTooHigh) ? 'border-red-300' : 'border-gray-300',
                   )}
                 >
@@ -229,7 +229,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
                   type="button"
                   onClick={handleMax}
                   className={cn(
-                    'relative -ml-px inline-flex items-center rounded-r-md border border-gray-300 bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+                    'relative -ml-px inline-flex items-center rounded-r-md border border-gray-300 bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer'
                   )}
                 >
                   <ChevronsUp className="h-4 w-4 mr-1"/>
@@ -254,7 +254,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
           >
             Cancel
           </button>
@@ -262,7 +262,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
             type="button"
             onClick={handleConfirmClick}
             disabled={isTooLow || isTooHigh || isInvalidFraction}
-            className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
           >
             Confirm
           </button>
