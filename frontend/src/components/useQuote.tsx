@@ -305,6 +305,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
             return p.barcode.trim().toLowerCase() === normalizedBarcode;
         });
         
+        console.log('product', product);
         if (!product) {
             handleOpenSnackbar('This product is not included in this quote.', 'error');
             return;
