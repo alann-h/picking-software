@@ -297,6 +297,10 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
     });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
+        console.log('🔍 handleBarcodeScan START - barcode:', barcode);
+        console.log('📋 quoteData:', quoteData);
+        console.log('📦 productInfo:', quoteData?.productInfo);
+        
         // Normalize the scanned barcode for comparison
         const normalizedBarcode = barcode.trim().toLowerCase();
         
