@@ -38,6 +38,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Security & Privacy -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    
+    <!-- Author -->
+    <meta name="author" content="Smart Picker">
+    <meta name="copyright" content="Smart Picker">
+    <link rel="author" href="https://smartpicker.au">
     
     <!-- Critical CSS for above-the-fold content -->
     <style>
@@ -59,13 +68,20 @@
       name="description"
       content="Streamline your warehouse operations with our intelligent picking system. Increase accuracy, save time, and manage stock from any device, anywhere. QuickBooks & Xero integration included."
     />
+    <!-- Note: keywords meta tag is ignored by Google since 2009, but kept for other search engines -->
     <meta name="keywords" content="smart picker, order picking software, warehouse management, barcode scanning, QuickBooks integration, Xero integration, inventory management, warehouse efficiency, mobile order picking, digital picking lists, Australian warehouse software" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
     <meta property="og:title" content="Smart Picker - Order Picking Software with QuickBooks & Xero Integration" />
     <meta property="og:description" content="Smart Picker - The smart order picking software with barcode scanning, QuickBooks & Xero integration. Eliminate picking errors and boost warehouse efficiency." />
     <meta property="og:image" content="https://smartpicker.au/SP.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Smart Picker Logo - Order Picking Software" />
     <meta property="og:url" content="https://smartpicker.au" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Smart Picker" />
+    <meta property="og:locale" content="en_AU" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Smart Picker - Order Picking Software with QuickBooks & Xero Integration" />
     <meta name="twitter:description" content="Smart Picker - The smart order picking software with barcode scanning, QuickBooks & Xero integration." />
@@ -87,11 +103,18 @@
       "description": "Smart Picker - The leading order picking software with barcode scanning, QuickBooks integration, and Xero integration. Streamline warehouse operations and eliminate picking errors.",
       "url": "https://smartpicker.au",
       "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web Browser",
+      "applicationSubCategory": "Warehouse Management System",
+      "operatingSystem": ["Web Browser", "iOS", "Android"],
+      "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "offers": {
         "@type": "Offer",
         "category": "Business Software",
-        "priceCurrency": "AUD"
+        "priceCurrency": "AUD",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "@id": "https://smartpicker.au/#organization"
+        }
       },
       "featureList": [
         "Barcode scanning",
@@ -105,7 +128,12 @@
         "Progress tracking"
       ],
       "screenshot": "https://smartpicker.au/SP.png",
+      "softwareVersion": "1.0",
       "author": {
+        "@type": "Organization",
+        "@id": "https://smartpicker.au/#organization"
+      },
+      "publisher": {
         "@type": "Organization",
         "@id": "https://smartpicker.au/#organization"
       }
@@ -131,14 +159,16 @@
         "@type": "ContactPoint",
         "contactType": "customer service",
         "email": "support@smartpicker.au",
-        "availableLanguage": "English",
-        "areaServed": "AU"
+        "availableLanguage": ["en-AU", "en"],
+        "areaServed": ["AU", "NZ"]
       },
       "address": {
         "@type": "PostalAddress",
         "addressRegion": "NSW",
         "addressCountry": "AU"
-      }
+      },
+      "foundingDate": "2024",
+      "knowsAbout": ["Warehouse Management", "Order Picking", "Inventory Management", "QuickBooks Integration", "Xero Integration", "Barcode Scanning"]
     }
     </script>
     
@@ -153,33 +183,25 @@
         "@type": "Organization",
         "@id": "https://smartpicker.au/#organization",
         "name": "Smart Picker"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://smartpicker.au/search?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
       }
     }
     </script>
     
-    <title>Smart Picker</title>
+    <title>Smart Picker - Order Picking Software | QuickBooks & Xero Integration</title>
     
-    <!-- Modern CSS loading - let Vite handle it -->
-    <script>
-      // Modern CSS loading strategy
-      if ('requestIdleCallback' in window) {
-        // Use requestIdleCallback for better performance
-        requestIdleCallback(() => {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = '/assets/index-BoGEKE7e.css';
-          document.head.appendChild(link);
-        });
-      } else {
-        // Fallback for older browsers
-        setTimeout(() => {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = '/assets/index-BoGEKE7e.css';
-          document.head.appendChild(link);
-        }, 0);
-      }
-    </script>
+    <!-- 
+      Note: In production, Vite automatically injects CSS links here during build.
+      The manual CSS loading below is for production optimization.
+      For development, Vite handles CSS injection automatically.
+    -->
     </head>
   <body>
     <noscript>

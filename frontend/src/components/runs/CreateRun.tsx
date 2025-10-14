@@ -135,8 +135,8 @@ interface RunBuilder {
     const { data: quotesData } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', customer.customerId],
         queryFn: () => getCustomerQuotes(customer.customerId) as Promise<QuoteSummary[]>,
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes - quotes don't change that often
-        gcTime: 10 * 60 * 1000, // Keep in memory for 10 minutes
+        staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
     });
     const availableQuotes = quotesData
         .filter((q: QuoteSummary) => !stagedQuoteIds.has(q.id))
