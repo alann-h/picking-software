@@ -281,8 +281,6 @@ export const RunItem: React.FC<{
         );
     }, [availableQuotes, editableQuotes]);
 
-    // Filter customer quotes that aren't already in the run
-    // Uses both ID and quote number for robust matching (handles QBO/Xero vs DB IDs)
     const customerQuotesNotInRun = useMemo(() => {
         const currentQuoteIds = new Set(editableQuotes.map(q => q.quoteId));
         const currentQuoteNumbers = new Set(editableQuotes.map(q => q.quoteNumber).filter(Boolean));
