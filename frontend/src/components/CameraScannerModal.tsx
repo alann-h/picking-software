@@ -51,14 +51,52 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         };
       }
 
+      // Check if mediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw {
+          name: 'NotSupportedError',
+          message: 'Camera API not supported in this browser'
+        };
+      }
+
+      // Check current permission state (if supported)
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+          console.log("📷 Camera permission status:", permissionStatus.state);
+          setDebugInfo(`Camera permission: ${permissionStatus.state}`);
+          
+          if (permissionStatus.state === 'denied') {
+            throw {
+              name: 'NotAllowedError',
+              message: 'Camera permission was previously denied. Please enable it in your browser settings.'
+            };
+          }
+        } catch (permErr) {
+          // Permissions API might not support camera on all browsers, continue anyway
+          console.log("Permissions API check skipped:", permErr);
+        }
+      }
+
       // Request camera access - THIS WILL SHOW THE PERMISSION DIALOG
       // This MUST happen synchronously in the button click handler
-      console.log("Requesting camera permission...");
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log("🎥 Requesting camera permission...");
+      console.log("Browser:", navigator.userAgent);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment' // Request rear camera by default
+        } 
+      });
+      
       console.log("✅ Camera permission granted!");
+      console.log("Stream tracks:", stream.getTracks().map(t => ({ kind: t.kind, label: t.label })));
       
       // Stop the stream - we just needed it for permission
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach(track => {
+        console.log(`Stopping track: ${track.label}`);
+        track.stop();
+      });
 
       // Now get available cameras
       const devices = await Html5Qrcode.getCameras();
@@ -141,23 +179,42 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
   };
 
   const handlePermissionError = (err: any) => {
-    const errorDetails = `\n\n🔧 Technical Details:\nError Type: ${err.name || 'Unknown'}\nError Message: ${err.message || 'No message'}`;
+    const errorDetails = `\n\n🔧 Technical Details:\nError Type: ${err.name || 'Unknown'}\nError Message: ${err.message || 'No message'}\nBrowser: ${navigator.userAgent.substring(0, 100)}`;
     console.error("Camera error details:", err);
+    console.error("Full error object:", JSON.stringify(err, null, 2));
     
     let displayError = "Failed to access camera.";
     let helpText = "";
     
+    // Detect if on Android/Samsung
+    const isAndroid = /android/i.test(navigator.userAgent);
+    const isSamsung = /samsung/i.test(navigator.userAgent);
+    
     if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
       displayError = "Camera Access Blocked";
-      helpText = "\n\n⚠️ You clicked 'Block' or 'Deny' when the browser asked for camera permission.\n\nTo fix this:\n1. Tap the 🔒 lock icon in the address bar (top of screen)\n2. Find 'Camera' and change to 'Allow'\n3. Refresh this page\n4. Try again";
+      
+      if (isAndroid || isSamsung) {
+        helpText = "\n\n⚠️ Camera permission is currently blocked.\n\n📱 For Samsung/Android tablets:\n\n1. Tap the ⋮ menu (three dots) in the browser\n2. Tap 'Settings'\n3. Tap 'Site settings' or 'Privacy and security'\n4. Tap 'Camera'\n5. Find this website and change to 'Allow'\n6. Come back here and try again\n\nOR:\n\n1. Tap the 🔒 or ⓘ icon next to the URL\n2. Tap 'Permissions' or 'Site settings'\n3. Enable 'Camera'\n4. Refresh and try again";
+      } else {
+        helpText = "\n\n⚠️ Camera permission is blocked.\n\nTo fix this:\n1. Tap the 🔒 lock icon in the address bar\n2. Find 'Camera' and change to 'Allow'\n3. Refresh this page\n4. Try again";
+      }
     } else if (err.name === "NotFoundError" || err.name === "DOMError") {
       displayError = "Camera not available.";
       helpText = "\n\nYour device doesn't have a camera or it's not accessible.";
     } else if (err.name === "SecurityError") {
       displayError = "Security Error";
       helpText = "\n\nCamera requires HTTPS. Make sure you're using https:// (not http://)";
+    } else if (err.name === "NotSupportedError") {
+      displayError = "Camera Not Supported";
+      helpText = "\n\n" + err.message;
+    } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+      displayError = "Camera In Use";
+      helpText = "\n\nThe camera is being used by another app. Please close other apps using the camera and try again.";
     } else {
       displayError = "Error: " + (err.message || 'Unknown error');
+      if (isAndroid || isSamsung) {
+        helpText += "\n\n💡 Tip: Make sure camera permission is enabled in your browser settings for this site.";
+      }
     }
     
     setErrorMessage(displayError + helpText + errorDetails);
@@ -212,7 +269,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
 
         <div className="mt-4">
           {!scannerReady && !isLoading && !errorMessage && (
-            <div className="flex flex-col justify-center items-center h-[250px] mt-2">
+            <div className="flex flex-col justify-center items-center mt-2">
               <div className="text-center mb-6">
                 <p className="text-gray-700 font-medium mb-2 text-lg">📸 Camera Access Required</p>
                 <p className="text-sm text-gray-600 px-4">
@@ -227,6 +284,18 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
               >
                 📷 Start Camera Scanner
               </button>
+              
+              {/* Diagnostic info */}
+              <details className="mt-4 text-xs text-gray-600 w-full">
+                <summary className="cursor-pointer hover:text-gray-800 font-semibold text-center">🔍 Show System Info</summary>
+                <div className="mt-2 p-3 bg-gray-50 rounded border text-left">
+                  <p><strong>Protocol:</strong> {window.location.protocol}</p>
+                  <p><strong>Host:</strong> {window.location.host}</p>
+                  <p><strong>Camera API:</strong> {navigator.mediaDevices && 'getUserMedia' in navigator.mediaDevices ? '✅ Available' : '❌ Not Available'}</p>
+                  <p><strong>Permissions API:</strong> {navigator.permissions ? '✅ Available' : '❌ Not Available'}</p>
+                  <p className="mt-2 break-all"><strong>Browser:</strong> {navigator.userAgent}</p>
+                </div>
+              </details>
             </div>
           )}
 
@@ -252,12 +321,28 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
                 {errorMessage}
               </div>
               
-              <button
-                onClick={startScanner}
-                className="mt-2 w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold cursor-pointer"
-              >
-                🔄 Try Again
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={startScanner}
+                  className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold cursor-pointer"
+                >
+                  🔄 Try Again
+                </button>
+                
+                <button
+                  onClick={() => {
+                    // Try to open browser settings (works on some Android browsers)
+                    if ('permissions' in navigator) {
+                      window.location.reload();
+                    } else {
+                      alert("Please manually enable camera permission in your browser settings:\n\n1. Open browser menu (⋮)\n2. Go to Settings > Site settings > Camera\n3. Allow camera for this site");
+                    }
+                  }}
+                  className="w-full px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold cursor-pointer"
+                >
+                  🔄 Refresh Page
+                </button>
+              </div>
               
               {debugInfo && (
                 <details className="mt-3 text-xs">
