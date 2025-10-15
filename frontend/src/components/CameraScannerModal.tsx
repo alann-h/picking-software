@@ -21,6 +21,8 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [permissionGranted, setPermissionGranted] = useState(false);
+  const [showPermissionButton, setShowPermissionButton] = useState(true);
 
   const stopScanner = async () => {
     const html5QrCode = html5QrCodeRef.current;
@@ -38,6 +40,58 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     }
   };
 
+  // Request camera permission - must be called from a button click!
+  const requestCameraPermission = async () => {
+    setShowPermissionButton(false);
+    setIsLoading(true);
+    setErrorMessage(null);
+    
+    try {
+      // Request camera access - this will show the browser's permission dialog
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log("Camera permission granted!");
+      
+      // Stop the stream immediately - we just needed it for permission
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      setPermissionGranted(true);
+      // Continue with camera initialization
+    } catch (err: any) {
+      handlePermissionError(err);
+    }
+  };
+
+  const handlePermissionError = (err: any) => {
+    const errorDetails = `\n\nError Type: ${err.name || 'Unknown'}\nError Message: ${err.message || 'No message'}`;
+    console.error("Camera error details:", err);
+    
+    let displayError = "Failed to access camera.";
+    let helpText = "";
+    
+    if (err.name === "NotAllowedError") {
+      displayError = "🚫 Camera Permission Denied";
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const isSamsung = /Samsung/i.test(navigator.userAgent);
+      
+      if (isAndroid || isSamsung) {
+        helpText = "\n\nYou need to allow camera access when the browser asks.\n\n✅ Try again:\n\n1. Tap the 'Enable Camera Access' button below\n2. When the popup appears, tap 'Allow'\n\nIf you don't see a popup:\n• Tap the 🔒 lock icon in your browser's address bar\n• Find 'Camera' and change to 'Allow'\n• Then tap the button below";
+      } else {
+        helpText = "\n\nPlease tap 'Allow' when the browser asks for camera permission.";
+      }
+      setShowPermissionButton(true); // Show button again so they can retry
+    } else if (err.name === "NotFoundError") {
+      displayError = "No camera found on this device.";
+    } else {
+      displayError += ` ${err.message || 'Unknown error'}`;
+    }
+    
+    setErrorMessage(displayError + helpText + errorDetails);
+    handleOpenSnackbar(displayError, 'error');
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     if (!isOpen) {
       if (startTimeoutId.current) {
@@ -47,32 +101,18 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         clearTimeout(startScannerTimeoutId.current);
       }
       stopScanner();
+      setPermissionGranted(false);
+      setShowPermissionButton(true);
       return;
     }
+  }, [isOpen]);
 
-    setIsLoading(true);
-    setErrorMessage(null);
+  useEffect(() => {
+    if (!permissionGranted || !isOpen) return;
 
     const initializeCameraAndRenderScanner = async () => {
       try {
-        // First, request basic camera permission without constraints
-        // This is more compatible with Samsung/Android devices
-        let stream;
-        try {
-          // Try with just basic video permission first (works on all devices)
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          console.log("Camera permission granted");
-        } catch (permError) {
-          console.error("Failed to get camera permission:", permError);
-          throw permError; // Re-throw to be caught by outer catch
-        }
-        
-        // Stop the stream immediately - we just needed it for permission
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-        }
-
-        // Now get the list of available cameras
+        // Now get the list of available cameras (permission already granted)
         const devices = await Html5Qrcode.getCameras();
         console.log("Available Cameras:", devices);
         
@@ -162,45 +202,10 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         }, 500) as unknown as number;
 
       } catch (err: any) {
-        // Add detailed error info for debugging
-        const errorDetails = `\n\nError Type: ${err.name || 'Unknown'}\nError Message: ${err.message || 'No message'}`;
-        console.error("Camera error details:", err);
-        
-        let displayError = "Failed to start camera.";
-        let helpText = "";
-        
-        if (err.name === "NotAllowedError") {
-          displayError = "Camera permission denied.";
-          // Detect if user is on Android/Samsung
-          const isAndroid = /Android/i.test(navigator.userAgent);
-          const isSamsung = /Samsung/i.test(navigator.userAgent);
-          
-          if (isAndroid || isSamsung) {
-            helpText = "\n\n📱 For Samsung/Android:\n\n1. Tap the 🔒 (lock) or ⓘ icon in your browser's address bar\n2. Find 'Camera' and tap it\n3. Select 'Allow' instead of 'Block'\n4. Close this popup and try scanning again\n\nIf that doesn't work: Close the browser completely and reopen it, or check Settings → Apps → Chrome → Permissions → Camera";
-          } else {
-            helpText = "\n\nTap the lock icon (🔒) in your browser's address bar and allow camera access for this site.";
-          }
-        } else if (err.name === "NotFoundError") {
-          displayError = "No camera found on this device.";
-        } else if (err.name === "OverconstrainedError") {
-          displayError = "Camera is in use by another application.";
-          helpText = "\n\nPlease close other apps using the camera and try again.";
-        } else if (err.name === "NotReadableError" || err.name === "AbortError") {
-          displayError = "Camera hardware error.";
-          helpText = "\n\nTry closing other apps using the camera, or restart your device.";
-        } else {
-          displayError += ` ${err.message || 'Unknown error'}`;
-        }
-        
-        setErrorMessage(displayError + helpText + errorDetails);
-        handleOpenSnackbar(displayError, 'error');
-        console.error("Failed to initialize camera or scanner:", err);
-        setIsLoading(false);
+        handlePermissionError(err);
       }
     };
-    if (startTimeoutId.current) {
-      clearTimeout(startTimeoutId.current);
-    }
+    
     startTimeoutId.current = window.setTimeout(initializeCameraAndRenderScanner, 200) as unknown as number;
 
     return () => {
@@ -212,7 +217,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
       }
       stopScanner();
     };
-  }, [isOpen, onScanSuccess, onClose, handleOpenSnackbar]); 
+  }, [permissionGranted, isOpen]); 
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -249,14 +254,33 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         </h3>
 
         <div className="mt-4">
-          {isLoading && (
+          {showPermissionButton && !permissionGranted && (
+            <div className="flex flex-col justify-center items-center h-[250px] mt-2">
+              <div className="text-center mb-6">
+                <p className="text-gray-700 font-medium mb-2">📸 Camera Access Required</p>
+                <p className="text-sm text-gray-600">
+                  Click the button below to enable camera access.
+                  <br />
+                  Your browser will ask for permission.
+                </p>
+              </div>
+              <button
+                onClick={requestCameraPermission}
+                className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg cursor-pointer shadow-lg"
+              >
+                📷 Enable Camera Access
+              </button>
+            </div>
+          )}
+
+          {isLoading && !showPermissionButton && (
             <div className="flex flex-col justify-center items-center h-[250px] mt-2">
               <LoaderCircle className="animate-spin h-10 w-10 text-gray-500" />
               <p className="mt-4 text-gray-500">Initializing camera...</p>
             </div>
           )}
 
-          {debugInfo && !errorMessage && (
+          {debugInfo && !errorMessage && permissionGranted && (
             <div className="text-left mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 text-xs">
               <p className="font-semibold mb-1">📱 Debug Info:</p>
               <pre className="whitespace-pre-line font-mono">{debugInfo}</pre>
@@ -268,6 +292,15 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
               <p className="font-semibold mb-2">⚠️ Camera Error</p>
               <p className="text-sm leading-relaxed whitespace-pre-line">{errorMessage}</p>
               
+              {showPermissionButton && (
+                <button
+                  onClick={requestCameraPermission}
+                  className="mt-4 w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold cursor-pointer"
+                >
+                  🔄 Try Again - Enable Camera Access
+                </button>
+              )}
+              
               {debugInfo && (
                 <details className="mt-3 text-xs">
                   <summary className="cursor-pointer font-semibold">Show Camera Debug Info</summary>
@@ -277,13 +310,15 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
             </div>
           )}
 
-          {!isLoading && !errorMessage && (
+          {!isLoading && !errorMessage && permissionGranted && (
             <div id={QRCODE_REGION_ID} className="w-full mt-2 min-h-[250px] border rounded-lg overflow-hidden" />
           )}
 
-          <p className="mt-4 text-sm text-center text-gray-500">
-            Position a barcode inside the scanning area.
-          </p>
+          {permissionGranted && !errorMessage && (
+            <p className="mt-4 text-sm text-center text-gray-500">
+              Position a barcode inside the scanning area.
+            </p>
+          )}
         </div>
       </div>
     </div>
