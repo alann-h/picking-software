@@ -54,7 +54,32 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
 
     const initializeCameraAndRenderScanner = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            } 
+          });
+          console.log("Camera permission granted with environment facing mode");
+        } catch (envError) {
+          console.warn("Environment camera not available, trying any camera:", envError);
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            } 
+          });
+          console.log("Camera permission granted with fallback");
+        }
+        
+        // Stop the stream immediately - we just needed it for permission
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+
         const devices = await Html5Qrcode.getCameras();
         console.log("Available Cameras:", devices);
 
@@ -126,14 +151,30 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
 
       } catch (err: any) {
         let displayError = "Failed to start camera.";
+        let helpText = "";
+        
         if (err.name === "NotAllowedError") {
-          displayError = "Camera access denied. Please grant permission in your browser settings.";
-        } else if (err.name === "NotFoundError" || err.name === "OverconstrainedError") {
-          displayError = "No suitable camera found or camera is in use by another application.";
+          displayError = "Camera access denied.";
+          // Detect if user is on Android/Samsung
+          const isAndroid = /Android/i.test(navigator.userAgent);
+          const isSamsung = /Samsung/i.test(navigator.userAgent);
+          
+          if (isAndroid || isSamsung) {
+            helpText = " For Samsung/Android devices: Go to Settings → Apps → Browser/Chrome → Permissions → Enable Camera. Then refresh this page.";
+          } else {
+            helpText = " Please grant permission in your browser settings and refresh the page.";
+          }
+        } else if (err.name === "NotFoundError") {
+          displayError = "No camera found on this device.";
+        } else if (err.name === "OverconstrainedError") {
+          displayError = "Camera is in use by another application. Please close other apps using the camera and try again.";
+        } else if (err.name === "NotReadableError" || err.name === "AbortError") {
+          displayError = "Camera hardware error. Please restart your device or close other apps using the camera.";
         } else {
           displayError += ` Error: ${err.message || 'Unknown error'}`;
         }
-        setErrorMessage(displayError);
+        
+        setErrorMessage(displayError + helpText);
         handleOpenSnackbar(displayError, 'error');
         console.error("Failed to initialize camera or scanner:", err);
         setIsLoading(false);
@@ -198,8 +239,9 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
           )}
 
           {errorMessage && (
-            <div className="text-center mt-2 p-4 bg-red-50 text-red-700 rounded-lg">
-              <p>{errorMessage}</p>
+            <div className="text-left mt-2 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
+              <p className="font-semibold mb-1">Camera Error</p>
+              <p className="text-sm leading-relaxed">{errorMessage}</p>
             </div>
           )}
 

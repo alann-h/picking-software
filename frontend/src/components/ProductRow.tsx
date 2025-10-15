@@ -109,13 +109,13 @@ const ProductRow: React.FC<ProductRowProps> = ({
       <td className="px-6 py-4 w-[40%] min-w-[150px]">
         <button
           onClick={handleProductClick}
-          className="text-left text-sm md:text-base font-semibold text-gray-900 hover:text-blue-600 hover:underline transition-all duration-200 cursor-pointer select-none leading-tight"
+          className="text-left text-sm md:text-base font-semibold text-blue-600 hover:text-blue-700 active:text-blue-800 underline decoration-1 underline-offset-2 hover:decoration-2 active:bg-blue-50 transition-all duration-200 cursor-pointer select-none leading-tight rounded px-1 -ml-1"
         >
           {product.productName}
         </button>
       </td>
-      <td className="px-6 py-4 w-[20%] min-w-[110px] text-center">
-        <div className="flex items-center justify-center gap-1">
+      <td className="px-6 py-4 w-[20%] min-w-[110px]">
+        <div className="flex items-center gap-1">
           <span className={`text-sm font-semibold ${getQuantityColorClass()}`}>
             {Number(product.pickingQty || 0).toFixed(1)}
           </span>
@@ -124,8 +124,8 @@ const ProductRow: React.FC<ProductRowProps> = ({
           </span>
         </div>
       </td>
-      <td className="px-6 py-4 w-[15%] min-w-[90px] text-center">
-        <div className="flex justify-center">
+      <td className="px-6 py-4 w-[15%] min-w-[90px]">
+        <div className="flex">
           <span 
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white capitalize ${getStatusColor(product.pickingStatus)}`}
             title={`Current picking status: ${product.pickingStatus}`}
@@ -135,7 +135,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
           </span>
         </div>
       </td>
-      <td className="px-2 py-4 w-[10%] text-center">
+      <td className="px-2 py-4 w-[10%]">
         <div className="relative inline-block text-left">
           <button
             ref={buttonRef}
@@ -194,9 +194,15 @@ const ProductRow: React.FC<ProductRowProps> = ({
                       setIsMenuOpen(false);
                     }}
                     disabled={product.pickingStatus === 'completed'}
-                    className="group flex w-full items-center px-4 py-3 text-sm text-red-600 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className={`group flex w-full items-center px-4 py-3 text-sm transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                      product.pickingStatus === 'unavailable' ? 'text-blue-600' : 'text-red-600'
+                    }`}
                   >
-                    <AlertTriangle className="mr-3 h-4 w-4 text-red-400" />
+                    {product.pickingStatus === 'unavailable' ? (
+                      <CheckCircle className="mr-3 h-4 w-4 text-blue-400" />
+                    ) : (
+                      <AlertTriangle className="mr-3 h-4 w-4 text-red-400" />
+                    )}
                     {product.pickingStatus === 'unavailable' ? 'Set as Available' : 'Set Unavailable'}
                   </button>
                   <div className="border-t border-gray-100 my-1" />

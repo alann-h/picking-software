@@ -209,7 +209,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
                         ...old.productInfo,
                         [productId]: {
                             ...old.productInfo[productId],
-                            pickingStatus: 'completed'
+                            pickingStatus: 'completed',
+                            pickingQty: 0
                         }
                     }
                 };
