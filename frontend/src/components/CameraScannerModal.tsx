@@ -19,6 +19,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [scannerReady, setScannerReady] = useState(false);
+  const [permissionState, setPermissionState] = useState<'unknown' | 'prompt' | 'granted' | 'denied'>('unknown');
 
   const stopScanner = async () => {
     const html5QrCode = html5QrCodeRef.current;
@@ -36,6 +37,21 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     }
   };
 
+  // Check permission status (non-blocking)
+  const checkPermissionStatus = async () => {
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        setPermissionState(result.state as any);
+        console.log("📷 Current camera permission:", result.state);
+        return result.state;
+      }
+    } catch (err) {
+      console.log("Permissions API not supported:", err);
+    }
+    return 'unknown';
+  };
+
   // Initialize camera and start scanner - MUST be called directly from button click!
   const startScanner = async () => {
     setIsLoading(true);
@@ -43,45 +59,9 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     setDebugInfo('');
     
     try {
-      // Check if we're on HTTPS (required for camera on most browsers)
-      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-        throw {
-          name: 'SecurityError',
-          message: 'Camera access requires HTTPS connection'
-        };
-      }
-
-      // Check if mediaDevices API is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw {
-          name: 'NotSupportedError',
-          message: 'Camera API not supported in this browser'
-        };
-      }
-
-      // Check current permission state (if supported)
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
-          console.log("📷 Camera permission status:", permissionStatus.state);
-          setDebugInfo(`Camera permission: ${permissionStatus.state}`);
-          
-          if (permissionStatus.state === 'denied') {
-            throw {
-              name: 'NotAllowedError',
-              message: 'Camera permission was previously denied. Please enable it in your browser settings.'
-            };
-          }
-        } catch (permErr) {
-          // Permissions API might not support camera on all browsers, continue anyway
-          console.log("Permissions API check skipped:", permErr);
-        }
-      }
-
-      // Request camera access - THIS WILL SHOW THE PERMISSION DIALOG
-      // This MUST happen synchronously in the button click handler
-      console.log("🎥 Requesting camera permission...");
-      console.log("Browser:", navigator.userAgent);
+      // CRITICAL: Call getUserMedia IMMEDIATELY - no async operations before this!
+      // The permission dialog only appears if getUserMedia is called synchronously from user gesture
+      console.log("🎥 Requesting camera access (from button click)...");
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
@@ -222,6 +202,13 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     setIsLoading(false);
   };
 
+  // Check permissions when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      checkPermissionStatus();
+    }
+  }, [isOpen]);
+
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -230,6 +217,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
       setIsLoading(false);
       setErrorMessage(null);
       setDebugInfo('');
+      setPermissionState('unknown');
     }
   }, [isOpen]); 
 
@@ -272,18 +260,48 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
             <div className="flex flex-col justify-center items-center mt-2">
               <div className="text-center mb-6">
                 <p className="text-gray-700 font-medium mb-2 text-lg">📸 Camera Access Required</p>
-                <p className="text-sm text-gray-600 px-4">
-                  Tap the button below to start the camera.
+                <p className="text-sm text-gray-600 px-4 mb-3">
+                  Click the button below to enable camera access.
                   <br />
-                  Your browser will ask for permission - tap <strong>Allow</strong>.
+                  {permissionState === 'denied' && (
+                    <span className="text-red-600 font-semibold">
+                      ⚠️ Camera permission is blocked! Click below to request access again.
+                    </span>
+                  )}
+                  {permissionState === 'granted' && (
+                    <span className="text-green-600 font-semibold">
+                      ✅ Camera permission is granted! Click to start scanning.
+                    </span>
+                  )}
+                  {(permissionState === 'prompt' || permissionState === 'unknown') && (
+                    <span>
+                      Your browser will ask for permission - tap <strong>Allow</strong>.
+                    </span>
+                  )}
                 </p>
               </div>
               <button
                 onClick={startScanner}
                 className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors font-semibold text-lg cursor-pointer shadow-lg"
               >
-                📷 Start Camera Scanner
+                {permissionState === 'denied' ? '🔓 Enable Camera Permission' : '📷 Start Camera Scanner'}
               </button>
+              
+              {permissionState === 'denied' && (
+                <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg text-sm">
+                  <p className="font-bold text-yellow-800 mb-2">⚠️ Camera Blocked</p>
+                  <p className="text-yellow-700">
+                    Click the button above to request permission again.
+                    <br />
+                    If the popup doesn't appear:
+                  </p>
+                  <ol className="list-decimal ml-5 mt-2 text-yellow-700 text-xs">
+                    <li>Tap the <strong>🔒 or ⓘ icon</strong> next to the URL at the top</li>
+                    <li>Find <strong>Camera</strong> and set it to <strong>Allow</strong></li>
+                    <li>Refresh this page and try again</li>
+                  </ol>
+                </div>
+              )}
               
               {/* Diagnostic info */}
               <details className="mt-4 text-xs text-gray-600 w-full">
@@ -293,6 +311,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
                   <p><strong>Host:</strong> {window.location.host}</p>
                   <p><strong>Camera API:</strong> {navigator.mediaDevices && 'getUserMedia' in navigator.mediaDevices ? '✅ Available' : '❌ Not Available'}</p>
                   <p><strong>Permissions API:</strong> {navigator.permissions ? '✅ Available' : '❌ Not Available'}</p>
+                  <p><strong>Permission State:</strong> {permissionState}</p>
                   <p className="mt-2 break-all"><strong>Browser:</strong> {navigator.userAgent}</p>
                 </div>
               </details>
