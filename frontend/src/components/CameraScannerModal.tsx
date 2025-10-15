@@ -15,14 +15,10 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
   const { handleOpenSnackbar } = useSnackbarContext();
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
-  const startTimeoutId = useRef<number | null>(null);
-  const startScannerTimeoutId = useRef<number | null>(null);
-
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
-  const [permissionGranted, setPermissionGranted] = useState(false);
-  const [showPermissionButton, setShowPermissionButton] = useState(true);
+  const [scannerReady, setScannerReady] = useState(false);
 
   const stopScanner = async () => {
     const html5QrCode = html5QrCodeRef.current;
@@ -40,51 +36,128 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     }
   };
 
-  // Request camera permission - must be called from a button click!
-  const requestCameraPermission = async () => {
-    setShowPermissionButton(false);
+  // Initialize camera and start scanner - MUST be called directly from button click!
+  const startScanner = async () => {
     setIsLoading(true);
     setErrorMessage(null);
+    setDebugInfo('');
     
     try {
-      // Request camera access - this will show the browser's permission dialog
+      // Check if we're on HTTPS (required for camera on most browsers)
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        throw {
+          name: 'SecurityError',
+          message: 'Camera access requires HTTPS connection'
+        };
+      }
+
+      // Request camera access - THIS WILL SHOW THE PERMISSION DIALOG
+      // This MUST happen synchronously in the button click handler
+      console.log("Requesting camera permission...");
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      console.log("Camera permission granted!");
+      console.log("✅ Camera permission granted!");
       
-      // Stop the stream immediately - we just needed it for permission
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      // Stop the stream - we just needed it for permission
+      stream.getTracks().forEach(track => track.stop());
+
+      // Now get available cameras
+      const devices = await Html5Qrcode.getCameras();
+      console.log("Available Cameras:", devices);
+      
+      const cameraDebugInfo = devices.map((d, i) => `${i + 1}. ${d.label || 'Unnamed'} (ID: ${d.id})`).join('\n');
+      setDebugInfo(`Found ${devices.length} camera(s):\n${cameraDebugInfo}`);
+
+      if (!devices || devices.length === 0) {
+        throw {
+          name: 'NotFoundError',
+          message: 'No cameras found on this device.'
+        };
+      }
+
+      // Find the best camera (Samsung/iPhone compatible)
+      const environmentCamera = devices.find(device => {
+        const label = device.label.toLowerCase();
+        return (
+          label.includes('back') ||
+          label.includes('rear') ||
+          label.includes('environment') ||
+          label.includes('facing back') ||
+          label.includes('main') ||
+          label.match(/camera\s*[0-9]+.*back/i) ||
+          (label.includes('camera') && label.includes('0') && !label.includes('front'))
+        );
+      });
+
+      const selectedCamera = environmentCamera || (devices.length > 1 ? devices[devices.length - 1] : devices[0]);
+      const cameraIdToUse = selectedCamera.id;
+      
+      console.log("Selected camera:", selectedCamera.label, cameraIdToUse);
+      setDebugInfo(prev => prev + `\n\n✓ Selected: ${selectedCamera.label}`);
+
+      // Initialize the Html5Qrcode scanner
+      const readerElement = document.getElementById(QRCODE_REGION_ID);
+      if (!readerElement) {
+        throw {
+          name: 'DOMError',
+          message: 'Scanner display area not found'
+        };
+      }
+
+      if (!html5QrCodeRef.current) {
+        html5QrCodeRef.current = new Html5Qrcode(QRCODE_REGION_ID, { verbose: false });
+      }
+
+      const html5QrCode = html5QrCodeRef.current;
+
+      // Start the scanner
+      if (html5QrCode.getState() === Html5QrcodeScannerState.NOT_STARTED) {
+        await html5QrCode.start(
+          cameraIdToUse,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          (decodedText) => {
+            stopScanner();
+            onScanSuccess(decodedText);
+            onClose();
+          },
+          (errMessage) => {
+            if (!errMessage.includes("NotFoundException") && !errMessage.includes("No QR code found")) {
+              console.warn("QR Scanner Error:", errMessage);
+            }
+          }
+        );
+        console.log("✅ Scanner started successfully");
+        setScannerReady(true);
       }
       
-      setPermissionGranted(true);
-      // Continue with camera initialization
+      setIsLoading(false);
     } catch (err: any) {
+      console.error("Scanner initialization error:", err);
       handlePermissionError(err);
     }
   };
 
   const handlePermissionError = (err: any) => {
-    const errorDetails = `\n\nError Type: ${err.name || 'Unknown'}\nError Message: ${err.message || 'No message'}`;
+    const errorDetails = `\n\n🔧 Technical Details:\nError Type: ${err.name || 'Unknown'}\nError Message: ${err.message || 'No message'}`;
     console.error("Camera error details:", err);
     
     let displayError = "Failed to access camera.";
     let helpText = "";
     
-    if (err.name === "NotAllowedError") {
-      displayError = "🚫 Camera Permission Denied";
-      const isAndroid = /Android/i.test(navigator.userAgent);
-      const isSamsung = /Samsung/i.test(navigator.userAgent);
-      
-      if (isAndroid || isSamsung) {
-        helpText = "\n\nYou need to allow camera access when the browser asks.\n\n✅ Try again:\n\n1. Tap the 'Enable Camera Access' button below\n2. When the popup appears, tap 'Allow'\n\nIf you don't see a popup:\n• Tap the 🔒 lock icon in your browser's address bar\n• Find 'Camera' and change to 'Allow'\n• Then tap the button below";
-      } else {
-        helpText = "\n\nPlease tap 'Allow' when the browser asks for camera permission.";
-      }
-      setShowPermissionButton(true); // Show button again so they can retry
-    } else if (err.name === "NotFoundError") {
-      displayError = "No camera found on this device.";
+    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+      displayError = "Camera Access Blocked";
+      helpText = "\n\n⚠️ You clicked 'Block' or 'Deny' when the browser asked for camera permission.\n\nTo fix this:\n1. Tap the 🔒 lock icon in the address bar (top of screen)\n2. Find 'Camera' and change to 'Allow'\n3. Refresh this page\n4. Try again";
+    } else if (err.name === "NotFoundError" || err.name === "DOMError") {
+      displayError = "Camera not available.";
+      helpText = "\n\nYour device doesn't have a camera or it's not accessible.";
+    } else if (err.name === "SecurityError") {
+      displayError = "Security Error";
+      helpText = "\n\nCamera requires HTTPS. Make sure you're using https:// (not http://)";
     } else {
-      displayError += ` ${err.message || 'Unknown error'}`;
+      displayError = "Error: " + (err.message || 'Unknown error');
     }
     
     setErrorMessage(displayError + helpText + errorDetails);
@@ -92,132 +165,16 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     setIsLoading(false);
   };
 
+  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      if (startTimeoutId.current) {
-        clearTimeout(startTimeoutId.current);
-      }
-      if (startScannerTimeoutId.current) {
-        clearTimeout(startScannerTimeoutId.current);
-      }
       stopScanner();
-      setPermissionGranted(false);
-      setShowPermissionButton(true);
-      return;
+      setScannerReady(false);
+      setIsLoading(false);
+      setErrorMessage(null);
+      setDebugInfo('');
     }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!permissionGranted || !isOpen) return;
-
-    const initializeCameraAndRenderScanner = async () => {
-      try {
-        // Now get the list of available cameras (permission already granted)
-        const devices = await Html5Qrcode.getCameras();
-        console.log("Available Cameras:", devices);
-        
-        // Set debug info to show user what cameras were detected
-        const cameraDebugInfo = devices.map((d, i) => `${i + 1}. ${d.label || 'Unnamed'} (ID: ${d.id})`).join('\n');
-        setDebugInfo(`Found ${devices.length} camera(s):\n${cameraDebugInfo}`);
-
-        if (!devices || devices.length === 0) {
-          setErrorMessage("No cameras found on this device.");
-          handleOpenSnackbar("No cameras found on this device.", 'error');
-          setIsLoading(false);
-          return;
-        }
-
-        // Samsung devices often label cameras like "camera2 0, facing back" or "Camera 0, Facing back"
-        // iPhone uses "Back Camera" or contains "environment"
-        // Let's check for multiple patterns
-        let cameraIdToUse: string | undefined;
-        
-        // Try to find rear/back camera with multiple patterns
-        const environmentCamera = devices.find(device => {
-          const label = device.label.toLowerCase();
-          return (
-            label.includes('back') ||
-            label.includes('rear') ||
-            label.includes('environment') ||
-            label.includes('facing back') ||  // Samsung specific
-            label.includes('main') ||
-            label.match(/camera\s*[0-9]+.*back/i) || // Pattern: "camera 0 back" or "camera2 0, facing back"
-            (label.includes('camera') && label.includes('0') && !label.includes('front')) // Fallback for Samsung
-          );
-        });
-
-        if (environmentCamera) {
-          cameraIdToUse = environmentCamera.id;
-          console.log("Selected back/rear camera:", environmentCamera.label, environmentCamera.id);
-          setDebugInfo(prev => prev + `\n\n✓ Selected: ${environmentCamera.label}`);
-        } else {
-          // If we have multiple cameras, prefer the last one (usually back camera on mobile)
-          const selectedCamera = devices.length > 1 ? devices[devices.length - 1] : devices[0];
-          cameraIdToUse = selectedCamera.id;
-          console.warn("No rear camera found by label. Using camera:", selectedCamera.label);
-          setDebugInfo(prev => prev + `\n\n⚠️ No rear camera detected by label.\nUsing: ${selectedCamera.label}`);
-        }
-
-        setIsLoading(false);
-
-        startScannerTimeoutId.current = window.setTimeout(async () => {
-          const readerElement = document.getElementById(QRCODE_REGION_ID);
-          if (!readerElement) {
-            setErrorMessage("Scanner display area not found. Please try again.");
-            handleOpenSnackbar("Scanner display area not found. Cannot start scanner.", 'error');
-            return;
-          }
-
-          if (!html5QrCodeRef.current) {
-            html5QrCodeRef.current = new Html5Qrcode(QRCODE_REGION_ID, {
-              verbose: false,
-            });
-          }
-
-          const html5QrCode = html5QrCodeRef.current;
-
-          if (html5QrCode.getState() === Html5QrcodeScannerState.NOT_STARTED) {
-            await html5QrCode.start(
-              cameraIdToUse!,
-              {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0,
-              },
-              (decodedText) => {
-                stopScanner();
-                onScanSuccess(decodedText);
-                onClose();
-              },
-              (errMessage) => {
-                if (!errMessage.includes("NotFoundException") && !errMessage.includes("No QR code found")) {
-                  console.warn("QR Scanner Error:", errMessage);
-                }
-              }
-            );
-            console.log("Scanner started successfully with ID:", cameraIdToUse);
-          } else {
-            console.log("Scanner is already running or in a non-startable state:", html5QrCode.getState());
-          }
-        }, 500) as unknown as number;
-
-      } catch (err: any) {
-        handlePermissionError(err);
-      }
-    };
-    
-    startTimeoutId.current = window.setTimeout(initializeCameraAndRenderScanner, 200) as unknown as number;
-
-    return () => {
-      if (startTimeoutId.current) {
-        clearTimeout(startTimeoutId.current);
-      }
-      if (startScannerTimeoutId.current) {
-        clearTimeout(startScannerTimeoutId.current);
-      }
-      stopScanner();
-    };
-  }, [permissionGranted, isOpen]); 
+  }, [isOpen]); 
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -254,70 +211,70 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         </h3>
 
         <div className="mt-4">
-          {showPermissionButton && !permissionGranted && (
+          {!scannerReady && !isLoading && !errorMessage && (
             <div className="flex flex-col justify-center items-center h-[250px] mt-2">
               <div className="text-center mb-6">
-                <p className="text-gray-700 font-medium mb-2">📸 Camera Access Required</p>
-                <p className="text-sm text-gray-600">
-                  Click the button below to enable camera access.
+                <p className="text-gray-700 font-medium mb-2 text-lg">📸 Camera Access Required</p>
+                <p className="text-sm text-gray-600 px-4">
+                  Tap the button below to start the camera.
                   <br />
-                  Your browser will ask for permission.
+                  Your browser will ask for permission - tap <strong>Allow</strong>.
                 </p>
               </div>
               <button
-                onClick={requestCameraPermission}
-                className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg cursor-pointer shadow-lg"
+                onClick={startScanner}
+                className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors font-semibold text-lg cursor-pointer shadow-lg"
               >
-                📷 Enable Camera Access
+                📷 Start Camera Scanner
               </button>
             </div>
           )}
 
-          {isLoading && !showPermissionButton && (
+          {isLoading && (
             <div className="flex flex-col justify-center items-center h-[250px] mt-2">
-              <LoaderCircle className="animate-spin h-10 w-10 text-gray-500" />
-              <p className="mt-4 text-gray-500">Initializing camera...</p>
+              <LoaderCircle className="animate-spin h-10 w-10 text-blue-600" />
+              <p className="mt-4 text-gray-600 font-medium">Starting camera...</p>
+              <p className="mt-2 text-xs text-gray-500">If prompted, please allow camera access</p>
             </div>
           )}
 
-          {debugInfo && !errorMessage && permissionGranted && (
-            <div className="text-left mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 text-xs">
-              <p className="font-semibold mb-1">📱 Debug Info:</p>
+          {debugInfo && !errorMessage && scannerReady && (
+            <div className="text-left mt-2 p-3 bg-green-50 text-green-700 rounded-lg border border-green-200 text-xs">
+              <p className="font-semibold mb-1">✅ Camera Ready</p>
               <pre className="whitespace-pre-line font-mono">{debugInfo}</pre>
             </div>
           )}
 
           {errorMessage && (
-            <div className="text-left mt-2 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-              <p className="font-semibold mb-2">⚠️ Camera Error</p>
-              <p className="text-sm leading-relaxed whitespace-pre-line">{errorMessage}</p>
+            <div className="text-left mt-2 p-4 bg-red-50 text-red-700 rounded-lg border-2 border-red-400 max-h-[70vh] overflow-y-auto">
+              <p className="font-bold mb-3 text-lg">⚠️ Camera Error</p>
+              <div className="text-sm leading-relaxed whitespace-pre-line bg-white p-4 rounded border border-red-200 mb-3">
+                {errorMessage}
+              </div>
               
-              {showPermissionButton && (
-                <button
-                  onClick={requestCameraPermission}
-                  className="mt-4 w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold cursor-pointer"
-                >
-                  🔄 Try Again - Enable Camera Access
-                </button>
-              )}
+              <button
+                onClick={startScanner}
+                className="mt-2 w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold cursor-pointer"
+              >
+                🔄 Try Again
+              </button>
               
               {debugInfo && (
                 <details className="mt-3 text-xs">
-                  <summary className="cursor-pointer font-semibold">Show Camera Debug Info</summary>
-                  <pre className="mt-2 whitespace-pre-line bg-red-100 p-2 rounded">{debugInfo}</pre>
+                  <summary className="cursor-pointer font-semibold hover:underline">📋 Show Technical Details</summary>
+                  <pre className="mt-2 whitespace-pre-line bg-red-100 p-2 rounded text-xs">{debugInfo}</pre>
                 </details>
               )}
             </div>
           )}
 
-          {!isLoading && !errorMessage && permissionGranted && (
-            <div id={QRCODE_REGION_ID} className="w-full mt-2 min-h-[250px] border rounded-lg overflow-hidden" />
-          )}
-
-          {permissionGranted && !errorMessage && (
-            <p className="mt-4 text-sm text-center text-gray-500">
-              Position a barcode inside the scanning area.
-            </p>
+          {scannerReady && !errorMessage && (
+            <>
+              <div id={QRCODE_REGION_ID} className="w-full mt-2 min-h-[250px] border rounded-lg overflow-hidden" />
+              <p className="mt-4 text-sm text-center text-gray-500 font-medium">
+                📱 Position a barcode inside the scanning area
+              </p>
+            </>
           )}
         </div>
       </div>
