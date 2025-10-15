@@ -54,25 +54,16 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
 
     const initializeCameraAndRenderScanner = async () => {
       try {
+        // First, request basic camera permission without constraints
+        // This is more compatible with Samsung/Android devices
         let stream;
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-              facingMode: { ideal: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            } 
-          });
-          console.log("Camera permission granted with environment facing mode");
-        } catch (envError) {
-          console.warn("Environment camera not available, trying any camera:", envError);
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            } 
-          });
-          console.log("Camera permission granted with fallback");
+          // Try with just basic video permission first (works on all devices)
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          console.log("Camera permission granted");
+        } catch (permError) {
+          console.error("Failed to get camera permission:", permError);
+          throw permError; // Re-throw to be caught by outer catch
         }
         
         // Stop the stream immediately - we just needed it for permission
@@ -80,6 +71,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
           stream.getTracks().forEach(track => track.stop());
         }
 
+        // Now get the list of available cameras
         const devices = await Html5Qrcode.getCameras();
         console.log("Available Cameras:", devices);
 
@@ -90,20 +82,32 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
           return;
         }
 
+        // Samsung devices often label cameras like "camera2 0, facing back" or "Camera 0, Facing back"
+        // iPhone uses "Back Camera" or contains "environment"
+        // Let's check for multiple patterns
         let cameraIdToUse: string | undefined;
-        const environmentCamera = devices.find(device =>
-          device.label.toLowerCase().includes('back') ||
-          device.label.toLowerCase().includes('environment') ||
-          device.label.toLowerCase().includes('rear') ||
-          device.label.toLowerCase().includes('main')
-        );
+        
+        // Try to find rear/back camera with multiple patterns
+        const environmentCamera = devices.find(device => {
+          const label = device.label.toLowerCase();
+          return (
+            label.includes('back') ||
+            label.includes('rear') ||
+            label.includes('environment') ||
+            label.includes('facing back') ||  // Samsung specific
+            label.includes('main') ||
+            label.match(/camera\s*[0-9]+.*back/i) || // Pattern: "camera 0 back" or "camera2 0, facing back"
+            (label.includes('camera') && label.includes('0') && !label.includes('front')) // Fallback for Samsung
+          );
+        });
 
         if (environmentCamera) {
           cameraIdToUse = environmentCamera.id;
-          console.log("Selected environment camera:", environmentCamera.label, environmentCamera.id);
+          console.log("Selected back/rear camera:", environmentCamera.label, environmentCamera.id);
         } else {
-          cameraIdToUse = devices[0].id;
-          console.warn("No 'environment/rear' camera found. Using the first available camera:", devices[0].label, devices[0].id);
+          // If we have multiple cameras, prefer the last one (usually back camera on mobile)
+          cameraIdToUse = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
+          console.warn("No rear camera found by label. Using camera:", devices.length > 1 ? devices[devices.length - 1].label : devices[0].label);
         }
 
         setIsLoading(false);
@@ -154,24 +158,26 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         let helpText = "";
         
         if (err.name === "NotAllowedError") {
-          displayError = "Camera access denied.";
+          displayError = "Camera permission denied.";
           // Detect if user is on Android/Samsung
           const isAndroid = /Android/i.test(navigator.userAgent);
           const isSamsung = /Samsung/i.test(navigator.userAgent);
           
           if (isAndroid || isSamsung) {
-            helpText = " For Samsung/Android devices: Go to Settings → Apps → Browser/Chrome → Permissions → Enable Camera. Then refresh this page.";
+            helpText = "\n\n📱 For Samsung/Android:\n\n1. Tap the 🔒 (lock) or ⓘ icon in your browser's address bar\n2. Find 'Camera' and tap it\n3. Select 'Allow' instead of 'Block'\n4. Close this popup and try scanning again\n\nIf that doesn't work: Close the browser completely and reopen it, or check Settings → Apps → Chrome → Permissions → Camera";
           } else {
-            helpText = " Please grant permission in your browser settings and refresh the page.";
+            helpText = "\n\nTap the lock icon (🔒) in your browser's address bar and allow camera access for this site.";
           }
         } else if (err.name === "NotFoundError") {
           displayError = "No camera found on this device.";
         } else if (err.name === "OverconstrainedError") {
-          displayError = "Camera is in use by another application. Please close other apps using the camera and try again.";
+          displayError = "Camera is in use by another application.";
+          helpText = "\n\nPlease close other apps using the camera and try again.";
         } else if (err.name === "NotReadableError" || err.name === "AbortError") {
-          displayError = "Camera hardware error. Please restart your device or close other apps using the camera.";
+          displayError = "Camera hardware error.";
+          helpText = "\n\nTry closing other apps using the camera, or restart your device.";
         } else {
-          displayError += ` Error: ${err.message || 'Unknown error'}`;
+          displayError += ` ${err.message || 'Unknown error'}`;
         }
         
         setErrorMessage(displayError + helpText);
@@ -240,8 +246,8 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
 
           {errorMessage && (
             <div className="text-left mt-2 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-              <p className="font-semibold mb-1">Camera Error</p>
-              <p className="text-sm leading-relaxed">{errorMessage}</p>
+              <p className="font-semibold mb-2">⚠️ Camera Error</p>
+              <p className="text-sm leading-relaxed whitespace-pre-line">{errorMessage}</p>
             </div>
           )}
 
