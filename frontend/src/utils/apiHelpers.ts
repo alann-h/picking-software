@@ -182,8 +182,10 @@ export const handleResponse = async (response: Response): Promise<unknown> => {
       errorData = { message: response.statusText };
     }
 
-    if (response.status === 403 && typeof errorData.error === 'string' && errorData.error.includes('CSRF token mismatch')) {
-      console.warn("CSRF token mismatch. Invalidating cached token and prompting refresh.");
+    const errorMessage = (typeof errorData.error === 'string' ? errorData.error : errorData.message || '').toLowerCase();
+    if (response.status === 403 && (errorMessage.includes('csrf') || errorMessage.includes('token'))) {
+      console.warn("CSRF token error detected. Invalidating cached token.");
+      console.error("Error details:", errorData);
       // Clear the cached CSRF token so it gets refetched on next request
       cachedCsrfToken = null;
       const csrfError = new HttpError(response, errorData);

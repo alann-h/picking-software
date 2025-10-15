@@ -1,15 +1,19 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { verifyUser } from '../api/auth';
+import { clearCachedCsrfToken } from '../utils/apiHelpers';
 
 const OAuthCallbackHandler = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    clearCachedCsrfToken();
+    
     verifyUser()
-      .then(response => {
+      .then((response: unknown) => {
         console.log('OAuthCallbackHandler response:', response);
-        if (response.isValid) { 
+        const verifyResponse = response as { isValid: boolean };
+        if (verifyResponse.isValid) { 
           navigate('/dashboard');
         } else {
           navigate('/');

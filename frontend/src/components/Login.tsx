@@ -134,6 +134,8 @@ const Login: React.FC = () => {
     try {
       const user = await loginWithCredentials(data.email, data.password, rememberMe) as any;
 
+      clearCachedCsrfToken();
+
       if (user.qboReAuthRequired) {
         handleOpenSnackbar('Your accounting connection has expired. Redirecting to reconnect...', 'warning');
         setTimeout(() => {
