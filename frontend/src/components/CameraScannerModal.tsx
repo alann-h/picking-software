@@ -20,6 +20,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const stopScanner = async () => {
     const html5QrCode = html5QrCodeRef.current;
@@ -74,6 +75,10 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         // Now get the list of available cameras
         const devices = await Html5Qrcode.getCameras();
         console.log("Available Cameras:", devices);
+        
+        // Set debug info to show user what cameras were detected
+        const cameraDebugInfo = devices.map((d, i) => `${i + 1}. ${d.label || 'Unnamed'} (ID: ${d.id})`).join('\n');
+        setDebugInfo(`Found ${devices.length} camera(s):\n${cameraDebugInfo}`);
 
         if (!devices || devices.length === 0) {
           setErrorMessage("No cameras found on this device.");
@@ -104,10 +109,13 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         if (environmentCamera) {
           cameraIdToUse = environmentCamera.id;
           console.log("Selected back/rear camera:", environmentCamera.label, environmentCamera.id);
+          setDebugInfo(prev => prev + `\n\n✓ Selected: ${environmentCamera.label}`);
         } else {
           // If we have multiple cameras, prefer the last one (usually back camera on mobile)
-          cameraIdToUse = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
-          console.warn("No rear camera found by label. Using camera:", devices.length > 1 ? devices[devices.length - 1].label : devices[0].label);
+          const selectedCamera = devices.length > 1 ? devices[devices.length - 1] : devices[0];
+          cameraIdToUse = selectedCamera.id;
+          console.warn("No rear camera found by label. Using camera:", selectedCamera.label);
+          setDebugInfo(prev => prev + `\n\n⚠️ No rear camera detected by label.\nUsing: ${selectedCamera.label}`);
         }
 
         setIsLoading(false);
@@ -154,6 +162,10 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         }, 500) as unknown as number;
 
       } catch (err: any) {
+        // Add detailed error info for debugging
+        const errorDetails = `\n\nError Type: ${err.name || 'Unknown'}\nError Message: ${err.message || 'No message'}`;
+        console.error("Camera error details:", err);
+        
         let displayError = "Failed to start camera.";
         let helpText = "";
         
@@ -180,7 +192,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
           displayError += ` ${err.message || 'Unknown error'}`;
         }
         
-        setErrorMessage(displayError + helpText);
+        setErrorMessage(displayError + helpText + errorDetails);
         handleOpenSnackbar(displayError, 'error');
         console.error("Failed to initialize camera or scanner:", err);
         setIsLoading(false);
@@ -244,10 +256,24 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
             </div>
           )}
 
+          {debugInfo && !errorMessage && (
+            <div className="text-left mt-2 p-3 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 text-xs">
+              <p className="font-semibold mb-1">📱 Debug Info:</p>
+              <pre className="whitespace-pre-line font-mono">{debugInfo}</pre>
+            </div>
+          )}
+
           {errorMessage && (
             <div className="text-left mt-2 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
               <p className="font-semibold mb-2">⚠️ Camera Error</p>
               <p className="text-sm leading-relaxed whitespace-pre-line">{errorMessage}</p>
+              
+              {debugInfo && (
+                <details className="mt-3 text-xs">
+                  <summary className="cursor-pointer font-semibold">Show Camera Debug Info</summary>
+                  <pre className="mt-2 whitespace-pre-line bg-red-100 p-2 rounded">{debugInfo}</pre>
+                </details>
+              )}
             </div>
           )}
 
