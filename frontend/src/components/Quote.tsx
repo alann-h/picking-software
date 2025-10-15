@@ -245,7 +245,7 @@ const Quote: React.FC = () => {
         <ProductFilter searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)} />
         
         {/* Product Table */}
-        <div ref={scrollContainerRef} className="overflow-x-auto">
+        <div className="overflow-x-auto">
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -254,7 +254,7 @@ const Quote: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Quantity</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Picking Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]"></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -264,7 +264,6 @@ const Quote: React.FC = () => {
                     product={product}
                     actions={actions}
                     pendingStates={pendingStates}
-                    scrollContainerRef={scrollContainerRef}
                   />
                 ))}
               </tbody>

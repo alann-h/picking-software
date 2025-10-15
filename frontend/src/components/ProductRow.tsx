@@ -12,14 +12,12 @@ interface ProductRowProps {
   product: ProductDetail;
   actions: QuoteManagerActions;
   pendingStates: QuoteManagerPendingStates;
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const ProductRow: React.FC<ProductRowProps> = ({
   product,
   actions,
   pendingStates,
-  scrollContainerRef,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
