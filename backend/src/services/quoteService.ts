@@ -970,7 +970,12 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
 
     const lineItems: Array<Record<string, unknown>> = [];
     
-    for (const localItem of Object.values(quoteLocalDb.productInfo)) {
+    // Sort products by SKU before processing
+    const sortedProducts = Object.values(quoteLocalDb.productInfo).sort((a, b) => {
+      return a.sku.localeCompare(b.sku);
+    });
+    
+    for (const localItem of sortedProducts) {
       if (localItem.pickingStatus === 'unavailable') {
         continue;
       }
@@ -1083,7 +1088,12 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
       taxType: string;
     }> = [];
     
-    for (const localItem of Object.values(quoteLocalDb.productInfo)) {
+    // Sort products by SKU before processing
+    const sortedProducts = Object.values(quoteLocalDb.productInfo).sort((a, b) => {
+      return a.sku.localeCompare(b.sku);
+    });
+    
+    for (const localItem of sortedProducts) {
       if (localItem.pickingStatus === 'unavailable') {
         continue;
       }
