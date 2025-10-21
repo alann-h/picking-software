@@ -58,7 +58,7 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     const navigate = useNavigate();
     const { quoteCount, completedQuotes, progressPercentage } = useMemo(() => {
         const quotes = run.quotes || [];
-        const completed = quotes.filter(quote => quote.orderStatus === 'finalised').length;
+        const completed = quotes.filter(quote => quote.orderStatus === 'finalised' || quote.orderStatus === 'checking').length;
         const total = quotes.length;
         const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
         
@@ -179,7 +179,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
         const activeRuns = runs.filter(run => run.status !== 'finalised').length;
         const totalQuotes = runs.reduce((sum, run) => sum + (run.quotes?.length || 0), 0);
         const completedQuotes = runs.reduce((sum, run) => 
-            sum + (run.quotes?.filter(quote => quote.orderStatus === 'finalised').length || 0), 0
+            sum + (run.quotes?.filter(quote => quote.orderStatus === 'finalised' || quote.orderStatus === 'checking').length || 0), 0
         );
         
         return {

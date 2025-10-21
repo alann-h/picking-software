@@ -30,16 +30,17 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
 
   const getQuantityProgress = () => {
     if (!localProductDetails.originalQty) return 0;
-    const percentage = (localProductDetails.pickingQty / localProductDetails.originalQty) * 100;
+    const completedQty = localProductDetails.pickingStatus === 'completed' ? localProductDetails.originalQty : 0;
+    const percentage = (completedQty / localProductDetails.originalQty) * 100;
     return Math.min(percentage, 100);
   };
 
   const getQuantityColorClasses = () => {
-    if (localProductDetails.pickingQty === localProductDetails.originalQty) {
+    if (localProductDetails.pickingStatus === 'completed') {
       return { bg: 'bg-green-500', text: 'text-green-700' };
     }
-    if (localProductDetails.pickingQty > 0) {
-      return { bg: 'bg-yellow-400', text: 'text-yellow-700' };
+    if (localProductDetails.pickingStatus === 'pending' || localProductDetails.pickingStatus === 'backorder') {
+      return { bg: 'bg-gray-300', text: 'text-gray-700' };
     }
     return { bg: 'bg-gray-300', text: 'text-gray-700' };
   };
@@ -117,7 +118,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                     <p className="text-sm font-medium text-gray-500 uppercase">Picking Progress</p>
                     <div className="flex items-baseline gap-1">
                         <p className={`font-semibold text-lg ${quantityColorClasses.text}`}>
-                        {localProductDetails.pickingQty}
+                        {localProductDetails.pickingStatus === 'completed' ? localProductDetails.originalQty : 0}
                         </p>
                         <p className="text-sm text-gray-500">/ {localProductDetails.originalQty}</p>
                     </div>

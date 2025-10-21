@@ -123,9 +123,14 @@ const Quote: React.FC = () => {
           {/* Progress Indicator */}
           <div className="mt-2 flex items-center gap-4">
             {(() => {
-              const totalPicked = productArray.reduce((sum, p) => sum + Number(p.pickingQty), 0);
+              const totalCompleted = productArray.reduce((sum, p) => {
+                if (p.pickingStatus === 'completed') {
+                  return sum + Number(p.originalQty);
+                }
+                return sum;
+              }, 0);
               const totalOriginal = productArray.reduce((sum, p) => sum + Number(p.originalQty), 0);
-              const progressPercentage = totalOriginal > 0 ? (totalPicked / totalOriginal) * 100 : 0;
+              const progressPercentage = totalOriginal > 0 ? (totalCompleted / totalOriginal) * 100 : 0;
               
               return (
                 <>
@@ -136,7 +141,7 @@ const Quote: React.FC = () => {
                     />
                   </div>
                   <span className="text-sm text-gray-600 font-medium">
-                    {totalPicked}/{totalOriginal} boxes • {Math.round(progressPercentage)}%
+                    {totalCompleted}/{totalOriginal} boxes • {Math.round(progressPercentage)}%
                   </span>
                 </>
               );
