@@ -124,13 +124,12 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
         <div className="flex justify-between items-center text-lg font-medium leading-6 text-gray-900">
           <div className="flex items-center gap-2">
             <QrCode className="h-6 w-6 text-blue-600" />
-            <span>Barcode Scan</span>
+            <span>{productName}</span>
           </div>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
             <X className="h-6 w-6 text-gray-500" />
           </button>
         </div>
-        <p className="text-sm text-gray-500 mt-1">{productName}</p>
 
         {/* Content */}
         <div className="mt-4 space-y-4">
