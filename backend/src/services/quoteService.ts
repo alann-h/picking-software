@@ -169,7 +169,7 @@ export async function getQboEstimate(oauthClient: IntuitOAuthClient, quoteId: st
     const estimateResponse = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
-
+    console.log('estimateResponse', estimateResponse.json);
     return estimateResponse.json;
   } catch (e: unknown) {
     if (e instanceof Error) {
