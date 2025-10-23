@@ -93,9 +93,8 @@ const Quote: React.FC = () => {
   };
 
   const handleCameraScanSuccess = useCallback((barcode: string) => {
-    closeModal();
     actions.handleBarcodeScan(barcode);
-  }, [closeModal, actions]); 
+  }, [actions]); 
 
 
   return (
