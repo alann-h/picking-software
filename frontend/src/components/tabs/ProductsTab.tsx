@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Package, X, RefreshCw, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { Product } from '../../utils/types';
@@ -23,6 +23,13 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
 }) => {
   const [searchField, setSearchField] = useState<'all' | 'name' | 'sku'>('all');
   const queryClient = useQueryClient();
+
+  // Auto-set search field to 'sku' if search term looks like a SKU (alphanumeric)
+  useEffect(() => {
+    if (searchTerm && /^[A-Za-z0-9]+$/.test(searchTerm)) {
+      setSearchField('sku');
+    }
+  }, [searchTerm]);
 
   const handleSearchFieldChange = (field: 'all' | 'name' | 'sku') => {
     setSearchField(field);
