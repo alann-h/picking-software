@@ -216,6 +216,12 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
       if (amount && amount < 0) {
         return false;
       }
+      const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
+      const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
+      const itemId = itemRef.value as string;
+      if (itemId === 'SHIPPING_ITEM_ID') {
+        return false;
+      }
       return true;
     })
     .map((line: Record<string, unknown>) => {
@@ -229,6 +235,7 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const line of estimateLine) {
+    // Skip shipping items
     if (line.DetailType === 'SubTotalLineDetail' || line.DetailType === 'TaxLineDetail') {
       continue;
     }
@@ -248,7 +255,6 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
       const detailType = line.DetailType as string;
       const amount = line.Amount as number;
       
-      // Log the problematic line item for debugging
       console.log('Problematic line item:', {
         itemId,
         itemName,
