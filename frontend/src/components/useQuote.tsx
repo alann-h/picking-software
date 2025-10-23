@@ -303,17 +303,17 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         
         const product = Object.values(quoteData?.productInfo || {}).find(p => {
             if (!p.barcode) return false;
-            handleOpenSnackbar(`Barcode ${p.barcode} scanned! Please confirm quantity.`, 'info');
+            handleOpenSnackbar(`${p.productName} scanned! Please confirm quantity.`, 'info');
             return p.barcode.trim().toLowerCase() === normalizedBarcode;
         });
         
         if (!product) {
-            handleOpenSnackbar('This product is not included in this quote.', 'error');
+            handleOpenSnackbar(`Barcode ${normalizedBarcode} not found in this quote.`, 'error');
             return;
         }
         
         if (product.pickingQty === 0) {
-            handleOpenSnackbar('This product has already been fully picked.', 'error');
+            handleOpenSnackbar(`${product.productName} has already been fully picked.`, 'error');
             return;
         }
 
