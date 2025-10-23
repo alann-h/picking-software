@@ -169,7 +169,6 @@ export async function getQboEstimate(oauthClient: IntuitOAuthClient, quoteId: st
     const estimateResponse = await oauthClient.makeApiCall({
       url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
     });
-    console.log('estimateResponse', JSON.stringify(estimateResponse.json, null, 2));
     return estimateResponse.json;
   } catch (e: unknown) {
     if (e instanceof Error) {
@@ -209,7 +208,16 @@ async function filterEstimates(responseData: Record<string, unknown>, companyId:
 async function filterQboEstimate(estimate: Record<string, unknown>, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError> {
   const estimateLine = estimate.Line as Array<Record<string, unknown>>;
   const itemIds = estimateLine
-    .filter((line: Record<string, unknown>) => line.DetailType !== 'SubTotalLineDetail')
+    .filter((line: Record<string, unknown>) => {
+      if (line.DetailType === 'SubTotalLineDetail' || line.DetailType === 'TaxLineDetail') {
+        return false;
+      }
+      const amount = line.Amount as number;
+      if (amount && amount < 0) {
+        return false;
+      }
+      return true;
+    })
     .map((line: Record<string, unknown>) => {
       const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
       const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
@@ -221,7 +229,13 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const line of estimateLine) {
-    if (line.DetailType === 'SubTotalLineDetail') continue;
+    if (line.DetailType === 'SubTotalLineDetail' || line.DetailType === 'TaxLineDetail') {
+      continue;
+    }
+    const amount = line.Amount as number;
+    if (amount && amount < 0) {
+      continue;
+    }
 
     const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
     const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
