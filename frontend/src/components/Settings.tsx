@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Settings as SettingsIcon, Package as InventoryIcon, Upload as UploadFileIcon, Users as GroupIcon, RefreshCw as SyncIcon } from 'lucide-react';
@@ -19,11 +19,22 @@ const Settings: React.FC = () => {
 
   const { data: allProducts = [], isLoading } = useQuery<Product[]>({
     queryKey: ['products'],
-    queryFn: getAllProducts,
+    queryFn: getAllProducts as () => Promise<Product[]>,
     staleTime: 5 * 60 * 1000,
   });
 
-  const [searchTerm, setSearchTerm] = useState('');
+  // Initialize search term from URL parameters
+  const [searchTerm, setSearchTerm] = useState(() => {
+    const urlParams = new URLSearchParams(location.search);
+    return urlParams.get('search') || '';
+  });
+
+  // Update search term when URL changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const urlSearchTerm = urlParams.get('search') || '';
+    setSearchTerm(urlSearchTerm);
+  }, [location.search]);
 
   const currentPath = useMemo(() => {
     const path = location.pathname;

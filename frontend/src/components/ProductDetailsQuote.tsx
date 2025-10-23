@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Package as InventoryIcon,
   Truck as ShippingIcon,
@@ -6,6 +7,7 @@ import {
   QrCode as QrCodeIcon,
   X as CloseIcon,
   Info as InfoIcon,
+  Edit3 as EditIcon,
 } from 'lucide-react';
 import { ProductDetail } from '../utils/types';
 
@@ -22,11 +24,18 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   productName,
   productDetails,
 }) => {
+  const navigate = useNavigate();
   const [localProductDetails, setLocalProductDetails] = useState(productDetails);
 
   useEffect(() => {
     setLocalProductDetails(productDetails);
   }, [productDetails]);
+
+  const handleEditProduct = () => {
+    // Navigate to settings with the product SKU as search term
+    navigate(`/settings/products?search=${encodeURIComponent(localProductDetails.sku)}`);
+    onClose(); // Close the modal
+  };
 
   const getQuantityProgress = () => {
     if (!localProductDetails.originalQty) return 0;
@@ -88,17 +97,33 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
               <h4 className="text-lg font-semibold text-gray-800">Basic Information</h4>
               <div className="flex items-start gap-4">
                 <AssignmentIcon className="h-6 w-6 text-gray-600 mt-1" />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium text-gray-500 uppercase">SKU</p>
                   <p className="font-mono text-gray-900">{localProductDetails.sku}</p>
                 </div>
+                <button
+                  onClick={handleEditProduct}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors cursor-pointer"
+                  title="Edit product in settings"
+                >
+                  <EditIcon className="h-3 w-3" />
+                  Edit
+                </button>
               </div>
               <div className="flex items-start gap-4">
                 <QrCodeIcon className="h-6 w-6 text-gray-600 mt-1" />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium text-gray-500 uppercase">Barcode</p>
                   <p className="font-mono text-gray-900">{localProductDetails.barcode || 'No barcode assigned'}</p>
                 </div>
+                <button
+                  onClick={handleEditProduct}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors cursor-pointer"
+                  title="Edit barcode in settings"
+                >
+                  <EditIcon className="h-3 w-3" />
+                  Edit
+                </button>
               </div>
             </div>
 

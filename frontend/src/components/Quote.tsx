@@ -189,7 +189,6 @@ const Quote: React.FC = () => {
       {quoteData.orderStatus === 'finalised' && quoteData.externalSyncUrl && (
         <div className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
           <div className="flex items-center justify-center gap-3">
-            <ExternalLink className="w-5 h-5 text-green-600" />
             <span className="text-sm font-medium text-green-800">
               Order has been synced to {quoteData.externalSyncUrl.includes('xero.com') ? 'Xero' : 'QuickBooks'}
             </span>
