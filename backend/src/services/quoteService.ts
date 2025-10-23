@@ -229,7 +229,6 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
     const itemLocal = productMap.get(itemId);
 
     if (!itemLocal) {
-      // Build a more descriptive product identifier
       const itemName = itemRef.name ? (itemRef.name as string).split(':').pop()?.trim() : null;
       const lineDescription = line.Description as string;
       
