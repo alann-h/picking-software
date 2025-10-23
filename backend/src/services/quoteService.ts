@@ -233,7 +233,7 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
         error: true,
         quoteId: estimate.Id as string,
         message: `Product from ${connectionType.toUpperCase()} not found in our database.`,
-        productName: (itemRef.name as string).split(':').pop()?.trim() || 'Unknown Product',
+        productName: ((itemRef.name as string) || '').split(':').pop()?.trim() || 'Unknown Product',
       };
     }
     
