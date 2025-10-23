@@ -245,11 +245,25 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
     if (!itemLocal) {
       const itemName = itemRef.name ? (itemRef.name as string).split(':').pop()?.trim() : null;
       const lineDescription = line.Description as string;
+      const detailType = line.DetailType as string;
+      const amount = line.Amount as number;
+      
+      // Log the problematic line item for debugging
+      console.log('Problematic line item:', {
+        itemId,
+        itemName,
+        lineDescription,
+        detailType,
+        amount,
+        fullLine: line
+      });
       
       const productIdentifier = [
         itemName && `Name: ${itemName}`,
         lineDescription && `Description: ${lineDescription}`,
         `Item ID: ${itemId}`,
+        `Type: ${detailType}`,
+        amount && `Amount: $${amount}`
       ].filter(Boolean).join(' - ');
       
       return {
