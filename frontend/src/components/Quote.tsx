@@ -93,8 +93,9 @@ const Quote: React.FC = () => {
   };
 
   const handleCameraScanSuccess = useCallback((barcode: string) => {
-    actions.handleBarcodeScan(barcode);
-  }, [actions]); 
+    closeModal(); // Close camera modal first
+    actions.handleBarcodeScan(barcode); // Then open barcode modal
+  }, [closeModal, actions]); 
 
 
   return (

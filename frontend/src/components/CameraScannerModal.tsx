@@ -52,7 +52,6 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
           // Success callback
           onScanSuccess(decodedText);
           stopScanning();
-          onClose();
         },
         (errorMessage) => {
           // Error callback (ignore "not found" errors as they happen during scanning)
