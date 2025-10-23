@@ -49,13 +49,14 @@ const Settings: React.FC = () => {
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value.toLowerCase());
+    setSearchTerm(event.target.value);
   };
 
   const filteredProducts = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
     return allProducts.filter((product) =>
-      product.productName.toLowerCase().includes(searchTerm) ||
-      (product.sku && product.sku.toLowerCase().includes(searchTerm))
+      product.productName.toLowerCase().includes(searchLower) ||
+      (product.sku && product.sku.toLowerCase().includes(searchLower))
     );
   }, [allProducts, searchTerm]);
 
