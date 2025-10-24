@@ -235,7 +235,6 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const line of estimateLine) {
-    // Skip shipping items
     if (line.DetailType === 'SubTotalLineDetail' || line.DetailType === 'TaxLineDetail') {
       continue;
     }
@@ -247,6 +246,12 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
     const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
     const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
     const itemId = itemRef.value as string;
+    
+    // Skip shipping items
+    if (itemId === 'SHIPPING_ITEM_ID') {
+      continue;
+    }
+    
     const itemLocal = productMap.get(itemId);
 
     if (!itemLocal) {
