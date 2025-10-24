@@ -21,7 +21,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   isLoading,
   isAdmin
 }) => {
-  const [searchField, setSearchField] = useState<'all' | 'name' | 'sku'>('all');
+  const [searchField, setSearchField] = useState<'all' | 'name' | 'sku' | 'barcode'>('all');
   const queryClient = useQueryClient();
 
   // Auto-set search field to 'sku' if search term looks like a SKU (alphanumeric)
@@ -31,7 +31,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     }
   }, [searchTerm]);
 
-  const handleSearchFieldChange = (field: 'all' | 'name' | 'sku') => {
+  const handleSearchFieldChange = (field: 'all' | 'name' | 'sku' | 'barcode') => {
     setSearchField(field);
   };
 
@@ -39,7 +39,8 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
     switch (searchField) {
       case 'name': return 'Search by product name...';
       case 'sku': return 'Search by SKU...';
-      default: return 'Search by product name or SKU...';
+      case 'barcode': return 'Search by barcode...';
+      default: return 'Search by product name, SKU, or barcode...';
     }
   };
 
@@ -54,9 +55,12 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
           return product.productName.toLowerCase().includes(searchLower);
         case 'sku':
           return product.sku && product.sku.toLowerCase().includes(searchLower);
+        case 'barcode':
+          return product.barcode && product.barcode.toLowerCase().includes(searchLower);
         default:
           return product.productName.toLowerCase().includes(searchLower) ||
-                 (product.sku && product.sku.toLowerCase().includes(searchLower));
+                 (product.sku && product.sku.toLowerCase().includes(searchLower)) ||
+                 (product.barcode && product.barcode.toLowerCase().includes(searchLower));
       }
     });
   };
@@ -170,7 +174,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                   <p className="text-sm font-medium text-gray-600">
                     Search by:
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => handleSearchFieldChange('all')}
                       className={clsx(
@@ -206,6 +210,18 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                       )}
                     >
                       SKU
+                    </button>
+                    <button
+                      onClick={() => handleSearchFieldChange('barcode')}
+                      className={clsx(
+                        'px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
+                        {
+                          'bg-blue-600 text-white': searchField === 'barcode',
+                          'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100': searchField !== 'barcode',
+                        }
+                      )}
+                    >
+                      Barcode
                     </button>
                   </div>
                 </div>
@@ -246,7 +262,7 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
                       </p>
                       {searchTerm && (
                         <p className="text-sm font-medium text-blue-700">
-                          Search results for "{searchTerm}" in {searchField === 'all' ? 'all fields' : searchField === 'name' ? 'product names' : 'SKUs'}
+                          Search results for "{searchTerm}" in {searchField === 'all' ? 'all fields' : searchField === 'name' ? 'product names' : searchField === 'sku' ? 'SKUs' : 'barcodes'}
                         </p>
                       )}
                       {!searchTerm && (

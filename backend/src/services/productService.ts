@@ -348,6 +348,34 @@ export async function updateProductDb(productId: number, updateFields: UpdatePro
     throw new Error('No valid fields provided for update');
   }
 
+  if (processedUpdateFields.barcode) {
+    const currentProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { companyId: true, barcode: true },
+    });
+
+    if (!currentProduct) {
+      throw new AccessError('Product not found');
+    }
+
+    if (currentProduct.barcode !== processedUpdateFields.barcode) {
+      const existingProduct = await prisma.product.findFirst({
+        where: {
+          companyId: currentProduct.companyId,
+          barcode: processedUpdateFields.barcode,
+          id: { not: productId },
+        },
+        select: { productName: true, sku: true },
+      });
+
+      if (existingProduct) {
+        throw new InputError(
+          `This barcode is already assigned to another product: "${existingProduct.productName}" (SKU: ${existingProduct.sku}). Please use a different barcode or search for the existing product.`
+        );
+      }
+    }
+  }
+
   return prisma.product.update({
     where: { id: productId },
     data: processedUpdateFields,
