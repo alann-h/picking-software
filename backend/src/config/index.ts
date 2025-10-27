@@ -79,8 +79,8 @@ const baseConfig = {
         message: 'Too many login attempts, please try again later.'
       },
       general: {
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100 // 100 requests per window
+        windowMs: 1 * 60 * 1000, // 1 minute
+        max: 100 // 100 requests per minute (more reasonable for SPAs)
       }
     },
     helmet: {

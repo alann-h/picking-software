@@ -15,17 +15,19 @@ const queryClient = new QueryClient({
       staleTime: 1 * 60 * 1000,
       gcTime: 5 * 60 * 1000,
       retry: (failureCount, error: any) => {
-        if (error?.response?.status === 401) {
+        // Don't retry on 401 (auth) or 429 (rate limit) errors
+        if (error?.response?.status === 401 || error?.response?.status === 429) {
           return false;
         }
         return failureCount < 2;
       },
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: 'always',
       refetchOnReconnect: true,
     },
     mutations: {
       retry: (failureCount, error: any) => {
-        if (error?.response?.status === 401) {
+        // Don't retry on 401 (auth) or 429 (rate limit) errors
+        if (error?.response?.status === 401 || error?.response?.status === 429) {
           return false;
         }
         // Retry up to 1 time for other errors

@@ -54,7 +54,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         },
         retry: (failureCount, error) => {
             const status = error.response?.status;
-            if (status === 404 || status === 409) {
+            // Don't retry on 404, 409, or 429 errors
+            if (status === 404 || status === 409 || status === 429) {
                 return false; 
             }
 
@@ -62,7 +63,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         },
         refetchInterval: (query) => {
             const data = query.state.data as QuoteData | undefined;
-            return data?.orderStatus === 'finalised' ? false : 10000;
+            // Poll every 30 seconds instead of 10 to reduce API calls
+            return data?.orderStatus === 'finalised' ? false : 30000;
         },
         refetchIntervalInBackground: false,
     });

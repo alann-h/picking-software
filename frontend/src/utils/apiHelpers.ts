@@ -183,6 +183,8 @@ export const handleResponse = async (response: Response): Promise<unknown> => {
     }
 
     const errorMessage = (typeof errorData.error === 'string' ? errorData.error : errorData.message || '').toLowerCase();
+    
+    // Handle CSRF token errors
     if (response.status === 403 && (errorMessage.includes('csrf') || errorMessage.includes('token'))) {
       console.warn("CSRF token error detected. Invalidating cached token.");
       console.error("Error details:", errorData);
@@ -191,6 +193,18 @@ export const handleResponse = async (response: Response): Promise<unknown> => {
       const csrfError = new HttpError(response, errorData);
       csrfError.name = 'CsrfError';
       throw csrfError;
+    }
+
+    // Handle rate limit errors with a more helpful message
+    if (response.status === 429) {
+      console.warn("Rate limit exceeded. Please wait a moment before making more requests.");
+      const rateLimitError = new HttpError(response, {
+        ...errorData,
+        message: 'Too many requests. Please wait a moment and try again.',
+        error: 'RATE_LIMIT_EXCEEDED'
+      });
+      rateLimitError.name = 'RateLimitError';
+      throw rateLimitError;
     }
 
     // For all other errors, throw the generic HttpError

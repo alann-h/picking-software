@@ -16,8 +16,8 @@ export const useUserStatus = () => {
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: true,
     retry: (failureCount, error: any) => {
-      // Don't retry on 401 errors (authentication failures)
-      if (error?.response?.status === 401) {
+      // Don't retry on 401 (auth) or 429 (rate limit) errors
+      if (error?.response?.status === 401 || error?.response?.status === 429) {
         return false;
       }
       // Retry up to 3 times for other errors
