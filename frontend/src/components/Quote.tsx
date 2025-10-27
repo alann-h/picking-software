@@ -26,7 +26,7 @@ const Quote: React.FC = () => {
   const { isAdmin, connectionType } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  const { quoteData, actions, pendingStates } = useQuoteManager(quoteId, openModal);
+  const { quoteData, actions, pendingStates } = useQuoteManager(quoteId, openModal, closeModal);
 
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [pickerNote, setPickerNote] = useState(quoteData?.pickerNote || '');

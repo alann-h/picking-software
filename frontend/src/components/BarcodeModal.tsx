@@ -104,7 +104,6 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
   const handleConfirmClick = () => {
     if (!isLoading) {
       onConfirm(parsedQty);
-      onClose();
     }
   };
 

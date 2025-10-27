@@ -26,7 +26,7 @@ import {
 import { useCallback, useMemo } from 'react';
 
 
-export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) => {
+export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, closeModal: () => void) => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const location = useLocation();
@@ -294,9 +294,13 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         mutationFn: (variables: { barcode: string, quantity: number, productName: string }) => barcodeScan(variables.barcode, quoteId, variables.quantity), 
         onSuccess: (_, variables) => { 
             handleOpenSnackbar(`${variables.productName} (qty: ${variables.quantity}) scanned successfully!`, 'success'); 
-            invalidateAndRefetch(); 
+            invalidateAndRefetch();
+            closeModal(); // Close the barcode modal after successful scan
         }, 
-        onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), 
+        onError: (error) => {
+            handleOpenSnackbar(extractErrorMessage(error), 'error');
+            closeModal(); // Close the modal even on error so user can retry
+        }, 
     });
 
     const handleBarcodeScan = useCallback(async (barcode: string) => {
