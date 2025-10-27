@@ -291,9 +291,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         }, 
     });
     const confirmBarcodeScan = useMutation({ 
-        mutationFn: (variables: { barcode: string, quantity: number }) => barcodeScan(variables.barcode, quoteId, variables.quantity), 
-        onSuccess: () => { 
-            handleOpenSnackbar('Product scanned successfully!', 'success'); 
+        mutationFn: (variables: { barcode: string, quantity: number, productName: string }) => barcodeScan(variables.barcode, quoteId, variables.quantity), 
+        onSuccess: (_, variables) => { 
+            handleOpenSnackbar(`${variables.productName} (qty: ${variables.quantity}) scanned successfully!`, 'success'); 
             invalidateAndRefetch(); 
         }, 
         onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), 
@@ -322,7 +322,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         openModal('barcodeModal', {
             productName: product.productName,
             availableQty: product.pickingQty,
-            onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity }),
+            onConfirm: (quantity: number) => confirmBarcodeScan.mutate({ barcode, quantity, productName: product.productName }),
         });
     }, [quoteData, openModal, confirmBarcodeScan, handleOpenSnackbar]);
 
