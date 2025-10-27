@@ -55,6 +55,7 @@ const QuoteStatusChip: React.FC<{ status: RunQuote['orderStatus'] }> = ({ status
 
 const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
     const navigate = useNavigate();
     const { quoteCount, completedQuotes, progressPercentage } = useMemo(() => {
         const quotes = run.quotes || [];
@@ -118,13 +119,25 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                                         {run.quotes
                                           ?.sort((a, b) => a.priority - b.priority)
                                           .map((quote: RunQuote) => (
-                                              <tr key={quote.quoteId} onClick={() => navigate(`/quote?id=${quote.quoteId}`)} className="hover:bg-gray-50 cursor-pointer transition-colors duration-150">
+                                              <tr 
+                                                  key={quote.quoteId} 
+                                                  onClick={() => {
+                                                      setLoadingQuoteId(quote.quoteId);
+                                                      navigate(`/quote?id=${quote.quoteId}`);
+                                                  }} 
+                                                  className={`hover:bg-gray-50 ${loadingQuoteId === quote.quoteId ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-colors duration-150`}
+                                              >
                                                   <td className="px-4 py-3 whitespace-nowrap">
                                                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                                                           {quote.priority + 1}
                                                       </span>
                                                   </td>
-                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">#{quote.quoteNumber || quote.quoteId}</td>
+                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600 flex items-center gap-2">
+                                                      #{quote.quoteNumber || quote.quoteId}
+                                                      {loadingQuoteId === quote.quoteId && (
+                                                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                                      )}
+                                                  </td>
                                                   <td className="px-4 py-3 whitespace-nowrap"><QuoteStatusChip status={quote.orderStatus} /></td>
                                                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{quote.customerName}</td>
                                               </tr>
@@ -139,9 +152,9 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     );
 };
 
-const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quote, onClick }) => {
+const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void; isLoading: boolean }> = ({ quote, onClick, isLoading }) => {
     return (
-        <div onClick={onClick} className="w-full bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md hover:border-blue-400 cursor-pointer transition-all duration-200 ease-in-out flex items-center justify-between">
+        <div onClick={isLoading ? undefined : onClick} className={`w-full bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md hover:border-blue-400 ${isLoading ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-all duration-200 ease-in-out flex items-center justify-between`}>
             <div className="flex items-center">
                 <div className="mr-4">
                     <p className="text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.id}</p>
@@ -155,7 +168,11 @@ const QuoteItem: React.FC<{ quote: QuoteSummary; onClick: () => void }> = ({ quo
                 <div className="text-right">
                     <p className="font-semibold text-gray-800">${quote.totalAmount.toFixed(2)}</p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
+                {isLoading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                ) : (
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                )}
             </div>
         </div>
     );
@@ -267,6 +284,8 @@ const ActiveRunsList: React.FC<{ runs: Run[] }> = ({ runs }) => {
 
 const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
     const navigate = useNavigate();
+    const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
+    
     const { data: quotes } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', customer.customerId],
         queryFn: async () => {
@@ -283,11 +302,20 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
         );
     }
 
+    const handleQuoteClick = (quoteId: string) => {
+        setLoadingQuoteId(quoteId);
+        navigate(`/quote?id=${quoteId}`);
+    };
+
     return (
         <div className="space-y-2">
             {quotes.map((quote) => (
                 <div key={quote.id}>
-                    <QuoteItem quote={quote} onClick={() => navigate(`/quote?id=${quote.id}`)} />
+                    <QuoteItem 
+                        quote={quote} 
+                        onClick={() => handleQuoteClick(quote.id)} 
+                        isLoading={loadingQuoteId === quote.id}
+                    />
                 </div>
             ))}
         </div>

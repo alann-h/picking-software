@@ -103,6 +103,8 @@ const ProductList: React.FC<ProductListProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   
   // Sorting state
@@ -164,6 +166,8 @@ const ProductList: React.FC<ProductListProps> = ({
     setSelectedProduct(null);
     setEditProduct({});
     setOpenEdit(false);
+    setIsSaving(false);
+    setIsArchiving(false);
   };
 
   const handleChangeEdit = useCallback(<K extends keyof Product>(field: K, value: Product[K]) => {
@@ -175,6 +179,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   const handleSaveEdit = async () => {
     if (!selectedProduct) return;
+    setIsSaving(true);
     try {
       await updateProductDb(selectedProduct.productId, {
         productName: selectedProduct.productName,
@@ -188,6 +193,8 @@ const ProductList: React.FC<ProductListProps> = ({
       handleCloseEdit();
     } catch (err) {
       handleOpenSnackbar((err as Error).message || 'Failed to update product', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -197,6 +204,7 @@ const ProductList: React.FC<ProductListProps> = ({
     const newStatus = !selectedProduct.isArchived;
     const successMessage = newStatus ? 'Product archived successfully' : 'Product restored successfully';
 
+    setIsArchiving(true);
     try {
       await setProductArchiveStatus(selectedProduct.productId, newStatus);
       handleOpenSnackbar(successMessage, 'success');
@@ -204,6 +212,8 @@ const ProductList: React.FC<ProductListProps> = ({
       handleCloseEdit();
     } catch (err) {
       handleOpenSnackbar((err as Error).message || 'Failed to update status', 'error');
+    } finally {
+      setIsArchiving(false);
     }
   };
 
@@ -481,17 +491,31 @@ const ProductList: React.FC<ProductListProps> = ({
             }
             actions={
               <>
-                <button onClick={handleArchiveAction} className={clsx(
-                  "inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer",
-                  selectedProduct?.isArchived ? "bg-green-100 text-green-900 hover:bg-green-200 focus:ring-green-500" : "bg-red-100 text-red-900 hover:bg-red-200 focus:ring-red-500"
-                )}>
+                <button 
+                  onClick={handleArchiveAction}
+                  disabled={isSaving || isArchiving}
+                  className={clsx(
+                    "inline-flex justify-center items-center rounded-md border border-transparent px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+                    selectedProduct?.isArchived ? "bg-green-100 text-green-900 hover:bg-green-200 focus:ring-green-500" : "bg-red-100 text-red-900 hover:bg-red-200 focus:ring-red-500"
+                  )}
+                >
+                  {isArchiving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {selectedProduct?.isArchived ? 'Restore' : 'Archive'}
                 </button>
-                <button onClick={handleCloseEdit} className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
+                <button 
+                  onClick={handleCloseEdit} 
+                  disabled={isSaving || isArchiving}
+                  className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
                   Cancel
                 </button>
-                <button onClick={handleSaveEdit} className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer">
-                  Save
+                <button 
+                  onClick={handleSaveEdit} 
+                  disabled={isSaving || isArchiving}
+                  className="inline-flex justify-center items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSaving ? 'Saving...' : 'Save'}
                 </button>
               </>
             }

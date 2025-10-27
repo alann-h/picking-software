@@ -375,11 +375,12 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction) =
         isAddingProduct: addProduct.isPending,
         isSavingNote: saveNote.isPending,
         isFinalising: finaliseInvoice.isPending,
-        isQuoteChecking: setQuoteChecking.isPending
+        isQuoteChecking: setQuoteChecking.isPending,
+        isConfirmingBarcode: confirmBarcodeScan.isPending
     }), [
         adjustQuantity.isPending, saveForLater.isPending, setUnavailable.isPending,
         setFinished.isPending, addProduct.isPending, saveNote.isPending,
-        finaliseInvoice.isPending, setQuoteChecking.isPending
+        finaliseInvoice.isPending, setQuoteChecking.isPending, confirmBarcodeScan.isPending
     ]);
 
     return {
