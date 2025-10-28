@@ -1039,6 +1039,12 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
         throw new InputError(`Product ${localItem.productName} not found in QuickBooks`);
       }
       
+      // Log tax code information for debugging
+      const taxCodeValue = localItem.tax_code_ref || "NON";
+      console.log(`📦 Product: ${localItem.productName} (SKU: ${localItem.sku})`);
+      console.log(`   Tax Code from DB: ${localItem.tax_code_ref}`);
+      console.log(`   Tax Code to use: ${taxCodeValue}`);
+      
       const lineItem = {
         Description: localItem.productName,
         Amount: amount,
@@ -1066,6 +1072,13 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
 
     const baseURL = await getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
+    
+    // Log the full payload being sent to QuickBooks
+    console.log('=== QuickBooks Update Payload ===');
+    console.log('Quote ID:', quoteId);
+    console.log('Number of line items:', lineItems.length);
+    console.log('Full payload:', JSON.stringify(updatePayload, null, 2));
+    console.log('================================');
     
     // Make API call with proper error handling
     let response;
