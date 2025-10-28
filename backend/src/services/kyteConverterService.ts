@@ -314,7 +314,7 @@ export async function createQuickBooksEstimate(orderData: ProcessedKyteOrder, co
         Qty: item.quantity,
         UnitPrice: item.price,
         TaxCodeRef: {
-          value: item.taxCodeRef || "NON"
+          value: item.taxCodeRef || "4"
         }
       }
     }));
