@@ -1060,7 +1060,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     }
     
     updatePayload.Line = lineItems;
-    if (lineItems.length === 0) {
+    if (lineItems.length === 0) { 
       throw new InputError('No products found to update in QuickBooks');
     }
 
@@ -1238,13 +1238,41 @@ export async function ensureQuotesExistInDB(quoteIds: string[], companyId: strin
         throw new InputError(`Could not find all quotes in ${connectionType === 'xero' ? 'Xero' : 'QuickBooks'}. Please check IDs.`);
     }
 
+    // Track successfully saved quotes and failed quotes
+    const successfullySavedIds: string[] = [];
+    const failedQuotes: { id: string; error: string }[] = [];
+
     for (const quote of newQuotesData) {
-        if (!(quote as QuoteFetchError).error) {
-            await estimateToDB(quote as FilteredQuote);
+        if ((quote as QuoteFetchError).error) {
+            // This quote failed to fetch
+            const errorQuote = quote as QuoteFetchError;
+            failedQuotes.push({
+                id: errorQuote.quoteId,
+                error: errorQuote.message
+            });
+        } else {
+            // Try to save the quote to database
+            try {
+                await estimateToDB(quote as FilteredQuote);
+                successfullySavedIds.push((quote as FilteredQuote).quoteId);
+            } catch (error) {
+                failedQuotes.push({
+                    id: (quote as FilteredQuote).quoteId,
+                    error: error instanceof Error ? error.message : 'Unknown error saving quote to database'
+                });
+            }
         }
     }
 
-    console.log(`Successfully saved ${newQuotesData.length} new quotes to the database.`);
+    // If any quotes failed, throw an error with details
+    if (failedQuotes.length > 0) {
+        const errorDetails = failedQuotes.map(f => `Quote ID ${f.id}: ${f.error}`).join('; ');
+        throw new InputError(
+            `Failed to fetch or save ${failedQuotes.length} out of ${missingIds.length} quotes. Details: ${errorDetails}`
+        );
+    }
+
+    console.log(`Successfully saved ${successfullySavedIds.length} new quotes to the database.`);
 }
 
 
