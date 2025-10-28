@@ -1023,6 +1023,9 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       return a.sku.localeCompare(b.sku);
     });
     
+    const baseURL = await getBaseURL(oauthClient, 'qbo');
+    const realmId = getRealmId(oauthClient);
+    
     for (const localItem of sortedProducts) {
       if (localItem.pickingStatus === 'unavailable') {
         continue;
@@ -1039,11 +1042,26 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
         throw new InputError(`Product ${localItem.productName} not found in QuickBooks`);
       }
       
-      // Log tax code information for debugging
-      const taxCodeValue = localItem.tax_code_ref || "NON";
-      console.log(`📦 Product: ${localItem.productName} (SKU: ${localItem.sku})`);
-      console.log(`   Tax Code from DB: ${localItem.tax_code_ref}`);
-      console.log(`   Tax Code to use: ${taxCodeValue}`);
+      // Fetch current tax code from QuickBooks item
+      let taxCodeValue = "NON"; // Default to non-taxable
+      try {
+        const itemUrl = `${baseURL}v3/company/${realmId}/item/${externalId}?minorversion=75`;
+        const itemResponse = await oauthClient.makeApiCall({ url: itemUrl });
+        const itemData = itemResponse.json?.Item;
+        
+        if (itemData?.SalesTaxCodeRef?.value) {
+          taxCodeValue = itemData.SalesTaxCodeRef.value;
+          console.log(`📦 Product: ${localItem.productName} (SKU: ${localItem.sku})`);
+          console.log(`   Tax Code from DB: ${localItem.tax_code_ref}`);
+          console.log(`   Tax Code from QBO: ${taxCodeValue}`);
+        } else {
+          console.log(`📦 Product: ${localItem.productName} (SKU: ${localItem.sku})`);
+          console.log(`   Tax Code from DB: ${localItem.tax_code_ref}`);
+          console.log(`   No tax code in QBO, using default: NON`);
+        }
+      } catch (fetchError: unknown) {
+        console.warn(`Could not fetch tax code for item ${externalId}, using NON:`, fetchError);
+      }
       
       const lineItem = {
         Description: localItem.productName,
@@ -1057,7 +1075,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
           Qty: Number(localItem.originalQty),
           UnitPrice: Number(localItem.price),
           TaxCodeRef: {
-            value: localItem.tax_code_ref || "NON"
+            value: taxCodeValue
           }
         }
       };
@@ -1070,16 +1088,6 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       throw new InputError('No products found to update in QuickBooks');
     }
 
-    const baseURL = await getBaseURL(oauthClient, 'qbo');
-    const realmId = getRealmId(oauthClient);
-    
-    // Log the full payload being sent to QuickBooks
-    console.log('=== QuickBooks Update Payload ===');
-    console.log('Quote ID:', quoteId);
-    console.log('Number of line items:', lineItems.length);
-    console.log('Full payload:', JSON.stringify(updatePayload, null, 2));
-    console.log('================================');
-    
     // Make API call with proper error handling
     let response;
     try {
