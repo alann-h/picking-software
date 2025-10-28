@@ -65,7 +65,7 @@ export async function enrichWithQBOData(products: EnrichableProduct[], companyId
           price: itemData.UnitPrice,
           quantity_on_hand: QtyOnHand,
           external_item_id: itemData.Id,
-          tax_code_ref: itemData.SalesTaxCodeRef.value
+          tax_code_ref: itemData.SalesTaxCodeRef?.value || null
         });
       } catch (err: unknown) {
         if (err instanceof Error) {

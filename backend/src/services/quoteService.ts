@@ -1051,7 +1051,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
           Qty: Number(localItem.originalQty),
           UnitPrice: Number(localItem.price),
           TaxCodeRef: {
-            value: localItem.tax_code_ref || "4"
+            value: localItem.tax_code_ref || "NON"
           }
         }
       };
