@@ -244,6 +244,23 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
     }
 
     const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
+    
+    // Check if ItemRef exists - handle malformed QuickBooks data
+    if (!salesItemLineDetail || !salesItemLineDetail.ItemRef) {
+      console.error('Line item missing ItemRef:', {
+        quoteId: estimate.Id,
+        lineDetail: line.DetailType,
+        lineDescription: line.Description,
+        fullLine: line
+      });
+      return {
+        error: true,
+        quoteId: estimate.Id as string,
+        message: 'Quote has malformed data - line item missing ItemRef',
+        productName: (line.Description as string) || 'Unknown line item',
+      };
+    }
+    
     const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
     const itemId = itemRef.value as string;
     
@@ -1234,10 +1251,6 @@ export async function ensureQuotesExistInDB(quoteIds: string[], companyId: strin
 
     const newQuotesData = await getEstimatesBulk(missingIds, companyId, connectionType);
     
-    if (newQuotesData.length !== missingIds.length) {
-        throw new InputError(`Could not find all quotes in ${connectionType === 'xero' ? 'Xero' : 'QuickBooks'}. Please check IDs.`);
-    }
-
     // Track successfully saved quotes and failed quotes
     const successfullySavedIds: string[] = [];
     const failedQuotes: { id: string; error: string }[] = [];
@@ -1316,13 +1329,26 @@ async function getQboEstimatesBulk(quoteIds: string[], companyId: string): Promi
                     if (filteredQuote) {
                         allQuotes.push(filteredQuote);
                     }
+                } else {
+                    // Quote not found in QuickBooks
+                    allQuotes.push({
+                        error: true,
+                        quoteId: quoteId,
+                        message: 'Quote not found in QuickBooks',
+                        productName: 'N/A',
+                    });
                 }
             } catch (individualError: unknown) {
-                if (individualError instanceof Error) {
-                    console.error(`Error fetching quote ${quoteId}:`, individualError.message);
-                } else {
-                    console.error(`An unknown error occurred while fetching quote ${quoteId}:`, individualError);
-                }
+                const errorMessage = individualError instanceof Error ? individualError.message : 'Unknown error';
+                console.error(`Error fetching quote ${quoteId}:`, errorMessage);
+                
+                // Add QuoteFetchError to results instead of silently failing
+                allQuotes.push({
+                    error: true,
+                    quoteId: quoteId,
+                    message: errorMessage,
+                    productName: 'N/A',
+                });
             }
         }
         
@@ -1341,36 +1367,41 @@ async function getXeroEstimatesBulk(quoteIds: string[], companyId: string): Prom
 
         const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
         
-        const estimates: XeroQuote[] = [];
+        const allQuotes: (FilteredQuote | QuoteFetchError)[] = [];
         
         for (const quoteId of quoteIds) {
             try {
                 const response = await oauthClient.accountingApi.getQuote(tenantId, quoteId);
                 if (response.body.quotes && response.body.quotes.length > 0) {
-                    estimates.push(response.body.quotes[0]);
+                    const estimate = response.body.quotes[0];
+                    const filteredQuote = await filterEstimates(estimate as Record<string, unknown>, companyId, 'xero') as FilteredQuote | QuoteFetchError;
+                    if (filteredQuote) {
+                        allQuotes.push(filteredQuote);
+                    }
+                } else {
+                    // Quote not found in Xero
+                    allQuotes.push({
+                        error: true,
+                        quoteId: quoteId,
+                        message: 'Quote not found in Xero',
+                        productName: 'N/A',
+                    });
                 }
             } catch (error: unknown) {
-                console.error(`Failed to fetch Xero quote ${quoteId}:`, error);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                console.error(`Failed to fetch Xero quote ${quoteId}:`, errorMessage);
+                
+                // Add QuoteFetchError to results instead of silently failing
+                allQuotes.push({
+                    error: true,
+                    quoteId: quoteId,
+                    message: errorMessage,
+                    productName: 'N/A',
+                });
             }
         }
 
-        if (estimates.length === 0) {
-            return [];
-        }
-
-        const filteredQuotes: (FilteredQuote | QuoteFetchError)[] = [];
-        for (const estimate of estimates) {
-            try {
-                const filteredQuote = await filterEstimates(estimate as Record<string, unknown>, companyId, 'xero') as FilteredQuote | QuoteFetchError;
-                if (filteredQuote && !(filteredQuote as QuoteFetchError).error) {
-                    filteredQuotes.push(filteredQuote);
-                }
-            } catch (error: unknown) {
-                console.error(`Failed to filter Xero estimate:`, error);
-            }
-        }
-
-        return filteredQuotes;
+        return allQuotes;
     } catch (e: unknown) {
         if (e instanceof Error) {
             throw new InputError(e.message);
