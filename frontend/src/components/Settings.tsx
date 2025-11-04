@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Settings as SettingsIcon, Package as InventoryIcon, Upload as UploadFileIcon, Users as GroupIcon, RefreshCw as SyncIcon } from 'lucide-react';
 import clsx from 'clsx';
@@ -15,6 +15,7 @@ import { useAuth } from '../hooks/useAuth';
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAdmin } = useAuth();
 
   const { data: allProducts = [], isLoading } = useQuery<Product[]>({
@@ -25,16 +26,14 @@ const Settings: React.FC = () => {
 
   // Initialize search term from URL parameters
   const [searchTerm, setSearchTerm] = useState(() => {
-    const urlParams = new URLSearchParams(location.search);
-    return urlParams.get('search') || '';
+    return searchParams.get('search') || '';
   });
 
   // Update search term when URL changes
   useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const urlSearchTerm = urlParams.get('search') || '';
+    const urlSearchTerm = searchParams.get('search') || '';
     setSearchTerm(urlSearchTerm);
-  }, [location.search]);
+  }, [searchParams]);
 
   const currentPath = useMemo(() => {
     const path = location.pathname;
@@ -49,7 +48,18 @@ const Settings: React.FC = () => {
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
+    const newSearchTerm = event.target.value;
+    setSearchTerm(newSearchTerm);
+    
+    // Update URL with new search term while preserving other params
+    const newParams = new URLSearchParams(searchParams);
+    if (newSearchTerm) {
+      newParams.set('search', newSearchTerm);
+    } else {
+      newParams.delete('search');
+    }
+    
+    setSearchParams(newParams);
   };
 
   const filteredProducts = useMemo(() => {

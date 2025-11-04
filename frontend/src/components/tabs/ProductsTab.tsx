@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Package, X, RefreshCw, Download } from 'lucide-react';
 import clsx from 'clsx';
+import { useSearchParams } from 'react-router-dom';
 import { Product } from '../../utils/types';
 import ProductList from '../ProductListSettings';
 import { updateProductDb, setProductArchiveStatus, addProductDb } from '../../api/products'; 
@@ -21,18 +22,42 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
   isLoading,
   isAdmin
 }) => {
-  const [searchField, setSearchField] = useState<'all' | 'name' | 'sku' | 'barcode'>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-
-  // Auto-set search field to 'sku' if search term looks like a SKU (alphanumeric)
-  useEffect(() => {
-    if (searchTerm && /^[A-Za-z0-9]+$/.test(searchTerm)) {
-      setSearchField('sku');
+  
+  // Initialize search field from URL, default to 'all'
+  const [searchField, setSearchField] = useState<'all' | 'name' | 'sku' | 'barcode'>(() => {
+    const fieldFromUrl = searchParams.get('field');
+    if (fieldFromUrl === 'name' || fieldFromUrl === 'sku' || fieldFromUrl === 'barcode' || fieldFromUrl === 'all') {
+      return fieldFromUrl;
     }
-  }, [searchTerm]);
+    return 'all';
+  });
+
+  // Update search field from URL when it changes
+  useEffect(() => {
+    const fieldFromUrl = searchParams.get('field');
+    if (fieldFromUrl === 'name' || fieldFromUrl === 'sku' || fieldFromUrl === 'barcode' || fieldFromUrl === 'all') {
+      setSearchField(fieldFromUrl);
+    } else if (!fieldFromUrl) {
+      setSearchField('all');
+    }
+  }, [searchParams]);
 
   const handleSearchFieldChange = (field: 'all' | 'name' | 'sku' | 'barcode') => {
     setSearchField(field);
+    
+    // Update URL with new search field
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('field', field);
+    
+    // Preserve search term if it exists
+    const search = searchParams.get('search');
+    if (search) {
+      newParams.set('search', search);
+    }
+    
+    setSearchParams(newParams);
   };
 
   const getSearchPlaceholder = () => {
