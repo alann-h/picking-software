@@ -62,7 +62,7 @@ const TechnologyStack: React.FC = () => {
       <SEO 
         title="Technology Stack - Smart Picker"
         description="Learn about the modern technology stack that powers Smart Picker, ensuring a fast, reliable, and scalable warehouse management solution."
-        canonicalUrl="https://smartpicker.au/technology"
+        canonicalUrl="https://smartpicker.com.au/technology"
       />
       
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 sm:py-20">

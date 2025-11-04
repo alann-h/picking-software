@@ -5,8 +5,8 @@ export const structuredDataSchemas = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "Smart Picker",
-    "url": "https://smartpicker.au",
-    "logo": "https://smartpicker.au/SP.png",
+    "url": "https://smartpicker.com.au",
+    "logo": "https://smartpicker.com.au/SP.png",
     "description": "The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately.",
     "sameAs": [
       // Add your social media URLs here when available
@@ -46,7 +46,7 @@ export const structuredDataSchemas = {
     "@type": "WebPage",
     "name": "Smart Picker - Efficient Order Preparation",
     "description": "Boost efficiency with Smart Picker. The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately.",
-    "url": "https://smartpicker.au",
+    "url": "https://smartpicker.com.au",
     "mainEntity": {
       "@type": "SoftwareApplication",
       "name": "Smart Picker"
@@ -127,9 +127,9 @@ export const structuredDataSchemas = {
     "@type": "LocalBusiness",
     "name": "Smart Picker",
     "description": "Smart order picking software with barcode scanning and QuickBooks integration",
-    "url": "https://smartpicker.au",
+    "url": "https://smartpicker.com.au",
     "telephone": "+61-XXX-XXX-XXX", // Add your phone number
-    "email": "support@smartpicker.au", // Add your email
+    "email": "support@smartpicker.com.au", // Add your email
     "address": {
       "@type": "PostalAddress",
       "addressCountry": "AU",

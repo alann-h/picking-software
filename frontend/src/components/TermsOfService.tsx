@@ -177,7 +177,7 @@ const TermsOfService: React.FC = () => {
       <SEO
         title="Terms of Service - Smart Picker"
         description="Read the Terms of Service for using Smart Picker warehouse management software."
-        canonicalUrl="https://smartpicker.au/terms-of-service"
+        canonicalUrl="https://smartpicker.com.au/terms-of-service"
       />
       
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -246,7 +246,7 @@ const TermsOfService: React.FC = () => {
                 <div className="text-slate-800">
                   <p className="font-semibold">Smart Picker</p>
                   <p>New South Wales, Australia</p>
-                  <p>Email: <a href="mailto:support@smartpicker.au" className="text-blue-700 hover:underline">support@smartpicker.au</a></p>
+                  <p>Email: <a href="mailto:support@smartpicker.com.au" className="text-blue-700 hover:underline">support@smartpicker.com.au</a></p>
                 </div>
               </div>
             </div>

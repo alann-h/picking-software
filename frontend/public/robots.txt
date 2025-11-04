@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://smartpicker.au/sitemap.xml
+Sitemap: https://smartpicker.com.au/sitemap.xml
 
 # Crawl delay (optional - helps with server load)
 Crawl-delay: 1

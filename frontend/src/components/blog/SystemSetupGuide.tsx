@@ -45,7 +45,7 @@ const SystemSetupGuide: React.FC = () => {
         title="System Setup Guide - Smart Picker"
         description="A step-by-step guide to setting up Smart Picker for your warehouse, including QuickBooks integration, user setup, and first run configuration."
         keywords="system setup, getting started, Smart Picker guide, QuickBooks integration setup, user management, warehouse configuration, order picking workflow"
-        canonicalUrl="https://smartpicker.au/blog/system-setup-guide"
+        canonicalUrl="https://smartpicker.com.au/blog/system-setup-guide"
         structuredData={{
           "@context": "https://schema.org",
           "@type": "HowTo",
@@ -56,8 +56,8 @@ const SystemSetupGuide: React.FC = () => {
             "@type": "Organization",
             "name": "Smart Picker Team"
           },
-          "url": "https://smartpicker.au/blog/system-setup-guide",
-          "image": "https://smartpicker.au/quickbooks-logo.png"
+          "url": "https://smartpicker.com.au/blog/system-setup-guide",
+          "image": "https://smartpicker.com.au/quickbooks-logo.png"
         }}
       />
       

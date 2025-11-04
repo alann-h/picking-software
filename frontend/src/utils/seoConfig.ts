@@ -5,8 +5,8 @@ export const seoConfig = {
     title: "Smart Picker - Order Picking Software with QuickBooks & Xero Integration",
     description: "Smart Picker - The smart order picking app with barcode scanning and digital lists. Seamless QuickBooks & Xero integration for Australian warehouses.",
     keywords: "smart picker, order picking software, barcode scanning, warehouse management, QuickBooks integration, Xero integration, inventory management, mobile app, efficiency, digital lists, Australian warehouse software",
-    image: "https://smartpicker.au/SP.png",
-    url: "https://smartpicker.au",
+    image: "https://smartpicker.com.au/SP.png",
+    url: "https://smartpicker.com.au",
     type: "website" as const,
     locale: "en_AU",
     siteName: "Smart Picker"
@@ -90,8 +90,8 @@ export const seoConfig = {
   structuredData: {
     organization: {
       name: "Smart Picker",
-      url: "https://smartpicker.au",
-      logo: "https://smartpicker.au/SP.png",
+      url: "https://smartpicker.com.au",
+      logo: "https://smartpicker.com.au/SP.png",
       description: "The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately.",
       contactPoint: {
         contactType: "customer service",
@@ -126,7 +126,7 @@ export const seoConfig = {
         "Run organization",
         "Progress tracking"
       ],
-      screenshot: "https://smartpicker.au/SP.png",
+      screenshot: "https://smartpicker.com.au/SP.png",
       softwareVersion: "2.0",
       releaseNotes: "Latest version with enhanced barcode scanning and QuickBooks & Xero integration"
     }

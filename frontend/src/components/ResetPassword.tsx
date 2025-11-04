@@ -84,7 +84,7 @@ const ResetPassword: React.FC = () => {
         <SEO 
           title="Reset Password - Smart Picker" 
           description="Reset your Smart Picker password"
-          canonicalUrl="https://smartpicker.au/reset-password"
+          canonicalUrl="https://smartpicker.com.au/reset-password"
         />
         <div className="flex min-h-screen items-center bg-gradient-to-br from-blue-700 via-blue-500 to-blue-400 py-4">
           <div className="container mx-auto max-w-sm">
@@ -124,7 +124,7 @@ const ResetPassword: React.FC = () => {
       <SEO 
         title="Reset Password - Smart Picker" 
         description="Reset your Smart Picker password"
-        canonicalUrl="https://smartpicker.au/reset-password"
+        canonicalUrl="https://smartpicker.com.au/reset-password"
       />
       <div className="flex min-h-screen items-center bg-gradient-to-r from-indigo-500 to-purple-600 py-4">
         <div className="container mx-auto max-w-sm">

@@ -130,7 +130,7 @@ const FAQ: React.FC = () => {
       <SEO 
         title="FAQ - Smart Picker"
         description="Find answers to frequently asked questions about Smart Picker, including features, integration, pricing, and support."
-        canonicalUrl="https://smartpicker.au/faq"
+        canonicalUrl="https://smartpicker.com.au/faq"
         structuredData={getPageStructuredData('faq')}
       />
       
@@ -211,7 +211,7 @@ const FAQ: React.FC = () => {
               </p>
               <div className="flex flex-col justify-center gap-4 sm:flex-row">
                 <a
-                  href="mailto:support@smartpicker.au" // Assuming this is the contact link
+                  href="mailto:support@smartpicker.com.au" // Assuming this is the contact link
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
                 >
                   <LifeBuoy size={18} />

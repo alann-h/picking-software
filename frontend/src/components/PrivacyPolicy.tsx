@@ -180,7 +180,7 @@ const policySections = [
           <li><strong className="text-slate-700">Withdraw Consent:</strong> Withdraw consent for processing where consent is the legal basis.</li>
         </ul>
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          <strong>Exercise Your Rights:</strong> Contact us at privacy@smartpicker.au to exercise any of these rights. 
+          <strong>Exercise Your Rights:</strong> Contact us at privacy@smartpicker.com.au to exercise any of these rights. 
           We will respond within 30 days and may request verification of your identity.
         </div>
       </>
@@ -253,7 +253,7 @@ const PrivacyPolicy: React.FC = () => {
       <SEO
         title="Privacy Policy - Smart Picker"
         description="Read the Privacy Policy for Smart Picker warehouse management software."
-        canonicalUrl="https://smartpicker.au/privacy-policy"
+        canonicalUrl="https://smartpicker.com.au/privacy-policy"
       />
       
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -323,7 +323,7 @@ const PrivacyPolicy: React.FC = () => {
                 <div className="text-slate-800">
                   <p className="font-semibold">Smart Picker</p>
                   <p>New South Wales, Australia</p>
-                  <p>Support: <a href="mailto:support@smartpicker.au" className="text-blue-700 hover:underline">support@smartpicker.au</a></p>
+                  <p>Support: <a href="mailto:support@smartpicker.com.au" className="text-blue-700 hover:underline">support@smartpicker.com.au</a></p>
                 </div>
                 <p className="mt-4 text-sm text-slate-500">
                   For complaints about privacy, you may also contact the Office of the Australian Information Commissioner (OAIC).

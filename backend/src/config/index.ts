@@ -47,7 +47,7 @@ const baseConfig = {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       rolling: true,
-      domain: currentEnv === ENV.PRODUCTION ? '.smartpicker.au' : undefined
+      domain: currentEnv === ENV.PRODUCTION ? '.smartpicker.com.au' : undefined
     },
     store: {
       tableName: 'sessions',
@@ -58,7 +58,7 @@ const baseConfig = {
   // CORS configuration
   cors: {
     origin: currentEnv === ENV.PRODUCTION 
-      ? ['https://smartpicker.au']
+      ? ['https://smartpicker.com.au']
       : ['http://localhost:5173'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -117,7 +117,7 @@ const baseConfig = {
 
   // OAuth configuration
   oauth: {
-    baseUrl: currentEnv === ENV.PRODUCTION ? 'https://api.smartpicker.au' : 'http://localhost:5033',
+    baseUrl: currentEnv === ENV.PRODUCTION ? 'https://api.smartpicker.com.au' : 'http://localhost:5033',
     
     // QuickBooks Online
     qbo: {

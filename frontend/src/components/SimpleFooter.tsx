@@ -14,7 +14,7 @@ const SimpleFooter: React.FC = () => {
           </p>
           <div className="flex items-center gap-4">
             <a
-              href="mailto:support@smartpicker.au"
+              href="mailto:support@smartpicker.com.au"
               className="text-gray-600 hover:text-blue-600 transition-colors"
               aria-label="Email support"
               title="Email support"

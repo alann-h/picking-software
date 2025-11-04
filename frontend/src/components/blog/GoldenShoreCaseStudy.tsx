@@ -124,7 +124,7 @@ const GoldenShoreCaseStudy: React.FC = () => {
         title="Case Study: Golden Shore's 95% Picking Accuracy with Smart Picker"
         description="Discover how Golden Shore, a leading seafood supplier, achieved 95% picking accuracy and saved 20+ hours weekly with Smart Picker's warehouse management software."
         keywords="case study, warehouse management, picking accuracy, seafood supplier, Golden Shore, Smart Picker success story, inventory management efficiency"
-        canonicalUrl="https://smartpicker.au/blog/golden-shore-case-study"
+        canonicalUrl="https://smartpicker.com.au/blog/golden-shore-case-study"
         structuredData={{
           "@context": "https://schema.org",
           "@type": "Article",

@@ -119,7 +119,7 @@ const AboutUs: React.FC = () => {
       <SEO
         title="About Us - Smart Picker"
         description="Learn about the mission and team behind Smart Picker, dedicated to revolutionizing warehouse management for small and medium businesses."
-        canonicalUrl="https://smartpicker.au/about-us"
+        canonicalUrl="https://smartpicker.com.au/about-us"
       />
       
       <main className="min-h-screen overflow-hidden bg-white">

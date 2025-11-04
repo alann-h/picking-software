@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://api.smartpicker.au",
+      "url": "https://api.smartpicker.com.au",
       "variables": {
         "port": {
           "default": "443"

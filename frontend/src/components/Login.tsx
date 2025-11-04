@@ -162,7 +162,7 @@ const Login: React.FC = () => {
       <SEO 
         title="Login - Smart Picker" 
         description="Access your Smart Picker dashboard to manage orders, track inventory, and streamline your warehouse operations."
-        canonicalUrl="https://smartpicker.au/login"
+        canonicalUrl="https://smartpicker.com.au/login"
       />
       {loading ? (
         <div className="flex justify-center items-center h-screen">

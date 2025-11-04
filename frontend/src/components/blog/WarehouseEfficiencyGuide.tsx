@@ -172,7 +172,7 @@ const WarehouseEfficiencyGuide: React.FC = () => {
         title="10 Ways to Improve Warehouse Efficiency with Smart Picker | Complete Guide"
         description="Discover proven strategies to boost warehouse productivity using Smart Picker's advanced features including barcode scanning, automatic filtering, run management, and real-time synchronization."
         keywords="warehouse efficiency, order picking optimization, barcode scanning, inventory management, warehouse productivity, Smart Picker features, picking accuracy"
-        canonicalUrl="https://smartpicker.au/blog/warehouse-efficiency-guide"
+        canonicalUrl="https://smartpicker.com.au/blog/warehouse-efficiency-guide"
         structuredData={{
           "@context": "https://schema.org",
           "@type": "HowTo",

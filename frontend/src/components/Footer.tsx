@@ -87,7 +87,7 @@ const Footer: React.FC = () => {
                   <Github />
                 </a>
                 <a
-                  href="mailto:support@smartpicker.au"
+                  href="mailto:support@smartpicker.com.au"
                   aria-label="Email support"
                   className="text-slate-400 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:text-blue-500"
                 >
@@ -142,8 +142,8 @@ const Footer: React.FC = () => {
                   Support & Legal
                 </h4>
                 <div className="flex flex-col space-y-4">
-                  <ExternalFooterLink href="mailto:support@smartpicker.au" icon={<Mail size={18} />}>
-                    support@smartpicker.au
+                  <ExternalFooterLink href="mailto:support@smartpicker.com.au" icon={<Mail size={18} />}>
+                    support@smartpicker.com.au
                   </ExternalFooterLink>
                   <FooterLink to="/privacy-policy" icon={<Shield size={18} />}>
                     Privacy Policy

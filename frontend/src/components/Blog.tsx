@@ -113,7 +113,7 @@ const Blog: React.FC = () => {
       <SEO 
         title="Blog - Smart Picker"
         description="Read the latest articles, tips, and case studies from the Smart Picker team on warehouse management, order picking, and inventory control."
-        canonicalUrl="https://smartpicker.au/blog"
+        canonicalUrl="https://smartpicker.com.au/blog"
       />
       
       <BreadcrumbNavigation />

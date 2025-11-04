@@ -691,7 +691,7 @@ app.use(errorHandler);
 const port = config.server.port;
 app.listen(port, () => {
   console.log(`Backend server running on port ${port}`);
-  console.log(`Docs at https://api.smartpicker.au/docs`);
+  console.log(`Docs at https://api.smartpicker.com.au/docs`);
 });
 
 export default app;

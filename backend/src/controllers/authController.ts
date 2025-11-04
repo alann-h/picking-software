@@ -73,7 +73,7 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
       }
       const redirectUri =
         process.env.VITE_APP_ENV === 'production'
-          ? 'https://smartpicker.au/oauth/callback'
+          ? 'https://smartpicker.com.au/oauth/callback'
           : 'http://localhost:5173/oauth/callback';
       res.redirect(redirectUri);
     });
@@ -191,7 +191,7 @@ export async function deleteUser(req: Request, res: Response, next: NextFunction
           httpOnly: true,
           secure: process.env.VITE_APP_ENV === 'production',
           sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.com.au' : undefined,
           path: '/'
         });
         
@@ -289,7 +289,7 @@ export async function disconnect(req: Request, res: Response, next: NextFunction
         httpOnly: true,
         secure: process.env.VITE_APP_ENV === 'production',
         sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+        domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.com.au' : undefined,
         path: '/'
       });
       
@@ -337,7 +337,7 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
           httpOnly: true,
           secure: process.env.VITE_APP_ENV === 'production',
           sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.com.au' : undefined,
           path: '/'
         });
         
@@ -346,7 +346,7 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
           httpOnly: true,
           secure: process.env.VITE_APP_ENV === 'production',
           sameSite: process.env.VITE_APP_ENV === 'production' ? 'none' : 'lax',
-          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.au' : undefined,
+          domain: process.env.VITE_APP_ENV === 'production' ? '.smartpicker.com.au' : undefined,
           path: '/'
         });
         

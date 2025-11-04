@@ -22,7 +22,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string, 
       Messages: [
         {
           From: {
-            Email: process.env.FROM_EMAIL || 'noreply@smartpicker.au',
+            Email: process.env.FROM_EMAIL || 'noreply@smartpicker.com.au',
             Name: 'Smart Picker'
           },
           To: [
@@ -95,7 +95,7 @@ export async function sendPasswordResetConfirmationEmail(email: string, userName
       Messages: [
         {
           From: {
-            Email: process.env.FROM_EMAIL || 'noreply@smartpicker.au',
+            Email: process.env.FROM_EMAIL || 'noreply@smartpicker.com.au',
             Name: 'Smart Picker'
           },
           To: [
