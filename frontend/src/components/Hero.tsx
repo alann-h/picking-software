@@ -56,7 +56,7 @@ const Hero: React.FC = () => {
           <div className="hidden lg:block">
             <div className="relative">
               <img 
-                src="https://www.smartpicker.com.au/cdn-cgi/image/width=1600,format=auto,quality=95/https://smartpicker-images.s3.ap-southeast-1.amazonaws.com/smartpicker-dashboard.png"
+                src="https://smartpicker-images.s3.ap-southeast-1.amazonaws.com/smartpicker-dashboard.webp"
                 alt="Smart Picker inventory management software dashboard"
                 className="rounded-2xl shadow-2xl border border-gray-100"
                 loading="lazy"
