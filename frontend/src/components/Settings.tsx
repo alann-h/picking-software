@@ -66,7 +66,8 @@ const Settings: React.FC = () => {
     const searchLower = searchTerm.toLowerCase();
     return allProducts.filter((product) =>
       product.productName.toLowerCase().includes(searchLower) ||
-      (product.sku && product.sku.toLowerCase().includes(searchLower))
+      (product.sku && product.sku.toLowerCase().includes(searchLower)) ||
+      (product.barcode && product.barcode.toLowerCase().includes(searchLower))
     );
   }, [allProducts, searchTerm]);
 
