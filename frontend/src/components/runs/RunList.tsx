@@ -1,5 +1,5 @@
-import React, { useState, useOptimistic } from 'react';
-import { Inbox } from 'lucide-react';
+import React, { useState, useOptimistic, useMemo, useEffect } from 'react';
+import { Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Run } from '../../utils/types';
 import { deleteRun, getRuns } from '../../api/runs';
@@ -17,6 +17,8 @@ const EmptyRunsState = () => (
     </div>
 );
 
+
+const RUNS_PER_PAGE = 10;
 
 export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = ({ userCompanyId, isAdmin }) => {
     const queryClient = useQueryClient();
@@ -38,6 +40,7 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [runIdToDelete, setRunIdToDelete] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const deleteRunMutation = useMutation({
         mutationFn: (runId: string) => deleteRun(runId),
@@ -71,6 +74,22 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
       setDialogOpen(false);
     };
 
+    // Pagination calculations
+    const { totalPages, paginatedRuns } = useMemo(() => {
+        const total = Math.ceil(optimisticRuns.length / RUNS_PER_PAGE);
+        const startIndex = (currentPage - 1) * RUNS_PER_PAGE;
+        const endIndex = startIndex + RUNS_PER_PAGE;
+        const paginated = optimisticRuns.slice(startIndex, endIndex);
+        return { totalPages: total, paginatedRuns: paginated };
+    }, [optimisticRuns, currentPage]);
+
+    // Reset to page 1 if current page is out of bounds
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(1);
+        }
+    }, [currentPage, totalPages]);
+
     if (optimisticRuns.length === 0) {
         return <EmptyRunsState />;
     }
@@ -78,7 +97,7 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
     return (
         <>
             <div className="space-y-2 mt-2">
-                {optimisticRuns.map((run) => (
+                {paginatedRuns.map((run) => (
                     <RunItem
                         key={run.id}
                         run={run}
@@ -88,6 +107,57 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
                     />
                 ))}
             </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 px-4 py-3 bg-white border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-700">
+                            Showing <span className="font-medium">{((currentPage - 1) * RUNS_PER_PAGE) + 1}</span> to{' '}
+                            <span className="font-medium">
+                                {Math.min(currentPage * RUNS_PER_PAGE, optimisticRuns.length)}
+                            </span> of{' '}
+                            <span className="font-medium">{optimisticRuns.length}</span> runs
+                        </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-1" />
+                            Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                                        currentPage === page
+                                            ? 'bg-blue-600 text-white'
+                                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                        </button>
+                    </div>
+                </div>
+            )}
             
             <ConfirmationDialog
                 open={dialogOpen}

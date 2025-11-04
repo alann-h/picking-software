@@ -1,7 +1,7 @@
 // src/components/runs/RunItem.tsx
 
 import React, { useState, useMemo, useEffect, useOptimistic } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X, Plus, Search, Users } from 'lucide-react';
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -18,7 +18,7 @@ import PortalDropdown from '../PortalDropdown';
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount);
 
-const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: string) => void }> = ({ quote, onRemove }) => {
+const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: string) => void; navigate: ReturnType<typeof useNavigate> }> = ({ quote, onRemove, navigate }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.quoteId });
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -33,8 +33,11 @@ const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: string) 
             <div {...attributes} {...listeners} className="cursor-grab touch-none mr-3 text-gray-500">
                 <GripVertical className="w-5 h-5" />
             </div>
-            <div className="flex-grow">
-                <p className="text-sm font-medium text-gray-800">Quote #{quote.quoteNumber || quote.quoteId}</p>
+            <div 
+                className="flex-grow cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 -my-1"
+                onClick={() => navigate(`/quote?id=${quote.quoteId}`)}
+            >
+                <p className="text-sm font-medium text-blue-600 hover:text-blue-800">Quote #{quote.quoteNumber || quote.quoteId}</p>
                 <p className="text-xs text-gray-500">{quote.customerName}</p>
             </div>
             <button className="text-red-500 hover:text-red-700 cursor-pointer" onClick={() => onRemove(quote.quoteId)}>
@@ -54,6 +57,7 @@ export const RunItem: React.FC<{
     onDeleteRun: (runId: string) => void;
 }> = ({ run, isAdmin, userCompanyId, onDeleteRun }) => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [editableQuotes, setEditableQuotes] = useState<RunQuote[]>([]);
@@ -413,7 +417,7 @@ export const RunItem: React.FC<{
                             <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                                 <SortableContext items={editableQuotes.map(q => q.quoteId)} strategy={verticalListSortingStrategy}>
                                     {editableQuotes.map(quote => (
-                                        <EditableQuoteRow key={quote.quoteId} quote={quote} onRemove={handleRemoveQuote} />
+                                        <EditableQuoteRow key={quote.quoteId} quote={quote} onRemove={handleRemoveQuote} navigate={navigate} />
                                     ))}
                                 </SortableContext>
                                 
@@ -430,7 +434,7 @@ export const RunItem: React.FC<{
                                         
                                         {showAddQuotes && (
                                             <div className="bg-gray-50 rounded-lg p-3 max-h-60 overflow-y-auto">
-                                                <p className="text-xs text-gray-500 mb-2">Quotes already in database with status 'pending':</p>
+                                                <p className="text-xs text-gray-500 mb-2">Quotes already in database with status &apos;pending&apos;:</p>
                                                 {quotesNotInRun.map((quote: QuoteSummary) => (
                                                     <div
                                                         key={quote.id}
@@ -575,7 +579,11 @@ export const RunItem: React.FC<{
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {run.quotes?.map((quote: RunQuote) => (
-                                                <tr key={quote.quoteId}>
+                                                <tr 
+                                                    key={quote.quoteId}
+                                                    onClick={() => navigate(`/quote?id=${quote.quoteId}`)}
+                                                    className="hover:bg-blue-50 cursor-pointer transition-colors"
+                                                >
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.quoteId}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{quote.customerName}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm">
