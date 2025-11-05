@@ -217,6 +217,10 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
         return false;
       }
       const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
+      // Skip lines without ItemRef
+      if (!salesItemLineDetail || !salesItemLineDetail.ItemRef) {
+        return false;
+      }
       const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
       const itemId = itemRef.value as string;
       if (itemId === 'SHIPPING_ITEM_ID') {
@@ -245,20 +249,14 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
 
     const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
     
-    // Check if ItemRef exists - handle malformed QuickBooks data
+    // Skip lines without ItemRef (description-only lines without SKU)
     if (!salesItemLineDetail || !salesItemLineDetail.ItemRef) {
-      console.error('Line item missing ItemRef:', {
+      console.log('Skipping line item without ItemRef (description-only line):', {
         quoteId: estimate.Id,
         lineDetail: line.DetailType,
-        lineDescription: line.Description,
-        fullLine: line
+        lineDescription: line.Description
       });
-      return {
-        error: true,
-        quoteId: estimate.Id as string,
-        message: 'Quote has malformed data - line item missing ItemRef',
-        productName: (line.Description as string) || 'Unknown line item',
-      };
+      continue;
     }
     
     const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
@@ -349,7 +347,14 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const lineItem of lineItems) {
-    if (!lineItem.itemCode) continue;
+    // Skip lines without itemCode (description-only lines without SKU)
+    if (!lineItem.itemCode) {
+      console.log('Skipping line item without itemCode (description-only line):', {
+        quoteId: quote.quoteID,
+        lineDescription: lineItem.description
+      });
+      continue;
+    }
 
     const sku = lineItem.itemCode;
     const itemLocal = productMap.get(sku);
