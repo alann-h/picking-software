@@ -99,12 +99,12 @@ const ProductRow: React.FC<ProductRowProps> = ({
 
   return (
     <tr className="hover:bg-gray-50 transition-all duration-200 ease-in-out group">
-      <td className="px-6 py-4 w-[15%] min-w-[100px]">
+      <td className="px-3 py-4 w-[15%] min-w-[100px]">
         <span className="text-sm font-mono font-medium text-gray-600 break-all">
           {product.sku}
         </span>
       </td>
-      <td className="px-6 py-4 w-[40%] min-w-[150px]">
+      <td className="px-3 py-4 w-[35%] min-w-[150px]">
         <button
           onClick={handleProductClick}
           className="text-left text-sm md:text-base font-semibold text-blue-600 hover:text-blue-700 active:text-blue-800 underline decoration-1 underline-offset-2 hover:decoration-2 active:bg-blue-50 transition-all duration-200 cursor-pointer select-none leading-tight rounded px-1 -ml-1"
@@ -112,7 +112,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
           {product.productName}
         </button>
       </td>
-      <td className="px-6 py-4 w-[20%] min-w-[110px]">
+      <td className="px-3 py-4 w-[22%] min-w-[140px]">
         <div className="flex items-center gap-1">
           <span className={`text-sm font-semibold ${getQuantityColorClass()}`}>
             {Number(product.pickingQty || 0).toFixed(1)}
@@ -122,7 +122,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
           </span>
         </div>
       </td>
-      <td className="px-6 py-4 w-[15%] min-w-[90px]">
+      <td className="px-3 py-4 w-[18%] min-w-[90px]">
         <div className="flex">
           <span 
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white capitalize ${getStatusColor(product.pickingStatus)}`}
