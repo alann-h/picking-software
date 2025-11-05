@@ -33,6 +33,7 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
 
   const handleConfirm = () => {
     onConfirm();
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -80,11 +81,8 @@ const FinalConfirmationModal: React.FC<FinalConfirmationModalProps> = ({
             </>
           ) : (
             <div className="p-4 text-sm text-green-800 rounded-lg bg-green-50" role="alert">
-              <div className="flex items-center">
-                <CheckCircle2 className="flex-shrink-0 inline w-5 h-5 mr-3" />
-                <h3 className="text-lg font-medium">Ready to Finalise</h3>
-              </div>
-              <div className="mt-2 ml-8 text-base">
+              <h3 className="text-lg font-medium">Ready to Finalise</h3>
+              <div className="mt-2 text-base">
                 All items are accounted for. Are you sure you want to finalise this invoice and send it to {connectionType === 'xero' ? 'Xero' : 'QuickBooks'}?
               </div>
             </div>
