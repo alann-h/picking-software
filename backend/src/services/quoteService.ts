@@ -1031,15 +1031,13 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       item => item.pickingStatus === 'unavailable'
     );
     
-    // When removing products, use full update instead of sparse to let QuickBooks recalculate taxes
     const updatePayload: Record<string, unknown> = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
-      sparse: !hasUnavailableProducts, // Use full update when removing products
+      sparse: !hasUnavailableProducts,
       Line: []
     };
     
-    // For full updates, include essential estimate fields
     if (!updatePayload.sparse) {
       updatePayload.CustomerRef = qbQuote.CustomerRef;
       updatePayload.TxnDate = qbQuote.TxnDate;
@@ -1047,6 +1045,23 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     }
 
     const lineItems: Array<Record<string, unknown>> = [];
+    
+    // Build a map of externalId -> original QuickBooks price to preserve custom pricing
+    const originalQbLines = qbQuote.Line as Array<Record<string, unknown>>;
+    const qbPriceMap = new Map<string, number>();
+    
+    for (const line of originalQbLines) {
+      if (line.DetailType === 'SalesItemLineDetail') {
+        const salesDetail = line.SalesItemLineDetail as Record<string, unknown>;
+        const itemRef = salesDetail.ItemRef as Record<string, unknown>;
+        const externalId = itemRef.value as string;
+        const unitPrice = salesDetail.UnitPrice as number;
+        
+        if (externalId && unitPrice !== undefined) {
+          qbPriceMap.set(externalId, unitPrice);
+        }
+      }
+    }
     
     // Sort products by SKU before processing
     const sortedProducts = Object.values(quoteLocalDb.productInfo).sort((a, b) => {
@@ -1062,12 +1077,24 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
         throw new InputError('Quote must not have any products pending!');
       }
       
-      const amount = Number(localItem.price) * Number(localItem.originalQty);
       const externalId = await productIdToExternalId(localItem.productId);
       
       if (!externalId) {
         throw new InputError(`Product ${localItem.productName} not found in QuickBooks`);
       }
+      
+      // Use QuickBooks price if it was customized, otherwise use local database price
+      const qbOriginalPrice = qbPriceMap.get(externalId);
+      const localPrice = Number(localItem.price);
+      let finalPrice = localPrice;
+      
+      if (qbOriginalPrice !== undefined && qbOriginalPrice !== localPrice) {
+        // Admin customized the price in QuickBooks, preserve it
+        finalPrice = qbOriginalPrice;
+        console.log(`Preserving custom price for ${localItem.productName}: QB=$${qbOriginalPrice} (DB=$${localPrice})`);
+      }
+      
+      const amount = finalPrice * Number(localItem.originalQty);
       
       const lineItem = {
         Description: localItem.productName,
@@ -1079,7 +1106,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
             name: localItem.productName
           },
           Qty: Number(localItem.originalQty),
-          UnitPrice: Number(localItem.price),
+          UnitPrice: finalPrice,
           TaxCodeRef: {
             value: localItem.tax_code_ref || "4"
           }
@@ -1095,13 +1122,6 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     
     updatePayload.Line = lineItems;
     
-    // Log the payload for debugging
-    console.log(`QuickBooks Update Mode: ${updatePayload.sparse ? 'SPARSE' : 'FULL'} (unavailable products: ${hasUnavailableProducts})`);
-    console.log('QuickBooks Update Payload:', JSON.stringify(updatePayload, null, 2));
-    console.log('Line items being sent:', lineItems.map(item => ({
-      product: item.Description,
-      taxCode: (item.SalesItemLineDetail as Record<string, unknown>)?.TaxCodeRef
-    })));
 
     const baseURL = await getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
