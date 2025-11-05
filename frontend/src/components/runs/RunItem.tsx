@@ -18,12 +18,17 @@ import PortalDropdown from '../PortalDropdown';
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount);
 
-const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: string) => void; navigate: ReturnType<typeof useNavigate> }> = ({ quote, onRemove, navigate }) => {
+const EditableQuoteRow: React.FC<{ 
+    quote: RunQuote; 
+    onRemove: (quoteId: string) => void; 
+    isLoading: boolean;
+    onNavigate: (quoteId: string) => void;
+}> = ({ quote, onRemove, isLoading, onNavigate }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.quoteId });
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0.5 : (isLoading ? 0.5 : 1),
         zIndex: isDragging ? 1 : 0,
         position: 'relative',
     };
@@ -34,10 +39,15 @@ const EditableQuoteRow: React.FC<{ quote: RunQuote; onRemove: (quoteId: string) 
                 <GripVertical className="w-5 h-5" />
             </div>
             <div 
-                className="flex-grow cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 -my-1"
-                onClick={() => navigate(`/quote?id=${quote.quoteId}`)}
+                className={`flex-grow rounded px-2 py-1 -mx-2 -my-1 ${isLoading ? 'cursor-wait' : 'cursor-pointer hover:bg-gray-50'}`}
+                onClick={() => onNavigate(quote.quoteId)}
             >
-                <p className="text-sm font-medium text-blue-600 hover:text-blue-800">Quote #{quote.quoteNumber || quote.quoteId}</p>
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-blue-600 hover:text-blue-800">Quote #{quote.quoteNumber || quote.quoteId}</p>
+                    {isLoading && (
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                    )}
+                </div>
                 <p className="text-xs text-gray-500">{quote.customerName}</p>
             </div>
             <button className="text-red-500 hover:text-red-700 cursor-pointer" onClick={() => onRemove(quote.quoteId)}>
@@ -68,6 +78,7 @@ export const RunItem: React.FC<{
     const [customerQuery, setCustomerQuery] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+    const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
     const customerTriggerRef = React.useRef<HTMLDivElement>(null);
     
     const queryClient = useQueryClient();
@@ -275,6 +286,11 @@ export const RunItem: React.FC<{
         }
     };
     
+    const handleQuoteNavigate = (quoteId: string) => {
+        setLoadingQuoteId(quoteId);
+        navigate(`/quote?id=${quoteId}`);
+    };
+    
     // Filter out quotes that are already in the run (from DB pending quotes)
     const quotesNotInRun = useMemo(() => {
         const currentQuoteIds = new Set(editableQuotes.map(q => q.quoteId));
@@ -417,7 +433,13 @@ export const RunItem: React.FC<{
                             <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                                 <SortableContext items={editableQuotes.map(q => q.quoteId)} strategy={verticalListSortingStrategy}>
                                     {editableQuotes.map(quote => (
-                                        <EditableQuoteRow key={quote.quoteId} quote={quote} onRemove={handleRemoveQuote} navigate={navigate} />
+                                        <EditableQuoteRow 
+                                            key={quote.quoteId} 
+                                            quote={quote} 
+                                            onRemove={handleRemoveQuote} 
+                                            isLoading={loadingQuoteId === quote.quoteId}
+                                            onNavigate={handleQuoteNavigate}
+                                        />
                                     ))}
                                 </SortableContext>
                                 
@@ -581,10 +603,17 @@ export const RunItem: React.FC<{
                                             {run.quotes?.map((quote: RunQuote) => (
                                                 <tr 
                                                     key={quote.quoteId}
-                                                    onClick={() => navigate(`/quote?id=${quote.quoteId}`)}
-                                                    className="hover:bg-blue-50 cursor-pointer transition-colors"
+                                                    onClick={() => handleQuoteNavigate(quote.quoteId)}
+                                                    className={`hover:bg-blue-50 ${loadingQuoteId === quote.quoteId ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-colors duration-150`}
                                                 >
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.quoteId}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-600">
+                                                        <div className="flex items-center gap-2">
+                                                            #{quote.quoteNumber || quote.quoteId}
+                                                            {loadingQuoteId === quote.quoteId && (
+                                                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{quote.customerName}</td>
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${
