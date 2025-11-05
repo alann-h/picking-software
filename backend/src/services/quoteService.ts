@@ -1026,18 +1026,25 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       throw new InputError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
-    // When updating line items with different tax codes, we need to send key estimate fields
-    // so QuickBooks can properly recalculate taxes
+    // Check if any products are unavailable (being removed from estimate)
+    const hasUnavailableProducts = Object.values(quoteLocalDb.productInfo).some(
+      item => item.pickingStatus === 'unavailable'
+    );
+    
+    // When removing products, use full update instead of sparse to let QuickBooks recalculate taxes
     const updatePayload: Record<string, unknown> = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
-      sparse: true,
-      Line: [],
-      // Preserve customer reference for tax calculations
-      CustomerRef: qbQuote.CustomerRef,
-      // Let QuickBooks auto-calculate tax based on line items
-      GlobalTaxCalculation: qbQuote.GlobalTaxCalculation || 'TaxExcluded'
+      sparse: !hasUnavailableProducts, // Use full update when removing products
+      Line: []
     };
+    
+    // For full updates, include essential estimate fields
+    if (!updatePayload.sparse) {
+      updatePayload.CustomerRef = qbQuote.CustomerRef;
+      updatePayload.TxnDate = qbQuote.TxnDate;
+      updatePayload.DocNumber = qbQuote.DocNumber;
+    }
 
     const lineItems: Array<Record<string, unknown>> = [];
     
@@ -1089,6 +1096,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     updatePayload.Line = lineItems;
     
     // Log the payload for debugging
+    console.log(`QuickBooks Update Mode: ${updatePayload.sparse ? 'SPARSE' : 'FULL'} (unavailable products: ${hasUnavailableProducts})`);
     console.log('QuickBooks Update Payload:', JSON.stringify(updatePayload, null, 2));
     console.log('Line items being sent:', lineItems.map(item => ({
       product: item.Description,
