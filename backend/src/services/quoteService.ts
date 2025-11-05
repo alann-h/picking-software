@@ -1026,11 +1026,17 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       throw new InputError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
+    // When updating line items with different tax codes, we need to send key estimate fields
+    // so QuickBooks can properly recalculate taxes
     const updatePayload: Record<string, unknown> = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
       sparse: true,
-      Line: []
+      Line: [],
+      // Preserve customer reference for tax calculations
+      CustomerRef: qbQuote.CustomerRef,
+      // Let QuickBooks auto-calculate tax based on line items
+      GlobalTaxCalculation: qbQuote.GlobalTaxCalculation || 'TaxExcluded'
     };
 
     const lineItems: Array<Record<string, unknown>> = [];
@@ -1076,17 +1082,18 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       lineItems.push(lineItem);
     }
     
-    // Preserve non-product lines (SubTotal and Tax lines) from original estimate
-    // QuickBooks automatically generates these for tax calculations (GST)
-    const originalLines = qbQuote.Line as Array<Record<string, unknown>>;
-    const nonProductLines = originalLines.filter((line: Record<string, unknown>) => 
-      line.DetailType === 'SubTotalLineDetail' || line.DetailType === 'TaxLineDetail'
-    );
-    
-    updatePayload.Line = [...lineItems, ...nonProductLines];
     if (lineItems.length === 0) { 
       throw new InputError('No products found to update in QuickBooks');
     }
+    
+    updatePayload.Line = lineItems;
+    
+    // Log the payload for debugging
+    console.log('QuickBooks Update Payload:', JSON.stringify(updatePayload, null, 2));
+    console.log('Line items being sent:', lineItems.map(item => ({
+      product: item.Description,
+      taxCode: (item.SalesItemLineDetail as Record<string, unknown>)?.TaxCodeRef
+    })));
 
     const baseURL = await getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
