@@ -1076,7 +1076,14 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       lineItems.push(lineItem);
     }
     
-    updatePayload.Line = lineItems;
+    // Preserve non-product lines (SubTotal and Tax lines) from original estimate
+    // QuickBooks automatically generates these for tax calculations (GST)
+    const originalLines = qbQuote.Line as Array<Record<string, unknown>>;
+    const nonProductLines = originalLines.filter((line: Record<string, unknown>) => 
+      line.DetailType === 'SubTotalLineDetail' || line.DetailType === 'TaxLineDetail'
+    );
+    
+    updatePayload.Line = [...lineItems, ...nonProductLines];
     if (lineItems.length === 0) { 
       throw new InputError('No products found to update in QuickBooks');
     }
