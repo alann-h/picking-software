@@ -291,15 +291,55 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
         }, 
     });
     const confirmBarcodeScan = useMutation({ 
-        mutationFn: (variables: { barcode: string, quantity: number, productName: string }) => barcodeScan(variables.barcode, quoteId, variables.quantity), 
-        onSuccess: (_, variables) => { 
-            handleOpenSnackbar(`${variables.productName} (qty: ${variables.quantity}) scanned successfully!`, 'success'); 
+        mutationFn: (variables: { barcode: string, quantity: number, productName: string }) => barcodeScan(variables.barcode, quoteId, variables.quantity),
+        onMutate: async (variables: { barcode: string, quantity: number, productName: string }) => {
+            await queryClient.cancelQueries({ queryKey: ['quote', quoteId, statusFromUrl] });
+            
+            const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
+            
+            // Find the product that matches the scanned barcode
+            const normalizedBarcode = variables.barcode.trim().toLowerCase();
+            const productEntry = Object.entries(previousData?.productInfo || {}).find(([_, product]) => {
+                if (!product.barcode) return false;
+                return product.barcode.trim().toLowerCase() === normalizedBarcode;
+            });
+            
+            if (productEntry) {
+                const [productId, product] = productEntry;
+                const newPickingQty = Math.max(0, product.pickingQty - variables.quantity);
+                const newStatus = newPickingQty === 0 ? 'completed' : product.pickingStatus;
+                
+                queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        productInfo: {
+                            ...old.productInfo,
+                            [productId]: {
+                                ...old.productInfo[parseInt(productId)],
+                                pickingQty: newPickingQty,
+                                pickingStatus: newStatus
+                            }
+                        }
+                    };
+                });
+            }
+            
+            // Close modal and show success immediately
+            closeModal();
+            handleOpenSnackbar(`${variables.productName} (qty: ${variables.quantity}) scanned successfully!`, 'success');
+            
+            return { previousData };
+        },
+        onSuccess: () => { 
+            // Silently refetch in background to sync with server
             invalidateAndRefetch();
-            closeModal(); // Close the barcode modal after successful scan
         }, 
-        onError: (error) => {
+        onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
-            closeModal(); // Close the modal even on error so user can retry
+            if (context?.previousData) {
+                queryClient.setQueryData(['quote', quoteId, statusFromUrl], context.previousData);
+            }
         }, 
     });
 
