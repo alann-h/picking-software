@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { QrCode, X, Plus, Minus, Calculator, Sigma, ChevronsUp, LoaderCircle } from 'lucide-react';
+import { QrCode, X, Plus, Minus, Calculator, Sigma, ChevronsUp } from 'lucide-react';
 import { cn } from '../utils/other';
 
 interface BarcodeModalProps {
@@ -8,7 +8,6 @@ interface BarcodeModalProps {
   onConfirm: (_qty: number) => void;
   availableQty: number;
   productName: string;
-  isLoading?: boolean;
 }
 
 const STEP = 1;
@@ -19,7 +18,6 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
   onConfirm,
   availableQty,
   productName,
-  isLoading = false,
 }) => {
   const [isFractionMode, setIsFractionMode] = useState<boolean>(false);
   const [decimalInput, setDecimalInput] = useState<string>('1');
@@ -102,9 +100,7 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
   };
 
   const handleConfirmClick = () => {
-    if (!isLoading) {
-      onConfirm(parsedQty);
-    }
+    onConfirm(parsedQty);
   };
 
   const isTooLow = parsedQty <= 0;
@@ -263,11 +259,10 @@ const BarcodeModal: React.FC<BarcodeModalProps> = ({
           <button
             type="button"
             onClick={handleConfirmClick}
-            disabled={isTooLow || isTooHigh || isInvalidFraction || isLoading}
+            disabled={isTooLow || isTooHigh || isInvalidFraction}
             className="inline-flex justify-center items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
           >
-            {isLoading && <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />}
-            {isLoading ? 'Confirming...' : 'Confirm'}
+            Confirm
           </button>
         </div>
       </div>

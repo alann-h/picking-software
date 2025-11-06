@@ -105,7 +105,7 @@ const Quote: React.FC = () => {
       {/* Modals now receive actions directly from the hook */}
       <BarcodeListener onBarcodeScanned={actions.handleBarcodeScan} disabled={modalState.isOpen} />
       
-      {modalState.type === 'barcodeModal' && modalState.data && <BarcodeModal isOpen={modalState.isOpen} onClose={closeModal} onConfirm={modalState.data.onConfirm} availableQty={modalState.data.availableQty} productName={modalState.data.productName} isLoading={pendingStates.isConfirmingBarcode} />}
+      {modalState.type === 'barcodeModal' && modalState.data && <BarcodeModal isOpen={modalState.isOpen} onClose={closeModal} onConfirm={modalState.data.onConfirm} availableQty={modalState.data.availableQty} productName={modalState.data.productName} />}
       {modalState.type === 'cameraScanner' && <CameraScannerModal isOpen={modalState.isOpen} onClose={closeModal} onScanSuccess={handleCameraScanSuccess} />}
       {modalState.type === 'productDetails' && modalState.data && <ProductDetailsQuote open={modalState.isOpen} onClose={closeModal} productName={modalState.data.name} productDetails={modalState.data.details} />}
       {modalState.type === 'adjustQuantity' && modalState.data && <AdjustQuantityModal isOpen={modalState.isOpen} onClose={closeModal} productName={modalState.data.productName} currentQty={quoteData.productInfo[modalState.data.productId]?.pickingQty ?? modalState.data.pickingQty} productId={modalState.data.productId} onConfirm={actions.adjustQuantity} isLoading={pendingStates.isAdjustingQuantity} />}
