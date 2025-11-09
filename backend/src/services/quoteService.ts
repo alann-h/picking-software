@@ -555,6 +555,31 @@ async function updateQuotePreparerNames(quoteId: string, userName: string): Prom
   }
 }
 
+/**
+ * Sets the pickingStartedAt timestamp for a quote if it hasn't been set yet.
+ * This tracks when picking actually began (first scan/action on the quote).
+ */
+async function ensurePickingStartedTimestamp(quoteId: string): Promise<void> {
+  try {
+    const quote = await prisma.quote.findUnique({
+      where: { id: quoteId },
+      select: { pickingStartedAt: true },
+    });
+
+    // Only set if not already set
+    if (quote && !quote.pickingStartedAt) {
+      await prisma.quote.update({
+        where: { id: quoteId },
+        data: { pickingStartedAt: new Date() },
+      });
+      console.log(`Quote ${quoteId}: Picking started timestamp set`);
+    }
+  } catch (error: unknown) {
+    console.error(`Failed to set picking started timestamp for quote ${quoteId}:`, error);
+    // Don't throw - this shouldn't block the main operation
+  }
+}
+
 export async function processBarcode(barcode: string, quoteId: string, newQty: number, userName: string): Promise<BarcodeProcessResult> {
   // First, find the quote item by barcode through the product relation
   const quoteItem = await prisma.quoteItem.findFirst({
@@ -599,6 +624,7 @@ export async function processBarcode(barcode: string, quoteId: string, newQty: n
   });
 
   await updateQuotePreparerNames(quoteId, userName);
+  await ensurePickingStartedTimestamp(quoteId);
 
   return {
     productName: updatedItem.productName,
@@ -680,6 +706,8 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
       
       totalAmount = updatedQuote;
     });
+
+    await ensurePickingStartedTimestamp(quoteId);
 
     if (addNewProduct && totalAmount) {
       const totalAmountData = totalAmount as { totalAmount: Decimal; updatedAt: Date };
@@ -818,6 +846,8 @@ export async function adjustProductQuantity(quoteId: string, productId: number, 
       select: { totalAmount: true },
     });
 
+    await ensurePickingStartedTimestamp(quoteId);
+
     return {
       pickingQty: updatedItem.pickingQuantity.toNumber(),
       originalQty: updatedItem.originalQuantity.toNumber(),
@@ -861,8 +891,11 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all', companyId
 
     return quotes.map(quote => {
       let timeTaken = 'N/A';
-      if (quote.createdAt && quote.updatedAt) {
-        const start = new Date(quote.createdAt);
+      // Use pickingStartedAt if available, otherwise fall back to createdAt
+      const startTime = quote.pickingStartedAt || quote.createdAt;
+      
+      if (startTime && quote.updatedAt) {
+        const start = new Date(startTime);
         const end = new Date(quote.updatedAt);
         
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
@@ -883,7 +916,7 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all', companyId
         }
       }
 
-      const formattedTimeStarted = formatTimestampForSydney(quote.createdAt);
+      const formattedTimeStarted = formatTimestampForSydney(startTime);
       const formattedLastModified = formatTimestampForSydney(quote.updatedAt);
 
       return {
@@ -1300,7 +1333,7 @@ export async function ensureQuotesExistInDB(quoteIds: string[], companyId: strin
     
     // Track successfully saved quotes and failed quotes
     const successfullySavedIds: string[] = [];
-    const failedQuotes: { id: string; error: string }[] = [];
+    const failedQuotes: { id: string; error: string; productName?: string }[] = [];
 
     for (const quote of newQuotesData) {
         if ((quote as QuoteFetchError).error) {
@@ -1308,7 +1341,8 @@ export async function ensureQuotesExistInDB(quoteIds: string[], companyId: strin
             const errorQuote = quote as QuoteFetchError;
             failedQuotes.push({
                 id: errorQuote.quoteId,
-                error: errorQuote.message
+                error: errorQuote.message,
+                productName: errorQuote.productName
             });
         } else {
             // Try to save the quote to database
@@ -1326,7 +1360,12 @@ export async function ensureQuotesExistInDB(quoteIds: string[], companyId: strin
 
     // If any quotes failed, throw an error with details
     if (failedQuotes.length > 0) {
-        const errorDetails = failedQuotes.map(f => `Quote ID ${f.id}: ${f.error}`).join('; ');
+        const errorDetails = failedQuotes.map(f => {
+            if (f.productName) {
+                return `Quote ID ${f.id}: ${f.error} Missing product: ${f.productName}`;
+            }
+            return `Quote ID ${f.id}: ${f.error}`;
+        }).join('; ');
         throw new InputError(
             `Failed to fetch or save ${failedQuotes.length} out of ${missingIds.length} quotes. Details: ${errorDetails}`
         );

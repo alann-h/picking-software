@@ -108,7 +108,7 @@ const ProductList: React.FC<ProductListProps> = ({
   const [showArchived, setShowArchived] = useState(false);
   
   // Sorting state
-  const [sortField, setSortField] = useState<'productName' | 'sku' | 'barcode' | null>(null);
+  const [sortField, setSortField] = useState<'productName' | 'sku' | 'barcode' | 'price' | 'quantityOnHand' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const filteredProducts = useMemo(() => {
@@ -147,7 +147,7 @@ const ProductList: React.FC<ProductListProps> = ({
   }, [filteredProducts.length]);
 
   // Handle sorting
-  const handleSort = (field: 'productName' | 'sku' | 'barcode') => {
+  const handleSort = (field: 'productName' | 'sku' | 'barcode' | 'price' | 'quantityOnHand') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -320,7 +320,7 @@ const ProductList: React.FC<ProductListProps> = ({
                 <tr>
                   <th 
                     scope="col" 
-                    className="w-2/5 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="w-[30%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('productName')}
                   >
                     <div className="flex items-center justify-between">
@@ -338,7 +338,7 @@ const ProductList: React.FC<ProductListProps> = ({
                   </th>
                   <th 
                     scope="col" 
-                    className="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('sku')}
                   >
                     <div className="flex items-center justify-between">
@@ -356,13 +356,49 @@ const ProductList: React.FC<ProductListProps> = ({
                   </th>
                   <th 
                     scope="col" 
-                    className="w-1/3 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('barcode')}
                   >
                     <div className="flex items-center justify-between">
                       <span>Barcode</span>
                       <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
                         {sortField === 'barcode' ? (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="h-4 w-4" /> : 
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <div className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="w-[15%] px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('price')}
+                  >
+                    <div className="flex items-center justify-end">
+                      <span>Price</span>
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 ml-2">
+                        {sortField === 'price' ? (
+                          sortDirection === 'asc' ? 
+                            <ChevronUp className="h-4 w-4" /> : 
+                            <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <div className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="w-[15%] px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    onClick={() => handleSort('quantityOnHand')}
+                  >
+                    <div className="flex items-center justify-end">
+                      <span>Qty On Hand</span>
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 ml-2">
+                        {sortField === 'quantityOnHand' ? (
                           sortDirection === 'asc' ? 
                             <ChevronUp className="h-4 w-4" /> : 
                             <ChevronDown className="h-4 w-4" />
@@ -386,7 +422,9 @@ const ProductList: React.FC<ProductListProps> = ({
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.productName}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.sku}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.barcode}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.barcode || '—'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">${Number(product.price).toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right font-medium">{Number(product.quantityOnHand).toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>

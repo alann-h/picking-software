@@ -74,6 +74,15 @@ const ProductRow: React.FC<ProductRowProps> = ({
   const isAnyActionLoading = Object.values(pendingStates).some(status => status);
 
   const getQuantityColorClass = () => {
+    // Priority 1: Check picking status for special cases
+    if (product.pickingStatus === 'unavailable') {
+      return 'text-red-600 font-bold';
+    }
+    if (product.pickingStatus === 'backorder') {
+      return 'text-orange-500 font-bold';
+    }
+    
+    // Priority 2: Default quantity-based coloring
     if (product.pickingQty === product.originalQty) {
       return 'text-green-600 font-bold';
     } else if (product.pickingQty > 0) {

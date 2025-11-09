@@ -173,7 +173,27 @@ export const RunItem: React.FC<{
             setSearchParams({});
         },
         onError: (error) => {
-            handleOpenSnackbar('Failed to update run.', 'error');
+            // Format the error message to be more user-friendly
+            let errorMessage = error instanceof Error ? error.message : 'Failed to update run.';
+            
+            // Check if this is a detailed error with multiple quote issues
+            if (errorMessage.includes('Details:')) {
+                const parts = errorMessage.split('Details:');
+                const summary = parts[0].trim();
+                const details = parts[1]?.trim() || '';
+                
+                // Format the detailed errors with line breaks for better readability
+                const formattedDetails = details
+                    .split(';')
+                    .map(detail => detail.trim())
+                    .filter(detail => detail.length > 0)
+                    .map(detail => `• ${detail}`)
+                    .join('\n');
+                
+                errorMessage = `${summary}\n\n${formattedDetails}`;
+            }
+            
+            handleOpenSnackbar(errorMessage, 'error');
             console.error(error);
         }
     });

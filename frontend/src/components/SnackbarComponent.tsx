@@ -75,7 +75,7 @@ const SnackbarComponent: React.FC = () => {
     <div className="pointer-events-none fixed bottom-0 left-0 z-50 w-full p-4 sm:w-auto sm:p-6">
       {isVisible && (
         <div
-          className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border p-4 shadow-lg transform ease-out duration-300 transition translate-y-0 opacity-100 sm:translate-x-0 ${currentStyle.containerClasses}`}
+          className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-lg border p-4 shadow-lg transform ease-out duration-300 transition translate-y-0 opacity-100 sm:translate-x-0 ${currentStyle.containerClasses}`}
         >
           {/* Icon */}
           <currentStyle.Icon
@@ -84,7 +84,7 @@ const SnackbarComponent: React.FC = () => {
           />
           {/* Message */}
           <div className="flex-1">
-            <p className={`text-sm font-medium ${currentStyle.textClasses}`}>
+            <p className={`text-sm font-medium whitespace-pre-line ${currentStyle.textClasses}`}>
               {snackbarMessage}
             </p>
           </div>

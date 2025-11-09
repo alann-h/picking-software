@@ -204,7 +204,27 @@ export const CreateRun: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['runs'] });
         },
         onError: (error: Error) => {
-            handleOpenSnackbar(error.message || 'Failed to create one or more runs.', 'error');
+            // Format the error message to be more user-friendly
+            let errorMessage = error.message || 'Failed to create one or more runs.';
+            
+            // Check if this is a detailed error with multiple quote issues
+            if (errorMessage.includes('Details:')) {
+                const parts = errorMessage.split('Details:');
+                const summary = parts[0].trim();
+                const details = parts[1]?.trim() || '';
+                
+                // Format the detailed errors with line breaks for better readability
+                const formattedDetails = details
+                    .split(';')
+                    .map(detail => detail.trim())
+                    .filter(detail => detail.length > 0)
+                    .map(detail => `• ${detail}`)
+                    .join('\n');
+                
+                errorMessage = `${summary}\n\n${formattedDetails}`;
+            }
+            
+            handleOpenSnackbar(errorMessage, 'error');
         }
     });
 
@@ -229,10 +249,16 @@ export const CreateRun: React.FC = () => {
             setStagedQuotes([]);
             
             if (createdRuns.length === 1) {
-                handleOpenSnackbar(`Run #${createdRuns[0].run_number} created successfully!`, 'success');
+                const run = createdRuns[0];
+                const runIdentifier = run.run_name 
+                    ? `"${run.run_name}" (Run #${run.run_number})` 
+                    : `Run #${run.run_number}`;
+                handleOpenSnackbar(`${runIdentifier} created successfully!`, 'success');
             } else {
-                const runNumbers = createdRuns.map(run => `#${run.run_number}`).join(', ');
-                handleOpenSnackbar(`Runs ${runNumbers} created successfully!`, 'success');
+                const runIdentifiers = createdRuns.map(run => 
+                    run.run_name ? `"${run.run_name}" (#${run.run_number})` : `#${run.run_number}`
+                ).join(', ');
+                handleOpenSnackbar(`${createdRuns.length} runs created successfully: ${runIdentifiers}`, 'success');
             }
         } catch {
             // Errors are handled by the mutation's onError callback
