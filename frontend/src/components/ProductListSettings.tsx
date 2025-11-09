@@ -315,17 +315,17 @@ const ProductList: React.FC<ProductListProps> = ({
             Showing {filteredProducts.length} {showArchived ? 'archived' : 'active'} products
           </p>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200 table-fixed">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th 
                     scope="col" 
-                    className="w-[30%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                     onClick={() => handleSort('productName')}
                   >
                     <div className="flex items-center justify-between">
                       <span>Product Name</span>
-                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 ml-2">
                         {sortField === 'productName' ? (
                           sortDirection === 'asc' ? 
                             <ChevronUp className="h-4 w-4" /> : 
@@ -338,12 +338,12 @@ const ProductList: React.FC<ProductListProps> = ({
                   </th>
                   <th 
                     scope="col" 
-                    className="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none w-40"
                     onClick={() => handleSort('sku')}
                   >
                     <div className="flex items-center justify-between">
                       <span>SKU</span>
-                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 ml-2">
                         {sortField === 'sku' ? (
                           sortDirection === 'asc' ? 
                             <ChevronUp className="h-4 w-4" /> : 
@@ -356,12 +356,12 @@ const ProductList: React.FC<ProductListProps> = ({
                   </th>
                   <th 
                     scope="col" 
-                    className="w-[20%] px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none w-44"
                     onClick={() => handleSort('barcode')}
                   >
                     <div className="flex items-center justify-between">
                       <span>Barcode</span>
-                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                      <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 ml-2">
                         {sortField === 'barcode' ? (
                           sortDirection === 'asc' ? 
                             <ChevronUp className="h-4 w-4" /> : 
@@ -374,7 +374,7 @@ const ProductList: React.FC<ProductListProps> = ({
                   </th>
                   <th 
                     scope="col" 
-                    className="w-[15%] px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none w-32"
                     onClick={() => handleSort('price')}
                   >
                     <div className="flex items-center justify-end">
@@ -392,7 +392,7 @@ const ProductList: React.FC<ProductListProps> = ({
                   </th>
                   <th 
                     scope="col" 
-                    className="w-[15%] px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none w-32"
                     onClick={() => handleSort('quantityOnHand')}
                   >
                     <div className="flex items-center justify-end">
@@ -420,11 +420,11 @@ const ProductList: React.FC<ProductListProps> = ({
                       product.isArchived && 'bg-gray-100 text-gray-500'
                     )}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.productName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.sku}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.barcode || '—'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">${Number(product.price).toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right font-medium">{Number(product.quantityOnHand).toFixed(1)}</td>
+                    <td className="px-4 py-4 text-sm font-medium text-gray-900">{product.productName}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{product.sku}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{product.barcode || '—'}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">${Number(product.price).toFixed(2)}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-right font-medium">{Number(product.quantityOnHand).toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>
