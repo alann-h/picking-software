@@ -5,7 +5,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://smartpicker.com.au/</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -13,7 +13,7 @@
   <!-- About Us -->
   <url>
     <loc>https://smartpicker.com.au/about-us</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -21,7 +21,7 @@
   <!-- FAQ -->
   <url>
     <loc>https://smartpicker.com.au/faq</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -29,7 +29,7 @@
   <!-- Technology Stack -->
   <url>
     <loc>https://smartpicker.com.au/technology</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -37,7 +37,7 @@
   <!-- Pricing -->
   <url>
     <loc>https://smartpicker.com.au/pricing</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -45,7 +45,7 @@
   <!-- Demo -->
   <url>
     <loc>https://smartpicker.com.au/demo</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -53,7 +53,7 @@
   <!-- Blog -->
   <url>
     <loc>https://smartpicker.com.au/blog</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -61,21 +61,21 @@
   <!-- Blog Posts -->
   <url>
     <loc>https://smartpicker.com.au/blog/warehouse-efficiency-guide</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://smartpicker.com.au/blog/golden-shore-case-study</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://smartpicker.com.au/blog/system-setup-guide</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -83,7 +83,7 @@
   <!-- Privacy Policy -->
   <url>
     <loc>https://smartpicker.com.au/privacy-policy</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -91,7 +91,7 @@
   <!-- Terms of Service -->
   <url>
     <loc>https://smartpicker.com.au/terms-of-service</loc>
-    <lastmod>2025-10-14</lastmod>
+    <lastmod>2025-11-10</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
