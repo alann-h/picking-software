@@ -51,7 +51,6 @@ const Settings: React.FC = () => {
     const newSearchTerm = event.target.value;
     setSearchTerm(newSearchTerm);
     
-    // Update URL with new search term while preserving other params
     const newParams = new URLSearchParams(searchParams);
     if (newSearchTerm) {
       newParams.set('search', newSearchTerm);
