@@ -175,7 +175,10 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   const userEmail = authData?.userEmail || null;
   const { isAdmin } = authData || {};
 
-  const handleTitleClick = () => navigate(disableTopBar ? '/' : '/dashboard');
+  const handleTitleClick = () => {
+    const targetPath = disableTopBar ? '/' : '/dashboard';
+    navigate(targetPath);
+  };
 
   const handleMenuItemClick = (path: string) => {
     if (path === '/logout') {
@@ -256,9 +259,9 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
         {/* Logo/Brand Section - Absolute Left */}
         <div 
           onClick={handleTitleClick} 
-          className="flex cursor-pointer items-center gap-2 transition-transform duration-200 ease-in-out hover:scale-105"
+          className="flex cursor-pointer items-center gap-2 transition-transform duration-150 ease-in-out hover:scale-105 active:scale-95"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-800 to-blue-500 text-lg font-bold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-800 to-blue-500 text-lg font-bold text-white transition-all">
             SP
           </div>
           <span className="hidden sm:block bg-gradient-to-br from-blue-800 to-blue-500 bg-clip-text text-xl font-bold text-transparent">
