@@ -18,6 +18,24 @@ import PortalDropdown from '../PortalDropdown';
 
 const formatCurrency = (amount: number) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount);
 
+const CustomerQuotesSkeleton: React.FC = () => (
+    <div className="bg-white rounded-lg p-3 max-h-60 overflow-y-auto border border-gray-200">
+        <p className="text-xs font-medium text-gray-700 mb-2">Loading quotes...</p>
+        {[1, 2, 3].map((i) => (
+            <div key={i} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200 mb-2 animate-pulse">
+                <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-32"></div>
+                </div>
+                <div className="text-right">
+                    <div className="h-4 bg-gray-200 rounded w-20 mb-1 ml-auto"></div>
+                    <div className="h-4 bg-gray-200 rounded w-4 ml-auto"></div>
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
 const EditableQuoteRow: React.FC<{ 
     quote: RunQuote; 
     onRemove: (quoteId: string) => void; 
@@ -107,7 +125,7 @@ export const RunItem: React.FC<{
     });
 
     // Fetch quotes for selected customer from accounting system
-    const { data: customerQuotesData } = useQuery<QuoteSummary[]>({
+    const { data: customerQuotesData, isLoading: isLoadingCustomerQuotes } = useQuery<QuoteSummary[]>({
         queryKey: ['quotes', selectedCustomer?.customerId],
         queryFn: async () => {
             if (!selectedCustomer) return [];
@@ -563,31 +581,35 @@ export const RunItem: React.FC<{
                                             
                                             {/* Display Customer Quotes */}
                                             {selectedCustomer && (
-                                                <div className="bg-white rounded-lg p-3 max-h-60 overflow-y-auto border border-gray-200">
-                                                    <p className="text-xs font-medium text-gray-700 mb-2">
-                                                        Quotes for {selectedCustomer.customerName}:
-                                                    </p>
-                                                    {customerQuotesNotInRun.length > 0 ? (
-                                                        customerQuotesNotInRun.map((quote: QuoteSummary) => (
-                                                            <div
-                                                                key={quote.id}
-                                                                onClick={() => handleAddQuote(quote)}
-                                                                className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200 hover:border-green-400 hover:bg-green-50 cursor-pointer mb-2 transition-colors"
-                                                            >
-                                                                <div>
-                                                                    <p className="text-sm font-semibold text-gray-800">#{quote.quoteNumber || quote.id}</p>
-                                                                    <p className="text-xs text-gray-600">{quote.customerName}</p>
+                                                isLoadingCustomerQuotes ? (
+                                                    <CustomerQuotesSkeleton />
+                                                ) : (
+                                                    <div className="bg-white rounded-lg p-3 max-h-60 overflow-y-auto border border-gray-200">
+                                                        <p className="text-xs font-medium text-gray-700 mb-2">
+                                                            Quotes for {selectedCustomer.customerName}:
+                                                        </p>
+                                                        {customerQuotesNotInRun.length > 0 ? (
+                                                            customerQuotesNotInRun.map((quote: QuoteSummary) => (
+                                                                <div
+                                                                    key={quote.id}
+                                                                    onClick={() => handleAddQuote(quote)}
+                                                                    className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-200 hover:border-green-400 hover:bg-green-50 cursor-pointer mb-2 transition-colors"
+                                                                >
+                                                                    <div>
+                                                                        <p className="text-sm font-semibold text-gray-800">#{quote.quoteNumber || quote.id}</p>
+                                                                        <p className="text-xs text-gray-600">{quote.customerName}</p>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="text-sm font-semibold text-green-700">{formatCurrency(quote.totalAmount)}</p>
+                                                                        <Plus className="w-4 h-4 text-green-600 ml-auto" />
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-sm font-semibold text-green-700">{formatCurrency(quote.totalAmount)}</p>
-                                                                    <Plus className="w-4 h-4 text-green-600 ml-auto" />
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <p className="text-xs text-gray-500 italic py-2">No available quotes for this customer</p>
-                                                    )}
-                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <p className="text-xs text-gray-500 italic py-2">No available quotes for this customer</p>
+                                                        )}
+                                                    </div>
+                                                )
                                             )}
                                         </div>
                                     )}
