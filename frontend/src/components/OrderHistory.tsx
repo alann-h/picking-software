@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useOptimistic } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useOptimistic, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign,
@@ -14,9 +14,6 @@ import {
   ChevronsUpDown,
   ExternalLink
 } from 'lucide-react';
-
-
-// Context and API Imports
 import { useSnackbarContext } from './SnackbarContext';
 import { getQuotesWithStatus, deleteQuotesBulk } from '../api/quote';
 import { getUserStatus } from '../api/user';
@@ -25,9 +22,8 @@ import { OrderHistorySkeleton } from './Skeletons';
 import { getStatusColor } from '../utils/other';
 import { ConfirmationDialog } from './ConfirmationDialog';
 
-
 // =================================================================
-// 1. LOGIC HOOK (Remains largely the same)
+// LOGIC HOOK
 // =================================================================
 const useOrderHistory = () => {
   const { handleOpenSnackbar } = useSnackbarContext();
@@ -64,7 +60,6 @@ const useOrderHistory = () => {
 
   const deleteQuoteMutation = useMutation({
     mutationFn: async (quoteIds: string[]) => {
-      // Set optimistic state immediately
       deleteOptimisticQuotes(quoteIds);
       handleOpenSnackbar('Deleting quotes...', 'info');
       return deleteQuotesBulk(quoteIds);
@@ -75,7 +70,6 @@ const useOrderHistory = () => {
     },
     onError: (error) => {
       handleOpenSnackbar(`Failed to delete quotes: ${error.message}`, 'error');
-      // Optimistic state will automatically revert on error
     },
   });
 
@@ -107,17 +101,18 @@ const useOrderHistory = () => {
 };
 
 // =================================================================
-// 2. FILTER COMPONENTS
+// FILTER COMPONENTS
 // =================================================================
 interface FilterSectionProps {
-  filters: { customerName: string; orderStatus: string; quoteNumber: string; };
+  filters: { customerName: string; orderStatus: string; quoteNumber: string };
   onFilterChange: (key: string, value: string) => void;
   onClearFilters: () => void;
   orderStatuses: string[];
 }
 
 const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, onClearFilters, orderStatuses }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const hasActiveFilters = filters.customerName || filters.orderStatus || filters.quoteNumber;
 
   return (
     <div className="p-4 md:p-6 mb-4 rounded-lg bg-gray-50">
@@ -125,16 +120,22 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, 
         className="w-full flex justify-between items-center text-left cursor-pointer"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <h2 className="text-lg font-semibold text-gray-800">Filters</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-800">Filters</h2>
+          {hasActiveFilters && (
+            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+              Active
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800">
-          {isOpen ? 'Hide' : 'Show'} Filters <ListFilter className="w-4 h-4" />
+          {isOpen ? 'Hide' : 'Show'} <ListFilter className="w-4 h-4" />
         </div>
       </button>
       
       {isOpen && (
         <div className="mt-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {/* Customer Name Filter */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -145,23 +146,21 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, 
                 className="w-full pl-10 pr-4 py-2 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
               />
             </div>
-            {/* Order Status Filter */}
-            <div>
-              <div className="relative">
-                <select
-                  value={filters.orderStatus}
-                  onChange={(e) => onFilterChange('orderStatus', e.target.value)}
-                  className="relative w-full cursor-pointer rounded-md bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
-                >
-                  <option value="">All Statuses</option>
-                  {orderStatuses.map((status) => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-                <ChevronsUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-              </div>
+            
+            <div className="relative">
+              <select
+                value={filters.orderStatus}
+                onChange={(e) => onFilterChange('orderStatus', e.target.value)}
+                className="relative w-full cursor-pointer rounded-md bg-white py-2 pl-3 pr-10 text-left border border-gray-300 focus:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-orange-300 sm:text-sm"
+              >
+                <option value="">All Statuses</option>
+                {orderStatuses.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              <ChevronsUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             </div>
-            {/* Quote Number Filter */}
+            
             <div className="relative">
               <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -173,14 +172,17 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, 
               />
             </div>
           </div>
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={onClearFilters}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
-            >
-              <X className="w-4 h-4" /> Clear All Filters
-            </button>
-          </div>
+          
+          {hasActiveFilters && (
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={onClearFilters}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+              >
+                <X className="w-4 h-4" /> Clear All Filters
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -189,7 +191,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({ filters, onFilterChange, 
 
 
 // =================================================================
-// 3. CHILD UI COMPONENTS
+// UI COMPONENTS
 // =================================================================
 const EmptyState: React.FC = () => (
   <div className="mt-4 text-center border-2 border-dashed border-gray-200 rounded-lg p-8 sm:p-12 bg-gray-50">
@@ -239,13 +241,18 @@ const StatusChip: React.FC<{ status: string }> = ({ status }) => (
   </span>
 );
 
-const QuoteCard: React.FC<{ quote: QuoteSummary; isSelected: boolean; onSelect: (checked: boolean) => void; isAdmin: boolean; }> = ({ quote, isSelected, onSelect, isAdmin }) => {
+const QuoteCard: React.FC<{
+  quote: QuoteSummary;
+  isSelected: boolean;
+  onSelect: (checked: boolean) => void;
+  isAdmin: boolean;
+}> = ({ quote, isSelected, onSelect, isAdmin }) => {
   const navigate = useNavigate();
+  
   const handleQuoteClick = (e: React.MouseEvent) => {
-    // Prevent navigation if the checkbox itself was clicked
     if ((e.target as HTMLElement).closest('.quote-checkbox-container')) return;
     navigate(`/quote?id=${quote.id}`);
-  }
+  };
   
   const preparerNames = useMemo(() => {
     if (typeof quote.preparerNames === 'string') {
@@ -330,13 +337,20 @@ const QuoteCard: React.FC<{ quote: QuoteSummary; isSelected: boolean; onSelect: 
 
 
 // =================================================================
-// 4. MAIN EXPORTED COMPONENT
+// MAIN COMPONENT
 // =================================================================
 const OrderHistory: React.FC = () => {
   const { quotes, isLoading, error, refetchQuotes, deleteQuoteMutation, isAdmin } = useOrderHistory();
-  const [filters, setFilters] = useState({ customerName: '', orderStatus: '', quoteNumber: '' });
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Initialize filters from URL parameters
+  const filters = useMemo(() => ({
+    customerName: searchParams.get('customer') || '',
+    orderStatus: searchParams.get('status') || '',
+    quoteNumber: searchParams.get('quote') || ''
+  }), [searchParams]);
 
   const orderStatuses = useMemo(() => {
     const statuses = quotes.map(quote => quote.orderStatus).filter(Boolean);
@@ -351,8 +365,26 @@ const OrderHistory: React.FC = () => {
     );
   }, [quotes, filters]);
 
-  const handleFilterChange = (key: string, value: string) => setFilters(prev => ({ ...prev, [key]: value }));
-  const handleClearFilters = () => setFilters({ customerName: '', orderStatus: '', quoteNumber: '' });
+  const handleFilterChange = (key: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    const paramMap: Record<string, string> = {
+      customerName: 'customer',
+      orderStatus: 'status',
+      quoteNumber: 'quote'
+    };
+    
+    const paramKey = paramMap[key] || key;
+    if (value) {
+      newParams.set(paramKey, value);
+    } else {
+      newParams.delete(paramKey);
+    }
+    setSearchParams(newParams);
+  };
+
+  const handleClearFilters = () => {
+    setSearchParams({});
+  };
 
   const handleSelectAll = (checked: boolean) => {
     setSelectedQuotes(checked ? new Set(filteredQuotes.map(quote => quote.id)) : new Set());
@@ -377,14 +409,22 @@ const OrderHistory: React.FC = () => {
 
   const renderContent = () => {
     if (isLoading) return <OrderHistorySkeleton />;
-    if (error) return (
-      <div className="mt-3 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md flex justify-between items-center">
-        Failed to load order history. Please try again.
-        <button onClick={() => refetchQuotes()} className="px-3 py-1 text-sm font-medium border border-red-500 text-red-600 rounded-md hover:bg-red-200 cursor-pointer" disabled={deleteQuoteMutation.isPending}>
-          Retry
-        </button>
-      </div>
-    );
+    
+    if (error) {
+      return (
+        <div className="mt-3 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md flex justify-between items-center">
+          Failed to load order history. Please try again.
+          <button 
+            onClick={() => refetchQuotes()} 
+            className="px-3 py-1 text-sm font-medium border border-red-500 text-red-600 rounded-md hover:bg-red-200 cursor-pointer" 
+            disabled={deleteQuoteMutation.isPending}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    
     if (filteredQuotes.length === 0) return <EmptyState />;
 
     return (
@@ -406,6 +446,7 @@ const OrderHistory: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-4">
       <title>Smart Picker | Order History</title>
       
+      {/* Header */}
       <div className="mb-4">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
@@ -414,14 +455,23 @@ const OrderHistory: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Order History</h1>
             <p className="text-gray-500">
-              {filteredQuotes.length > 0 ? `${filteredQuotes.length} order${filteredQuotes.length === 1 ? '' : 's'} found` : 'No orders found'}
+              {filteredQuotes.length > 0 
+                ? `${filteredQuotes.length} order${filteredQuotes.length === 1 ? '' : 's'} found` 
+                : 'No orders found'}
             </p>
           </div>
         </div>
       </div>
 
-      <FilterSection filters={filters} onFilterChange={handleFilterChange} onClearFilters={handleClearFilters} orderStatuses={orderStatuses} />
+      {/* Filters */}
+      <FilterSection 
+        filters={filters} 
+        onFilterChange={handleFilterChange} 
+        onClearFilters={handleClearFilters} 
+        orderStatuses={orderStatuses} 
+      />
 
+      {/* Bulk Actions (Admin Only) */}
       {isAdmin && (
         <div className="p-3 mb-4 rounded-lg bg-gray-50">
           <div className="flex items-center justify-between flex-wrap gap-2 min-h-[38px]">
@@ -437,11 +487,17 @@ const OrderHistory: React.FC = () => {
                 }}
                 onChange={(e) => handleSelectAll(e.target.checked)}
               />
-              <label className="text-sm text-gray-700 cursor-pointer">Select All ({selectedQuotes.size}/{filteredQuotes.length})</label>
+              <label className="text-sm text-gray-700 cursor-pointer">
+                Select All ({selectedQuotes.size}/{filteredQuotes.length})
+              </label>
             </div>
             
-            <div className={`flex items-center gap-2 transition-opacity duration-300 ${selectedQuotes.size > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <p className="text-sm text-gray-600">{selectedQuotes.size} quote{selectedQuotes.size === 1 ? '' : 's'} selected</p>
+            <div className={`flex items-center gap-2 transition-opacity duration-300 ${
+              selectedQuotes.size > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}>
+              <p className="text-sm text-gray-600">
+                {selectedQuotes.size} quote{selectedQuotes.size === 1 ? '' : 's'} selected
+              </p>
               <button
                 onClick={() => setDeleteDialogOpen(true)}
                 disabled={deleteQuoteMutation.isPending || selectedQuotes.size === 0}
@@ -454,6 +510,7 @@ const OrderHistory: React.FC = () => {
         </div>
       )}
 
+      {/* Content */}
       {renderContent()}
 
       <ConfirmationDialog
