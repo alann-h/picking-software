@@ -259,7 +259,6 @@ export const CreateRun: React.FC = () => {
                 handleOpenSnackbar(`${createdRuns.length} runs created successfully: ${runIdentifiers}`, 'success');
             }
         } catch {
-            // Errors are handled by the mutation's onError callback
         }
     };
     
