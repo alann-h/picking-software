@@ -24,7 +24,6 @@ const Settings: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Initialize search term from URL parameters
   const [searchTerm, setSearchTerm] = useState(() => {
     return searchParams.get('search') || '';
   });
