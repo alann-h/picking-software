@@ -104,7 +104,7 @@ const SyncSettingsTab: React.FC = () => {
             <div>
               <h3 className="text-sm font-semibold text-blue-800 mb-1">Automatic Sync Configuration</h3>
               <p className="text-sm text-blue-700">
-                The system automatically syncs all customers and products every 3.5 days (twice per week) to keep your data up to date. 
+                The system automatically syncs all customers and products daily (every 24 hours) to keep your data up to date. 
                 Products without SKUs will be filtered out automatically.
               </p>
             </div>
@@ -171,7 +171,7 @@ const SyncSettingsTab: React.FC = () => {
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-800 mb-1">Enable Automatic Sync</h4>
                     <p className="text-sm text-gray-600">
-                      When enabled, all customers and products will be automatically synced every 3.5 days (twice per week) from your accounting system.
+                      When enabled, all customers and products will be automatically synced daily (every 24 hours) from your accounting system.
                     </p>
                   </div>
                   <button
@@ -194,7 +194,7 @@ const SyncSettingsTab: React.FC = () => {
                       <h4 className="text-sm font-semibold text-blue-800 mb-1">Current Status</h4>
                       <p className="text-sm text-blue-700 mb-2">
                         {syncSettings.enabled 
-                          ? 'Automatic sync is enabled. Customers and products will be synced every 3.5 days (twice per week).'
+                          ? 'Automatic sync is enabled. Customers and products will be synced daily (every 24 hours).'
                           : 'Automatic sync is disabled. Customers and products will not be synced automatically.'
                         }
                       </p>
