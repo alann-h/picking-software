@@ -54,13 +54,14 @@ export class QuoteSyncService {
             // Fetch and save each quote
             for (const quoteSummary of quotes) {
               try {
-                // Check if quote is already on a run - if so, skip it to preserve picking progress
-                const quoteOnRun = await prisma.runItem.findFirst({
-                  where: { quoteId: String(quoteSummary.id) }
+                // Check if quote has been sent to admin or completed - if so, skip it to preserve final work
+                const existingQuote = await prisma.quote.findUnique({
+                  where: { id: String(quoteSummary.id) },
+                  select: { status: true }
                 });
 
-                if (quoteOnRun) {
-                  console.log(`⏭️  Skipping quote ${quoteSummary.quoteNumber || quoteSummary.id} - already on a run`);
+                if (existingQuote && (existingQuote.status === 'checking' || existingQuote.status === 'finalised')) {
+                  console.log(`⏭️  Skipping quote ${quoteSummary.quoteNumber || quoteSummary.id} - status is ${existingQuote.status}, work is completed`);
                   skippedCount++;
                   continue;
                 }
@@ -87,7 +88,7 @@ export class QuoteSyncService {
                   continue;
                 }
 
-                // Save to database (only if not on a run)
+                // Save to database (only if not checking/finalised)
                 await estimateToDB(quoteData as FilteredQuote);
                 syncedCount++;
                 console.log(`✅ Synced quote ${quoteSummary.quoteNumber || quoteSummary.id} for ${customer.customer_name}`);

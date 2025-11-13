@@ -402,12 +402,23 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
 export async function estimateToDB(quote: FilteredQuote): Promise<void> {
   try {
     await prisma.$transaction(async (tx) => {
-      // Upsert the quote
+      // Check if quote exists to determine if this is an update or create
+      const existingQuote = await tx.quote.findUnique({
+        where: { id: quote.quoteId },
+        include: {
+          quoteItems: true, // Get existing items to preserve picking progress
+        },
+      });
+
+      // Upsert the quote (but preserve status if it's already assigned/checking/finalised)
       await tx.quote.upsert({
         where: { id: quote.quoteId },
         update: {
           totalAmount: quote.totalAmount,
-          status: quote.orderStatus,
+          // Only update status if it's pending or cancelled (don't override assigned/checking/finalised)
+          status: existingQuote && ['assigned', 'checking', 'finalised'].includes(existingQuote.status) 
+            ? existingQuote.status 
+            : quote.orderStatus,
           orderNote: quote.orderNote,
           quoteNumber: quote.quoteNumber,
         },
@@ -422,26 +433,102 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
         },
       });
 
-      // Delete existing quote items
-      await tx.quoteItem.deleteMany({
-        where: { quoteId: quote.quoteId },
-      });
-
-      // Create new quote items
-      for (const [productId, item] of Object.entries(quote.productInfo)) {
-        await tx.quoteItem.create({
-          data: {
-            quoteId: quote.quoteId,
-            productId: Number(productId), // Convert string to number for bigint field
-            productName: item.productName,
-            pickingQuantity: roundQuantity(item.pickingQty),
-            originalQuantity: roundQuantity(item.originalQty),
-            pickingStatus: item.pickingStatus,
-            sku: item.sku,
-            price: roundQuantity(item.price),
-            taxCodeRef: item.tax_code_ref,
-          },
+      // If this is a new quote (no existing items), just create everything fresh
+      if (!existingQuote || existingQuote.quoteItems.length === 0) {
+        // Delete any existing items (shouldn't be any, but just in case)
+        await tx.quoteItem.deleteMany({
+          where: { quoteId: quote.quoteId },
         });
+
+        // Create all new quote items
+        for (const [productId, item] of Object.entries(quote.productInfo)) {
+          await tx.quoteItem.create({
+            data: {
+              quoteId: quote.quoteId,
+              productId: Number(productId),
+              productName: item.productName,
+              pickingQuantity: roundQuantity(item.pickingQty),
+              originalQuantity: roundQuantity(item.originalQty),
+              pickingStatus: item.pickingStatus,
+              sku: item.sku,
+              price: roundQuantity(item.price),
+              taxCodeRef: item.tax_code_ref,
+            },
+          });
+        }
+      } else {
+        // SMART MERGE: Preserve picking progress while updating QB changes
+        
+        // Build a map of existing items with their picking progress
+        const existingItemsMap = new Map(
+          existingQuote.quoteItems.map(item => [
+            item.productId.toString(),
+            {
+              pickingQuantity: item.pickingQuantity,
+              pickingStatus: item.pickingStatus,
+            }
+          ])
+        );
+
+        // Get all product IDs from QB
+        const incomingProductIds = new Set(Object.keys(quote.productInfo));
+        const existingProductIds = new Set(existingQuote.quoteItems.map(item => item.productId.toString()));
+
+        // 1. DELETE items that no longer exist in QB
+        const itemsToDelete = Array.from(existingProductIds).filter(id => !incomingProductIds.has(id));
+        if (itemsToDelete.length > 0) {
+          await tx.quoteItem.deleteMany({
+            where: {
+              quoteId: quote.quoteId,
+              productId: { in: itemsToDelete.map(id => BigInt(id)) },
+            },
+          });
+          console.log(`🗑️  Removed ${itemsToDelete.length} items no longer in QuickBooks`);
+        }
+
+        // 2. UPDATE existing items (preserve picking progress, update QB fields)
+        for (const [productId, item] of Object.entries(quote.productInfo)) {
+          const existingProgress = existingItemsMap.get(productId);
+
+          if (existingProgress) {
+            // Item exists - UPDATE with QB data but preserve picking progress
+            await tx.quoteItem.update({
+              where: {
+                quoteId_productId: {
+                  quoteId: quote.quoteId,
+                  productId: BigInt(productId),
+                },
+              },
+              data: {
+                // Update from QuickBooks
+                productName: item.productName,
+                originalQuantity: roundQuantity(item.originalQty),
+                sku: item.sku,
+                price: roundQuantity(item.price),
+                taxCodeRef: item.tax_code_ref,
+                // PRESERVE picking progress
+                pickingQuantity: existingProgress.pickingQuantity,
+                pickingStatus: existingProgress.pickingStatus,
+              },
+            });
+          } else {
+            // Item is NEW - CREATE it
+            await tx.quoteItem.create({
+              data: {
+                quoteId: quote.quoteId,
+                productId: Number(productId),
+                productName: item.productName,
+                pickingQuantity: roundQuantity(item.pickingQty),
+                originalQuantity: roundQuantity(item.originalQty),
+                pickingStatus: item.pickingStatus,
+                sku: item.sku,
+                price: roundQuantity(item.price),
+                taxCodeRef: item.tax_code_ref,
+              },
+            });
+            console.log(`➕ Added new item: ${item.productName} to quote ${quote.quoteId}`);
+          }
+        }
       }
     });
   } catch (error: unknown) {

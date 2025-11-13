@@ -345,13 +345,9 @@ export class WebhookService {
       });
 
       if (existingEstimate) {
-        // Check if it's on a run before treating as update
-        const quoteOnRun = await prisma.runItem.findFirst({
-          where: { quoteId: estimateId }
-        });
-
-        if (quoteOnRun) {
-          console.log(`⏭️  Skipping webhook create for quote ${estimateId} - already on a run`);
+        // Check if quote is completed before updating
+        if (existingEstimate.status === 'checking' || existingEstimate.status === 'finalised') {
+          console.log(`⏭️  Skipping webhook create for quote ${estimateId} - status is ${existingEstimate.status}, work is completed`);
           return;
         }
 
@@ -394,13 +390,14 @@ export class WebhookService {
     try {
       console.log(`Updating estimate with ID: ${estimateId}`);
       
-      // Check if quote is already on a run - if so, skip update to preserve picking progress
-      const quoteOnRun = await prisma.runItem.findFirst({
-        where: { quoteId: estimateId }
+      // Check if quote has been sent to admin or completed - if so, skip update to preserve final work
+      const existingQuote = await prisma.quote.findUnique({
+        where: { id: estimateId },
+        select: { status: true }
       });
 
-      if (quoteOnRun) {
-        console.log(`⏭️  Skipping webhook update for quote ${estimateId} - already on a run, preserving picking progress`);
+      if (existingQuote && (existingQuote.status === 'checking' || existingQuote.status === 'finalised')) {
+        console.log(`⏭️  Skipping webhook update for quote ${estimateId} - status is ${existingQuote.status}, work is completed`);
         return;
       }
       
