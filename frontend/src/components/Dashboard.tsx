@@ -328,20 +328,23 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
 const RecentQuotesList: React.FC = () => {
     const navigate = useNavigate();
     const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
+    const [displayCount, setDisplayCount] = useState(9);
     
-    const { data: recentQuotes } = useSuspenseQuery<QuoteSummary[]>({
+    const { data: allQuotes } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', 'recent-pending'],
         queryFn: async () => {
             const response = await getQuotesWithStatus('pending') as QuoteSummary[];
-            // Return only the first 10 most recent quotes
-            return response.slice(0, 10);
+            return response;
         },
         staleTime: 2 * 60 * 1000, // Cache for 2 minutes
         gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
         refetchInterval: 60000, // Refetch every minute to keep data fresh
     });
 
-    if (recentQuotes.length === 0) {
+    const recentQuotes = allQuotes.slice(0, displayCount);
+    const hasMore = allQuotes.length > displayCount;
+
+    if (allQuotes.length === 0) {
         return (
             <InfoBox icon={FileText} title="No pending quotes" message="All quotes have been processed or no quotes are available." />
         );
@@ -352,38 +355,56 @@ const RecentQuotesList: React.FC = () => {
         navigate(`/quote?id=${quoteId}`);
     };
 
+    const handleLoadMore = () => {
+        setDisplayCount(prev => prev + 9);
+    };
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {recentQuotes.map((quote) => (
-                <div 
-                    key={quote.id}
-                    onClick={loadingQuoteId === quote.id ? undefined : () => handleQuoteClick(quote.id)}
-                    className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-400 ${loadingQuoteId === quote.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-all duration-200 group`}
-                >
-                    <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-blue-600" />
-                            <span className="text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.id}</span>
-                        </div>
-                        <QuoteStatusChip status={quote.orderStatus as RunQuote['orderStatus']} />
-                    </div>
-                    
-                    <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-900 truncate">{quote.customerName}</p>
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                            <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-gray-400" />
-                                <p className="text-xs text-gray-500">{quote.timeStarted?.split(',')[0] || 'N/A'}</p>
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {recentQuotes.map((quote) => (
+                    <div 
+                        key={quote.id}
+                        onClick={loadingQuoteId === quote.id ? undefined : () => handleQuoteClick(quote.id)}
+                        className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-400 ${loadingQuoteId === quote.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-all duration-200 group`}
+                    >
+                        <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-blue-600" />
+                                <span className="text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.id}</span>
                             </div>
-                            {loadingQuoteId === quote.id ? (
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                            ) : (
-                                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                            )}
+                            <QuoteStatusChip status={quote.orderStatus as RunQuote['orderStatus']} />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-gray-900 truncate">{quote.customerName}</p>
+                            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-gray-400" />
+                                    <p className="text-xs text-gray-500">{quote.timeStarted?.split(',')[0] || 'N/A'}</p>
+                                </div>
+                                {loadingQuoteId === quote.id ? (
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                ) : (
+                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                                )}
+                            </div>
                         </div>
                     </div>
+                ))}
+            </div>
+            
+            {hasMore && (
+                <div className="flex justify-center pt-2">
+                    <button
+                        onClick={handleLoadMore}
+                        className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 cursor-pointer"
+                    >
+                        <ChevronDown className="w-4 h-4" />
+                        Load More ({allQuotes.length - displayCount} remaining)
+                    </button>
                 </div>
-            ))}
+            )}
         </div>
     );
 };
