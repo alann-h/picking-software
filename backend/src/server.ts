@@ -80,8 +80,8 @@ setInterval(() => {
 }, config.session.store.pruneInterval);
 
 
-// Sync products every 3.5 days (twice per week)
-const SYNC_INTERVAL = 3.5 * 24 * 60 * 60 * 1000; // 3.5 days in milliseconds
+// Sync products every day
+const SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 1 day in milliseconds
 
 setInterval(() => {
   console.log('🔄 Running scheduled product sync with saved settings...');
