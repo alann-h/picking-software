@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useOptimistic, useEffect } from 'react';
+import React, { useState, useMemo, useOptimistic } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import {
   DollarSign,
   Clock,
@@ -25,7 +25,17 @@ import { ConfirmationDialog } from './ConfirmationDialog';
 // =================================================================
 // LOGIC HOOK
 // =================================================================
-const useOrderHistory = () => {
+
+interface UseOrderHistoryReturn {
+  quotes: QuoteSummary[];
+  isLoading: boolean;
+  error: Error | null | undefined;
+  refetchQuotes: () => void;
+  deleteQuoteMutation: UseMutationResult<unknown, Error, string[], unknown>;
+  isAdmin: boolean;
+}
+
+const useOrderHistory = (): UseOrderHistoryReturn => {
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -60,15 +70,25 @@ const useOrderHistory = () => {
 
   const deleteQuoteMutation = useMutation({
     mutationFn: async (quoteIds: string[]) => {
-      deleteOptimisticQuotes(quoteIds);
-      handleOpenSnackbar('Deleting quotes...', 'info');
       return deleteQuotesBulk(quoteIds);
     },
+    onMutate: async (quoteIds: string[]) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['quotes', 'history'] });
+      
+      // Apply the optimistic update
+      deleteOptimisticQuotes(quoteIds);
+      
+      handleOpenSnackbar('Deleting quotes...', 'info');
+    },
     onSuccess: () => {
+      // Only invalidate after the mutation succeeds
       queryClient.invalidateQueries({ queryKey: ['quotes', 'history'] });
       handleOpenSnackbar('Quotes deleted successfully', 'success');
     },
     onError: (error) => {
+      // On error, refetch to revert the optimistic update
+      queryClient.invalidateQueries({ queryKey: ['quotes', 'history'] });
       handleOpenSnackbar(`Failed to delete quotes: ${error.message}`, 'error');
     },
   });

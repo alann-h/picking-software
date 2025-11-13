@@ -1,5 +1,5 @@
 import { apiCallDelete, apiCallGet, apiCallPost, apiCallPut } from '../utils/apiHelpers';
-import { UserUpdateData } from '../utils/types';
+import { UserUpdateData, UserStatusResponse } from '../utils/types';
 import { AUTH_BASE, USER_STATUS } from './config';
 
 export const getAllUsers = async () => {
@@ -22,7 +22,7 @@ export const updateUser = async (userId: string, updateData: UserUpdateData) => 
   return data;
 };
 
-export const getUserStatus = async() => {
+export const getUserStatus = async(): Promise<UserStatusResponse> => {
   const data = await apiCallGet(USER_STATUS);
-  return data;
+  return data as UserStatusResponse;
 }
