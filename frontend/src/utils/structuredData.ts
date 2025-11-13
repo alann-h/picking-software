@@ -5,7 +5,7 @@ export const structuredDataSchemas = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "Smart Picker",
-    "url": "https://smartpicker.com.au",
+    "url": "https://smartpicker.com.au/",
     "logo": "https://smartpicker.com.au/SP.png",
     "description": "The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately.",
     "sameAs": [
@@ -46,10 +46,24 @@ export const structuredDataSchemas = {
     "@type": "WebPage",
     "name": "Smart Picker - Efficient Order Preparation",
     "description": "Boost efficiency with Smart Picker. The smart order picking app with barcode scanning and digital lists to prepare orders faster and more accurately.",
-    "url": "https://smartpicker.com.au",
+    "url": "https://smartpicker.com.au/",
     "mainEntity": {
       "@type": "SoftwareApplication",
       "name": "Smart Picker"
+    }
+  },
+  
+  // Website schema for site name in search results
+  website: {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Smart Picker",
+    "alternateName": "SmartPicker",
+    "url": "https://smartpicker.com.au/",
+    "description": "Smart Picker - The smart order picking software with barcode scanning, QuickBooks & Xero integration",
+    "publisher": {
+      "@type": "Organization",
+      "@id": "https://smartpicker.com.au/#organization"
     }
   },
 
