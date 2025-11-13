@@ -334,7 +334,8 @@ const RecentQuotesList: React.FC = () => {
         queryKey: ['quotes', 'recent-pending'],
         queryFn: async () => {
             const response = await getQuotesWithStatus('pending') as QuoteSummary[];
-            return response;
+            // Filter out any quotes with 'assigned' status (extra safety check)
+            return response.filter(quote => quote.orderStatus !== 'assigned');
         },
         staleTime: 2 * 60 * 1000, // Cache for 2 minutes
         gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes

@@ -2,6 +2,7 @@ import { fetchCustomers } from './customerService.js';
 import { getCustomerQuotes, estimateToDB } from './quoteService.js';
 import { ConnectionType } from '../types/auth.js';
 import { CustomerQuote, QuoteFetchError, FilteredQuote } from '../types/quote.js';
+import { prisma } from '../lib/prisma.js';
 
 export interface QuoteSyncResult {
   success: boolean;
@@ -53,6 +54,17 @@ export class QuoteSyncService {
             // Fetch and save each quote
             for (const quoteSummary of quotes) {
               try {
+                // Check if quote is already on a run - if so, skip it to preserve picking progress
+                const quoteOnRun = await prisma.runItem.findFirst({
+                  where: { quoteId: String(quoteSummary.id) }
+                });
+
+                if (quoteOnRun) {
+                  console.log(`⏭️  Skipping quote ${quoteSummary.quoteNumber || quoteSummary.id} - already on a run`);
+                  skippedCount++;
+                  continue;
+                }
+
                 // Import the full quote from QuickBooks/Xero
                 const quoteData = await getEstimate(String(quoteSummary.id), companyId, false, connectionType);
 
@@ -75,7 +87,7 @@ export class QuoteSyncService {
                   continue;
                 }
 
-                // Save to database
+                // Save to database (only if not on a run)
                 await estimateToDB(quoteData as FilteredQuote);
                 syncedCount++;
                 console.log(`✅ Synced quote ${quoteSummary.quoteNumber || quoteSummary.id} for ${customer.customer_name}`);

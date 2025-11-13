@@ -345,6 +345,16 @@ export class WebhookService {
       });
 
       if (existingEstimate) {
+        // Check if it's on a run before treating as update
+        const quoteOnRun = await prisma.runItem.findFirst({
+          where: { quoteId: estimateId }
+        });
+
+        if (quoteOnRun) {
+          console.log(`⏭️  Skipping webhook create for quote ${estimateId} - already on a run`);
+          return;
+        }
+
         console.log(`Estimate ${estimateId} already exists, treating as update`);
         await this.handleUpdateEstimate(estimateId, realmId);
         return;
@@ -383,6 +393,16 @@ export class WebhookService {
   private static async handleUpdateEstimate(estimateId: string, realmId: string): Promise<void> {
     try {
       console.log(`Updating estimate with ID: ${estimateId}`);
+      
+      // Check if quote is already on a run - if so, skip update to preserve picking progress
+      const quoteOnRun = await prisma.runItem.findFirst({
+        where: { quoteId: estimateId }
+      });
+
+      if (quoteOnRun) {
+        console.log(`⏭️  Skipping webhook update for quote ${estimateId} - already on a run, preserving picking progress`);
+        return;
+      }
       
       // Get company ID from realmId
       const company = await prisma.company.findFirst({
