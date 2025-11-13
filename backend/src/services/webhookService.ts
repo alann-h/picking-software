@@ -1,6 +1,8 @@
 import { prisma } from '../lib/prisma.js';
 import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
+import { getEstimate, estimateToDB, fetchQuoteData } from './quoteService.js';
+import { FilteredQuote, QuoteFetchError, ProductInfo } from '../types/quote.js';
 
 export interface WebhookEvent {
   id: string;
@@ -47,25 +49,43 @@ export class WebhookService {
   private static async processWebhookEvent(event: WebhookEvent, realmId: string): Promise<void> {
     console.log(`Processing ${event.operation} event for ${event.name} (ID: ${event.id})`);
 
-    // Only process Item events (products)
-    if (event.name !== 'Item') {
-      console.log(`Skipping non-Item event: ${event.name}`);
+    // Process Item events (products)
+    if (event.name === 'Item') {
+      switch (event.operation) {
+        case 'Create':
+          await this.handleCreateProduct(event.id, realmId);
+          break;
+        case 'Update':
+          await this.handleUpdateProduct(event.id, realmId);
+          break;
+        case 'Delete':
+          await this.handleDeleteProduct(event.id, realmId);
+          break;
+        default:
+          console.warn(`Unknown operation: ${event.operation}`);
+      }
       return;
     }
 
-    switch (event.operation) {
-      case 'Create':
-        await this.handleCreateProduct(event.id, realmId);
-        break;
-      case 'Update':
-        await this.handleUpdateProduct(event.id, realmId);
-        break;
-      case 'Delete':
-        await this.handleDeleteProduct(event.id, realmId);
-        break;
-      default:
-        console.warn(`Unknown operation: ${event.operation}`);
+    // Process Estimate events (quotes)
+    if (event.name === 'Estimate') {
+      switch (event.operation) {
+        case 'Create':
+          await this.handleCreateEstimate(event.id, realmId);
+          break;
+        case 'Update':
+          await this.handleUpdateEstimate(event.id, realmId);
+          break;
+        case 'Delete':
+          console.log(`Skipping delete operation for estimate: ${event.id}`);
+          break;
+        default:
+          console.warn(`Unknown operation: ${event.operation}`);
+      }
+      return;
     }
+
+    console.log(`Skipping unsupported event type: ${event.name}`);
   }
 
   /**
@@ -299,6 +319,254 @@ export class WebhookService {
       console.error(`Error fetching product from QBO for ID ${itemId}:`, error);
       return null;
     }
+  }
+
+  /**
+   * Handle estimate (quote) creation webhook
+   */
+  private static async handleCreateEstimate(estimateId: string, realmId: string): Promise<void> {
+    try {
+      console.log(`Creating estimate with ID: ${estimateId}`);
+      
+      // Get company ID from realmId
+      const company = await prisma.company.findFirst({
+        where: { qboRealmId: realmId },
+        select: { id: true, connectionType: true }
+      });
+
+      if (!company) {
+        console.error(`Company not found for realmId: ${realmId}`);
+        return;
+      }
+
+      // Check if estimate already exists in database
+      const existingEstimate = await prisma.quote.findUnique({
+        where: { id: estimateId }
+      });
+
+      if (existingEstimate) {
+        console.log(`Estimate ${estimateId} already exists, treating as update`);
+        await this.handleUpdateEstimate(estimateId, realmId);
+        return;
+      }
+
+      // Fetch estimate from QuickBooks
+      const estimateData = await getEstimate(
+        estimateId, 
+        company.id, 
+        false, 
+        company.connectionType as 'qbo' | 'xero'
+      );
+
+      if (!estimateData || (estimateData as QuoteFetchError).error) {
+        console.error(`Failed to fetch estimate data from QBO for ID: ${estimateId}`);
+        if ((estimateData as QuoteFetchError).error) {
+          console.error(`Error: ${(estimateData as QuoteFetchError).message}`);
+        }
+        return;
+      }
+
+      // Save to database
+      await estimateToDB(estimateData as FilteredQuote);
+
+      console.log(`✅ Successfully created estimate: ${(estimateData as FilteredQuote).quoteNumber}`);
+    } catch (error) {
+      console.error(`Error creating estimate ${estimateId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle estimate (quote) update webhook
+   * Compares the updated estimate with the existing one and syncs changes
+   */
+  private static async handleUpdateEstimate(estimateId: string, realmId: string): Promise<void> {
+    try {
+      console.log(`Updating estimate with ID: ${estimateId}`);
+      
+      // Get company ID from realmId
+      const company = await prisma.company.findFirst({
+        where: { qboRealmId: realmId },
+        select: { id: true, connectionType: true }
+      });
+
+      if (!company) {
+        console.error(`Company not found for realmId: ${realmId}`);
+        return;
+      }
+
+      // Fetch updated estimate from QuickBooks
+      const updatedEstimateData = await getEstimate(
+        estimateId, 
+        company.id, 
+        false, 
+        company.connectionType as 'qbo' | 'xero'
+      );
+
+      if (!updatedEstimateData || (updatedEstimateData as QuoteFetchError).error) {
+        console.error(`Failed to fetch estimate data from QBO for ID: ${estimateId}`);
+        if ((updatedEstimateData as QuoteFetchError).error) {
+          console.error(`Error: ${(updatedEstimateData as QuoteFetchError).message}`);
+        }
+        return;
+      }
+
+      const updatedEstimate = updatedEstimateData as FilteredQuote;
+
+      // Get existing estimate from database
+      const existingEstimate = await fetchQuoteData(estimateId);
+
+      if (!existingEstimate) {
+        console.log(`Estimate ${estimateId} not found in database, creating new one`);
+        await estimateToDB(updatedEstimate);
+        console.log(`✅ Successfully created estimate: ${updatedEstimate.quoteNumber}`);
+        return;
+      }
+
+      // Combine quantities for items with the same product name
+      const combinedProductInfo = this.combineProductQuantities(updatedEstimate.productInfo);
+      
+      // Create a new FilteredQuote with combined quantities
+      const processedEstimate: FilteredQuote = {
+        ...updatedEstimate,
+        productInfo: combinedProductInfo
+      };
+
+      // Compare and log changes
+      const changes = this.compareEstimates(existingEstimate, processedEstimate);
+      
+      if (changes.hasChanges) {
+        console.log(`📋 Estimate changes detected:`);
+        if (changes.addedItems.length > 0) {
+          console.log(`  ➕ Added items: ${changes.addedItems.map(item => `${item.productName} (Qty: ${item.originalQty})`).join(', ')}`);
+        }
+        if (changes.removedItems.length > 0) {
+          console.log(`  ➖ Removed items: ${changes.removedItems.map(item => `${item.productName} (Qty: ${item.originalQty})`).join(', ')}`);
+        }
+        if (changes.quantityChanges.length > 0) {
+          console.log(`  🔄 Quantity changes: ${changes.quantityChanges.map(item => `${item.productName} (${item.oldQty} → ${item.newQty})`).join(', ')}`);
+        }
+
+        // Update the database with the processed estimate
+        await estimateToDB(processedEstimate);
+
+        console.log(`✅ Successfully updated estimate: ${processedEstimate.quoteNumber}`);
+      } else {
+        console.log(`ℹ️  No item changes detected for estimate: ${processedEstimate.quoteNumber}`);
+        
+        // Still update in case other fields changed (like total amount, notes, etc.)
+        await estimateToDB(processedEstimate);
+      }
+    } catch (error) {
+      console.error(`Error updating estimate ${estimateId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Combine quantities for items with the same product name
+   * This handles cases where the same product appears on multiple lines
+   */
+  private static combineProductQuantities(productInfo: Record<string, ProductInfo>): Record<string, ProductInfo> {
+    const productsByName = new Map<string, { ids: string[], items: ProductInfo[] }>();
+    
+    // Group products by name
+    for (const [productId, item] of Object.entries(productInfo)) {
+      const existingGroup = productsByName.get(item.productName);
+      
+      if (existingGroup) {
+        existingGroup.ids.push(productId);
+        existingGroup.items.push(item);
+      } else {
+        productsByName.set(item.productName, {
+          ids: [productId],
+          items: [item]
+        });
+      }
+    }
+
+    // Combine quantities for duplicate product names
+    const combinedProductInfo: Record<string, ProductInfo> = {};
+    
+    for (const [productName, group] of productsByName.entries()) {
+      if (group.items.length === 1) {
+        // No duplicates, use as-is
+        combinedProductInfo[group.ids[0]] = group.items[0];
+      } else {
+        // Multiple items with same name, combine quantities
+        const firstItem = group.items[0];
+        const combinedQty = group.items.reduce((sum, item) => sum + item.originalQty, 0);
+        
+        console.log(`🔗 Combining ${group.items.length} line items for "${productName}": ${group.items.map(i => i.originalQty).join(' + ')} = ${combinedQty}`);
+        
+        combinedProductInfo[group.ids[0]] = {
+          ...firstItem,
+          originalQty: combinedQty,
+          pickingQty: combinedQty
+        };
+      }
+    }
+
+    return combinedProductInfo;
+  }
+
+  /**
+   * Compare two estimates and detect changes
+   */
+  private static compareEstimates(
+    oldEstimate: FilteredQuote, 
+    newEstimate: FilteredQuote
+  ): {
+    hasChanges: boolean;
+    addedItems: ProductInfo[];
+    removedItems: ProductInfo[];
+    quantityChanges: Array<{ productName: string; oldQty: number; newQty: number }>;
+  } {
+    const addedItems: ProductInfo[] = [];
+    const removedItems: ProductInfo[] = [];
+    const quantityChanges: Array<{ productName: string; oldQty: number; newQty: number }> = [];
+
+    const oldProductIds = new Set(Object.keys(oldEstimate.productInfo));
+    const newProductIds = new Set(Object.keys(newEstimate.productInfo));
+
+    // Find added items
+    for (const productId of newProductIds) {
+      if (!oldProductIds.has(productId)) {
+        addedItems.push(newEstimate.productInfo[productId]);
+      }
+    }
+
+    // Find removed items
+    for (const productId of oldProductIds) {
+      if (!newProductIds.has(productId)) {
+        removedItems.push(oldEstimate.productInfo[productId]);
+      }
+    }
+
+    // Find quantity changes
+    for (const productId of newProductIds) {
+      if (oldProductIds.has(productId)) {
+        const oldItem = oldEstimate.productInfo[productId];
+        const newItem = newEstimate.productInfo[productId];
+        
+        if (oldItem.originalQty !== newItem.originalQty) {
+          quantityChanges.push({
+            productName: newItem.productName,
+            oldQty: oldItem.originalQty,
+            newQty: newItem.originalQty
+          });
+        }
+      }
+    }
+
+    const hasChanges = addedItems.length > 0 || removedItems.length > 0 || quantityChanges.length > 0;
+
+    return {
+      hasChanges,
+      addedItems,
+      removedItems,
+      quantityChanges
+    };
   }
 
   /**

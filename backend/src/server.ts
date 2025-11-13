@@ -80,27 +80,15 @@ setInterval(() => {
 }, config.session.store.pruneInterval);
 
 
-// Sync products twice a week
+// Sync products every 3.5 days (twice per week)
 const SYNC_INTERVAL = 3.5 * 24 * 60 * 60 * 1000; // 3.5 days in milliseconds
-const SYNC_START_DELAY = 2 * 60 * 60 * 1000; // 2 hours delay on startup
 
-setTimeout(() => {
-  console.log('🔄 Starting scheduled product sync...');
-  
-  // Initial sync after 2 hours (using saved settings)
+setInterval(() => {
+  console.log('🔄 Running scheduled product sync with saved settings...');
   ProductSyncService.syncAllCompaniesWithSettings().catch(error => {
-    console.error('❌ Initial product sync failed:', error);
+    console.error('❌ Scheduled product sync failed:', error);
   });
-  
-  // Then sync every 3.5 days (twice per week) using saved settings
-  setInterval(() => {
-    console.log('🔄 Running scheduled product sync with saved settings...');
-    ProductSyncService.syncAllCompaniesWithSettings().catch(error => {
-      console.error('❌ Scheduled product sync failed:', error);
-    });
-  }, SYNC_INTERVAL);
-  
-}, SYNC_START_DELAY);
+}, SYNC_INTERVAL);
 
 // — Body parsing & logging
 app.use(express.urlencoded({ 

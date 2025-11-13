@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ProductSyncService } from '../services/productSyncService.js';
+import { QuoteSyncService } from '../services/quoteSyncService.js';
 import { prisma } from '../lib/prisma.js';
 
 export const syncProducts = async (req: Request, res: Response, next: NextFunction) => {
@@ -119,6 +120,29 @@ export const saveSyncSettings = async (req: Request, res: Response, next: NextFu
     });
   } catch (err: unknown) {
     console.error('Save sync settings error:', err);
+    next(err);
+  }
+};
+
+export const syncQuotes = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const companyId = req.session.companyId;
+    const connectionType = req.session.connectionType;
+    
+    if (!companyId || !connectionType) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    console.log(`Manual quote sync requested for company: ${companyId} (${connectionType})`);
+    
+    const result = await QuoteSyncService.syncAllPendingQuotes(companyId, connectionType);
+    
+    res.json({
+      message: 'Quote sync completed',
+      result
+    });
+  } catch (err: unknown) {
+    console.error('Manual quote sync error:', err);
     next(err);
   }
 };

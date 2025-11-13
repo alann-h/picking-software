@@ -1,5 +1,5 @@
 import React, { useState, useMemo, Suspense, useTransition, Fragment } from 'react';
-import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles, ChevronDown, X } from 'lucide-react';
+import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles, ChevronDown, X, Zap, FileText } from 'lucide-react';
 import { DndContext, DragEndEvent, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Customer, QuoteSummary } from '../../utils/types';
 import { getCustomers } from '../../api/customers';
-import { getCustomerQuotes } from '../../api/quote';
+import { getCustomerQuotes, getQuotesWithStatus } from '../../api/quote';
 import { createRunFromQuotes } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import { useSearchParams } from 'react-router-dom';
@@ -25,31 +25,29 @@ const EmptyState = ({ text, className = "", icon: Icon = Inbox }: { text: string
     </div>
 );
 
-const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = ({ quote, onStage }) => (
-    <div className="group p-4 mb-3 flex justify-between items-center border border-gray-200 rounded-xl transition-all duration-200 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-50 bg-white">
-        <div className="flex flex-col flex-1">
+const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = ({ quote, onStage }) => {
+    return (
+        <div 
+            onClick={onStage}
+            className="group p-4 mb-3 border border-gray-200 rounded-xl transition-all duration-200 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-100 bg-white cursor-pointer active:scale-[0.98]"
+        >
             <div className="flex items-center space-x-2 mb-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <p className="text-sm font-semibold text-gray-900">Quote #{quote.quoteNumber || quote.id}</p>
+                <div className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></div>
+                <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Quote #{quote.quoteNumber || quote.id}</p>
             </div>
+            <p className="text-sm text-gray-700 mb-1">{quote.customerName}</p>
             <div className="flex items-center space-x-4 text-gray-600">
                 <div className="flex items-center space-x-1">
                     <span className="text-sm font-bold text-green-600">${(quote.totalAmount || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                     <Calendar className="w-3 h-3 text-gray-400"/>
-                    <p className="text-xs">{quote.lastModified ? new Date(quote.lastModified).toLocaleDateString() : 'N/A'}</p>
+                    <p className="text-xs">{quote.timeStarted?.split(',')[0] || 'N/A'}</p>
                 </div>
             </div>
         </div>
-        <button 
-            onClick={onStage} 
-            className="p-2 text-blue-600 hover:text-white rounded-lg hover:bg-blue-600 transition-all duration-200 cursor-pointer group-hover:scale-105"
-        >
-            <ListPlus className="w-4 h-4" />
-        </button>
-    </div>
-);
+    );
+};
 
 const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: string) => void }> = ({ quote, onRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: quote.id });
@@ -130,7 +128,46 @@ interface RunBuilder {
 }
 
 
-    const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<string>, onStageQuote: (quote: QuoteSummary) => void }> = ({ customer, stagedQuoteIds, onStageQuote }) => {
+const QuickFindQuotes: React.FC<{ stagedQuoteIds: Set<string>, onStageQuote: (quote: QuoteSummary) => void, quoteSearchQuery: string }> = ({ stagedQuoteIds, onStageQuote, quoteSearchQuery }) => {
+    const { data: allQuotes } = useSuspenseQuery<QuoteSummary[]>({
+        queryKey: ['quotes', 'pending'],
+        queryFn: async () => {
+            const response = await getQuotesWithStatus('pending') as QuoteSummary[];
+            return response;
+        },
+        staleTime: 2 * 60 * 1000,
+        gcTime: 5 * 60 * 1000,
+    });
+
+    const filteredQuotes = useMemo(() => {
+        let quotes = allQuotes.filter((q: QuoteSummary) => !stagedQuoteIds.has(q.id));
+        
+        if (quoteSearchQuery) {
+            const searchLower = quoteSearchQuery.toLowerCase().replace(/\s+/g, '');
+            quotes = quotes.filter((q: QuoteSummary) => 
+                q.customerName.toLowerCase().replace(/\s+/g, '').includes(searchLower) ||
+                q.quoteNumber.toLowerCase().replace(/\s+/g, '').includes(searchLower) ||
+                q.id.toLowerCase().includes(searchLower)
+            );
+        }
+        
+        return quotes.slice(0, 20); // Limit to 20 results
+    }, [allQuotes, stagedQuoteIds, quoteSearchQuery]);
+
+    return (
+        <div className="flex-grow p-3 overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+            {filteredQuotes.length > 0 ? (
+                <div className="space-y-2">
+                    {filteredQuotes.map((q: QuoteSummary) => <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />)}
+                </div>
+            ) : (
+                <EmptyState text={quoteSearchQuery ? "No quotes match your search." : "No pending quotes available."} icon={Search} />
+            )}
+        </div>
+    );
+};
+
+const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<string>, onStageQuote: (quote: QuoteSummary) => void }> = ({ customer, stagedQuoteIds, onStageQuote }) => {
 
     const { data: quotesData } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', customer.customerId],
@@ -168,6 +205,8 @@ export const CreateRun: React.FC = () => {
     const [runsToCreate, setRunsToCreate] = useState<RunBuilder[]>([]);
     const [activeDraggedItem, setActiveDraggedItem] = useState<QuoteSummary | null>(null);
     const [customerQuery, setCustomerQuery] = useState('');
+    const [quoteSearchQuery, setQuoteSearchQuery] = useState('');
+    const [searchMode, setSearchMode] = useState<'quick' | 'customer'>('quick');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const triggerRef = React.useRef<HTMLDivElement>(null);
 
@@ -354,97 +393,176 @@ export const CreateRun: React.FC = () => {
                         </div>
                         <h2 className="text-xl font-semibold text-gray-900">Find & Stage Quotes</h2>
                     </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                        <div className="lg:col-span-5">
-                            <div className="flex items-center space-x-2 mb-4">
-                                <Users className="w-5 h-5 text-blue-500" />
-                                <p className="text-lg font-medium text-gray-900">Select a Customer</p>
-                            </div>
-                            <div ref={triggerRef} className="relative">
-                                <div className="relative w-full cursor-default overflow-hidden rounded-xl bg-white text-left shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+
+                    {/* Search Mode Tabs */}
+                    <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
+                        <button
+                            onClick={() => setSearchMode('quick')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                                searchMode === 'quick'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900 cursor-pointer'
+                            }`}
+                        >
+                            <Zap className="w-4 h-4" />
+                            Quick Find
+                        </button>
+                        <button
+                            onClick={() => setSearchMode('customer')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                                searchMode === 'customer'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                        >
+                            <Users className="w-4 h-4" />
+                            By Customer
+                        </button>
+                    </div>
+
+                    {/* Quick Find Mode */}
+                    {searchMode === 'quick' && (
+                        <div className="space-y-4">
+                            <div>
+                                <div className="flex items-center space-x-2 mb-3">
+                                    <Zap className="w-5 h-5 text-blue-500" />
+                                    <p className="text-lg font-medium text-gray-900">Search All Quotes</p>
+                                </div>
+                                <div className="relative">
                                     <Search className="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-gray-400" aria-hidden="true" />
                                     <input
-                                        className="w-full border-none py-3 pl-12 pr-20 text-sm leading-5 text-gray-900 focus:ring-0 placeholder-gray-500 bg-transparent"
-                                        value={selectedCustomer?.customerName || customerQuery}
-                                        onChange={(event) => {
-                                            setCustomerQuery(event.target.value);
-                                            if (selectedCustomer) handleCustomerChange(null);
-                                            setIsDropdownOpen(true);
-                                        }}
-                                        onFocus={() => setIsDropdownOpen(true)}
-                                        placeholder="Search customers..."
+                                        type="text"
+                                        className="w-full border border-gray-200 rounded-xl py-3 pl-12 pr-4 text-sm leading-5 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500"
+                                        placeholder="Search by customer name, quote number, or ID..."
+                                        value={quoteSearchQuery}
+                                        onChange={(e) => setQuoteSearchQuery(e.target.value)}
                                     />
-                                    {selectedCustomer && (
+                                    {quoteSearchQuery && (
                                         <button 
-                                            className="absolute inset-y-0 right-10 flex items-center pr-1"
-                                            onClick={() => {
-                                                handleCustomerChange(null);
-                                                setCustomerQuery('');
-                                            }}
-                                            title="Clear selection"
+                                            className="absolute inset-y-0 right-3 flex items-center"
+                                            onClick={() => setQuoteSearchQuery('')}
+                                            title="Clear search"
                                         >
                                             <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
                                         </button>
                                     )}
-                                    <button 
-                                        className="absolute inset-y-0 right-0 flex items-center pr-3"
-                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    >
-                                        <ChevronDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
-                                    </button>
                                 </div>
-                                
-                                <PortalDropdown isOpen={isDropdownOpen} triggerRef={triggerRef} setIsDropdownOpen={setIsDropdownOpen}>
-                                    {filteredCustomers.length === 0 && customerQuery !== '' ? (
-                                        <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
-                                            Nothing found.
-                                        </div>
-                                    ) : (
-                                        filteredCustomers.map((customer: Customer) => (
-                                            <div
-                                                key={customer.customerId}
-                                                className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-blue-50 transition-colors"
-                                                onClick={() => handleCustomerChange(customer)}
-                                            >
-                                                <span className={`block truncate ${selectedCustomer?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
-                                                    {customer.customerName}
-                                                </span>
-                                                {selectedCustomer?.customerId === customer.customerId ? (
-                                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600">
-                                                      <Check className="h-5 w-5" aria-hidden="true" />
-                                                    </span>
-                                                ) : null}
-                                            </div>
-                                        ))
-                                    )}
-                                </PortalDropdown>
                             </div>
-                        </div>
-                        <div className="lg:col-span-7">
-                            <div className="flex items-center space-x-2 mb-4">
-                                <Package className="w-5 h-5 text-blue-500" />
-                                <p className="text-lg font-medium text-gray-900">Available Quotes</p>
-                            </div>
-                            <div className="h-[300px] flex flex-col">
-                                {isPending ? (
-                                    <AvailableQuotesSkeleton />
-                                ) : (
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center space-x-2">
+                                        <FileText className="w-5 h-5 text-blue-500" />
+                                        <p className="text-lg font-medium text-gray-900">Pending Quotes</p>
+                                    </div>
+                                    <span className="text-xs text-gray-500">Showing up to 20 results</span>
+                                </div>
+                                <div className="h-[300px] flex flex-col">
                                     <Suspense fallback={<AvailableQuotesSkeleton />}>
-                                        {selectedCustomer ? (
-                                            <AvailableQuotes
-                                                key={selectedCustomer.customerId}
-                                                customer={selectedCustomer}
-                                                stagedQuoteIds={stagedQuoteIds}
-                                                onStageQuote={handleStageQuote}
-                                            />
-                                        ) : (
-                                            <EmptyState text="Select a customer to see their quotes." icon={Users} />
-                                        )}
+                                        <QuickFindQuotes
+                                            stagedQuoteIds={stagedQuoteIds}
+                                            onStageQuote={handleStageQuote}
+                                            quoteSearchQuery={quoteSearchQuery}
+                                        />
                                     </Suspense>
-                                )}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Search by Customer Mode */}
+                    {searchMode === 'customer' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                            <div className="lg:col-span-5">
+                                <div className="flex items-center space-x-2 mb-4">
+                                    <Users className="w-5 h-5 text-blue-500" />
+                                    <p className="text-lg font-medium text-gray-900">Select a Customer</p>
+                                </div>
+                                <div ref={triggerRef} className="relative">
+                                    <div className="relative w-full cursor-default overflow-hidden rounded-xl bg-white text-left shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+                                        <Search className="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-gray-400" aria-hidden="true" />
+                                        <input
+                                            className="w-full border-none py-3 pl-12 pr-20 text-sm leading-5 text-gray-900 focus:ring-0 placeholder-gray-500 bg-transparent"
+                                            value={selectedCustomer?.customerName || customerQuery}
+                                            onChange={(event) => {
+                                                setCustomerQuery(event.target.value);
+                                                if (selectedCustomer) handleCustomerChange(null);
+                                                setIsDropdownOpen(true);
+                                            }}
+                                            onFocus={() => setIsDropdownOpen(true)}
+                                            placeholder="Search customers..."
+                                        />
+                                        {selectedCustomer && (
+                                            <button 
+                                                className="absolute inset-y-0 right-10 flex items-center pr-1"
+                                                onClick={() => {
+                                                    handleCustomerChange(null);
+                                                    setCustomerQuery('');
+                                                }}
+                                                title="Clear selection"
+                                            >
+                                                <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                                            </button>
+                                        )}
+                                        <button 
+                                            className="absolute inset-y-0 right-0 flex items-center pr-3"
+                                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                        >
+                                            <ChevronDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
+                                        </button>
+                                    </div>
+                                    
+                                    <PortalDropdown isOpen={isDropdownOpen} triggerRef={triggerRef} setIsDropdownOpen={setIsDropdownOpen}>
+                                        {filteredCustomers.length === 0 && customerQuery !== '' ? (
+                                            <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                                                Nothing found.
+                                            </div>
+                                        ) : (
+                                            filteredCustomers.map((customer: Customer) => (
+                                                <div
+                                                    key={customer.customerId}
+                                                    className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-blue-50 transition-colors"
+                                                    onClick={() => handleCustomerChange(customer)}
+                                                >
+                                                    <span className={`block truncate ${selectedCustomer?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
+                                                        {customer.customerName}
+                                                    </span>
+                                                    {selectedCustomer?.customerId === customer.customerId ? (
+                                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600">
+                                                          <Check className="h-5 w-5" aria-hidden="true" />
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                            ))
+                                        )}
+                                    </PortalDropdown>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-7">
+                                <div className="flex items-center space-x-2 mb-4">
+                                    <Package className="w-5 h-5 text-blue-500" />
+                                    <p className="text-lg font-medium text-gray-900">Available Quotes</p>
+                                </div>
+                                <div className="h-[300px] flex flex-col">
+                                    {isPending ? (
+                                        <AvailableQuotesSkeleton />
+                                    ) : (
+                                        <Suspense fallback={<AvailableQuotesSkeleton />}>
+                                            {selectedCustomer ? (
+                                                <AvailableQuotes
+                                                    key={selectedCustomer.customerId}
+                                                    customer={selectedCustomer}
+                                                    stagedQuoteIds={stagedQuoteIds}
+                                                    onStageQuote={handleStageQuote}
+                                                />
+                                            ) : (
+                                                <EmptyState text="Select a customer to see their quotes." icon={Users} />
+                                            )}
+                                        </Suspense>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Step 2 */}

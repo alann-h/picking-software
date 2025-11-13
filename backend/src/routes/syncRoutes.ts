@@ -1,5 +1,5 @@
 import express from 'express';
-import { syncProducts, getSyncSettings, saveSyncSettings } from '../controllers/syncController.js';
+import { syncProducts, syncQuotes, getSyncSettings, saveSyncSettings } from '../controllers/syncController.js';
 import { isAuthenticated } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -9,6 +9,9 @@ router.use(isAuthenticated);
 
 // Product sync endpoints
 router.post('/products', syncProducts);
+
+// Quote sync endpoints
+router.post('/quotes', syncQuotes);
 
 // Sync settings endpoints
 router.get('/settings', getSyncSettings);

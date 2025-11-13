@@ -6,6 +6,7 @@ export interface SyncResult {
   totalProducts: number;
   updatedProducts: number;
   newProducts: number;
+  totalCustomers?: number;
   errors: string[];
   duration: number;
 }
@@ -45,4 +46,25 @@ export const getSyncSettings = async (): Promise<SyncSettings> => {
 export const saveSyncSettings = async (settings: Omit<SyncSettings, 'id' | 'createdAt' | 'updatedAt'>): Promise<SyncSettings> => {
   const response = await apiCallPost(`${SYNC_BASE}/settings`, settings) as SyncSettingsResponse;
   return response.settings;
+};
+
+// Quote Sync Management
+export interface QuoteSyncResult {
+  success: boolean;
+  syncedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  errors: Array<{ quoteId?: string; error: string; customerName?: string }>;
+  duration: number;
+}
+
+interface QuoteSyncResponse {
+  message: string;
+  result: QuoteSyncResult;
+}
+
+// Sync all pending quotes from accounting system (QuickBooks/Xero)
+export const syncAllQuotes = async (): Promise<QuoteSyncResult> => {
+  const response = await apiCallPost(`${SYNC_BASE}/quotes`, {}) as QuoteSyncResponse;
+  return response.result;
 };

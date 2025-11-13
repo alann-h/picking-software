@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Settings, AlertCircle, CheckCircle, Loader2, ToggleLeft, ToggleRight, RefreshCw } from 'lucide-react';
+import { Save, Settings, AlertCircle, CheckCircle, Loader2, ToggleLeft, ToggleRight, RefreshCw, FileText } from 'lucide-react';
 import clsx from 'clsx';
 import { getSyncSettings, saveSyncSettings, SyncSettings } from '../../api/sync';
 import { useQueryClient } from '@tanstack/react-query';
 import ProductSyncModal from '../ProductSyncModal';
+import QuoteSyncModal from '../QuoteSyncModal';
 
 const SyncSettingsTab: React.FC = () => {
   const [syncSettings, setSyncSettings] = useState<SyncSettings>({ enabled: true });
@@ -13,6 +14,7 @@ const SyncSettingsTab: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isQuoteSyncModalOpen, setIsQuoteSyncModalOpen] = useState(false);
   
   const queryClient = useQueryClient();
 
@@ -90,7 +92,7 @@ const SyncSettingsTab: React.FC = () => {
               Sync Settings
             </h2>
             <p className="text-gray-500">
-              Configure automatic product synchronization from your accounting system
+              Configure automatic customer and product synchronization from your accounting system
             </p>
           </div>
         </div>
@@ -102,7 +104,7 @@ const SyncSettingsTab: React.FC = () => {
             <div>
               <h3 className="text-sm font-semibold text-blue-800 mb-1">Automatic Sync Configuration</h3>
               <p className="text-sm text-blue-700">
-                The system automatically syncs all products twice a week to keep your inventory up to date. 
+                The system automatically syncs all customers and products every 3.5 days (twice per week) to keep your data up to date. 
                 Products without SKUs will be filtered out automatically.
               </p>
             </div>
@@ -110,13 +112,20 @@ const SyncSettingsTab: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3">
+        <div className="flex flex-wrap justify-end gap-3">
           <button
             onClick={() => setIsSyncModalOpen(true)}
             className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
           >
             <RefreshCw className="h-4 w-4" />
             <span className="font-medium">Sync Products Now</span>
+          </button>
+          <button
+            onClick={() => setIsQuoteSyncModalOpen(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
+          >
+            <FileText className="h-4 w-4" />
+            <span className="font-medium">Sync Quotes Now</span>
           </button>
         </div>
       </div>
@@ -162,7 +171,7 @@ const SyncSettingsTab: React.FC = () => {
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-800 mb-1">Enable Automatic Sync</h4>
                     <p className="text-sm text-gray-600">
-                      When enabled, all products will be automatically synced twice a week from your accounting system.
+                      When enabled, all customers and products will be automatically synced every 3.5 days (twice per week) from your accounting system.
                     </p>
                   </div>
                   <button
@@ -185,8 +194,8 @@ const SyncSettingsTab: React.FC = () => {
                       <h4 className="text-sm font-semibold text-blue-800 mb-1">Current Status</h4>
                       <p className="text-sm text-blue-700 mb-2">
                         {syncSettings.enabled 
-                          ? 'Automatic sync is enabled. Products will be synced twice a week.'
-                          : 'Automatic sync is disabled. Products will not be synced automatically.'
+                          ? 'Automatic sync is enabled. Customers and products will be synced every 3.5 days (twice per week).'
+                          : 'Automatic sync is disabled. Customers and products will not be synced automatically.'
                         }
                       </p>
                       {syncSettings.lastSyncTime && (
@@ -270,6 +279,12 @@ const SyncSettingsTab: React.FC = () => {
       <ProductSyncModal
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
+      />
+
+      {/* Quote Sync Modal */}
+      <QuoteSyncModal
+        isOpen={isQuoteSyncModalOpen}
+        onClose={() => setIsQuoteSyncModalOpen(false)}
       />
     </div>
   );

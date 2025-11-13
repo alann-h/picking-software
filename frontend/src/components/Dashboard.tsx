@@ -11,11 +11,13 @@ import {
   Check,
   X,
   Settings,
+  FileText,
+  Clock,
 } from 'lucide-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Customer, QuoteSummary, Run, RunQuote } from '../utils/types';
 import { getCustomers } from '../api/customers';
-import { getCustomerQuotes } from '../api/quote';
+import { getCustomerQuotes, getQuotesWithStatus } from '../api/quote';
 import { getRuns } from '../api/runs';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
@@ -323,6 +325,69 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
     );
 };
 
+const RecentQuotesList: React.FC = () => {
+    const navigate = useNavigate();
+    const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
+    
+    const { data: recentQuotes } = useSuspenseQuery<QuoteSummary[]>({
+        queryKey: ['quotes', 'recent-pending'],
+        queryFn: async () => {
+            const response = await getQuotesWithStatus('pending') as QuoteSummary[];
+            // Return only the first 10 most recent quotes
+            return response.slice(0, 10);
+        },
+        staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+        gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
+        refetchInterval: 60000, // Refetch every minute to keep data fresh
+    });
+
+    if (recentQuotes.length === 0) {
+        return (
+            <InfoBox icon={FileText} title="No pending quotes" message="All quotes have been processed or no quotes are available." />
+        );
+    }
+
+    const handleQuoteClick = (quoteId: string) => {
+        setLoadingQuoteId(quoteId);
+        navigate(`/quote?id=${quoteId}`);
+    };
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {recentQuotes.map((quote) => (
+                <div 
+                    key={quote.id}
+                    onClick={loadingQuoteId === quote.id ? undefined : () => handleQuoteClick(quote.id)}
+                    className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-400 ${loadingQuoteId === quote.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-all duration-200 group`}
+                >
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                            <span className="text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.id}</span>
+                        </div>
+                        <QuoteStatusChip status={quote.orderStatus as RunQuote['orderStatus']} />
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-900 truncate">{quote.customerName}</p>
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-gray-400" />
+                                <p className="text-xs text-gray-500">{quote.timeStarted?.split(',')[0] || 'N/A'}</p>
+                            </div>
+                            {loadingQuoteId === quote.id ? (
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                            ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 // ====================================================================================
 // Main Dashboard Component
 // ====================================================================================
@@ -427,7 +492,7 @@ const Dashboard: React.FC = () => {
                                     {isAdmin && (
                                         <button
                                             onClick={() => navigate('/run')}
-                                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
                                         >
                                             <Settings className="w-4 h-4" />
                                             Manage Runs
@@ -438,6 +503,51 @@ const Dashboard: React.FC = () => {
                             <div className="p-4 sm:p-5">
                                 <Suspense fallback={<RunListSkeleton />}>
                                     <ActiveRunsList runs={allRuns || []} />
+                                </Suspense>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-b border-gray-200" />
+
+                    {/* Recent Quotes Section */}
+                    <div>
+                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-gray-50">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="w-6 h-6 text-purple-600" />
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-gray-800">
+                                            Recent Quotes from QuickBooks
+                                        </h2>
+                                        <p className="text-sm text-gray-600 mt-0.5">
+                                            Latest pending quotes ready to be picked
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 sm:p-5">
+                                <Suspense fallback={
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[...Array(6)].map((_, i) => (
+                                            <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                                                    <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                                                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                                        <div className="h-3 bg-gray-200 rounded w-24"></div>
+                                                        <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                }>
+                                    <RecentQuotesList />
                                 </Suspense>
                             </div>
                         </div>

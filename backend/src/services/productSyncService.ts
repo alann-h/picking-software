@@ -3,12 +3,14 @@ import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
 import { XeroClient } from 'xero-node';
 import { authSystem } from './authSystem.js';
+import { fetchCustomers, saveCustomers } from './customerService.js';
 
 export interface SyncResult {
   success: boolean;
   totalProducts: number;
   updatedProducts: number;
   newProducts: number;
+  totalCustomers?: number;
   errors: string[];
   duration: number;
 }
@@ -64,6 +66,19 @@ export class ProductSyncService {
       const realmId: string = getRealmId(oauthClient);
 
 
+      // Sync customers first
+      console.log(`👥 Syncing customers...`);
+      try {
+        const customers = await fetchCustomers(companyId, 'qbo');
+        await saveCustomers(customers, companyId);
+        result.totalCustomers = customers.length;
+        console.log(`✅ Synced ${customers.length} customers`);
+      } catch (error) {
+        console.error(`⚠️ Failed to sync customers:`, error);
+        result.errors.push(`Customer sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Continue with product sync even if customer sync fails
+      }
+
       // Fetch all items from QuickBooks
       const allItems = await this.fetchAllItemsFromQBO(oauthClient, baseURL, realmId);
       result.totalProducts = allItems.length;
@@ -90,6 +105,7 @@ export class ProductSyncService {
       result.duration = Date.now() - startTime;
 
       console.log(`✅ Product sync completed for company ${companyId}:`, {
+        customers: result.totalCustomers || 0,
         total: result.totalProducts,
         updated: result.updatedProducts,
         new: result.newProducts,
@@ -338,6 +354,19 @@ export class ProductSyncService {
       const oauthClient = await getOAuthClient(companyId, 'xero') as XeroClient;
       const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
 
+      // Sync customers first
+      let totalCustomers = 0;
+      console.log(`👥 Syncing customers...`);
+      try {
+        const customers = await fetchCustomers(companyId, 'xero');
+        await saveCustomers(customers, companyId);
+        totalCustomers = customers.length;
+        console.log(`✅ Synced ${customers.length} customers`);
+      } catch (error) {
+        console.error(`⚠️ Failed to sync customers:`, error);
+        // Continue with product sync even if customer sync fails
+      }
+
       // Fetch all items from Xero
       const response = await oauthClient.accountingApi.getItems(tenantId);
 
@@ -371,7 +400,13 @@ export class ProductSyncService {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ Xero sync completed for company ${companyId}: ${totalProducts} total, ${updatedProducts} updated, ${newProducts} new, ${errors.length} errors`);
+      console.log(`✅ Xero sync completed for company ${companyId}:`, {
+        customers: totalCustomers,
+        total: totalProducts,
+        updated: updatedProducts,
+        new: newProducts,
+        errors: errors.length
+      });
 
       // Update last sync time in sync settings
       await prisma.sync_settings.upsert({
@@ -389,6 +424,7 @@ export class ProductSyncService {
         totalProducts,
         updatedProducts,
         newProducts,
+        totalCustomers,
         errors,
         duration
       };

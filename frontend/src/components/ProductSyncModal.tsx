@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, CheckCircle, AlertCircle, Package, Loader2 } from 'lucide-react';
+import { X, RefreshCw, CheckCircle, AlertCircle, Package, Loader2, Users } from 'lucide-react';
 import clsx from 'clsx';
 import { syncAllProducts, SyncResult } from '../api/sync';
 import { useQueryClient } from '@tanstack/react-query';
@@ -105,7 +105,7 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
                     <RefreshCw className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-sm text-blue-800 font-medium">Automatic Sync</p>
-                      <p className="text-sm text-blue-700">The system automatically syncs all products twice a week to keep your inventory up to date.</p>
+                      <p className="text-sm text-blue-700">The system automatically syncs every 3.5 days (twice per week). Use this for immediate syncing.</p>
                     </div>
                   </div>
                 </div>
@@ -114,7 +114,7 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
                     <Package className="h-5 w-5 text-gray-600" />
                     <div>
                       <p className="font-medium text-gray-800">What will be synced:</p>
-                      <p className="text-sm text-gray-600">All products from your accounting system (QuickBooks/Xero)</p>
+                      <p className="text-sm text-gray-600">All customers and products from your accounting system (QuickBooks/Xero)</p>
                     </div>
                   </div>
                 </div>
@@ -137,8 +137,8 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
               <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Syncing Products</h3>
-              <p className="text-gray-500">Importing all products from your accounting system...</p>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Syncing Data</h3>
+              <p className="text-gray-500">Importing customers and products from your accounting system...</p>
               <p className="text-sm text-gray-400 mt-2">This may take a few moments</p>
             </div>
           )}
@@ -157,6 +157,13 @@ const ProductSyncModal: React.FC<ProductSyncModalProps> = ({ isOpen, onClose }) 
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-semibold text-gray-800 mb-3">Sync Results</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
+                  {syncResult.totalCustomers !== undefined && (
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-purple-600" />
+                      <span className="text-gray-600">Customers:</span>
+                      <span className="font-semibold text-gray-800">{syncResult.totalCustomers}</span>
+                    </div>
+                  )}
                   <div className="flex items-center space-x-2">
                     <Package className="h-4 w-4 text-blue-600" />
                     <span className="text-gray-600">Total Products:</span>
