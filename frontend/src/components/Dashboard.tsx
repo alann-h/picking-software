@@ -330,22 +330,21 @@ const RecentQuotesList: React.FC = () => {
     const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
     const [displayCount, setDisplayCount] = useState(9);
     
-    const { data: allQuotes } = useSuspenseQuery<QuoteSummary[]>({
+    const { data: allQuotes = [] } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', 'recent-pending'],
         queryFn: async () => {
             const response = await getQuotesWithStatus('pending') as QuoteSummary[];
-            // Filter out any quotes with 'assigned' status (extra safety check)
-            return response.filter(quote => quote.orderStatus !== 'assigned');
+            return response;
         },
         staleTime: 2 * 60 * 1000, // Cache for 2 minutes
         gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
         refetchInterval: 60000, // Refetch every minute to keep data fresh
     });
 
-    const recentQuotes = allQuotes.slice(0, displayCount);
-    const hasMore = allQuotes.length > displayCount;
+    const recentQuotes = allQuotes?.slice(0, displayCount) || [];
+    const hasMore = recentQuotes.length > displayCount;
 
-    if (allQuotes.length === 0) {
+    if (recentQuotes.length === 0) {
         return (
             <InfoBox icon={FileText} title="No pending quotes" message="All quotes have been processed or no quotes are available." />
         );
@@ -402,7 +401,7 @@ const RecentQuotesList: React.FC = () => {
                         className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 cursor-pointer"
                     >
                         <ChevronDown className="w-4 h-4" />
-                        Load More ({allQuotes.length - displayCount} remaining)
+                        Load More ({recentQuotes.length - displayCount} remaining)
                     </button>
                 </div>
             )}
