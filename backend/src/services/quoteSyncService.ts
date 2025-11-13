@@ -45,21 +45,8 @@ export class QuoteSyncService {
 
           console.log(`Found ${quotes.length} quotes for ${customer.customer_name}`);
 
-          // Filter for pending quotes only (not assigned to runs)
-          const pendingQuotes = quotes.filter(q => 
-            typeof q.id === 'string' && 
-            (!q.orderStatus || q.orderStatus === 'pending')
-          );
-
-          if (pendingQuotes.length === 0) {
-            console.log(`No pending quotes for customer: ${customer.customer_name}`);
-            continue;
-          }
-
-          console.log(`Found ${pendingQuotes.length} pending quotes for ${customer.customer_name}`);
-
-          // Fetch and save each pending quote
-          for (const quoteSummary of pendingQuotes) {
+          // Fetch and save each quote (status will be determined when fetching full details)
+          for (const quoteSummary of quotes) {
             try {
               // Import the full quote from QuickBooks/Xero
               const { getEstimate } = await import('./quoteService.js');
