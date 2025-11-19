@@ -13,7 +13,6 @@ import {
   Settings,
   FileText,
   Clock,
-  AlertTriangle,
   Package,
 } from 'lucide-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -431,8 +430,7 @@ const BackorderItemsSection: React.FC = () => {
 
                             {isExpanded && (
                                 <div className="mt-4 pt-4 border-t border-amber-100">
-                                    <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
                                         Items to Add Later:
                                     </h4>
                                     <div className="space-y-2">
@@ -705,7 +703,6 @@ const Dashboard: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 rounded-full">
-                                                <AlertTriangle className="w-4 h-4 text-amber-700" />
                                                 <span className="text-sm font-semibold text-amber-700">
                                                     {backorderQuotes.length} {backorderQuotes.length === 1 ? 'order' : 'orders'}
                                                 </span>
