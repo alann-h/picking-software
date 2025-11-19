@@ -60,7 +60,7 @@ export class QuoteSyncService {
                   select: { status: true }
                 });
 
-                if (existingQuote && (existingQuote.status === 'checking' || existingQuote.status === 'finalised')) {
+                if (existingQuote && (existingQuote.status === 'checking' || existingQuote.status === 'completed')) {
                   console.log(`⏭️  Skipping quote ${quoteSummary.quoteNumber || quoteSummary.id} - status is ${existingQuote.status}, work is completed`);
                   skippedCount++;
                   continue;
@@ -88,7 +88,7 @@ export class QuoteSyncService {
                   continue;
                 }
 
-                // Save to database (only if not checking/finalised)
+                // Save to database (only if not checking/completed)
                 await estimateToDB(quoteData as FilteredQuote);
                 syncedCount++;
                 console.log(`✅ Synced quote ${quoteSummary.quoteNumber || quoteSummary.id} for ${customer.customer_name}`);

@@ -346,7 +346,7 @@ export class WebhookService {
 
       if (existingEstimate) {
         // Check if quote is completed before updating
-        if (existingEstimate.status === 'checking' || existingEstimate.status === 'finalised') {
+        if (existingEstimate.status === 'checking' || existingEstimate.status === 'completed') {
           console.log(`⏭️  Skipping webhook create for quote ${estimateId} - status is ${existingEstimate.status}, work is completed`);
           return;
         }
@@ -396,7 +396,7 @@ export class WebhookService {
         select: { status: true }
       });
 
-      if (existingQuote && (existingQuote.status === 'checking' || existingQuote.status === 'finalised')) {
+      if (existingQuote && (existingQuote.status === 'checking' || existingQuote.status === 'completed')) {
         console.log(`⏭️  Skipping webhook update for quote ${estimateId} - status is ${existingQuote.status}, work is completed`);
         return;
       }

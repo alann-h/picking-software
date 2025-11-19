@@ -1,7 +1,7 @@
 import { ConnectionType } from './auth.js';
 import { PickingStatus } from './product.js';
 
-export type OrderStatus = 'pending' | 'checking' | 'finalised' | 'cancelled' | 'assigned';
+export type OrderStatus = 'pending' | 'checking' | 'completed' | 'cancelled' | 'assigned';
 
 export interface CustomerQuote {
     id: number | string;

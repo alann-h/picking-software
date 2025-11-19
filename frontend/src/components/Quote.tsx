@@ -186,7 +186,7 @@ const Quote: React.FC = () => {
       </div>
 
       {/* External Sync URL - Only show for finalized orders */}
-      {quoteData.orderStatus === 'finalised' && quoteData.externalSyncUrl && (
+      {quoteData.orderStatus === 'completed' && quoteData.externalSyncUrl && (
         <div className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
           <div className="flex items-center justify-center gap-3">
             <span className="text-sm font-medium text-green-800">
@@ -229,7 +229,7 @@ const Quote: React.FC = () => {
           <div className="flex justify-end gap-3 items-center">
             <button 
               onClick={() => openModal('cameraScanner')} 
-              disabled={quoteData.orderStatus === 'finalised'}
+              disabled={quoteData.orderStatus === 'completed'}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               <Camera size={18} />
@@ -237,7 +237,7 @@ const Quote: React.FC = () => {
             </button>
             <button 
               onClick={actions.openAddProductModal} 
-              disabled={quoteData.orderStatus === 'finalised'}
+              disabled={quoteData.orderStatus === 'completed'}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               <Plus size={18} />
@@ -249,7 +249,7 @@ const Quote: React.FC = () => {
         <ProductFilter searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)} />
         
         {/* Product Table */}
-        {quoteData.orderStatus === 'finalised' && displayedProducts.length === 0 ? (
+        {quoteData.orderStatus === 'completed' && displayedProducts.length === 0 ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
             <Receipt className="w-12 h-12 text-blue-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Quote Finalized</h3>
@@ -296,12 +296,12 @@ const Quote: React.FC = () => {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             value={pickerNote} 
             onChange={(e) => setPickerNote(e.target.value)} 
-            disabled={quoteData.orderStatus === 'finalised'}
+            disabled={quoteData.orderStatus === 'completed'}
           />
           <div className="flex justify-end mt-2">
             <button 
               onClick={handleSaveNote} 
-              disabled={pendingStates.isSavingNote || pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'finalised'}
+              disabled={pendingStates.isSavingNote || pickerNote === (quoteData?.pickerNote || '') || quoteData.orderStatus === 'completed'}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               {pendingStates.isSavingNote ? 'Saving...' : "Save Picker's Note"}
@@ -313,7 +313,7 @@ const Quote: React.FC = () => {
         <div className="flex justify-end mt-4 pt-4 border-t border-gray-200">
           <button 
             onClick={handleMainActionClick} 
-            disabled={quoteData.orderStatus === 'finalised' || !isAdmin || pendingStates.isFinalising}
+            disabled={quoteData.orderStatus === 'completed' || !isAdmin || pendingStates.isFinalising}
             className="flex items-center gap-2 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg font-medium cursor-pointer"
           >
             <Receipt size={20} />

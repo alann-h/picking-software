@@ -101,7 +101,7 @@ export interface Run {
   created_at: string;
   run_number: number;
   run_name?: string;
-  status: 'pending' | 'checking' | 'finalised';
+  status: 'pending' | 'checking' | 'completed';
   customer_name?: string;
   total_amount?: number;
   quotes: RunQuote[];

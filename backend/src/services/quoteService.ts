@@ -410,13 +410,13 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
         },
       });
 
-      // Upsert the quote (but preserve status if it's already assigned/checking/finalised)
+      // Upsert the quote (but preserve status if it's already assigned/checking/completed)
       await tx.quote.upsert({
         where: { id: quote.quoteId },
         update: {
           totalAmount: quote.totalAmount,
-          // Only update status if it's pending or cancelled (don't override assigned/checking/finalised)
-          status: existingQuote && ['assigned', 'checking', 'finalised'].includes(existingQuote.status) 
+          // Only update status if it's pending or cancelled (don't override assigned/checking/completed)
+          status: existingQuote && ['assigned', 'checking', 'completed'].includes(existingQuote.status) 
             ? existingQuote.status 
             : quote.orderStatus,
           orderNote: quote.orderNote,
@@ -1286,7 +1286,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       await tx.quote.update({
         where: { id: quoteId },
         data: { 
-          status: 'finalised',
+          status: 'completed',
           externalSyncUrl: quickbooksUrl 
         }
       });
@@ -1395,7 +1395,7 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
         await tx.quote.update({
           where: { id: quoteId },
           data: { 
-            status: 'finalised',
+            status: 'completed',
             externalSyncUrl: xeroUrl 
           }
         });
@@ -1410,10 +1410,10 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
     } else {
       // If we don't have a URL, still update status and delete items
       await prisma.$transaction(async (tx) => {
-        await tx.quote.update({
-          where: { id: quoteId },
-          data: { status: 'finalised' }
-        });
+      await tx.quote.update({
+        where: { id: quoteId },
+        data: { status: 'completed' }
+      });
         
         const deleteResult = await tx.quoteItem.deleteMany({
           where: { quoteId: quoteId }

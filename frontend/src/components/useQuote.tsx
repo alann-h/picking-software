@@ -64,7 +64,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
         refetchInterval: (query) => {
             const data = query.state.data as QuoteData | undefined;
             // Poll every 30 seconds instead of 10 to reduce API calls
-            return data?.orderStatus === 'finalised' ? false : 30000;
+            return data?.orderStatus === 'completed' ? false : 30000;
         },
         refetchIntervalInBackground: false,
     });
@@ -271,9 +271,9 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
                 }
             }
             
-            handleOpenSnackbar(`Quote finalised and opened in ${serviceName}!`, 'success'); 
+            handleOpenSnackbar(`Quote completed and opened in ${serviceName}!`, 'success'); 
             invalidateAndRefetch();
-            const newUrl = `/quote?id=${quoteId}&status=finalised`;
+            const newUrl = `/quote?id=${quoteId}&status=completed`;
             navigate(newUrl); 
         }, 
         onError: (error: Error) => {

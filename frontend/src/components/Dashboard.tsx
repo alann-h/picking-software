@@ -32,7 +32,7 @@ import PortalDropdown from './PortalDropdown';
 const statusColors: { [key: string]: { bg: string; text: string; border?: string } } = {
     pending: { bg: 'bg-blue-100', text: 'text-blue-800' },
     checking: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-    finalised: { bg: 'bg-green-100', text: 'text-green-800' },
+    completed: { bg: 'bg-green-100', text: 'text-green-800' },
     assigned: { bg: 'bg-sky-100', text: 'text-sky-800' },
     default: { bg: 'bg-gray-100', text: 'text-gray-800' },
 };
@@ -62,7 +62,7 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
     const navigate = useNavigate();
     const { quoteCount, completedQuotes, progressPercentage } = useMemo(() => {
         const quotes = run.quotes || [];
-        const completed = quotes.filter(quote => quote.orderStatus === 'finalised' || quote.orderStatus === 'checking').length;
+        const completed = quotes.filter(quote => quote.orderStatus === 'completed' || quote.orderStatus === 'checking').length;
         const total = quotes.length;
         const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
         
@@ -196,10 +196,10 @@ const InfoBox: React.FC<{ icon: React.ElementType, title: string, message: strin
 const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
     const stats = useMemo(() => {
         const totalRuns = runs.length;
-        const activeRuns = runs.filter(run => run.status !== 'finalised').length;
+        const activeRuns = runs.filter(run => run.status !== 'completed').length;
         const totalQuotes = runs.reduce((sum, run) => sum + (run.quotes?.length || 0), 0);
         const completedQuotes = runs.reduce((sum, run) => 
-            sum + (run.quotes?.filter(quote => quote.orderStatus === 'finalised' || quote.orderStatus === 'checking').length || 0), 0
+            sum + (run.quotes?.filter(quote => quote.orderStatus === 'completed' || quote.orderStatus === 'checking').length || 0), 0
         );
         
         return {
@@ -267,7 +267,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
 
 const ActiveRunsList: React.FC<{ runs: Run[] }> = ({ runs }) => {
     const activeRuns = useMemo(() => {
-        return (runs || []).filter(run => run.status !== 'finalised');
+        return (runs || []).filter(run => run.status !== 'completed');
     }, [runs]);
 
     if (activeRuns.length === 0) return (

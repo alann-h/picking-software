@@ -322,7 +322,7 @@ enum job_status {
 enum order_status {
   pending
   checking
-  finalised
+  completed
   cancelled
   assigned
 }
@@ -337,7 +337,7 @@ enum picking_status {
 enum run_status {
   pending
   checking
-  finalised
+  completed
 }
 
 enum security_event_type {

@@ -48,13 +48,13 @@ export const customerIdRule = () => [
 
 // NEW: For GET /quotes?status=...
 export const listQuotesRules = () => [
-  query('status').optional().isIn(['pending', 'checking', 'finalised', 'cancelled', 'assigned', 'all'])
+  query('status').optional().isIn(['pending', 'checking', 'completed', 'cancelled', 'assigned', 'all'])
     .withMessage('Invalid status provided.'),
 ];
 
 export const updateStatusRules = () => [
   validateQuoteId('quoteId'),
-  body('newStatus').isIn(['pending', 'checking', 'finalised', 'cancelled', 'assigned'])
+  body('newStatus').isIn(['pending', 'checking', 'completed', 'cancelled', 'assigned'])
     .withMessage('Invalid status provided.'),
 ];
 

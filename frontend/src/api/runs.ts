@@ -28,10 +28,10 @@ export const getRuns = async (companyId: string): Promise<Run[]> => {
 /**
  * Updates the status of an existing run.
  * @param {string} runId The ID of the run to update.
- * @param {'pending' | 'checking' | 'finalised'} status The new status to set.
+ * @param {'pending' | 'checking' | 'completed'} status The new status to set.
  * @returns {Promise<Run>} The updated run object.
  */
-export const updateRunStatus = async (runId: string, status: 'pending' | 'checking' | 'finalised'): Promise<Run> => {
+export const updateRunStatus = async (runId: string, status: 'pending' | 'checking' | 'completed'): Promise<Run> => {
   const data = await apiCallPut(`${RUNS_BASE}/${runId}/status`, { status });
   return data;
 };

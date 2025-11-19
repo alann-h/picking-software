@@ -261,7 +261,7 @@ export const RunItem: React.FC<{
         switch (status) {
             case 'pending': return 'bg-blue-100 text-blue-800';
             case 'checking': return 'bg-yellow-100 text-yellow-800';
-            case 'finalised': return 'bg-green-100 text-green-800';
+            case 'completed': return 'bg-green-100 text-green-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -661,7 +661,7 @@ export const RunItem: React.FC<{
                                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${
                                                             quote.orderStatus === 'assigned' ? 'bg-blue-100 text-blue-800' : 
                                                             quote.orderStatus === 'checking' ? 'bg-yellow-100 text-yellow-800' : 
-                                                            quote.orderStatus === 'finalised' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                                            quote.orderStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                                         }`}>
                                                             {quote.orderStatus} 
                                                         </span>
@@ -675,7 +675,7 @@ export const RunItem: React.FC<{
                                 {isAdmin && (
                                     <div className="flex space-x-2 mt-4 justify-end">
                                         <button onClick={() => handleChangeRunStatus('pending')} disabled={optimisticStatus === 'pending' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Pending</button>
-                                        <button onClick={() => handleChangeRunStatus('finalised')} disabled={optimisticStatus === 'finalised' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-green-600 text-green-600 hover:bg-green-50 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Completed</button>
+                                        <button onClick={() => handleChangeRunStatus('completed')} disabled={optimisticStatus === 'completed' || updateStatusMutation.isPending} className="text-sm px-3 py-1.5 rounded-md border border-green-600 text-green-600 hover:bg-green-50 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Completed</button>
                                     </div>
                                 )}
                             </>

@@ -1,6 +1,6 @@
 import { OrderStatus } from './quote';
 
-export type RunStatus = 'pending' | 'checking' | 'finalised';
+export type RunStatus = 'pending' | 'checking' | 'completed';
 
 export interface Run {
     id: string;
