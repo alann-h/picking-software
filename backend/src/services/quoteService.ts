@@ -1280,8 +1280,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       : 'https://qbo.intuit.com/app/';
     const quickbooksUrl = `${webUrl}estimate?txnId=${quoteId}`;
     
-    // Update status, save URL, and delete items in a single transaction
-    // This ensures all operations succeed or all fail together (atomicity)
+    // Update status and save URL in a transaction
     await prisma.$transaction(async (tx) => {
       await tx.quote.update({
         where: { id: quoteId },
@@ -1291,12 +1290,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
         }
       });
       
-      // Delete quote items since the quote is now finalized and managed in QuickBooks
-      const deleteResult = await tx.quoteItem.deleteMany({
-        where: { quoteId: quoteId }
-      });
-      
-      console.log(`Quote ${quoteId} finalized: ${deleteResult.count} items removed from database, QuickBooks URL saved`);
+      console.log(`Quote ${quoteId} completed and synced to QuickBooks`);
     });
     
     return { 
@@ -1389,8 +1383,7 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
     if (shortCode && xeroQuote.quoteID) {
       xeroUrl = `https://go.xero.com/app/${shortCode}/quotes/edit/${xeroQuote.quoteID}`;
       
-      // Update status, save URL, and delete items in a single transaction
-      // This ensures all operations succeed or all fail together (atomicity)
+      // Update status and save URL in a transaction
       await prisma.$transaction(async (tx) => {
         await tx.quote.update({
           where: { id: quoteId },
@@ -1400,27 +1393,16 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
           }
         });
         
-        // Delete quote items since the quote is now finalized and managed in Xero
-        const deleteResult = await tx.quoteItem.deleteMany({
-          where: { quoteId: quoteId }
-        });
-        
-        console.log(`Quote ${quoteId} finalized: ${deleteResult.count} items removed from database, Xero URL saved`);
+        console.log(`Quote ${quoteId} completed and synced to Xero`);
       });
     } else {
-      // If we don't have a URL, still update status and delete items
-      await prisma.$transaction(async (tx) => {
-      await tx.quote.update({
+      // If we don't have a URL, still update status
+      await prisma.quote.update({
         where: { id: quoteId },
         data: { status: 'completed' }
       });
         
-        const deleteResult = await tx.quoteItem.deleteMany({
-          where: { quoteId: quoteId }
-        });
-        
-        console.log(`Quote ${quoteId} finalized: ${deleteResult.count} items removed from database (no Xero URL available)`);
-      });
+      console.log(`Quote ${quoteId} completed (no Xero URL available)`);
     }
     
     return { 

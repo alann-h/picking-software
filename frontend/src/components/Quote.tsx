@@ -249,18 +249,7 @@ const Quote: React.FC = () => {
         <ProductFilter searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)} />
         
         {/* Product Table */}
-        {quoteData.orderStatus === 'completed' && displayedProducts.length === 0 ? (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-            <Receipt className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Quote Finalized</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              This quote has been finalized and all item details have been removed from our system.
-              <br />
-              To view or edit this quote, please use the link above to access it in {quoteData.externalSyncUrl?.includes('xero.com') ? 'Xero' : 'QuickBooks'}.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
+        <div className="overflow-x-auto">
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -285,7 +274,6 @@ const Quote: React.FC = () => {
               </table>
             </div>
           </div>
-        )}
 
         {/* Picker's Note */}
         <div className="mt-8">
