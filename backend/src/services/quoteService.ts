@@ -1273,8 +1273,6 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       const errorDetail = response.json.Fault.Error[0];
       throw new Error(`QuickBooks error: ${errorDetail.Message}`);
     }
-
-    await setOrderStatus(quoteId, 'finalised');
     
     // Construct the QuickBooks URL using the estimate ID
     const webUrl = baseURL.includes('sandbox') 
@@ -1282,10 +1280,23 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       : 'https://qbo.intuit.com/app/';
     const quickbooksUrl = `${webUrl}estimate?txnId=${quoteId}`;
     
-    // Save the URL to the database
-    await prisma.quote.update({
-      where: { id: quoteId },
-      data: { externalSyncUrl: quickbooksUrl }
+    // Update status, save URL, and delete items in a single transaction
+    // This ensures all operations succeed or all fail together (atomicity)
+    await prisma.$transaction(async (tx) => {
+      await tx.quote.update({
+        where: { id: quoteId },
+        data: { 
+          status: 'finalised',
+          externalSyncUrl: quickbooksUrl 
+        }
+      });
+      
+      // Delete quote items since the quote is now finalized and managed in QuickBooks
+      const deleteResult = await tx.quoteItem.deleteMany({
+        where: { quoteId: quoteId }
+      });
+      
+      console.log(`Quote ${quoteId} finalized: ${deleteResult.count} items removed from database, QuickBooks URL saved`);
     });
     
     return { 
@@ -1372,18 +1383,43 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
       const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
       throw new Error(`Failed to update quote in Xero: ${errorMsg}`);
     }
-
-    await setOrderStatus(quoteId, 'finalised');
     
     // Construct the Xero URL if we have the shortCode and quote ID
     let xeroUrl: string | undefined;
     if (shortCode && xeroQuote.quoteID) {
       xeroUrl = `https://go.xero.com/app/${shortCode}/quotes/edit/${xeroQuote.quoteID}`;
       
-      // Save the URL to the database
-      await prisma.quote.update({
-        where: { id: quoteId },
-        data: { externalSyncUrl: xeroUrl }
+      // Update status, save URL, and delete items in a single transaction
+      // This ensures all operations succeed or all fail together (atomicity)
+      await prisma.$transaction(async (tx) => {
+        await tx.quote.update({
+          where: { id: quoteId },
+          data: { 
+            status: 'finalised',
+            externalSyncUrl: xeroUrl 
+          }
+        });
+        
+        // Delete quote items since the quote is now finalized and managed in Xero
+        const deleteResult = await tx.quoteItem.deleteMany({
+          where: { quoteId: quoteId }
+        });
+        
+        console.log(`Quote ${quoteId} finalized: ${deleteResult.count} items removed from database, Xero URL saved`);
+      });
+    } else {
+      // If we don't have a URL, still update status and delete items
+      await prisma.$transaction(async (tx) => {
+        await tx.quote.update({
+          where: { id: quoteId },
+          data: { status: 'finalised' }
+        });
+        
+        const deleteResult = await tx.quoteItem.deleteMany({
+          where: { quoteId: quoteId }
+        });
+        
+        console.log(`Quote ${quoteId} finalized: ${deleteResult.count} items removed from database (no Xero URL available)`);
       });
     }
     

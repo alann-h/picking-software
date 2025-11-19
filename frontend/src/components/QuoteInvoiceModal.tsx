@@ -60,6 +60,9 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
 
   const renderContent = () => {
     if (productsToReview.length > 0) {
+      const displayedProducts = productsToReview.slice(0, 10);
+      const remainingCount = productsToReview.length - 10;
+      
       return (
         <>
           <div className="p-4 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50" role="alert">
@@ -84,7 +87,7 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {productsToReview.map((product: ProductDetail) => (
+                {displayedProducts.map((product: ProductDetail) => (
                   <tr key={product.productId}>
                     <td className="px-4 py-4 text-sm font-medium text-gray-700 whitespace-nowrap">{product.sku}</td>
                     <td className="px-4 py-4 text-sm text-gray-500 whitespace-nowrap">{product.productName}</td>
@@ -102,6 +105,13 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
               </tbody>
             </table>
           </div>
+          {remainingCount > 0 && (
+            <div className="mt-3 p-3 text-sm text-gray-700 bg-gray-100 rounded-lg">
+              <p className="font-medium">
+                Showing 10 of {productsToReview.length} items ({remainingCount} more not displayed)
+              </p>
+            </div>
+          )}
         </>
       );
     }

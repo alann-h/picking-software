@@ -249,31 +249,43 @@ const Quote: React.FC = () => {
         <ProductFilter searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)} />
         
         {/* Product Table */}
-        <div className="overflow-x-auto">
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">SKU</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Name</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">Quantity</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">Picking Status</th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[60px]"></th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {displayedProducts.map((product) => (
-                  <ProductRow
-                    key={product.productId}
-                    product={product}
-                    actions={actions}
-                    pendingStates={pendingStates}
-                  />
-                ))}
-              </tbody>
-            </table>
+        {quoteData.orderStatus === 'finalised' && displayedProducts.length === 0 ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
+            <Receipt className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Quote Finalized</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              This quote has been finalized and all item details have been removed from our system.
+              <br />
+              To view or edit this quote, please use the link above to access it in {quoteData.externalSyncUrl?.includes('xero.com') ? 'Xero' : 'QuickBooks'}.
+            </p>
           </div>
-        </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">SKU</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">Name</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">Quantity</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[90px]">Picking Status</th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[60px]"></th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {displayedProducts.map((product) => (
+                    <ProductRow
+                      key={product.productId}
+                      product={product}
+                      actions={actions}
+                      pendingStates={pendingStates}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Picker's Note */}
         <div className="mt-8">

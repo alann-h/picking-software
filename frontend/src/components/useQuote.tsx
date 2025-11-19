@@ -246,7 +246,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
     const setQuoteChecking = useMutation({ 
         mutationFn: (newStatus: string) => updateQuoteStatus(quoteId, newStatus), 
         onSuccess: () => { 
-            handleOpenSnackbar(`Quote status updated!`, 'success');
+            handleOpenSnackbar(`Quote #${quoteData.quoteNumber} sent to admin for review!`, 'success');
             navigate('/dashboard');
         }, 
         onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'), 
