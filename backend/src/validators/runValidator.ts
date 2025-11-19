@@ -43,7 +43,7 @@ export const runCreateRules = () => [
 export const runStatusUpdateRules = () => [
     body('status')
         .exists().withMessage('Status is required.')
-        .isIn(['pending', 'checking', 'completed']).withMessage('Invalid status. Must be "pending", "checking", or "completed".')
+        .isIn(['pending', 'completed']).withMessage('Invalid status. Must be "pending" or "completed".')
 ];
 
 export const runUpdateRules = () => [

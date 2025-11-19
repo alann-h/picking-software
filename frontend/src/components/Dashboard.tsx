@@ -31,6 +31,7 @@ import PortalDropdown from './PortalDropdown';
 
 const statusColors: { [key: string]: { bg: string; text: string; border?: string } } = {
     pending: { bg: 'bg-blue-100', text: 'text-blue-800' },
+    preparing: { bg: 'bg-orange-100', text: 'text-orange-800' },
     checking: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
     completed: { bg: 'bg-green-100', text: 'text-green-800' },
     assigned: { bg: 'bg-sky-100', text: 'text-sky-800' },

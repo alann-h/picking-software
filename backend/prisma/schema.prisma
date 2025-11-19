@@ -321,6 +321,7 @@ enum job_status {
 
 enum order_status {
   pending
+  preparing
   checking
   completed
   cancelled
@@ -336,7 +337,6 @@ enum picking_status {
 
 enum run_status {
   pending
-  checking
   completed
 }
 

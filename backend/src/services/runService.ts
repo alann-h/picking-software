@@ -160,7 +160,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
 }
 
 export async function updateRunStatus(runId: string, newStatus: RunStatus): Promise<Run> {
-    const allowedStatuses: RunStatus[] = ['pending', 'checking', 'completed'];
+    const allowedStatuses: RunStatus[] = ['pending', 'completed'];
     if (!allowedStatuses.includes(newStatus)) {
         throw new InputError(`Invalid status: ${newStatus}. Must be one of ${allowedStatuses.join(', ')}.`);
     }

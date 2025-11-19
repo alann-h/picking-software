@@ -85,7 +85,7 @@ export async function listQuotes(req: Request, res: Response, next: NextFunction
   try {
     const status = req.query.status as string;
     const companyId = req.session.companyId;
-    if (status && !['pending', 'checking', 'completed', 'cancelled', 'assigned', 'all'].includes(status)) {
+    if (status && !['pending', 'preparing', 'checking', 'completed', 'cancelled', 'assigned', 'all'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status value' });
     }
     const quotes = await getQuotesWithStatus(status as OrderStatus | 'all', companyId as string);

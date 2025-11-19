@@ -410,13 +410,13 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
         },
       });
 
-      // Upsert the quote (but preserve status if it's already assigned/checking/completed)
+      // Upsert the quote (but preserve status if it's already assigned/preparing/checking/completed)
       await tx.quote.upsert({
         where: { id: quote.quoteId },
         update: {
           totalAmount: quote.totalAmount,
-          // Only update status if it's pending or cancelled (don't override assigned/checking/completed)
-          status: existingQuote && ['assigned', 'checking', 'completed'].includes(existingQuote.status) 
+          // Only update status if it's pending or cancelled (don't override assigned/preparing/checking/completed)
+          status: existingQuote && ['assigned', 'preparing', 'checking', 'completed'].includes(existingQuote.status) 
             ? existingQuote.status 
             : quote.orderStatus,
           orderNote: quote.orderNote,
@@ -650,16 +650,20 @@ async function ensurePickingStartedTimestamp(quoteId: string): Promise<void> {
   try {
     const quote = await prisma.quote.findUnique({
       where: { id: quoteId },
-      select: { pickingStartedAt: true },
+      select: { pickingStartedAt: true, status: true },
     });
 
     // Only set if not already set
     if (quote && !quote.pickingStartedAt) {
       await prisma.quote.update({
         where: { id: quoteId },
-        data: { pickingStartedAt: new Date() },
+        data: { 
+          pickingStartedAt: new Date(),
+          // Change status to 'preparing' on first scan (if currently 'pending' or 'assigned')
+          status: ['pending', 'assigned'].includes(quote.status) ? 'preparing' : quote.status
+        },
       });
-      console.log(`Quote ${quoteId}: Picking started timestamp set`);
+      console.log(`Quote ${quoteId}: Picking started - timestamp set and status updated to 'preparing'`);
     }
   } catch (error: unknown) {
     console.error(`Failed to set picking started timestamp for quote ${quoteId}:`, error);
