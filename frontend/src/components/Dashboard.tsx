@@ -13,11 +13,13 @@ import {
   Settings,
   FileText,
   Clock,
+  AlertTriangle,
+  Package,
 } from 'lucide-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { Customer, QuoteSummary, Run, RunQuote } from '../utils/types';
+import { Customer, QuoteSummary, Run, RunQuote, QuoteWithBackorders } from '../utils/types';
 import { getCustomers } from '../api/customers';
-import { getCustomerQuotes, getQuotesWithStatus } from '../api/quote';
+import { getCustomerQuotes, getQuotesWithStatus, getQuotesWithBackorders } from '../api/quote';
 import { getRuns } from '../api/runs';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
@@ -57,31 +59,41 @@ const QuoteStatusChip: React.FC<{ status: RunQuote['orderStatus'] }> = ({ status
     );
 };
 
-const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
+const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> = ({ run, backorderQuoteIds }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
     const navigate = useNavigate();
-    const { quoteCount, completedQuotes, progressPercentage } = useMemo(() => {
+    const { quoteCount, completedQuotes, progressPercentage, hasBackorders } = useMemo(() => {
         const quotes = run.quotes || [];
         const completed = quotes.filter(quote => quote.orderStatus === 'completed' || quote.orderStatus === 'checking').length;
         const total = quotes.length;
         const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+        const backorders = quotes.some(quote => backorderQuoteIds?.has(quote.quoteId));
         
         return { 
             quoteCount: total, 
             completedQuotes: completed,
-            progressPercentage: percentage
+            progressPercentage: percentage,
+            hasBackorders: backorders
         };
-    }, [run.quotes]);
+    }, [run.quotes, backorderQuoteIds]);
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-4 flex justify-between items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
                 <div className="flex items-center gap-4">
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-800">
-                            {run.run_name ? `${run.run_name}` : `Run #${run.run_number || run.id.substring(0, 8)}`}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                {run.run_name ? `${run.run_name}` : `Run #${run.run_number || run.id.substring(0, 8)}`}
+                            </h3>
+                            {hasBackorders && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800" title="This run has orders with backorder items">
+                                    <Package className="w-3 h-3" />
+                                    Items to Add
+                                </span>
+                            )}
+                        </div>
                         {run.run_name && (
                             <p className="text-sm text-gray-500">Run #{run.run_number || run.id.substring(0, 8)}</p>
                         )}
@@ -113,10 +125,9 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quote ID</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -131,19 +142,21 @@ const DashboardRunItem: React.FC<{ run: Run }> = ({ run }) => {
                                                   }} 
                                                   className={`hover:bg-gray-50 ${loadingQuoteId === quote.quoteId ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-colors duration-150`}
                                               >
-                                                  <td className="px-4 py-3 whitespace-nowrap">
-                                                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                          {quote.priority + 1}
-                                                      </span>
+                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">
+                                                      <div className="flex items-center gap-2">
+                                                          #{quote.quoteNumber || quote.quoteId}
+                                                          {backorderQuoteIds?.has(quote.quoteId) && (
+                                                              <span title="Has backorder items">
+                                                                  <Package className="w-3.5 h-3.5 text-amber-600" />
+                                                              </span>
+                                                          )}
+                                                          {loadingQuoteId === quote.quoteId && (
+                                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                                          )}
+                                                      </div>
                                                   </td>
-                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600 flex items-center gap-2">
-                                                      #{quote.quoteNumber || quote.quoteId}
-                                                      {loadingQuoteId === quote.quoteId && (
-                                                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                                                      )}
-                                                  </td>
-                                                  <td className="px-4 py-3 whitespace-nowrap"><QuoteStatusChip status={quote.orderStatus} /></td>
                                                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{quote.customerName}</td>
+                                                  <td className="px-4 py-3 whitespace-nowrap"><QuoteStatusChip status={quote.orderStatus} /></td>
                                               </tr>
                                           ))}
                                     </tbody>
@@ -266,7 +279,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
     );
 };
 
-const ActiveRunsList: React.FC<{ runs: Run[] }> = ({ runs }) => {
+const ActiveRunsList: React.FC<{ runs: Run[]; backorderQuoteIds?: Set<string> }> = ({ runs, backorderQuoteIds }) => {
     const activeRuns = useMemo(() => {
         return (runs || []).filter(run => run.status !== 'completed');
     }, [runs]);
@@ -279,7 +292,7 @@ const ActiveRunsList: React.FC<{ runs: Run[] }> = ({ runs }) => {
       <div className="space-y-3">
         {activeRuns.map((run) => (
           <div key={run.id}>
-            <DashboardRunItem run={run} />
+            <DashboardRunItem run={run} backorderQuoteIds={backorderQuoteIds} />
           </div>
         ))}
       </div>
@@ -322,6 +335,131 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
                     />
                 </div>
             ))}
+        </div>
+    );
+};
+
+const BackorderItemsSection: React.FC = () => {
+    const navigate = useNavigate();
+    const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
+    const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
+
+    const { data: backorderQuotes = [] } = useSuspenseQuery<QuoteWithBackorders[]>({
+        queryKey: ['quotes', 'backorders'],
+        queryFn: async () => {
+            const response = await getQuotesWithBackorders() as QuoteWithBackorders[];
+            return response;
+        },
+        staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+        gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
+        refetchInterval: 30000, // Refetch every 30 seconds to keep data fresh
+    });
+
+    if (backorderQuotes.length === 0) {
+        return (
+            <InfoBox icon={Package} title="No backorder items" message="All items have been picked or no backorders exist." />
+        );
+    }
+
+    const handleQuoteClick = (quoteId: string) => {
+        setLoadingQuoteId(quoteId);
+        navigate(`/quote?id=${quoteId}`);
+    };
+
+    return (
+        <div className="space-y-3">
+            {backorderQuotes.map((quote) => {
+                const isExpanded = expandedQuoteId === quote.quoteId;
+                const hasMultipleRuns = quote.runs.length > 1;
+                const primaryRun = quote.runs[0];
+
+                return (
+                    <div key={quote.quoteId} className="bg-white border border-amber-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                        <div className="p-4">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <h3 
+                                            onClick={() => handleQuoteClick(quote.quoteId)}
+                                            className="text-lg font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+                                        >
+                                            #{quote.quoteNumber || quote.quoteId}
+                                        </h3>
+                                        <QuoteStatusChip status={quote.orderStatus} />
+                                        {loadingQuoteId === quote.quoteId && (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                        )}
+                                    </div>
+                                    
+                                    <p className="text-sm text-gray-700 font-medium">{quote.customerName}</p>
+                                    
+                                    {primaryRun && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <Zap className="w-4 h-4 text-gray-500" />
+                                            <span className="text-sm text-gray-600">
+                                                {primaryRun.runName || `Run #${primaryRun.runNumber}`}
+                                            </span>
+                                            {hasMultipleRuns && (
+                                                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                                                    +{quote.runs.length - 1} more
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                        <span className="flex items-center gap-1 text-sm font-medium text-amber-700">
+                                            <Package className="w-4 h-4" />
+                                            {quote.backorderItems.length} {quote.backorderItems.length === 1 ? 'item' : 'items'} to add
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => setExpandedQuoteId(isExpanded ? null : quote.quoteId)}
+                                        className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                                        aria-label="Toggle items"
+                                    >
+                                        {isExpanded ? (
+                                            <ChevronUp className="w-5 h-5 text-gray-500" />
+                                        ) : (
+                                            <ChevronDown className="w-5 h-5 text-gray-500" />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {isExpanded && (
+                                <div className="mt-4 pt-4 border-t border-amber-100">
+                                    <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                                        Items to Add Later:
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {quote.backorderItems.map((item) => (
+                                            <div 
+                                                key={item.productId} 
+                                                className="flex items-center justify-between p-3 bg-amber-50 rounded-lg"
+                                            >
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-gray-800">{item.productName}</p>
+                                                    <p className="text-xs text-gray-500">SKU: {item.sku}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-sm font-semibold text-amber-700">
+                                                        {item.pickingQuantity} / {item.originalQuantity}
+                                                    </span>
+                                                    <p className="text-xs text-gray-500">remaining</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };
@@ -442,6 +580,21 @@ const Dashboard: React.FC = () => {
         staleTime: 15000, // 15 seconds - data considered fresh
     });
 
+    const { data: backorderQuotes = [] } = useSuspenseQuery<QuoteWithBackorders[]>({
+        queryKey: ['quotes', 'backorders'],
+        queryFn: async () => {
+            const response = await getQuotesWithBackorders() as QuoteWithBackorders[];
+            return response;
+        },
+        staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+        gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
+        refetchInterval: 30000, // Refetch every 30 seconds
+    });
+
+    const backorderQuoteIds = useMemo(() => {
+        return new Set(backorderQuotes.map(quote => quote.quoteId));
+    }, [backorderQuotes]);
+
     const selectedCustomer = useMemo(() => {
         const customerId = searchParams.get('customer');
         if (!customerId) return null;
@@ -524,7 +677,7 @@ const Dashboard: React.FC = () => {
                             </div>
                             <div className="p-4 sm:p-5">
                                 <Suspense fallback={<RunListSkeleton />}>
-                                    <ActiveRunsList runs={allRuns || []} />
+                                    <ActiveRunsList runs={allRuns || []} backorderQuoteIds={backorderQuoteIds} />
                                 </Suspense>
                             </div>
                         </div>
@@ -532,6 +685,59 @@ const Dashboard: React.FC = () => {
 
                     {/* Divider */}
                     <div className="border-b border-gray-200" />
+
+                    {/* Backorder Items Section */}
+                    {backorderQuotes.length > 0 && (
+                        <>
+                            <div>
+                                <div className="bg-white border border-amber-200 rounded-lg shadow-sm">
+                                    <div className="p-4 sm:p-5 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-gray-50">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <Package className="w-6 h-6 text-amber-600" />
+                                                <div>
+                                                    <h2 className="text-xl font-semibold text-gray-800">
+                                                        Items to Add Later
+                                                    </h2>
+                                                    <p className="text-sm text-gray-600 mt-0.5">
+                                                        Orders with backorder items (butter, cold items, etc.)
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 rounded-full">
+                                                <AlertTriangle className="w-4 h-4 text-amber-700" />
+                                                <span className="text-sm font-semibold text-amber-700">
+                                                    {backorderQuotes.length} {backorderQuotes.length === 1 ? 'order' : 'orders'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 sm:p-5">
+                                        <Suspense fallback={
+                                            <div className="space-y-3">
+                                                {[...Array(3)].map((_, i) => (
+                                                    <div key={i} className="bg-white border border-amber-200 rounded-lg p-4 animate-pulse">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1">
+                                                                <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+                                                                <div className="h-4 bg-gray-200 rounded w-48"></div>
+                                                            </div>
+                                                            <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        }>
+                                            <BackorderItemsSection />
+                                        </Suspense>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="border-b border-gray-200" />
+                        </>
+                    )}
 
                     {/* Recent Quotes Section */}
                     <div>

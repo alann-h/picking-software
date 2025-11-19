@@ -52,3 +52,8 @@ export const deleteQuotesBulk = async (quoteIds: string[]) => {
   const response = await apiCallPost(`${QUOTES_BASE}/bulk-delete`, { quoteIds });
   return response;
 };
+
+export const getQuotesWithBackorders = async () => {
+  const response = await apiCallGet(`${QUOTES_BASE}/backorders`);
+  return response;
+};

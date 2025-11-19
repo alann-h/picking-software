@@ -12,7 +12,8 @@ import {
   adjustProductQuantity,
   processBarcode,
   savePickerNote,
-  deleteQuotesBulk
+  deleteQuotesBulk,
+  getQuotesWithBackorders
 } from '../services/quoteService.js';
 import { Request, Response, NextFunction } from 'express';
 import {
@@ -201,6 +202,20 @@ export async function bulkDeleteQuotes(req: Request, res: Response, next: NextFu
     const { quoteIds } = req.body;
     const result = await deleteQuotesBulk(quoteIds);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /quotes/backorders
+export async function getBackorderQuotes(req: Request, res: Response, next: NextFunction) {
+  try {
+    const companyId = req.session.companyId;
+    if (!companyId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const quotes = await getQuotesWithBackorders(companyId);
+    res.json(quotes);
   } catch (err) {
     next(err);
   }

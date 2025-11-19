@@ -12,7 +12,8 @@ import {
   adjustQty,
   scanProduct,
   savePickerNoteController,
-  bulkDeleteQuotes
+  bulkDeleteQuotes,
+  getBackorderQuotes
 } from '../controllers/quoteController.js';
 
 import {
@@ -50,12 +51,13 @@ router.get('/kyte-customers', asyncHandler(getCustomersForMapping));
 router.get('/kyte-history', asyncHandler(getConversionHistoryController));
 router.post('/kyte-create-estimates', [ordersRule(), orderCustomerRule()], validate, asyncHandler(createQuickBooksEstimates));
 
+// List and update quotes - must come before parameterized routes
+router.get('/', listQuotesRules(), validate, asyncHandler(listQuotes));
+router.get('/backorders', asyncHandler(getBackorderQuotes));
+
 // Estimate endpoints
 router.get('/customer/:customerId', customerIdRule(), validate, asyncHandler(getEstimates));
 router.get('/:quoteId', quoteIdRule(), validate, asyncHandler(getEstimateById));
-
-// List and update quotes
-router.get('/', listQuotesRules(), validate, asyncHandler(listQuotes));
 router.put('/status', updateStatusRules(), validate, asyncHandler(updateStatus));
 router.put('/picker-note', pickerNoteRules(), validate, asyncHandler(savePickerNoteController));
 // Sync with accounting service (QuickBooks or Xero)

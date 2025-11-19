@@ -1604,3 +1604,82 @@ async function getXeroEstimatesBulk(quoteIds: string[], companyId: string): Prom
         throw new InputError('An unknown error occurred during bulk Xero estimate fetch.');
     }
 }
+
+export async function getQuotesWithBackorders(companyId: string): Promise<Array<Record<string, unknown>>> {
+  try {
+    // Find all quotes that have at least one item with pickingStatus 'backorder'
+    const quotesWithBackorders = await prisma.quote.findMany({
+      where: {
+        companyId,
+        quoteItems: {
+          some: {
+            pickingStatus: 'backorder',
+          },
+        },
+      },
+      include: {
+        customer: {
+          select: {
+            customerName: true,
+          },
+        },
+        quoteItems: {
+          where: {
+            pickingStatus: 'backorder',
+          },
+          select: {
+            productName: true,
+            sku: true,
+            pickingQuantity: true,
+            originalQuantity: true,
+            productId: true,
+          },
+        },
+        runItems: {
+          include: {
+            run: {
+              select: {
+                id: true,
+                runNumber: true,
+                runName: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return quotesWithBackorders.map(quote => ({
+      quoteId: quote.id,
+      quoteNumber: quote.quoteNumber,
+      customerName: quote.customer.customerName,
+      customerId: quote.customerId,
+      orderStatus: quote.status,
+      totalAmount: Number(quote.totalAmount),
+      lastModified: formatTimestampForSydney(quote.updatedAt),
+      backorderItems: quote.quoteItems.map(item => ({
+        productId: Number(item.productId),
+        productName: item.productName,
+        sku: item.sku,
+        pickingQuantity: Number(item.pickingQuantity),
+        originalQuantity: Number(item.originalQuantity),
+      })),
+      runs: quote.runItems.map(runItem => ({
+        runId: runItem.run.id,
+        runNumber: Number(runItem.run.runNumber),
+        runName: runItem.run.runName,
+        runStatus: runItem.run.status,
+        priority: runItem.priority,
+      })),
+    }));
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new InputError('Failed to fetch quotes with backorders: ' + error.message);
+    }
+    throw new InputError('An unknown error occurred while fetching quotes with backorders.');
+  }
+}

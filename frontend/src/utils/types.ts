@@ -137,3 +137,31 @@ export interface ApiErrorWrapper {
   data: ApiErrorPayload;
 }
 
+export interface BackorderItem {
+  productId: number;
+  productName: string;
+  sku: string;
+  pickingQuantity: number;
+  originalQuantity: number;
+}
+
+export interface BackorderRun {
+  runId: string;
+  runNumber: number;
+  runName?: string;
+  runStatus: 'pending' | 'completed';
+  priority: number;
+}
+
+export interface QuoteWithBackorders {
+  quoteId: string;
+  quoteNumber: string;
+  customerName: string;
+  customerId: string;
+  orderStatus: string;
+  totalAmount: number;
+  lastModified: string;
+  backorderItems: BackorderItem[];
+  runs: BackorderRun[];
+}
+
