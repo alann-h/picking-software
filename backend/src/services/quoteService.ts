@@ -466,6 +466,7 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
             {
               pickingQuantity: item.pickingQuantity,
               pickingStatus: item.pickingStatus,
+              originalQuantity: item.originalQuantity,
             }
           ])
         );
@@ -491,7 +492,24 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
           const existingProgress = existingItemsMap.get(productId);
 
           if (existingProgress) {
-            // Item exists - UPDATE with QB data but preserve picking progress
+            // Item exists - UPDATE with QB data but adjust picking quantity for quantity changes
+            const oldOriginalQty = existingProgress.originalQuantity.toNumber();
+            const newOriginalQty = roundQuantity(item.originalQty);
+            const oldPickingQty = existingProgress.pickingQuantity.toNumber();
+            
+            // Calculate the quantity difference
+            const qtyDifference = newOriginalQty - oldOriginalQty;
+            
+            // Adjust picking quantity by the same difference
+            // This ensures if original goes from 1→2, picking also goes from 1→2
+            const newPickingQty = Math.max(0, oldPickingQty + qtyDifference);
+            
+            // If item was completed but now has remaining quantity, reset to pending
+            let newPickingStatus = existingProgress.pickingStatus;
+            if (newPickingQty > 0 && existingProgress.pickingStatus === 'completed') {
+              newPickingStatus = 'pending';
+            }
+            
             await tx.quoteItem.update({
               where: {
                 quoteId_productId: {
@@ -502,13 +520,13 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
               data: {
                 // Update from QuickBooks
                 productName: item.productName,
-                originalQuantity: roundQuantity(item.originalQty),
+                originalQuantity: newOriginalQty,
                 sku: item.sku,
                 price: roundQuantity(item.price),
                 taxCodeRef: item.tax_code_ref,
-                // PRESERVE picking progress
-                pickingQuantity: existingProgress.pickingQuantity,
-                pickingStatus: existingProgress.pickingStatus,
+                // Adjust picking quantity by the same amount as original quantity changed
+                pickingQuantity: newPickingQty,
+                pickingStatus: newPickingStatus,
               },
             });
           } else {
@@ -644,7 +662,8 @@ async function updateQuotePreparerNames(quoteId: string, userName: string): Prom
 
 /**
  * Sets the pickingStartedAt timestamp for a quote if it hasn't been set yet.
- * This tracks when picking actually began (first scan/action on the quote).
+ * This tracks when picking actually began (first barcode scan on the quote).
+ * Note: Does NOT trigger on admin actions like adding/adjusting products.
  */
 async function ensurePickingStartedTimestamp(quoteId: string): Promise<void> {
   try {
@@ -798,8 +817,6 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
       totalAmount = updatedQuote;
     });
 
-    await ensurePickingStartedTimestamp(quoteId);
-
     if (addNewProduct && totalAmount) {
       const totalAmountData = totalAmount as { totalAmount: Decimal; updatedAt: Date };
       const newProduct = addNewProduct as {
@@ -936,8 +953,6 @@ export async function adjustProductQuantity(quoteId: string, productId: number, 
       data: { totalAmount: newTotalAmount },
       select: { totalAmount: true },
     });
-
-    await ensurePickingStartedTimestamp(quoteId);
 
     return {
       pickingQty: updatedItem.pickingQuantity.toNumber(),
