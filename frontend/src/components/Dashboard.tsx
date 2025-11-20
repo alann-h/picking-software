@@ -15,15 +15,17 @@ import {
   Clock,
   Package,
 } from 'lucide-react';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Customer, QuoteSummary, Run, RunQuote, QuoteWithBackorders } from '../utils/types';
 import { getCustomers } from '../api/customers';
 import { getCustomerQuotes, getQuotesWithStatus, getQuotesWithBackorders } from '../api/quote';
 import { getRuns } from '../api/runs';
+import { completeBackorderItem } from '../api/products';
 import { useNavigate } from 'react-router-dom';
 import { useSearchParams } from 'react-router-dom';
 import { AvailableQuotesSkeleton, RunListSkeleton } from './Skeletons';
 import { useAuth } from '../hooks/useAuth';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 import PortalDropdown from './PortalDropdown';
 
 // ====================================================================================
@@ -87,19 +89,16 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> 
                                 {run.run_name ? `${run.run_name}` : `Run #${run.run_number || run.id.substring(0, 8)}`}
                             </h3>
                             {hasBackorders && (
-                                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800" title="This run has orders with backorder items">
-                                    <Package className="w-3 h-3" />
-                                    Items to Add
-                                </span>
+                                <Package className="w-4 h-4 text-amber-600" title="This run has orders with backorder items" />
                             )}
                         </div>
                         {run.run_name && (
                             <p className="text-sm text-gray-500">Run #{run.run_number || run.id.substring(0, 8)}</p>
                         )}
                     </div>
-                    <RunStatusChip status={run.status} />
                 </div>
                 <div className="flex items-center gap-4">
+                    <RunStatusChip status={run.status} />
                     <div className="text-right">
                         <span className="text-sm font-medium text-gray-600">{completedQuotes}/{quoteCount} quotes</span>
                         <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
@@ -142,6 +141,9 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> 
                                                   <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">
                                                       <div className="flex items-center gap-2">
                                                           #{quote.quoteNumber || quote.quoteId}
+                                                          {(quote.orderStatus === 'completed' || quote.orderStatus === 'checking') && (
+                                                              <Check className="w-4 h-4 text-green-600" title="Quote completed" />
+                                                          )}
                                                           {backorderQuoteIds?.has(quote.quoteId) && (
                                                               <span title="Has backorder items">
                                                                   <Package className="w-3.5 h-3.5 text-amber-600" />
@@ -338,8 +340,11 @@ const QuoteList: React.FC<{ customer: Customer }> = ({ customer }) => {
 
 const BackorderItemsSection: React.FC = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const { showSuccess, showError } = useErrorHandler();
     const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
     const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
+    const [completingItemId, setCompletingItemId] = useState<string | null>(null);
 
     const { data: backorderQuotes = [] } = useSuspenseQuery<QuoteWithBackorders[]>({
         queryKey: ['quotes', 'backorders'],
@@ -352,6 +357,24 @@ const BackorderItemsSection: React.FC = () => {
         refetchInterval: 30000, // Refetch every 30 seconds to keep data fresh
     });
 
+    const completeItemMutation = useMutation({
+        mutationFn: async ({ quoteId, productId }: { quoteId: string; productId: number }) => {
+            return await completeBackorderItem(quoteId, productId);
+        },
+        onSuccess: (data: unknown) => {
+            const response = data as { message?: string };
+            showSuccess(response.message || 'Item marked as added!');
+            // Refresh the backorder quotes list
+            queryClient.invalidateQueries({ queryKey: ['quotes', 'backorders'] });
+        },
+        onError: (error) => {
+            showError(error, undefined, 'Failed to mark item as added');
+        },
+        onSettled: () => {
+            setCompletingItemId(null);
+        }
+    });
+
     if (backorderQuotes.length === 0) {
         return (
             <InfoBox icon={Package} title="No backorder items" message="All items have been picked or no backorders exist." />
@@ -361,6 +384,12 @@ const BackorderItemsSection: React.FC = () => {
     const handleQuoteClick = (quoteId: string) => {
         setLoadingQuoteId(quoteId);
         navigate(`/quote?id=${quoteId}`);
+    };
+
+    const handleMarkAsAdded = (quoteId: string, productId: number) => {
+        const itemKey = `${quoteId}-${productId}`;
+        setCompletingItemId(itemKey);
+        completeItemMutation.mutate({ quoteId, productId });
     };
 
     return (
@@ -434,23 +463,54 @@ const BackorderItemsSection: React.FC = () => {
                                         Items to Add Later:
                                     </h4>
                                     <div className="space-y-2">
-                                        {quote.backorderItems.map((item) => (
-                                            <div 
-                                                key={item.productId} 
-                                                className="flex items-center justify-between p-3 bg-amber-50 rounded-lg"
-                                            >
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-medium text-gray-800">{item.productName}</p>
-                                                    <p className="text-xs text-gray-500">SKU: {item.sku}</p>
+                                        {quote.backorderItems.map((item) => {
+                                            const itemKey = `${quote.quoteId}-${item.productId}`;
+                                            const isCompleting = completingItemId === itemKey;
+                                            
+                                            return (
+                                                <div 
+                                                    key={item.productId} 
+                                                    className="flex items-center justify-between p-3 bg-amber-50 rounded-lg"
+                                                >
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium text-gray-800">{item.productName}</p>
+                                                        <p className="text-xs text-gray-500">SKU: {item.sku}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="text-right">
+                                                            <span className="text-sm font-semibold text-amber-700">
+                                                                {item.pickingQuantity} / {item.originalQuantity}
+                                                            </span>
+                                                            <p className="text-xs text-gray-500">remaining</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleMarkAsAdded(quote.quoteId, item.productId);
+                                                            }}
+                                                            disabled={isCompleting}
+                                                            className={`px-3 py-1.5 text-xs font-medium text-white rounded transition-colors ${
+                                                                isCompleting 
+                                                                    ? 'bg-gray-400 cursor-not-allowed' 
+                                                                    : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+                                                            }`}
+                                                        >
+                                                            {isCompleting ? (
+                                                                <span className="flex items-center gap-1">
+                                                                    <span className="animate-spin">⏳</span>
+                                                                    Marking...
+                                                                </span>
+                                                            ) : (
+                                                                <span className="flex items-center gap-1">
+                                                                    <Check className="w-3 h-3" />
+                                                                    Mark Added
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <span className="text-sm font-semibold text-amber-700">
-                                                        {item.pickingQuantity} / {item.originalQuantity}
-                                                    </span>
-                                                    <p className="text-xs text-gray-500">remaining</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
