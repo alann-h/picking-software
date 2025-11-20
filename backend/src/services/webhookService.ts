@@ -345,9 +345,10 @@ export class WebhookService {
       });
 
       if (existingEstimate) {
-        // Check if quote is completed before updating
-        if (['preparing', 'checking', 'completed'].includes(existingEstimate.status)) {
-          console.log(`⏭️  Skipping webhook create for quote ${estimateId} - status is ${existingEstimate.status}, work in progress or completed`);
+        // Check if quote is being checked or completed before updating
+        // Note: 'preparing' is allowed so admins can add items while picker is working
+        if (['checking', 'completed'].includes(existingEstimate.status)) {
+          console.log(`⏭️  Skipping webhook create for quote ${estimateId} - status is ${existingEstimate.status}, being checked or completed`);
           return;
         }
 
@@ -390,14 +391,15 @@ export class WebhookService {
     try {
       console.log(`Updating estimate with ID: ${estimateId}`);
       
-      // Check if quote has been sent to admin or completed - if so, skip update to preserve final work
+      // Check if quote is being checked or completed - if so, skip update to preserve final work
+      // Note: 'preparing' is allowed so admins can add items while picker is working
       const existingQuote = await prisma.quote.findUnique({
         where: { id: estimateId },
         select: { status: true }
       });
 
-      if (existingQuote && ['preparing', 'checking', 'completed'].includes(existingQuote.status)) {
-        console.log(`⏭️  Skipping webhook update for quote ${estimateId} - status is ${existingQuote.status}, work in progress or completed`);
+      if (existingQuote && ['checking', 'completed'].includes(existingQuote.status)) {
+        console.log(`⏭️  Skipping webhook update for quote ${estimateId} - status is ${existingQuote.status}, being checked or completed`);
         return;
       }
       

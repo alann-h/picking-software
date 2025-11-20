@@ -415,7 +415,7 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
         where: { id: quote.quoteId },
         update: {
           totalAmount: quote.totalAmount,
-          // Only update status if it's pending or cancelled (don't override assigned/preparing/checking/completed)
+          // Preserve current status if it's assigned/preparing/checking/completed (don't override with QB status)
           status: existingQuote && ['assigned', 'preparing', 'checking', 'completed'].includes(existingQuote.status) 
             ? existingQuote.status 
             : quote.orderStatus,

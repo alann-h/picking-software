@@ -54,14 +54,15 @@ export class QuoteSyncService {
             // Fetch and save each quote
             for (const quoteSummary of quotes) {
               try {
-                // Check if quote has been sent to admin or completed - if so, skip it to preserve final work
+                // Check if quote is being checked or completed - if so, skip it to preserve final work
+                // Note: 'preparing' is allowed so admins can add items while picker is working
                 const existingQuote = await prisma.quote.findUnique({
                   where: { id: String(quoteSummary.id) },
                   select: { status: true }
                 });
 
-                if (existingQuote && ['preparing', 'checking', 'completed'].includes(existingQuote.status)) {
-                  console.log(`⏭️  Skipping quote ${quoteSummary.quoteNumber || quoteSummary.id} - status is ${existingQuote.status}, work in progress or completed`);
+                if (existingQuote && ['checking', 'completed'].includes(existingQuote.status)) {
+                  console.log(`⏭️  Skipping quote ${quoteSummary.quoteNumber || quoteSummary.id} - status is ${existingQuote.status}, being checked or completed`);
                   skippedCount++;
                   continue;
                 }
