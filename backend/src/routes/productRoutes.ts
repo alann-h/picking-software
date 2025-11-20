@@ -9,6 +9,7 @@ import {
   saveForLaterHandler,
   setUnavailableHandler,
   setFinishedHandler,
+  completeBackorderHandler,
   updateProduct,
   getExternalId,
   addProduct,
@@ -39,6 +40,7 @@ router.get('/', asyncHandler(listProducts));
 router.put('/for-later', quoteProductRules(), validate, asyncHandler(saveForLaterHandler));
 router.put('/unavailable', quoteProductRules(), validate, asyncHandler(setUnavailableHandler));
 router.put('/finished', quoteProductRules(), validate, asyncHandler(setFinishedHandler));
+router.put('/backorder/complete', quoteProductRules(), validate, asyncHandler(completeBackorderHandler));
 
 // Product CRUD
 router.put('/:productId', updateProductRules(), validate, asyncHandler(updateProduct));

@@ -603,3 +603,49 @@ export async function setProductFinished(quoteId: string, productId: number): Pr
     throw new AccessError('An unknown error occurred in setProductFinished.');
   }
 }
+
+/**
+ * Complete a backorder item - works even when quote is in 'checking' or 'completed' status
+ * This is specifically for "Items to Add Later" section where items are added after main picking
+ */
+export async function completeBackorderItem(quoteId: string, productId: number): Promise<QuoteItemFinishResult> {
+  try {
+    // Check if the item exists and is a backorder item
+    const quoteItem = await prisma.quoteItem.findUnique({
+      where: {
+        quoteId_productId: { quoteId, productId },
+      },
+      select: { pickingStatus: true, productName: true },
+    });
+
+    if (!quoteItem) {
+      throw new AccessError('Product does not exist in this quote!');
+    }
+
+    if (quoteItem.pickingStatus !== 'backorder') {
+      throw new AccessError('This function is only for backorder items. Use regular scanning for other items.');
+    }
+
+    // Complete the backorder item regardless of quote status
+    const updatedItem = await prisma.quoteItem.update({
+      where: {
+        quoteId_productId: { quoteId, productId },
+      },
+      data: {
+        pickingQuantity: 0,
+        pickingStatus: 'completed',
+      },
+    });
+
+    return { 
+      pickingQty: updatedItem.pickingQuantity.toNumber(),
+      newStatus: updatedItem.pickingStatus as PickingStatus,
+      message: `Backorder item "${updatedItem.productName}" marked as added!`
+    };
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new AccessError(error.message);
+    }
+    throw new AccessError('An unknown error occurred in completeBackorderItem.');
+  }
+}

@@ -6,6 +6,7 @@ import {
     saveForLater,
     setUnavailable,
     setProductFinished,
+    completeBackorderItem,
     updateProductDb,
     setProductArchiveStatusDb,
     addProductDb,
@@ -91,6 +92,16 @@ export async function setFinishedHandler(req: Request, res: Response, next: Next
   try {
     const { quoteId, productId } = req.body;
     const result = await setProductFinished(quoteId, productId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function completeBackorderHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { quoteId, productId } = req.body;
+    const result = await completeBackorderItem(quoteId, productId);
     res.json(result);
   } catch (err) {
     next(err);

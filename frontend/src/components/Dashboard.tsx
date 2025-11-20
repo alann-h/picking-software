@@ -110,9 +110,7 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> 
                         </div>
                         <span className="text-xs text-gray-500">{progressPercentage}% complete</span>
                     </div>
-                    <button aria-label="expand run">
-                        {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-500 cursor-pointer" /> : <ChevronDown className="w-5 h-5 text-gray-500 cursor-pointer" />}
-                    </button>
+                    {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
                 </div>
             </div>
 
@@ -374,12 +372,18 @@ const BackorderItemsSection: React.FC = () => {
 
                 return (
                     <div key={quote.quoteId} className="bg-white border border-amber-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                        <div className="p-4">
+                        <div 
+                            className="p-4 cursor-pointer"
+                            onClick={() => setExpandedQuoteId(isExpanded ? null : quote.quoteId)}
+                        >
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
                                         <h3 
-                                            onClick={() => handleQuoteClick(quote.quoteId)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleQuoteClick(quote.quoteId);
+                                            }}
                                             className="text-lg font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
                                         >
                                             #{quote.quoteNumber || quote.quoteId}
@@ -414,22 +418,18 @@ const BackorderItemsSection: React.FC = () => {
                                             {quote.backorderItems.length} {quote.backorderItems.length === 1 ? 'item' : 'items'} to add
                                         </span>
                                     </div>
-                                    <button
-                                        onClick={() => setExpandedQuoteId(isExpanded ? null : quote.quoteId)}
-                                        className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
-                                        aria-label="Toggle items"
-                                    >
-                                        {isExpanded ? (
-                                            <ChevronUp className="w-5 h-5 text-gray-500" />
-                                        ) : (
-                                            <ChevronDown className="w-5 h-5 text-gray-500" />
-                                        )}
-                                    </button>
+                                    {isExpanded ? (
+                                        <ChevronUp className="w-5 h-5 text-gray-500" />
+                                    ) : (
+                                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                                    )}
                                 </div>
                             </div>
+                        </div>
 
-                            {isExpanded && (
-                                <div className="mt-4 pt-4 border-t border-amber-100">
+                        {isExpanded && (
+                            <div className="px-4 pb-4">
+                                <div className="pt-4 border-t border-amber-100">
                                     <h4 className="text-sm font-semibold text-gray-700 mb-2">
                                         Items to Add Later:
                                     </h4>
@@ -453,8 +453,8 @@ const BackorderItemsSection: React.FC = () => {
                                         ))}
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 );
             })}

@@ -40,6 +40,11 @@ export const setProductFinished = async (quoteId: string, productId: number) => 
   return response;
 }
 
+export const completeBackorderItem = async (quoteId: string, productId: number) => {
+  const response = await apiCallPut(`${PRODUCTS_BASE}/backorder/complete`, { quoteId, productId });
+  return response;
+}
+
 export const updateProductDb = async (productId: number, productData: Partial<Product>) => {
   const response = await apiCallPut(`${PRODUCTS_BASE}/${productId}`, productData);
   return response;
