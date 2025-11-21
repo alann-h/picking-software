@@ -104,7 +104,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
             return { previousData };
         },
         onSuccess: () => {
-            handleOpenSnackbar('Quantity adjusted successfully!', 'success');
+            handleOpenSnackbar('Quantity updated!', 'success');
         },
         onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
@@ -203,6 +203,11 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
             
             const previousData = queryClient.getQueryData<QuoteData>(['quote', quoteId, statusFromUrl]);
             
+            // Get product details before marking as complete
+            const product = previousData?.productInfo[productId];
+            const productName = product?.productName || 'Product';
+            const pickingQty = product?.pickingQty || 0;
+            
             queryClient.setQueryData(['quote', quoteId, statusFromUrl], (old: QuoteData | undefined) => {
                 if (!old) return old;
                 return {
@@ -218,11 +223,12 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
                 };
             });
             
-            return { productId, previousData };
+            return { productId, previousData, productName, pickingQty };
         },
-        onSuccess: (data) => {
-            const response = data as { message: string };
-            handleOpenSnackbar(response.message, 'success');
+        onSuccess: (data, _, context) => {
+            const productName = context?.productName || 'Product';
+            const pickingQty = context?.pickingQty || 0;
+            handleOpenSnackbar(`${productName} (qty: ${pickingQty}) marked as complete!`, 'success');
         },
         onError: (error, _, context) => {
             handleOpenSnackbar(extractErrorMessage(error), 'error');
@@ -236,13 +242,17 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
         mutationFn: (variables: { productId: number; qty: number }) =>
             addProductToQuote(variables.productId, quoteId, variables.qty),
         onSuccess: () => {
-            handleOpenSnackbar('Product added successfully!', 'success');
+            handleOpenSnackbar('Product added to quote!', 'success');
             invalidateAndRefetch();
         },
         onError: (error) => handleOpenSnackbar(extractErrorMessage(error), 'error'),
     });
     
-    const saveNote = useMutation({ mutationFn: (note: string) => savePickerNote(quoteId, note), onSuccess: () => handleOpenSnackbar('Note saved!', 'success'), onError: (error) => handleOpenSnackbar(error.message, 'error'), });
+    const saveNote = useMutation({ 
+        mutationFn: (note: string) => savePickerNote(quoteId, note), 
+        onSuccess: () => handleOpenSnackbar('Picker note saved successfully!', 'success'), 
+        onError: (error) => handleOpenSnackbar(extractErrorMessage(error, 'Failed to save note'), 'error'), 
+    });
     const setQuoteChecking = useMutation({ 
         mutationFn: (newStatus: string) => updateQuoteStatus(quoteId, newStatus), 
         onSuccess: () => { 
@@ -327,7 +337,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
             
             // Close modal and show success immediately
             closeModal();
-            handleOpenSnackbar(`${variables.productName} (qty: ${variables.quantity}) scanned successfully!`, 'success');
+            handleOpenSnackbar(`${variables.productName} (qty: ${variables.quantity}) scanned!`, 'success');
             
             return { previousData };
         },
@@ -359,7 +369,7 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
         }
         
         if (product.pickingQty === 0) {
-            handleOpenSnackbar(`${product.productName} has already been fully picked.`, 'error');
+            handleOpenSnackbar(`${product.productName} already fully picked`, 'error');
             return;
         }
 

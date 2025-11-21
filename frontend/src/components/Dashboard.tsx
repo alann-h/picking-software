@@ -524,7 +524,8 @@ const BackorderItemsSection: React.FC = () => {
 const RecentQuotesList: React.FC = () => {
     const navigate = useNavigate();
     const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
-    const [displayCount, setDisplayCount] = useState(9);
+    const [displayCount, setDisplayCount] = useState(15);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
     
     const { data: allQuotes = [] } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', 'recent-pending'],
@@ -538,9 +539,9 @@ const RecentQuotesList: React.FC = () => {
     });
 
     const recentQuotes = allQuotes?.slice(0, displayCount) || [];
-    const hasMore = recentQuotes.length > displayCount;
+    const hasMore = displayCount < allQuotes.length;
 
-    if (recentQuotes.length === 0) {
+    if (allQuotes.length === 0) {
         return (
             <InfoBox icon={FileText} title="No pending quotes" message="All quotes have been processed or no quotes are available." />
         );
@@ -551,56 +552,63 @@ const RecentQuotesList: React.FC = () => {
         navigate(`/quote?id=${quoteId}`);
     };
 
-    const handleLoadMore = () => {
-        setDisplayCount(prev => prev + 9);
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        // Load more when scrolled to bottom (with 50px threshold)
+        if (scrollHeight - scrollTop <= clientHeight + 50 && hasMore) {
+            setDisplayCount(prev => Math.min(prev + 15, allQuotes.length));
+        }
     };
 
     return (
-        <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="flex flex-col">
+            <div className="text-sm text-gray-500 mb-3 px-1">
+                Showing {recentQuotes.length} of {allQuotes.length} quotes
+            </div>
+            <div 
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                className="max-h-[600px] overflow-y-auto space-y-1 pr-2 scrollbar-thin"
+            >
                 {recentQuotes.map((quote) => (
                     <div 
                         key={quote.id}
                         onClick={loadingQuoteId === quote.id ? undefined : () => handleQuoteClick(quote.id)}
-                        className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-400 ${loadingQuoteId === quote.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-all duration-200 group`}
+                        className={`flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-blue-300 ${loadingQuoteId === quote.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-all duration-150`}
                     >
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-blue-600" />
-                                <span className="text-sm font-semibold text-blue-600">#{quote.quoteNumber || quote.id}</span>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-sm font-semibold text-blue-600 whitespace-nowrap">
+                                    #{quote.quoteNumber || quote.id}
+                                </span>
+                                <span className="text-sm text-gray-700 truncate flex-1">
+                                    {quote.customerName}
+                                </span>
                             </div>
-                            <QuoteStatusChip status={quote.orderStatus as RunQuote['orderStatus']} />
                         </div>
-                        
-                        <div className="space-y-2">
-                            <p className="text-sm font-medium text-gray-900 truncate">{quote.customerName}</p>
-                            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                                <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-gray-400" />
-                                    <p className="text-xs text-gray-500">{quote.timeStarted?.split(',')[0] || 'N/A'}</p>
-                                </div>
-                                {loadingQuoteId === quote.id ? (
-                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                                ) : (
-                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                                )}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                            <div className="hidden sm:flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-gray-400" />
+                                <span className="text-xs text-gray-500 whitespace-nowrap">
+                                    {quote.timeStarted?.split(',')[0] || 'N/A'}
+                                </span>
                             </div>
+                            {loadingQuoteId === quote.id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            ) : (
+                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                            )}
                         </div>
                     </div>
                 ))}
+                
+                {hasMore && (
+                    <div className="py-3 text-center text-sm text-gray-500">
+                        Scroll for more...
+                    </div>
+                )}
             </div>
-            
-            {hasMore && (
-                <div className="flex justify-center pt-2">
-                    <button
-                        onClick={handleLoadMore}
-                        className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 cursor-pointer"
-                    >
-                        <ChevronDown className="w-4 h-4" />
-                        Load More ({recentQuotes.length - displayCount} remaining)
-                    </button>
-                </div>
-            )}
         </div>
     );
 };
@@ -802,19 +810,17 @@ const Dashboard: React.FC = () => {
                             </div>
                             <div className="p-4 sm:p-5">
                                 <Suspense fallback={
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        {[...Array(6)].map((_, i) => (
-                                            <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
-                                                <div className="flex items-start justify-between mb-3">
-                                                    <div className="h-4 bg-gray-200 rounded w-24"></div>
-                                                    <div className="h-5 bg-gray-200 rounded-full w-16"></div>
-                                                </div>
-                                                <div className="space-y-2">
+                                    <div className="space-y-1">
+                                        {[...Array(10)].map((_, i) => (
+                                            <div key={i} className="flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg animate-pulse">
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <div className="h-4 w-4 bg-gray-200 rounded"></div>
+                                                    <div className="h-4 bg-gray-200 rounded w-20"></div>
                                                     <div className="h-4 bg-gray-200 rounded w-32"></div>
-                                                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                                                        <div className="h-3 bg-gray-200 rounded w-24"></div>
-                                                        <div className="h-5 w-5 bg-gray-200 rounded"></div>
-                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-3 bg-gray-200 rounded w-16 hidden sm:block"></div>
+                                                    <div className="h-4 w-4 bg-gray-200 rounded"></div>
                                                 </div>
                                             </div>
                                         ))}
