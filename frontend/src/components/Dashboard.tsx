@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Check,
   X,
-  Settings,
   FileText,
   Clock,
   Package,
@@ -616,7 +615,7 @@ const Dashboard: React.FC = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const triggerRef = React.useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-    const { userCompanyId, isAdmin } = useAuth();
+    const { userCompanyId } = useAuth();
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],
@@ -715,22 +714,11 @@ const Dashboard: React.FC = () => {
                     <div>
                         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
                             <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-gray-50">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <Zap className="w-6 h-6 text-blue-600" />
-                                        <h2 className="text-xl font-semibold text-gray-800">
-                                            Active Picking Runs
-                                        </h2>
-                                    </div>
-                                    {isAdmin && (
-                                        <button
-                                            onClick={() => navigate('/run')}
-                                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer"
-                                        >
-                                            <Settings className="w-4 h-4" />
-                                            Manage Runs
-                                        </button>
-                                    )}
+                                <div className="flex items-center gap-3">
+                                    <Zap className="w-6 h-6 text-blue-600" />
+                                    <h2 className="text-xl font-semibold text-gray-800">
+                                        Active Picking Runs
+                                    </h2>
                                 </div>
                             </div>
                             <div className="p-4 sm:p-5">
