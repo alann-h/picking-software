@@ -16,13 +16,13 @@ const mailjet = Mailjet.apiConnect(
  */
 export async function sendPasswordResetEmail(email: string, resetToken: string, userName: string | null): Promise<any> {
   try {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    const resetUrl = `https://smartpicker.com.au/reset-password?token=${resetToken}`;
     
     const request = mailjet.post('send', { version: 'v3.1' }).request({
       Messages: [
         {
           From: {
-            Email: process.env.FROM_EMAIL || 'noreply@smartpicker.com.au',
+            Email: 'noreply@smartpicker.com.au',
             Name: 'Smart Picker'
           },
           To: [
@@ -95,7 +95,7 @@ export async function sendPasswordResetConfirmationEmail(email: string, userName
       Messages: [
         {
           From: {
-            Email: process.env.FROM_EMAIL || 'noreply@smartpicker.com.au',
+            Email: 'noreply@smartpicker.com.au',
             Name: 'Smart Picker'
           },
           To: [
