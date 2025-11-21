@@ -390,7 +390,7 @@ export const RunItem: React.FC<{
 
     return (
         <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <button 
+            <div 
                 className="w-full flex justify-between items-center p-4 bg-white hover:bg-gray-50 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75 cursor-pointer"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
@@ -402,19 +402,26 @@ export const RunItem: React.FC<{
                                     type="text"
                                     value={editableRunName}
                                     onChange={(e) => setEditableRunName(e.target.value)}
+                                    onClick={(e) => e.stopPropagation()}
                                     className="text-lg font-semibold text-gray-800 bg-white border border-gray-300 rounded px-2 py-1 w-full max-w-xs"
                                     placeholder="Enter run name"
                                     autoFocus
                                 />
                                 <button
-                                    onClick={handleSaveName}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSaveName();
+                                    }}
                                     disabled={updateRunNameMutation.isPending}
                                     className="text-green-600 hover:text-green-800 disabled:opacity-50"
                                 >
                                     <Save className="w-4 h-4" />
                                 </button>
                                 <button
-                                    onClick={handleCancelNameEdit}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCancelNameEdit();
+                                    }}
                                     className="text-red-600 hover:text-red-800"
                                 >
                                     <X className="w-4 h-4" />
@@ -427,7 +434,10 @@ export const RunItem: React.FC<{
                                 </h3>
                                 {isAdmin && (
                                     <button
-                                        onClick={handleEditNameToggle}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditNameToggle();
+                                        }}
                                         className="text-gray-400 hover:text-gray-600"
                                     >
                                         <Edit className="w-4 h-4" />
@@ -447,7 +457,7 @@ export const RunItem: React.FC<{
                     <p className="text-sm text-gray-500">{quoteCount} quote(s)</p>
                     {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
                 </div>
-            </button>
+            </div>
   
             {isExpanded && (
                 <div className="p-4 bg-gray-50 border-t border-gray-200">
