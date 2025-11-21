@@ -25,8 +25,25 @@ import {
 } from 'lucide-react';
 
 // ====================================================================================
-// 0. Helper Hook
+// 0. Helper Functions
 // ====================================================================================
+
+/**
+ * Extracts initials from a full name (e.g., "Alan Hattom" -> "AH")
+ */
+const getInitials = (name: string | null): string => {
+  if (!name) return 'U';
+  
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return 'U';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  
+  // Get first letter of first name and first letter of last name
+  const firstInitial = parts[0].charAt(0).toUpperCase();
+  const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+  
+  return firstInitial + lastInitial;
+};
 
 /**
  * A hook to detect clicks outside of a specified element.
@@ -361,7 +378,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
                     className="rounded-full p-0.5 transition-all duration-150 hover:bg-blue-500/10 cursor-pointer"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-800 to-blue-500 text-sm font-bold text-white">
-                      {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                      {getInitials(userName)}
                     </div>
                   </button>
 

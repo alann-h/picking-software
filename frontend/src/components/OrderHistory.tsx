@@ -2,7 +2,6 @@ import React, { useState, useMemo, useOptimistic } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
 import {
-  DollarSign,
   Clock,
   Users,
   History,
@@ -12,15 +11,49 @@ import {
   ListFilter,
   FileText,
   ChevronsUpDown,
-  ExternalLink
+  ExternalLink,
+  CheckCircle2
 } from 'lucide-react';
 import { useSnackbarContext } from './SnackbarContext';
 import { getQuotesWithStatus, deleteQuotesBulk } from '../api/quote';
 import { getUserStatus } from '../api/user';
 import { QuoteSummary } from '../utils/types';
 import { OrderHistorySkeleton } from './Skeletons';
-import { getStatusColor } from '../utils/other';
 import { ConfirmationDialog } from './ConfirmationDialog';
+
+// =================================================================
+// CONSTANTS
+// =================================================================
+
+const statusColors: { [key: string]: { bg: string; text: string } } = {
+  pending: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  preparing: { bg: 'bg-orange-100', text: 'text-orange-800' },
+  checking: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+  completed: { bg: 'bg-green-100', text: 'text-green-800' },
+  assigned: { bg: 'bg-sky-100', text: 'text-sky-800' },
+  default: { bg: 'bg-gray-100', text: 'text-gray-800' },
+};
+
+// =================================================================
+// HELPER FUNCTIONS
+// =================================================================
+
+/**
+ * Extracts initials from a full name (e.g., "Alan Hattom" -> "AH")
+ */
+const getInitials = (name: string): string => {
+  if (!name) return 'U';
+  
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return 'U';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  
+  // Get first letter of first name and first letter of last name
+  const firstInitial = parts[0].charAt(0).toUpperCase();
+  const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+  
+  return firstInitial + lastInitial;
+};
 
 // =================================================================
 // LOGIC HOOK
@@ -241,7 +274,7 @@ const PreparerAvatars: React.FC<{ preparers: string[] }> = ({ preparers }) => {
       <div className="flex -space-x-2">
         {preparers.slice(0, 3).map((preparer, index) => (
           <div key={index} className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold ring-2 ring-white">
-            {preparer.charAt(0).toUpperCase()}
+            {getInitials(preparer)}
           </div>
         ))}
       </div>
@@ -252,26 +285,34 @@ const PreparerAvatars: React.FC<{ preparers: string[] }> = ({ preparers }) => {
   );
 };
 
-const StatusChip: React.FC<{ status: string }> = ({ status }) => (
-  <span
-    className="px-2.5 py-1 text-xs font-semibold rounded-full text-white capitalize"
-    style={{ backgroundColor: getStatusColor(status) }}
-  >
-    {status || 'Unknown'}
-  </span>
-);
+const StatusChip: React.FC<{ status: string }> = ({ status }) => {
+  const colorKey = status?.toLowerCase() || 'default';
+  const color = statusColors[colorKey] || statusColors.default;
+  return (
+    <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full capitalize ${color.bg} ${color.text}`}>
+      {status || 'Unknown'}
+    </span>
+  );
+};
 
 const QuoteCard: React.FC<{
   quote: QuoteSummary;
   isSelected: boolean;
   onSelect: (checked: boolean) => void;
   isAdmin: boolean;
-}> = ({ quote, isSelected, onSelect, isAdmin }) => {
+  selectionMode: boolean;
+}> = ({ quote, isSelected, onSelect, isAdmin, selectionMode }) => {
   const navigate = useNavigate();
   
-  const handleQuoteClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.quote-checkbox-container')) return;
-    navigate(`/quote?id=${quote.id}`);
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger if clicking on a link
+    if ((e.target as HTMLElement).closest('a')) return;
+    
+    if (selectionMode && isAdmin) {
+      onSelect(!isSelected);
+    } else if (!selectionMode) {
+      navigate(`/quote?id=${quote.id}`);
+    }
   };
   
   const preparerNames = useMemo(() => {
@@ -282,73 +323,59 @@ const QuoteCard: React.FC<{
   }, [quote.preparerNames]);
 
   return (
-    <div className="relative">
-       {isAdmin && (
-        <div className="quote-checkbox-container absolute -top-2 -left-2 z-10">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(e) => onSelect(e.target.checked)}
-            className="h-5 w-5 rounded-full border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-          />
-        </div>
-      )}
+    <div className="relative group">
       <div
-        onClick={handleQuoteClick}
-        className={`h-full border rounded-lg transition-all duration-200 cursor-pointer bg-white ${isSelected ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}
+        onClick={handleCardClick}
+        className={`h-full border rounded-lg transition-all duration-200 cursor-pointer bg-white overflow-hidden ${
+          isSelected 
+            ? 'border-blue-500 shadow-lg ring-2 ring-blue-200' 
+            : 'border-gray-200 hover:border-blue-300 hover:shadow-md hover:scale-[1.01]'
+        }`}
       >
-        <div className="p-4">
-          <div className="flex justify-between items-start mb-3">
+        {/* Header with status */}
+        <div className="px-4 pt-4 pb-3 border-b border-gray-100">
+          <div className="flex justify-between items-start mb-2">
             <h2 className="text-xl font-bold text-blue-600">#{quote.quoteNumber || quote.id}</h2>
             <StatusChip status={quote.orderStatus || 'Unknown'} />
           </div>
+          <h3 className="text-base font-semibold text-gray-800 truncate">{quote.customerName}</h3>
+        </div>
 
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">{quote.customerName}</h3>
+        {/* Content */}
+        <div className="p-4 space-y-4">
+          {/* Amount */}
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-medium text-gray-500">Total Amount</span>
+            <span className="text-2xl font-semibold text-emerald-600">${quote.totalAmount.toFixed(2)}</span>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-green-600" />
-              <p className="text-lg font-semibold text-green-700">${quote.totalAmount.toFixed(2)}</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-gray-500" />
-              <PreparerAvatars preparers={preparerNames} />
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Clock className="w-5 h-5 text-gray-500" />
-              <div>
-                <p className="text-xs text-gray-500">Time Taken</p>
-                <p className="font-medium">{quote.timeTaken}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Clock className="w-5 h-5 text-gray-500" />
-              <div>
-                <p className="text-xs text-gray-500">Last Modified</p>
-                <p className="font-medium">{quote.lastModified}</p>
-              </div>
-            </div>
-
-            {quote.externalSyncUrl && (
-              <div className="flex items-center gap-2 text-sm">
-                <ExternalLink className="w-5 h-5 text-blue-500" />
-                <a
-                  href={quote.externalSyncUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  View in {quote.externalSyncUrl.includes('xero.com') ? 'Xero' : 'QuickBooks'}
-                </a>
-              </div>
-            )}
+          {/* Time Taken */}
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-medium text-gray-500">Time Taken</span>
+            <span className="text-lg font-semibold text-blue-600">{quote.timeTaken}</span>
           </div>
+
+          {/* Preparers */}
+          <div className="flex items-center gap-2 pt-2">
+            <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <PreparerAvatars preparers={preparerNames} />
+          </div>
+
+          {/* External Link */}
+          {quote.externalSyncUrl && (
+            <div className="pt-3 mt-1 border-t border-gray-100">
+              <a
+                href={quote.externalSyncUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>View in {quote.externalSyncUrl.includes('xero.com') ? 'Xero' : 'QuickBooks'}</span>
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -364,6 +391,7 @@ const OrderHistory: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
 
   // Initialize filters from URL parameters
   const filters = useMemo(() => ({
@@ -422,9 +450,15 @@ const OrderHistory: React.FC = () => {
       await deleteQuoteMutation.mutateAsync(Array.from(selectedQuotes));
       setSelectedQuotes(new Set());
       setDeleteDialogOpen(false);
+      setSelectionMode(false);
     } catch (error) {
       console.error('Bulk delete failed:', error);
     }
+  };
+
+  const handleCancelSelection = () => {
+    setSelectedQuotes(new Set());
+    setSelectionMode(false);
   };
 
   const renderContent = () => {
@@ -456,6 +490,7 @@ const OrderHistory: React.FC = () => {
             isSelected={selectedQuotes.has(quote.id)}
             onSelect={(checked) => handleSelectQuote(quote.id, checked)}
             isAdmin={isAdmin}
+            selectionMode={selectionMode}
           />
         ))}
       </div>
@@ -493,41 +528,58 @@ const OrderHistory: React.FC = () => {
 
       {/* Bulk Actions (Admin Only) */}
       {isAdmin && (
-        <div className="p-3 mb-4 rounded-lg bg-gray-50">
-          <div className="flex items-center justify-between flex-wrap gap-2 min-h-[38px]">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                checked={selectedQuotes.size === filteredQuotes.length && filteredQuotes.length > 0}
-                ref={input => {
-                  if (input) {
-                    input.indeterminate = selectedQuotes.size > 0 && selectedQuotes.size < filteredQuotes.length;
-                  }
-                }}
-                onChange={(e) => handleSelectAll(e.target.checked)}
-              />
-              <label className="text-sm text-gray-700 cursor-pointer">
-                Select All ({selectedQuotes.size}/{filteredQuotes.length})
-              </label>
-            </div>
-            
-            <div className={`flex items-center gap-2 transition-opacity duration-300 ${
-              selectedQuotes.size > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}>
-              <p className="text-sm text-gray-600">
-                {selectedQuotes.size} quote{selectedQuotes.size === 1 ? '' : 's'} selected
-              </p>
+        <>
+          {!selectionMode ? (
+            <div className="mb-4 flex justify-end">
               <button
-                onClick={() => setDeleteDialogOpen(true)}
-                disabled={deleteQuoteMutation.isPending || selectedQuotes.size === 0}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:bg-red-300 cursor-pointer disabled:cursor-not-allowed"
+                onClick={() => setSelectionMode(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
               >
-                <Trash2 className="w-4 h-4" /> Delete Selected
+                <CheckCircle2 className="w-4 h-4" />
+                Select Orders
               </button>
             </div>
-          </div>
-        </div>
+          ) : (
+            <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectAll(selectedQuotes.size !== filteredQuotes.length);
+                    }}
+                    className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-md hover:bg-blue-50 transition-colors cursor-pointer"
+                  >
+                    {selectedQuotes.size === filteredQuotes.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedQuotes.size} of {filteredQuotes.length} selected
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {selectedQuotes.size > 0 && (
+                    <button
+                      onClick={() => setDeleteDialogOpen(true)}
+                      disabled={deleteQuoteMutation.isPending}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete ({selectedQuotes.size})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleCancelSelection}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Content */}

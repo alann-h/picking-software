@@ -2,11 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  CircleDollarSign,
-  Clock,
-  User as PreparerIcon,
+  Users,
   CheckCircle2 as CheckIcon,
-  TrendingUp,
+  ClipboardCheck,
 } from 'lucide-react';
 
 // Context and API Imports
@@ -14,6 +12,27 @@ import { useSnackbarContext } from './SnackbarContext';
 import { getQuotesWithStatus } from '../api/quote';
 import { getUserStatus } from '../api/user';
 import { QuoteSummary } from '../utils/types';
+
+// =================================================================
+// 0. HELPER FUNCTIONS
+// =================================================================
+
+/**
+ * Extracts initials from a full name (e.g., "Alan Hattom" -> "AH")
+ */
+const getInitials = (name: string): string => {
+  if (!name) return 'U';
+  
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return 'U';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  
+  // Get first letter of first name and first letter of last name
+  const firstInitial = parts[0].charAt(0).toUpperCase();
+  const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+  
+  return firstInitial + lastInitial;
+};
 
 // =================================================================
 // 1. INTERFACE
@@ -102,21 +121,9 @@ const EmptyState: React.FC = () => (
 const PreparerAvatars: React.FC<{ preparers: string[] }> = ({ preparers }) => {
   if (!preparers || preparers.length === 0) {
     return (
-      <div className="inline-flex items-center rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-500">
-        <PreparerIcon className="mr-1.5 h-4 w-4" />
-        Not started
-      </div>
-    );
-  }
-
-  if (preparers.length === 1) {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
-          {preparers[0].charAt(0).toUpperCase()}
-        </div>
-        <span className="text-sm font-medium">{preparers[0]}</span>
-      </div>
+      <span className="inline-flex items-center gap-2 text-sm text-gray-500 px-2 py-1 border rounded-full">
+        <Users className="w-4 h-4" /> Not started
+      </span>
     );
   }
 
@@ -124,15 +131,14 @@ const PreparerAvatars: React.FC<{ preparers: string[] }> = ({ preparers }) => {
     <div className="flex items-center gap-2">
       <div className="flex -space-x-2">
         {preparers.slice(0, 3).map((preparer, index) => (
-          <div
-            key={index}
-            className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-xs font-medium text-gray-600"
-          >
-            {preparer.charAt(0).toUpperCase()}
+          <div key={index} className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold ring-2 ring-white">
+            {getInitials(preparer)}
           </div>
         ))}
       </div>
-      <span className="text-sm font-medium">{preparers.length} preparers</span>
+      <p className="text-sm font-medium text-gray-700">
+        {preparers.length === 1 ? preparers[0] : `${preparers.length} preparers`}
+      </p>
     </div>
   );
 };
@@ -153,77 +159,54 @@ const QuoteCard: React.FC<{ quote: EnhancedQuoteSummary }> = ({ quote }) => {
     return quote.preparerNames || [];
   }, [quote.preparerNames]);
 
-  // Use the formatted date from backend directly
-  const timeAgo = quote.lastModified;
-
   return (
     <div
       onClick={handleQuoteClick}
-      className="h-full cursor-pointer rounded-lg border border-gray-200 bg-white transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:border-blue-500 hover:shadow-xl"
+      className="h-full border rounded-lg transition-all duration-200 cursor-pointer bg-white overflow-hidden border-gray-200 hover:border-blue-300 hover:shadow-md hover:scale-[1.01]"
     >
-      <div className="p-6">
-        {/* Header */}
-        <div className="mb-4 flex items-start justify-between">
-          <h2 className="text-2xl font-bold text-blue-600">#{quote.quoteNumber || quote.id}</h2>
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3 border-b border-gray-100">
+        <h2 className="text-xl font-bold text-blue-600 mb-2">#{quote.quoteNumber || quote.id}</h2>
+        <h3 className="text-base font-semibold text-gray-800 truncate">{quote.customerName}</h3>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 space-y-4">
+        {/* Amount */}
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm font-medium text-gray-500">Total Amount</span>
+          <span className="text-2xl font-semibold text-emerald-600">${quote.totalAmount.toFixed(2)}</span>
         </div>
 
-        {/* Customer Info */}
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold">{quote.customerName}</h3>
+        {/* Time Taken */}
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm font-medium text-gray-500">Time Taken</span>
+          <span className="text-lg font-semibold text-blue-600">{quote.timeTaken}</span>
         </div>
 
-        {/* Details Grid */}
-        <div className="space-y-6">
-          {/* Amount */}
-          <div className="flex items-center gap-3">
-            <CircleDollarSign className="h-6 w-6 text-green-500" />
-            <span className="text-xl font-bold text-green-600">
-              ${quote.totalAmount.toFixed(2)}
-            </span>
-          </div>
+        {/* Preparers */}
+        <div className="flex items-center gap-2 pt-2">
+          <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <PreparerAvatars preparers={preparerNames} />
+        </div>
 
-          {/* Preparers */}
-          <div className="flex items-center gap-3">
-            <PreparerIcon className="h-6 w-6 text-gray-500" />
-            <PreparerAvatars preparers={preparerNames} />
-          </div>
-
-          {/* Time Taken */}
-          <div className="flex items-center gap-3">
-            <TrendingUp className="h-6 w-6 text-gray-500" />
-            <div>
-              <p className="mb-0.5 text-sm text-gray-500">Time Taken</p>
-              <p className="text-base font-medium">{quote.timeTaken}</p>
-            </div>
-          </div>
-
-          {/* Picker's Note */}
-          <div className="flex items-start gap-3">
-            <PreparerIcon className="mt-0.5 h-6 w-6 text-gray-500" />
-            <div className="flex-1">
-              <p className="mb-0.5 text-sm text-gray-500">Picker&apos;s Note</p>
-              <p
-                className={`break-words text-sm ${
-                  quote.pickerNote
-                    ? 'font-medium text-gray-800'
-                    : 'italic text-gray-500'
-                }`}
-              >
-                {quote.pickerNote || 'No note provided'}
-              </p>
-              {quote.pickerNote && (
-                <p className="mt-1 text-xs italic text-gray-400">
-                  {quote.pickerNote.length}/500 characters
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Last Modified */}
-          <div className="flex items-center gap-3">
-            <Clock className="h-6 w-6 text-gray-500" />
-            <p className="text-base text-gray-500">{timeAgo}</p>
-          </div>
+        {/* Picker's Note */}
+        <div className="pt-3 mt-1 border-t border-gray-100">
+          <p className="text-xs font-medium text-gray-500 mb-2">Picker&apos;s Note</p>
+          <p
+            className={`break-words text-sm ${
+              quote.pickerNote
+                ? 'font-medium text-gray-800'
+                : 'italic text-gray-500'
+            }`}
+          >
+            {quote.pickerNote || 'No note provided'}
+          </p>
+          {quote.pickerNote && (
+            <p className="mt-1 text-xs italic text-gray-400">
+              {quote.pickerNote.length}/500 characters
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -279,7 +262,7 @@ const OrdersToCheckPage: React.FC = () => {
       <div className="mb-8">
         <div className="mb-2 flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-            <TrendingUp className="h-6 w-6 text-yellow-800" />
+            <ClipboardCheck className="h-6 w-6 text-yellow-800" />
           </div>
           <div>
             <h1 className="mb-1 text-3xl font-bold">Orders Pending Review</h1>
