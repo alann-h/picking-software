@@ -386,12 +386,52 @@ const QuoteCard: React.FC<{
 // =================================================================
 // MAIN COMPONENT
 // =================================================================
+const STORAGE_KEY_SELECTED_QUOTES = 'orderHistory_selectedQuotes';
+const STORAGE_KEY_SELECTION_MODE = 'orderHistory_selectionMode';
+
 const OrderHistory: React.FC = () => {
   const { quotes, isLoading, error, refetchQuotes, deleteQuoteMutation, isAdmin } = useOrderHistory();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(new Set());
+  
+  // Initialize selectedQuotes from localStorage
+  const [selectedQuotes, setSelectedQuotes] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SELECTED_QUOTES);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectionMode, setSelectionMode] = useState(false);
+  
+  // Initialize selectionMode from localStorage
+  const [selectionMode, setSelectionMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SELECTION_MODE);
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Save selectedQuotes to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_SELECTED_QUOTES, JSON.stringify(Array.from(selectedQuotes)));
+    } catch (error) {
+      console.error('Failed to save selected quotes to localStorage:', error);
+    }
+  }, [selectedQuotes]);
+
+  // Save selectionMode to localStorage whenever it changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_SELECTION_MODE, String(selectionMode));
+    } catch (error) {
+      console.error('Failed to save selection mode to localStorage:', error);
+    }
+  }, [selectionMode]);
 
   // Initialize filters from URL parameters
   const filters = useMemo(() => ({
@@ -451,6 +491,9 @@ const OrderHistory: React.FC = () => {
       setSelectedQuotes(new Set());
       setDeleteDialogOpen(false);
       setSelectionMode(false);
+      // Clear localStorage after successful deletion
+      localStorage.removeItem(STORAGE_KEY_SELECTED_QUOTES);
+      localStorage.removeItem(STORAGE_KEY_SELECTION_MODE);
     } catch (error) {
       console.error('Bulk delete failed:', error);
     }
@@ -459,6 +502,9 @@ const OrderHistory: React.FC = () => {
   const handleCancelSelection = () => {
     setSelectedQuotes(new Set());
     setSelectionMode(false);
+    // Clear localStorage when canceling
+    localStorage.removeItem(STORAGE_KEY_SELECTED_QUOTES);
+    localStorage.removeItem(STORAGE_KEY_SELECTION_MODE);
   };
 
   const renderContent = () => {

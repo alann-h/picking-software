@@ -90,8 +90,22 @@ export const RunItem: React.FC<{
     const [isEditingName, setIsEditingName] = useState(false);
     const [editableQuotes, setEditableQuotes] = useState<RunQuote[]>([]);
     const [editableRunName, setEditableRunName] = useState(run.run_name || '');
-    const [isExpanded, setIsExpanded] = useState(false);
+    
+    // Get expanded run ID from URL
+    const expandedRunId = searchParams.get('expandedRun');
+    const isExpanded = expandedRunId === run.id;
     const [showAddQuotes, setShowAddQuotes] = useState(false);
+    
+    // Function to toggle expansion via URL
+    const toggleExpanded = () => {
+        const newParams = new URLSearchParams(searchParams);
+        if (isExpanded) {
+            newParams.delete('expandedRun');
+        } else {
+            newParams.set('expandedRun', run.id);
+        }
+        setSearchParams(newParams);
+    };
     const [showCustomerSearch, setShowCustomerSearch] = useState(false);
     const [customerQuery, setCustomerQuery] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -157,7 +171,13 @@ export const RunItem: React.FC<{
         // If URL says we should be editing this run
         if (editingRunId === run.id) {
             setIsEditing(true);
-            setIsExpanded(true);
+            
+            // Ensure the run is expanded when editing
+            if (!isExpanded) {
+                const newParams = new URLSearchParams(searchParams);
+                newParams.set('expandedRun', run.id);
+                setSearchParams(newParams);
+            }
             
             // If there's a customer ID in URL, restore customer selection
             if (customerId && customers) {
@@ -168,7 +188,7 @@ export const RunItem: React.FC<{
                 }
             }
         }
-    }, [searchParams, run.id, customers]);
+    }, [searchParams, run.id, customers, isExpanded, setSearchParams]);
 
     useEffect(() => {
         if (isEditing) {
@@ -392,7 +412,7 @@ export const RunItem: React.FC<{
         <div className="border border-gray-200 rounded-lg overflow-hidden">
             <div 
                 className="w-full flex justify-between items-center p-4 bg-white hover:bg-gray-50 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75 cursor-pointer"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={toggleExpanded}
             >
                 <div className="flex items-center gap-4">
                     <div className="flex-1">

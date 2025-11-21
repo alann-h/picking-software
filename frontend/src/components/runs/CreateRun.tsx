@@ -264,6 +264,10 @@ const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<string
 };
 
 // --- MAIN COMPONENT ---
+const STORAGE_KEY_STAGED_QUOTES = 'createRun_stagedQuotes';
+const STORAGE_KEY_RUNS_TO_CREATE = 'createRun_runsToCreate';
+const STORAGE_KEY_SEARCH_MODE = 'createRun_searchMode';
+
 export const CreateRun: React.FC = () => {
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -272,12 +276,40 @@ export const CreateRun: React.FC = () => {
 
     const [isPending, startTransition] = useTransition();
 
-    const [stagedQuotes, setStagedQuotes] = useState<QuoteSummary[]>([]);
-    const [runsToCreate, setRunsToCreate] = useState<RunBuilder[]>([]);
+    // Initialize stagedQuotes from localStorage
+    const [stagedQuotes, setStagedQuotes] = useState<QuoteSummary[]>(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY_STAGED_QUOTES);
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    // Initialize runsToCreate from localStorage
+    const [runsToCreate, setRunsToCreate] = useState<RunBuilder[]>(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY_RUNS_TO_CREATE);
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
     const [activeDraggedItem, setActiveDraggedItem] = useState<QuoteSummary | null>(null);
     const [customerQuery, setCustomerQuery] = useState('');
     const [quoteSearchQuery, setQuoteSearchQuery] = useState('');
-    const [searchMode, setSearchMode] = useState<'quick' | 'customer'>('quick');
+    
+    // Initialize searchMode from localStorage
+    const [searchMode, setSearchMode] = useState<'quick' | 'customer'>(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY_SEARCH_MODE);
+            return (saved === 'customer' ? 'customer' : 'quick') as 'quick' | 'customer';
+        } catch {
+            return 'quick';
+        }
+    });
+
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const triggerRef = React.useRef<HTMLDivElement>(null);
 
@@ -309,6 +341,34 @@ export const CreateRun: React.FC = () => {
     };
 
     const stagedQuoteIds = useMemo(() => new Set(stagedQuotes.map(q => q.id)), [stagedQuotes]);
+    
+    // Save stagedQuotes to localStorage whenever it changes
+    React.useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY_STAGED_QUOTES, JSON.stringify(stagedQuotes));
+        } catch (error) {
+            console.error('Failed to save staged quotes to localStorage:', error);
+        }
+    }, [stagedQuotes]);
+
+    // Save runsToCreate to localStorage whenever it changes
+    React.useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY_RUNS_TO_CREATE, JSON.stringify(runsToCreate));
+        } catch (error) {
+            console.error('Failed to save runs to localStorage:', error);
+        }
+    }, [runsToCreate]);
+
+    // Save searchMode to localStorage whenever it changes
+    React.useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY_SEARCH_MODE, searchMode);
+        } catch (error) {
+            console.error('Failed to save search mode to localStorage:', error);
+        }
+    }, [searchMode]);
+
     const createRunMutation = useMutation({
         mutationFn: ({ quoteIds, runName }: { quoteIds: string[], runName?: string }) => createRunFromQuotes(quoteIds, userCompanyId!, runName),
         onSuccess: () => {
@@ -355,6 +415,11 @@ export const CreateRun: React.FC = () => {
             const createdRuns = await Promise.all(creationPromises);
             setRunsToCreate([]);
             setStagedQuotes([]);
+            
+            // Clear localStorage after successful creation
+            localStorage.removeItem(STORAGE_KEY_STAGED_QUOTES);
+            localStorage.removeItem(STORAGE_KEY_RUNS_TO_CREATE);
+            localStorage.removeItem(STORAGE_KEY_SEARCH_MODE);
             
             if (createdRuns.length === 1) {
                 const run = createdRuns[0];

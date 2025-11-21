@@ -58,10 +58,10 @@ const QuoteStatusChip: React.FC<{ status: RunQuote['orderStatus'] }> = ({ status
     );
 };
 
-const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> = ({ run, backorderQuoteIds }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string>; expandedRunId: string | null; onToggleExpand: (runId: string) => void }> = ({ run, backorderQuoteIds, expandedRunId, onToggleExpand }) => {
     const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
     const navigate = useNavigate();
+    const isExpanded = expandedRunId === run.id;
     const { quoteCount, completedQuotes, progressPercentage, hasBackorders } = useMemo(() => {
         const quotes = run.quotes || [];
         const completed = quotes.filter(quote => quote.orderStatus === 'completed' || quote.orderStatus === 'checking').length;
@@ -79,7 +79,7 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> 
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-            <div className="p-3 sm:p-4 flex flex-col sm:flex-row sm:justify-between gap-3 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className="p-3 sm:p-4 flex flex-col sm:flex-row sm:justify-between gap-3 cursor-pointer" onClick={() => onToggleExpand(run.id)}>
                 <div className="flex items-center gap-3 min-w-0">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -283,7 +283,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
     );
 };
 
-const ActiveRunsList: React.FC<{ runs: Run[]; backorderQuoteIds?: Set<string> }> = ({ runs, backorderQuoteIds }) => {
+const ActiveRunsList: React.FC<{ runs: Run[]; backorderQuoteIds?: Set<string>; expandedRunId: string | null; onToggleExpand: (runId: string) => void }> = ({ runs, backorderQuoteIds, expandedRunId, onToggleExpand }) => {
     const activeRuns = useMemo(() => {
         return (runs || []).filter(run => run.status !== 'completed');
     }, [runs]);
@@ -296,7 +296,7 @@ const ActiveRunsList: React.FC<{ runs: Run[]; backorderQuoteIds?: Set<string> }>
       <div className="space-y-3">
         {activeRuns.map((run) => (
           <div key={run.id}>
-            <DashboardRunItem run={run} backorderQuoteIds={backorderQuoteIds} />
+            <DashboardRunItem run={run} backorderQuoteIds={backorderQuoteIds} expandedRunId={expandedRunId} onToggleExpand={onToggleExpand} />
           </div>
         ))}
       </div>
@@ -347,9 +347,12 @@ const BackorderItemsSection: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useErrorHandler();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
-    const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
     const [completingItemId, setCompletingItemId] = useState<string | null>(null);
+    
+    // Get expanded quote ID from URL
+    const expandedQuoteId = searchParams.get('expandedBackorder');
 
     const { data: backorderQuotes = [] } = useSuspenseQuery<QuoteWithBackorders[]>({
         queryKey: ['quotes', 'backorders'],
@@ -397,6 +400,18 @@ const BackorderItemsSection: React.FC = () => {
         completeItemMutation.mutate({ quoteId, productId });
     };
 
+    const handleToggleQuoteExpand = (quoteId: string) => {
+        const newParams = new URLSearchParams(searchParams);
+        if (expandedQuoteId === quoteId) {
+            // Collapse - remove the parameter
+            newParams.delete('expandedBackorder');
+        } else {
+            // Expand - set the parameter
+            newParams.set('expandedBackorder', quoteId);
+        }
+        setSearchParams(newParams);
+    };
+
     return (
         <div className="space-y-3">
             {backorderQuotes.map((quote) => {
@@ -408,7 +423,7 @@ const BackorderItemsSection: React.FC = () => {
                     <div key={quote.quoteId} className="bg-white border border-amber-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                         <div 
                             className="p-3 sm:p-4 cursor-pointer"
-                            onClick={() => setExpandedQuoteId(isExpanded ? null : quote.quoteId)}
+                            onClick={() => handleToggleQuoteExpand(quote.quoteId)}
                         >
                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                 <div className="flex-1 min-w-0">
@@ -658,6 +673,9 @@ const Dashboard: React.FC = () => {
         return new Set(backorderQuotes.map(quote => quote.quoteId));
     }, [backorderQuotes]);
 
+    // Get expanded run ID from URL
+    const expandedRunId = searchParams.get('expandedRun');
+
     const selectedCustomer = useMemo(() => {
         const customerId = searchParams.get('customer');
         if (!customerId) return null;
@@ -670,6 +688,18 @@ const Dashboard: React.FC = () => {
         });
         setQuery('');
         setIsDropdownOpen(false);
+    };
+
+    const handleToggleRunExpand = (runId: string) => {
+        const newParams = new URLSearchParams(searchParams);
+        if (expandedRunId === runId) {
+            // Collapse - remove the parameter
+            newParams.delete('expandedRun');
+        } else {
+            // Expand - set the parameter
+            newParams.set('expandedRun', runId);
+        }
+        setSearchParams(newParams);
     };
 
     const filteredCustomers =
@@ -729,7 +759,7 @@ const Dashboard: React.FC = () => {
                             </div>
                             <div className="p-4 sm:p-5">
                                 <Suspense fallback={<RunListSkeleton />}>
-                                    <ActiveRunsList runs={allRuns || []} backorderQuoteIds={backorderQuoteIds} />
+                                    <ActiveRunsList runs={allRuns || []} backorderQuoteIds={backorderQuoteIds} expandedRunId={expandedRunId} onToggleExpand={handleToggleRunExpand} />
                                 </Suspense>
                             </div>
                         </div>
