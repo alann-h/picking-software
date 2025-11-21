@@ -79,37 +79,37 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string>; ex
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-            <div className="p-3 sm:p-4 flex flex-col sm:flex-row sm:justify-between gap-3 cursor-pointer" onClick={() => onToggleExpand(run.id)}>
-                <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-base sm:text-lg font-semibold text-gray-800 truncate">
+            <div className="p-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-3 cursor-pointer" onClick={() => onToggleExpand(run.id)}>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink max-w-[30%] sm:max-w-none sm:flex-1">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 truncate">
                                 {run.run_name ? `${run.run_name}` : `Run #${run.run_number || run.id.substring(0, 8)}`}
                             </h3>
                             {hasBackorders && (
                                 <span title="This run has orders with backorder items">
-                                    <Package className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                    <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 flex-shrink-0" />
                                 </span>
                             )}
                         </div>
                         {run.run_name && (
-                            <p className="text-sm text-gray-500 truncate">Run #{run.run_number || run.id.substring(0, 8)}</p>
+                            <p className="text-xs sm:text-sm text-gray-500 truncate">Run #{run.run_number || run.id.substring(0, 8)}</p>
                         )}
                     </div>
                 </div>
-                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                <div className="flex items-center gap-1.5 sm:gap-3 lg:gap-4 flex-shrink-0">
                     <RunStatusChip status={run.status} />
                     <div className="text-right flex-shrink-0">
-                        <span className="text-sm font-medium text-gray-600 whitespace-nowrap">{completedQuotes}/{quoteCount} quotes</span>
-                        <div className="w-20 sm:w-24 bg-gray-200 rounded-full h-2 mt-1">
+                        <span className="text-xs sm:text-sm font-medium text-gray-600 whitespace-nowrap">{completedQuotes}/{quoteCount}</span>
+                        <div className="w-16 sm:w-20 lg:w-24 bg-gray-200 rounded-full h-2 mt-1">
                             <div 
                                 className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out" 
                                 style={{ width: `${progressPercentage}%` }}
                             ></div>
                         </div>
-                        <span className="text-xs text-gray-500">{progressPercentage}% complete</span>
+                        <span className="text-xs text-gray-500">{progressPercentage}%</span>
                     </div>
-                    {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />}
+                    {isExpanded ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" />}
                 </div>
             </div>
 
