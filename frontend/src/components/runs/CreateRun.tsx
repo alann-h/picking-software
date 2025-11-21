@@ -1,5 +1,5 @@
 import React, { useState, useMemo, Suspense, useTransition, Fragment } from 'react';
-import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles, ChevronDown, X, Zap, FileText } from 'lucide-react';
+import { PlusCircle, ListPlus, Trash2, GripVertical, Inbox, Calendar, Search, Check, Users, Package, ArrowRight, Sparkles, ChevronDown, X, Zap, FileText, Plus } from 'lucide-react';
 import { DndContext, DragEndEvent, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -29,20 +29,27 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
     return (
         <div 
             onClick={onStage}
-            className="group p-4 mb-3 border border-gray-200 rounded-xl transition-all duration-200 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-100 bg-white cursor-pointer active:scale-[0.98]"
+            className="group flex items-center justify-between px-4 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-400 hover:shadow-sm cursor-pointer transition-all duration-200"
         >
-            <div className="flex items-center space-x-2 mb-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></div>
-                <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Quote #{quote.quoteNumber || quote.id}</p>
-            </div>
-            <p className="text-sm text-gray-700 mb-1">{quote.customerName}</p>
-            <div className="flex items-center space-x-4 text-gray-600">
-                <div className="flex items-center space-x-1">
-                    <span className="text-sm font-bold text-green-600">${(quote.totalAmount || 0).toFixed(2)}</span>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                        #{quote.quoteNumber || quote.id}
+                    </span>
+                    <span className="text-sm text-gray-600 truncate flex-1">
+                        {quote.customerName}
+                    </span>
                 </div>
-                <div className="flex items-center space-x-1">
-                    <Calendar className="w-3 h-3 text-gray-400"/>
-                    <p className="text-xs">{quote.timeStarted?.split(',')[0] || 'N/A'}</p>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+                <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                    ${(quote.totalAmount || 0).toFixed(2)}
+                </span>
+                <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">
+                    {quote.timeStarted?.split(',')[0] || 'N/A'}
+                </div>
+                <div className="w-6 h-6 rounded-md bg-blue-100 flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                    <Plus className="w-3.5 h-3.5 text-blue-600 group-hover:text-white transition-colors" />
                 </div>
             </div>
         </div>
@@ -54,24 +61,28 @@ const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: string
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition: isDragging ? 'none' : transition,
-        boxShadow: isDragging ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04)' : '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px 0 rgb(0 0 0 / 0.06)',
-        opacity: isDragging ? 0.8 : 1,
+        opacity: isDragging ? 0.9 : 1,
     };
     return (
-        <div ref={setNodeRef} style={style} className="group p-3 mb-2 select-none flex items-center bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200">
-            <div {...attributes} {...listeners} className="cursor-grab pr-3 text-gray-400 hover:text-gray-600 touch-none transition-colors">
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            className={`group p-3 mb-2 select-none flex items-center bg-white border rounded-lg transition-all duration-200 ${
+                isDragging 
+                    ? 'border-blue-400 shadow-xl scale-105' 
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+            }`}
+        >
+            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing pr-3 text-gray-400 hover:text-blue-600 touch-none transition-colors">
                 <GripVertical className="w-4 h-4" />
             </div>
             <div className="flex-grow min-w-0">
-                <div className="flex items-center space-x-2 mb-1">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                    <p className="text-sm font-semibold text-gray-900 truncate">Quote #{quote.quoteNumber || quote.id}</p>
-                </div>
-                <p className="text-xs text-gray-600 truncate">{quote.customerName}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate mb-0.5">#{quote.quoteNumber || quote.id}</p>
+                <p className="text-xs text-gray-500 truncate">{quote.customerName}</p>
             </div>
             {onRemove && (
                 <button 
-                    className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 cursor-pointer transition-all duration-200 opacity-0 group-hover:opacity-100" 
+                    className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 cursor-pointer transition-all duration-200 opacity-0 group-hover:opacity-100" 
                     onClick={() => onRemove(quote.id)}
                 >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -85,36 +96,36 @@ const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: strin
     const { setNodeRef } = useDroppable({ id: run.id });
 
     return (
-        <div className="min-w-[300px] w-[300px] p-4 bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col border border-blue-200 rounded-xl shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <Package className="w-4 h-4 text-white" />
+        <div className="min-w-[300px] w-[300px] flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm">{index + 1}</span>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                         <input
                             type="text"
-                            placeholder={`Run ${index + 1} Name`}
+                            placeholder={`Run ${index + 1}`}
                             value={run.runName || ''}
                             onChange={(e) => onUpdateName(run.id, e.target.value)}
-                            className="text-sm font-semibold text-gray-900 bg-transparent border-none outline-none w-full placeholder-gray-500"
+                            className="text-sm font-semibold text-gray-900 bg-transparent border-none outline-none w-full placeholder-gray-400 focus:placeholder-gray-500"
                         />
-                        <p className="text-xs text-gray-600">{run.quotes.length} quote{run.quotes.length !== 1 ? 's' : ''}</p>
+                        <p className="text-xs text-gray-500">{run.quotes.length} {run.quotes.length !== 1 ? 'quotes' : 'quote'}</p>
                     </div>
                 </div>
                 <button 
-                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 cursor-pointer transition-all duration-200" 
+                    className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 cursor-pointer transition-all duration-200 flex-shrink-0" 
                     onClick={() => onRemove(run.id)}
                 >
                     <Trash2 className="w-4 h-4" />
                 </button>
             </div>
             <SortableContext id={run.id} items={run.quotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                <div ref={setNodeRef} className="flex-grow bg-white rounded-lg p-2 overflow-y-auto border border-blue-100 min-h-[200px]">
+                <div ref={setNodeRef} className="flex-grow p-3 overflow-y-auto min-h-[400px] bg-gray-50/50">
                     {run.quotes.length > 0 ? (
                         run.quotes.map(q => <DraggableQuoteCard key={q.id} quote={q} />)
                     ) : (
-                        <EmptyState className="p-2 h-full" text="Drag quotes here" icon={ArrowRight} />
+                        <EmptyState className="h-full" text="Drag quotes here" icon={Package} />
                     )}
                 </div>
             </SortableContext>
@@ -129,6 +140,9 @@ interface RunBuilder {
 
 
 const QuickFindQuotes: React.FC<{ stagedQuoteIds: Set<string>, onStageQuote: (quote: QuoteSummary) => void, quoteSearchQuery: string }> = ({ stagedQuoteIds, onStageQuote, quoteSearchQuery }) => {
+    const [displayCount, setDisplayCount] = useState(15);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
     const { data: allQuotes } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', 'pending'],
         queryFn: async () => {
@@ -151,23 +165,53 @@ const QuickFindQuotes: React.FC<{ stagedQuoteIds: Set<string>, onStageQuote: (qu
             );
         }
         
-        return quotes.slice(0, 20); // Limit to 20 results
+        return quotes;
     }, [allQuotes, stagedQuoteIds, quoteSearchQuery]);
 
+    const displayedQuotes = filteredQuotes.slice(0, displayCount);
+    const hasMore = displayCount < filteredQuotes.length;
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        // Load more when scrolled to bottom (with 50px threshold)
+        if (scrollHeight - scrollTop <= clientHeight + 50 && hasMore) {
+            setDisplayCount(prev => Math.min(prev + 15, filteredQuotes.length));
+        }
+    };
+
     return (
-        <div className="flex-grow p-3 overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-            {filteredQuotes.length > 0 ? (
-                <div className="space-y-2">
-                    {filteredQuotes.map((q: QuoteSummary) => <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />)}
-                </div>
-            ) : (
+        <div className="flex-1 bg-white rounded-xl border border-gray-200 p-4 flex flex-col overflow-hidden shadow-sm">
+            {filteredQuotes.length === 0 ? (
                 <EmptyState text={quoteSearchQuery ? "No quotes match your search." : "No pending quotes available."} icon={Search} />
+            ) : (
+                <>
+                    <div className="text-xs text-gray-500 mb-3 flex-shrink-0">
+                        Showing {displayedQuotes.length} of {filteredQuotes.length} quotes
+                    </div>
+                    <div 
+                        ref={scrollContainerRef}
+                        onScroll={handleScroll}
+                        className="flex-1 overflow-y-auto space-y-1.5 pr-2 scrollbar-thin min-h-0"
+                    >
+                        {displayedQuotes.map((q: QuoteSummary) => (
+                            <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />
+                        ))}
+                        
+                        {hasMore && (
+                            <div className="py-2 text-center text-xs text-gray-400">
+                                Scroll for more...
+                            </div>
+                        )}
+                    </div>
+                </>
             )}
         </div>
     );
 };
 
 const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<string>, onStageQuote: (quote: QuoteSummary) => void }> = ({ customer, stagedQuoteIds, onStageQuote }) => {
+    const [displayCount, setDisplayCount] = useState(15);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     const { data: quotesData } = useSuspenseQuery<QuoteSummary[]>({
         queryKey: ['quotes', customer.customerId],
@@ -179,14 +223,41 @@ const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<string
         .filter((q: QuoteSummary) => !stagedQuoteIds.has(q.id))
         .map((quote: QuoteSummary) => ({ ...quote, customerId: customer.customerId }));
 
+    const displayedQuotes = availableQuotes.slice(0, displayCount);
+    const hasMore = displayCount < availableQuotes.length;
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        if (scrollHeight - scrollTop <= clientHeight + 50 && hasMore) {
+            setDisplayCount(prev => Math.min(prev + 15, availableQuotes.length));
+        }
+    };
+
     return (
-        <div className="flex-grow p-3 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-            {availableQuotes.length > 0 ? (
-                <div className="space-y-2">
-                    {availableQuotes.map((q: QuoteSummary) => <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />)}
-                </div>
-            ) : (
+        <div className="flex-1 bg-white rounded-xl border border-gray-200 p-4 flex flex-col overflow-hidden shadow-sm">
+            {availableQuotes.length === 0 ? (
                 <EmptyState text="No available quotes found for this customer." icon={Users} />
+            ) : (
+                <>
+                    <div className="text-xs text-gray-500 mb-3 flex-shrink-0">
+                        Showing {displayedQuotes.length} of {availableQuotes.length} quotes
+                    </div>
+                    <div 
+                        ref={scrollContainerRef}
+                        onScroll={handleScroll}
+                        className="flex-1 overflow-y-auto space-y-1.5 pr-2 scrollbar-thin min-h-0"
+                    >
+                        {displayedQuotes.map((q: QuoteSummary) => (
+                            <QuoteFinderItem key={q.id} quote={q} onStage={() => onStageQuote(q)} />
+                        ))}
+                        
+                        {hasMore && (
+                            <div className="py-2 text-center text-xs text-gray-400">
+                                Scroll for more...
+                            </div>
+                        )}
+                    </div>
+                </>
             )}
         </div>
     );
@@ -372,23 +443,18 @@ export const CreateRun: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen p-6">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-gray-50 p-6">
+            <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <div className="flex items-center justify-center space-x-3 mb-4">
-                        <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                            <Sparkles className="w-6 h-6 text-white" />
-                        </div>
-                        <h1 className="text-3xl font-bold text-gray-900">Create Picking Runs</h1>
-                    </div>
-                    <p className="text-gray-600 max-w-2xl mx-auto">Organize quotes into efficient picking runs for your warehouse operations</p>
+                <div className="text-center">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Picking Runs</h1>
+                    <p className="text-gray-600">Organize quotes into efficient picking runs</p>
                 </div>
 
                 {/* Step 1 */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                     <div className="flex items-center space-x-3 mb-6">
-                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                             <span className="text-white font-bold text-sm">1</span>
                         </div>
                         <h2 className="text-xl font-semibold text-gray-900">Find & Stage Quotes</h2>
@@ -454,7 +520,6 @@ export const CreateRun: React.FC = () => {
                                         <FileText className="w-5 h-5 text-blue-500" />
                                         <p className="text-lg font-medium text-gray-900">Pending Quotes</p>
                                     </div>
-                                    <span className="text-xs text-gray-500">Showing up to 20 results</span>
                                 </div>
                                 <div className="h-[300px] flex flex-col">
                                     <Suspense fallback={<AvailableQuotesSkeleton />}>
@@ -566,10 +631,10 @@ export const CreateRun: React.FC = () => {
                 </div>
 
                 {/* Step 2 */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold text-sm">2</span>
                             </div>
                             <h2 className="text-xl font-semibold text-gray-900">Build Picking Runs</h2>
@@ -577,68 +642,69 @@ export const CreateRun: React.FC = () => {
                         <button
                             onClick={handleFinalizeRuns}
                             disabled={createRunMutation.isPending}
-                            className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl shadow-lg text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:from-blue-300 disabled:to-blue-400 cursor-pointer disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
+                            className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-semibold rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 cursor-pointer disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
                         >
                             {createRunMutation.isPending ? (
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Creating...
+                                </>
                             ) : (
-                                <Sparkles className="-ml-1 mr-2 h-5 w-5" />
+                                <>
+                                    <Sparkles className="-ml-1 mr-2 h-4 w-4" />
+                                    Create Runs
+                                </>
                             )}
-                            Create Runs
                         </button>
                     </div>
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             <div className="lg:col-span-4">
-                                <div className="flex items-center space-x-2 mb-4">
-                                    <div className="w-6 h-6 bg-orange-500 rounded-lg flex items-center justify-center">
-                                        <span className="text-white font-bold text-xs">S</span>
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-gray-900">Staging Pool</h3>
-                                    <div className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold">
-                                        {stagedQuotes.length}
-                                    </div>
-                                </div>
-                                <div className="h-[500px] p-3 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl border border-orange-200 overflow-y-auto">
-                                    <SortableContext id="staged-quotes" items={stagedQuotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                                        {stagedQuotes.length > 0 ? (
-                                            <div className="space-y-2">
-                                                {stagedQuotes.map(q => <DraggableQuoteCard key={q.id} quote={q} onRemove={handleUnstageQuote} />)}
+                                <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col" style={{height: '500px'}}>
+                                    <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+                                        <div className="flex items-center space-x-2">
+                                            <h3 className="text-sm font-semibold text-gray-900">Staging Pool</h3>
+                                            <div className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-semibold">
+                                                {stagedQuotes.length}
                                             </div>
-                                        ) : (
-                                            <EmptyState text="Add quotes from the list above to stage them for a run." icon={Package} />
-                                        )}
-                                    </SortableContext>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 p-3 overflow-y-auto bg-gray-50/50">
+                                        <SortableContext id="staged-quotes" items={stagedQuotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                                            {stagedQuotes.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {stagedQuotes.map(q => <DraggableQuoteCard key={q.id} quote={q} onRemove={handleUnstageQuote} />)}
+                                                </div>
+                                            ) : (
+                                                <EmptyState text="Click + on quotes above to stage them here" icon={Package} />
+                                            )}
+                                        </SortableContext>
+                                    </div>
                                 </div>
                             </div>
                             <div className="lg:col-span-8">
                                  <div className="flex justify-between items-center mb-4">
-                                    <div className="flex items-center space-x-2">
-                                        <div className="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
-                                            <span className="text-white font-bold text-xs">R</span>
-                                        </div>
-                                        <h3 className="text-lg font-semibold text-gray-900">Run Columns</h3>
-                                    </div>
+                                    <h3 className="text-sm font-semibold text-gray-900">Run Columns</h3>
                                     <button 
                                         onClick={handleAddNewRun} 
-                                        className="inline-flex items-center px-4 py-2 text-sm font-semibold text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 rounded-lg cursor-pointer transition-all duration-200 hover:scale-105"
+                                        className="inline-flex items-center px-4 py-2 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg cursor-pointer transition-all duration-200"
                                     >
                                         <PlusCircle className="w-4 h-4 mr-2" />
-                                        Add New Run
+                                        Add Run
                                     </button>
                                 </div>
-                                <div className="border border-gray-200 rounded-xl flex overflow-x-auto p-4 min-h-[500px] bg-gradient-to-br from-gray-50 to-gray-100">
+                                <div className="border border-gray-200 rounded-xl flex overflow-x-auto p-4 bg-gray-50" style={{height: '500px'}}>
                                     {runsToCreate.length > 0 ? (
-                                        <div className="flex space-x-4 min-h-[460px]">
+                                        <div className="flex space-x-4 h-full">
                                             {runsToCreate.map((run, index) => (
                                                 <RunColumn key={run.id} run={run} index={index} onRemove={handleRemoveRun} onUpdateName={handleUpdateRunName} />
                                             ))}
                                         </div>
                                     ) : (
-                                        <EmptyState text="Click 'Add New Run' to create your first run column." className="w-full" icon={ArrowRight}/>
+                                        <EmptyState text="Click 'Add Run' to create your first run column" className="w-full" icon={Package}/>
                                     )}
                                 </div>
                             </div>
