@@ -81,27 +81,29 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> 
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-            <div className="p-4 flex justify-between items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-                <div className="flex items-center gap-4">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold text-gray-800">
+            <div className="p-3 sm:p-4 flex flex-col sm:flex-row sm:justify-between gap-3 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-800 truncate">
                                 {run.run_name ? `${run.run_name}` : `Run #${run.run_number || run.id.substring(0, 8)}`}
                             </h3>
                             {hasBackorders && (
-                                <Package className="w-4 h-4 text-amber-600" title="This run has orders with backorder items" />
+                                <span title="This run has orders with backorder items">
+                                    <Package className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                </span>
                             )}
                         </div>
                         {run.run_name && (
-                            <p className="text-sm text-gray-500">Run #{run.run_number || run.id.substring(0, 8)}</p>
+                            <p className="text-sm text-gray-500 truncate">Run #{run.run_number || run.id.substring(0, 8)}</p>
                         )}
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
                     <RunStatusChip status={run.status} />
-                    <div className="text-right">
-                        <span className="text-sm font-medium text-gray-600">{completedQuotes}/{quoteCount} quotes</span>
-                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                    <div className="text-right flex-shrink-0">
+                        <span className="text-sm font-medium text-gray-600 whitespace-nowrap">{completedQuotes}/{quoteCount} quotes</span>
+                        <div className="w-20 sm:w-24 bg-gray-200 rounded-full h-2 mt-1">
                             <div 
                                 className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out" 
                                 style={{ width: `${progressPercentage}%` }}
@@ -109,21 +111,21 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> 
                         </div>
                         <span className="text-xs text-gray-500">{progressPercentage}% complete</span>
                     </div>
-                    {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
+                    {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />}
                 </div>
             </div>
 
             {isExpanded && (
                 <div className="overflow-hidden">
-                    <div className="border-t border-gray-200 p-4">
-                        <h4 className="text-md font-semibold text-gray-700 mb-3">Quotes in this Run</h4>
-                        <div className="overflow-x-auto">
+                    <div className="border-t border-gray-200 p-3 sm:p-4">
+                        <h4 className="text-sm sm:text-md font-semibold text-gray-700 mb-3">Quotes in this Run</h4>
+                        <div className="overflow-x-auto -mx-3 sm:mx-0">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quote ID</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-3 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quote ID</th>
+                                            <th className="px-3 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Customer Name</th>
+                                            <th className="px-3 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -138,24 +140,29 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string> }> 
                                                   }} 
                                                   className={`hover:bg-gray-50 ${loadingQuoteId === quote.quoteId ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-colors duration-150`}
                                               >
-                                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-blue-600">
-                                                      <div className="flex items-center gap-2">
-                                                          #{quote.quoteNumber || quote.quoteId}
-                                                          {(quote.orderStatus === 'completed' || quote.orderStatus === 'checking') && (
-                                                              <Check className="w-4 h-4 text-green-600" title="Quote completed" />
-                                                          )}
-                                                          {backorderQuoteIds?.has(quote.quoteId) && (
-                                                              <span title="Has backorder items">
-                                                                  <Package className="w-3.5 h-3.5 text-amber-600" />
-                                                              </span>
-                                                          )}
-                                                          {loadingQuoteId === quote.quoteId && (
-                                                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                                                          )}
+                                                  <td className="px-3 sm:px-4 py-3 text-sm font-medium text-blue-600">
+                                                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                                          <div className="flex items-center gap-2">
+                                                              <span className="whitespace-nowrap">#{quote.quoteNumber || quote.quoteId}</span>
+                                                              {(quote.orderStatus === 'completed' || quote.orderStatus === 'checking') && (
+                                                                  <span title="Quote completed">
+                                                                      <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                                                  </span>
+                                                              )}
+                                                              {backorderQuoteIds?.has(quote.quoteId) && (
+                                                                  <span title="Has backorder items">
+                                                                      <Package className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                                                                  </span>
+                                                              )}
+                                                              {loadingQuoteId === quote.quoteId && (
+                                                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                                              )}
+                                                          </div>
+                                                          <span className="text-xs text-gray-700 sm:hidden truncate">{quote.customerName}</span>
                                                       </div>
                                                   </td>
-                                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{quote.customerName}</td>
-                                                  <td className="px-4 py-3 whitespace-nowrap"><QuoteStatusChip status={quote.orderStatus} /></td>
+                                                  <td className="px-3 sm:px-4 py-3 whitespace-nowrap text-sm text-gray-700 hidden sm:table-cell">{quote.customerName}</td>
+                                                  <td className="px-3 sm:px-4 py-3 whitespace-nowrap"><QuoteStatusChip status={quote.orderStatus} /></td>
                                               </tr>
                                           ))}
                                     </tbody>
@@ -402,37 +409,36 @@ const BackorderItemsSection: React.FC = () => {
                 return (
                     <div key={quote.quoteId} className="bg-white border border-amber-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                         <div 
-                            className="p-4 cursor-pointer"
+                            className="p-3 sm:p-4 cursor-pointer"
                             onClick={() => setExpandedQuoteId(isExpanded ? null : quote.quoteId)}
                         >
-                            <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                                         <h3 
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleQuoteClick(quote.quoteId);
                                             }}
-                                            className="text-lg font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+                                            className="text-base sm:text-lg font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
                                         >
                                             #{quote.quoteNumber || quote.quoteId}
                                         </h3>
-                                        <QuoteStatusChip status={quote.orderStatus} />
                                         {loadingQuoteId === quote.quoteId && (
                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                                         )}
                                     </div>
                                     
-                                    <p className="text-sm text-gray-700 font-medium">{quote.customerName}</p>
+                                    <p className="text-sm text-gray-700 font-medium mb-2">{quote.customerName}</p>
                                     
                                     {primaryRun && (
-                                        <div className="mt-2 flex items-center gap-2">
-                                            <Zap className="w-4 h-4 text-gray-500" />
-                                            <span className="text-sm text-gray-600">
-                                                {primaryRun.runName || `Run #${primaryRun.runNumber}`}
-                                            </span>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                                <Zap className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                                                <span className="truncate">{primaryRun.runName || `Run #${primaryRun.runNumber}`}</span>
+                                            </div>
                                             {hasMultipleRuns && (
-                                                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                                                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full whitespace-nowrap">
                                                     +{quote.runs.length - 1} more
                                                 </span>
                                             )}
@@ -440,25 +446,25 @@ const BackorderItemsSection: React.FC = () => {
                                     )}
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    <div className="text-right">
-                                        <span className="flex items-center gap-1 text-sm font-medium text-amber-700">
-                                            <Package className="w-4 h-4" />
-                                            {quote.backorderItems.length} {quote.backorderItems.length === 1 ? 'item' : 'items'} to add
+                                <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0">
+                                    <div className="flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                                        <Package className="w-4 h-4 flex-shrink-0" />
+                                        <span className="whitespace-nowrap">
+                                            {quote.backorderItems.length} {quote.backorderItems.length === 1 ? 'item' : 'items'}
                                         </span>
                                     </div>
                                     {isExpanded ? (
-                                        <ChevronUp className="w-5 h-5 text-gray-500" />
+                                        <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
                                     ) : (
-                                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                                        <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
                                     )}
                                 </div>
                             </div>
                         </div>
 
                         {isExpanded && (
-                            <div className="px-4 pb-4">
-                                <div className="pt-4 border-t border-amber-100">
+                            <div className="px-3 sm:px-4 pb-3 sm:pb-4">
+                                <div className="pt-3 sm:pt-4 border-t border-amber-100">
                                     <h4 className="text-sm font-semibold text-gray-700 mb-2">
                                         Items to Add Later:
                                     </h4>
@@ -470,44 +476,38 @@ const BackorderItemsSection: React.FC = () => {
                                             return (
                                                 <div 
                                                     key={item.productId} 
-                                                    className="flex items-center justify-between p-3 bg-amber-50 rounded-lg"
+                                                    className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg"
                                                 >
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-medium text-gray-800">{item.productName}</p>
-                                                        <p className="text-xs text-gray-500">SKU: {item.sku}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="text-right">
-                                                            <span className="text-sm font-semibold text-amber-700">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-gray-800 break-words mb-1">{item.productName}</p>
+                                                        <p className="text-xs text-gray-500 mb-2">SKU: {item.sku}</p>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-sm font-semibold text-amber-700 whitespace-nowrap">
                                                                 {item.pickingQuantity} / {item.originalQuantity}
                                                             </span>
-                                                            <p className="text-xs text-gray-500">remaining</p>
+                                                            <span className="text-xs text-gray-500">remaining</span>
                                                         </div>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleMarkAsAdded(quote.quoteId, item.productId);
-                                                            }}
-                                                            disabled={isCompleting}
-                                                            className={`px-3 py-1.5 text-xs font-medium text-white rounded transition-colors ${
-                                                                isCompleting 
-                                                                    ? 'bg-gray-400 cursor-not-allowed' 
-                                                                    : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
-                                                            }`}
-                                                        >
-                                                            {isCompleting ? (
-                                                                <span className="flex items-center gap-1">
-                                                                    <span className="animate-spin">⏳</span>
-                                                                    Marking...
-                                                                </span>
-                                                            ) : (
-                                                                <span className="flex items-center gap-1">
-                                                                    <Check className="w-3 h-3" />
-                                                                    Mark Added
-                                                                </span>
-                                                            )}
-                                                        </button>
                                                     </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleMarkAsAdded(quote.quoteId, item.productId);
+                                                        }}
+                                                        disabled={isCompleting}
+                                                        className={`flex items-center justify-center p-2.5 text-xs font-medium text-white rounded-lg transition-colors flex-shrink-0 ${
+                                                            isCompleting 
+                                                                ? 'bg-gray-400 cursor-not-allowed' 
+                                                                : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+                                                        }`}
+                                                        title={isCompleting ? "Marking..." : "Mark as added"}
+                                                        aria-label={isCompleting ? "Marking..." : "Mark as added"}
+                                                    >
+                                                        {isCompleting ? (
+                                                            <span className="animate-spin text-base">⏳</span>
+                                                        ) : (
+                                                            <Check className="w-5 h-5" />
+                                                        )}
+                                                    </button>
                                                 </div>
                                             );
                                         })}
@@ -750,9 +750,9 @@ const Dashboard: React.FC = () => {
                             <div>
                                 <div className="bg-white border border-amber-200 rounded-lg shadow-sm">
                                     <div className="p-4 sm:p-5 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-gray-50">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                             <div className="flex items-center gap-3">
-                                                <Package className="w-6 h-6 text-amber-600" />
+                                                <Package className="w-6 h-6 text-amber-600 flex-shrink-0" />
                                                 <div>
                                                     <h2 className="text-xl font-semibold text-gray-800">
                                                         Items to Add Later
@@ -762,7 +762,7 @@ const Dashboard: React.FC = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 rounded-full">
+                                            <div className="flex items-center justify-center px-3 py-1.5 bg-amber-100 rounded-full self-center sm:self-auto">
                                                 <span className="text-sm font-semibold text-amber-700">
                                                     {backorderQuotes.length} {backorderQuotes.length === 1 ? 'order' : 'orders'}
                                                 </span>
