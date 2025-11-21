@@ -33,7 +33,7 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
         >
             <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                    <span className="text-sm font-semibold text-blue-600 whitespace-nowrap">
                         #{quote.quoteNumber || quote.id}
                     </span>
                     <span className="text-sm text-gray-600 truncate flex-1">
@@ -42,7 +42,7 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
                 </div>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-                <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                <span className="text-sm font-semibold text-emerald-600 whitespace-nowrap">
                     ${(quote.totalAmount || 0).toFixed(2)}
                 </span>
                 <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500 whitespace-nowrap">

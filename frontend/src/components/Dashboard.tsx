@@ -2,11 +2,10 @@ import React, { Suspense, useMemo, useState, useTransition } from 'react';
 import {
   Receipt,
   Search,
-  Zap,
+  Truck,
   ChevronDown,
   ChevronUp,
-  Building2,
-  DollarSign,
+  Users as UserIcon,
   ChevronRight,
   Check,
   X,
@@ -235,7 +234,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
-                        <Zap className="h-8 w-8 text-blue-600" />
+                        <Truck className="h-8 w-8 text-blue-600" />
                     </div>
                     <div className="ml-4">
                         <p className="text-sm font-medium text-gray-500">Total Runs</p>
@@ -247,7 +246,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
-                        <Building2 className="h-8 w-8 text-green-600" />
+                        <Truck className="h-8 w-8 text-green-600" />
                     </div>
                     <div className="ml-4">
                         <p className="text-sm font-medium text-gray-500">Active Runs</p>
@@ -259,7 +258,7 @@ const StatsCards: React.FC<{ runs: Run[] }> = ({ runs }) => {
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                 <div className="flex items-center">
                     <div className="flex-shrink-0">
-                        <Receipt className="h-8 w-8 text-purple-600" />
+                        <FileText className="h-8 w-8 text-purple-600" />
                     </div>
                     <div className="ml-4">
                         <p className="text-sm font-medium text-gray-500">Total Quotes</p>
@@ -290,7 +289,7 @@ const ActiveRunsList: React.FC<{ runs: Run[]; backorderQuoteIds?: Set<string> }>
     }, [runs]);
 
     if (activeRuns.length === 0) return (
-        <InfoBox icon={Zap} title="No active runs found" message="Create a new run to get started with order picking." />
+        <InfoBox icon={Truck} title="No active runs found" message="Create a new run to get started with order picking." />
     );
 
     return (
@@ -433,7 +432,7 @@ const BackorderItemsSection: React.FC = () => {
                                     {primaryRun && (
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                                                <Zap className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                                                <Truck className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
                                                 <span className="truncate">{primaryRun.runName || `Run #${primaryRun.runNumber}`}</span>
                                             </div>
                                             {hasMultipleRuns && (
@@ -577,7 +576,6 @@ const RecentQuotesList: React.FC = () => {
                         className={`flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-blue-300 ${loadingQuoteId === quote.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-all duration-150`}
                     >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <span className="text-sm font-semibold text-blue-600 whitespace-nowrap">
                                     #{quote.quoteNumber || quote.id}
@@ -723,7 +721,7 @@ const Dashboard: React.FC = () => {
                         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
                             <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-gray-50">
                                 <div className="flex items-center gap-3">
-                                    <Zap className="w-6 h-6 text-blue-600" />
+                                    <Truck className="w-6 h-6 text-blue-600" />
                                     <h2 className="text-xl font-semibold text-gray-800">
                                         Active Picking Runs
                                     </h2>
@@ -847,7 +845,7 @@ const Dashboard: React.FC = () => {
                                 <div className="md:col-span-1">
                                     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
                                         <div className="flex items-center gap-2 mb-4">
-                                            <Building2 className="w-5 h-5 text-blue-600" />
+                                            <UserIcon className="w-5 h-5 text-blue-600" />
                                             <h3 className="text-lg font-semibold text-gray-800">Select Customer</h3>
                                         </div>
                                         <div ref={triggerRef} className="relative">
@@ -913,7 +911,7 @@ const Dashboard: React.FC = () => {
                                     <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-h-[24rem]">
                                         <div className="p-5">
                                             <div className="flex items-center gap-2 mb-4">
-                                                <DollarSign className="w-5 h-5 text-green-600" />
+                                                <FileText className="w-5 h-5 text-blue-600" />
                                                 <h3 className="text-lg font-semibold text-gray-800">
                                                     {selectedCustomer ? `Quotes for ${selectedCustomer.customerName}` : 'Select a Customer'}
                                                 </h3>

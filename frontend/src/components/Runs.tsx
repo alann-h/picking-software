@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Package } from 'lucide-react';
+import { AlertTriangle, Truck } from 'lucide-react';
 import { useSnackbarContext } from './SnackbarContext';
 import { CreateRun } from './runs/CreateRun';
 import { RunList } from './runs/RunList';
@@ -44,7 +44,7 @@ const Runs: React.FC = () => {
         <div className="mb-8">
           <div className="mb-2 flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-              <Package className="h-6 w-6 text-blue-800" />
+              <Truck className="h-6 w-6 text-blue-800" />
             </div>
             <div>
               <h1 className="mb-1 text-3xl font-bold">Manage Picking Runs</h1>
