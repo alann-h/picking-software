@@ -1,22 +1,31 @@
 import React from 'react';
 import { Smartphone, CloudCog, ClipboardList } from 'lucide-react';
 import AnimatedSection from './AnimatedSection';
-import StaggerAnimation from './StaggerAnimation';
 
-interface FeatureCardProps {
+interface FeatureRowProps {
   icon: React.ReactNode;
   title: string;
   description: string;
+  reverse?: boolean;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) => (
-  <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ease-in-out flex flex-col items-center text-center h-full">
-    <div className="flex-shrink-0 bg-indigo-100 text-indigo-600 rounded-full p-4 mb-6">
-      {icon}
+const FeatureRow: React.FC<FeatureRowProps> = ({ icon, title, description, reverse = false }) => (
+  <div className={`flex flex-col ${reverse ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-8 md:gap-12 mb-16 md:mb-24 last:mb-0`}>
+    {/* Icon Side */}
+    <div className="flex-shrink-0 w-full md:w-1/3 flex justify-center">
+      <div className="bg-indigo-600 text-white rounded-2xl p-12 shadow-xl transform hover:scale-105 transition-transform duration-300">
+        {icon}
+      </div>
     </div>
-    <div className="flex-grow">
-      <h3 className="text-xl font-bold text-gray-900 mb-3">{title}</h3>
-      <p className="text-gray-600 leading-relaxed">{description}</p>
+    
+    {/* Content Side */}
+    <div className={`flex-1 ${reverse ? 'md:text-right' : 'md:text-left'} text-center`}>
+      <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+        {title}
+      </h3>
+      <p className="text-lg text-gray-600 leading-relaxed max-w-xl mx-auto md:mx-0">
+        {description}
+      </p>
     </div>
   </div>
 );
@@ -35,25 +44,26 @@ const FeaturesSection = () => (
         </div>
       </AnimatedSection>
 
-      <StaggerAnimation staggerDelay={0.2} direction="up">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <FeatureCard
-            icon={<Smartphone size={32} strokeWidth={2} />}
-            title="Mobile-First Design"
-            description="Scan barcodes and manage inventory directly from your smartphone or tablet. No more paper-based processes."
-          />
-          <FeatureCard
-            icon={<CloudCog size={32} strokeWidth={2} />}
-            title="Real-Time Sync"
-            description="All your data syncs instantly across devices and integrates seamlessly with QuickBooks Online."
-          />
-          <FeatureCard
-            icon={<ClipboardList size={32} strokeWidth={2} />}
-            title="Run-Based System"
-            description="Group orders into efficient 'runs' for pickers to prepare multiple orders simultaneously, maximizing warehouse productivity."
-          />
-        </div>
-      </StaggerAnimation>
+      <div className="space-y-0">
+        <FeatureRow
+          icon={<Smartphone size={48} strokeWidth={2} />}
+          title="Mobile-First Design"
+          description="Scan barcodes and manage inventory directly from your smartphone or tablet. No more paper-based processes."
+          reverse={false}
+        />
+        <FeatureRow
+          icon={<CloudCog size={48} strokeWidth={2} />}
+          title="Real-Time Sync"
+          description="All your data syncs instantly across devices and integrates seamlessly with QuickBooks Online."
+          reverse={true}
+        />
+        <FeatureRow
+          icon={<ClipboardList size={48} strokeWidth={2} />}
+          title="Run-Based System"
+          description="Group orders into efficient 'runs' for pickers to prepare multiple orders simultaneously, maximizing warehouse productivity."
+          reverse={false}
+        />
+      </div>
     </div>
   </section>
 );

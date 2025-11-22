@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import SEO from './SEO';
 import {
@@ -13,6 +13,8 @@ import {
   BarChart3,
   Link,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 
@@ -113,6 +115,108 @@ const AnimatedComponent: React.FC<{ children: React.ReactNode; delay?: number }>
   </motion.div>
 );
 
+interface Feature {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  benefits: string[];
+}
+
+const FeatureSpotlight: React.FC<{ features: Feature[] }> = ({ features }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => (prev === 0 ? features.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev === features.length - 1 ? 0 : prev + 1));
+  };
+
+  const currentFeature = features[currentIndex];
+
+  return (
+    <div className="relative mx-auto max-w-5xl">
+      {/* Main Feature Display */}
+      <motion.div
+        key={currentIndex}
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.3 }}
+        className="rounded-2xl bg-gradient-to-br from-blue-50 to-slate-50 p-8 shadow-xl lg:p-12"
+      >
+        <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-start lg:gap-12">
+          {/* Icon */}
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-blue-600 shadow-lg lg:h-32 lg:w-32">
+            <div className="scale-150 text-white lg:scale-[2]">
+              {currentFeature.icon}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 text-center lg:text-left">
+            <h3 className="mb-4 text-2xl font-bold text-slate-900 lg:text-3xl">
+              {currentFeature.title}
+            </h3>
+            <p className="mb-6 text-lg text-slate-700 lg:text-xl">
+              {currentFeature.description}
+            </p>
+            <div className="flex flex-col gap-3">
+              {currentFeature.benefits.map((benefit) => (
+                <div key={benefit} className="flex items-center justify-center gap-3 lg:justify-start">
+                  <CheckCircle size={20} className="shrink-0 text-green-600" />
+                  <span className="text-slate-600">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Navigation Controls */}
+      <div className="mt-8 flex items-center justify-center gap-4">
+        <button
+          onClick={handlePrevious}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          aria-label="Previous feature"
+        >
+          <ChevronLeft size={24} />
+        </button>
+
+        {/* Indicator Dots */}
+        <div className="flex gap-2">
+          {features.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`h-3 w-3 rounded-full transition-all ${
+                index === currentIndex
+                  ? 'w-8 bg-blue-600'
+                  : 'bg-slate-300 hover:bg-slate-400'
+              }`}
+              aria-label={`Go to feature ${index + 1}`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={handleNext}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          aria-label="Next feature"
+        >
+          <ChevronRight size={24} />
+        </button>
+      </div>
+
+      {/* Feature Counter */}
+      <div className="mt-4 text-center text-sm text-slate-500">
+        Feature {currentIndex + 1} of {features.length}
+      </div>
+    </div>
+  );
+};
+
 const AboutUs: React.FC = () => {
   return (
     <>
@@ -186,40 +290,13 @@ const AboutUs: React.FC = () => {
             </section>
           </AnimatedComponent>
 
-          {/* Core Features Grid */}
+          {/* Core Features Spotlight */}
           <AnimatedComponent delay={0.4}>
             <section className="mb-16 lg:mb-24">
               <h2 className="mb-12 text-center text-3xl font-bold text-slate-900 lg:mb-16 lg:text-4xl">
                 Core Features
               </h2>
-              <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                {features.map((feature) => (
-                  <div 
-                    key={feature.title}
-                    className="flex h-full flex-col rounded-xl border border-slate-100 bg-white shadow-lg transition-all duration-300 ease-in-out hover:-translate-y-2 hover:shadow-2xl"
-                  >
-                    <div className="flex flex-grow flex-col p-6">
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-blue-100">
-                        {feature.icon}
-                      </div>
-                      <h4 className="mb-2 text-xl font-semibold text-slate-900">
-                        {feature.title}
-                      </h4>
-                      <p className="mb-4 flex-grow text-slate-600">
-                        {feature.description}
-                      </p>
-                      <div className="flex flex-col space-y-2">
-                        {feature.benefits.map((benefit) => (
-                          <div key={benefit} className="flex items-center gap-2">
-                            <div className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
-                            <span className="text-sm text-slate-500">{benefit}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <FeatureSpotlight features={features} />
             </section>
           </AnimatedComponent>
 
