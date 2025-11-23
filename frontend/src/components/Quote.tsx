@@ -258,8 +258,8 @@ const Quote: React.FC = () => {
         
         <ProductFilter searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)} />
         
-        {/* Mobile Card View - Hidden on md and larger */}
-        <div className="md:hidden space-y-3">
+        {/* Mobile Card View - Hidden on sm and larger */}
+        <div className="sm:hidden space-y-3">
           {displayedProducts.map((product) => (
             <ProductRow
               key={product.productId}
@@ -271,8 +271,8 @@ const Quote: React.FC = () => {
           ))}
         </div>
 
-        {/* Desktop Table View - Hidden on mobile */}
-        <div className="hidden md:block overflow-x-auto">
+        {/* Desktop Table View - Hidden on mobile, shown on sm and larger */}
+        <div className="hidden sm:block overflow-x-auto">
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
