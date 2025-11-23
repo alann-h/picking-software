@@ -79,37 +79,39 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string>; ex
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-            <div className="p-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-3 cursor-pointer" onClick={() => onToggleExpand(run.id)}>
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink max-w-[30%] sm:max-w-none sm:flex-1">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 truncate">
-                                {run.run_name ? `${run.run_name}` : `Run #${run.run_number || run.id.substring(0, 8)}`}
-                            </h3>
-                            {hasBackorders && (
-                                <span title="This run has orders with backorder items">
-                                    <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 flex-shrink-0" />
-                                </span>
-                            )}
-                        </div>
-                        {run.run_name && (
-                            <p className="text-xs sm:text-sm text-gray-500 truncate">Run #{run.run_number || run.id.substring(0, 8)}</p>
+            <div className="p-3 sm:p-4 cursor-pointer" onClick={() => onToggleExpand(run.id)}>
+                {/* Run Name Row */}
+                <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 truncate">
+                            {run.run_name || `Run ${run.run_number || run.id.substring(0, 8)}`}
+                        </h3>
+                        {hasBackorders && (
+                            <span title="This run has orders with backorder items">
+                                <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 flex-shrink-0" />
+                            </span>
                         )}
                     </div>
+                    {isExpanded ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" />}
                 </div>
-                <div className="flex items-center gap-1.5 sm:gap-3 lg:gap-4 flex-shrink-0">
-                    <RunStatusChip status={run.status} />
-                    <div className="text-right flex-shrink-0">
-                        <span className="text-xs sm:text-sm font-medium text-gray-600 whitespace-nowrap">{completedQuotes}/{quoteCount}</span>
-                        <div className="w-16 sm:w-20 lg:w-24 bg-gray-200 rounded-full h-2 mt-1">
+                
+                {/* Status and Progress Row */}
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex-shrink-0">
+                        <RunStatusChip status={run.status} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm font-semibold text-gray-700 flex-shrink-0">
+                            {completedQuotes}/{quoteCount}
+                        </span>
+                        <div className="w-24 sm:w-32 md:w-40 bg-gray-200 rounded-full h-2">
                             <div 
                                 className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out" 
                                 style={{ width: `${progressPercentage}%` }}
                             ></div>
                         </div>
-                        <span className="text-xs text-gray-500">{progressPercentage}%</span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">{progressPercentage}%</span>
                     </div>
-                    {isExpanded ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" />}
                 </div>
             </div>
 
@@ -445,13 +447,13 @@ const BackorderItemsSection: React.FC = () => {
                                     <p className="text-sm text-gray-700 font-medium mb-2">{quote.customerName}</p>
                                     
                                     {primaryRun && (
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                            <div className="flex items-center gap-1.5 text-sm text-gray-600 min-w-0 flex-1">
                                                 <Truck className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-                                                <span className="truncate">{primaryRun.runName || `Run #${primaryRun.runNumber}`}</span>
+                                                <span className="truncate min-w-0">{primaryRun.runName || `Run #${primaryRun.runNumber}`}</span>
                                             </div>
                                             {hasMultipleRuns && (
-                                                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full whitespace-nowrap">
+                                                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full whitespace-nowrap flex-shrink-0">
                                                     +{quote.runs.length - 1} more
                                                 </span>
                                             )}
@@ -675,7 +677,6 @@ const Dashboard: React.FC = () => {
     const [query, setQuery] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const triggerRef = React.useRef<HTMLDivElement>(null);
-    const navigate = useNavigate();
     const { userCompanyId } = useAuth();
 
     const { data: customers } = useSuspenseQuery<Customer[]>({

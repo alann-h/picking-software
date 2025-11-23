@@ -263,8 +263,9 @@ export const RunItem: React.FC<{
             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
             handleOpenSnackbar('Run name updated.', 'success');
         },
-        onError: () => {
-            handleOpenSnackbar('Failed to update run name.', 'error');
+        onError: (error) => {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to update run name.';
+            handleOpenSnackbar(errorMessage, 'error');
             setIsEditingName(true);
             // Optimistic state will automatically revert on error
         }
@@ -390,17 +391,27 @@ export const RunItem: React.FC<{
         updateStatusMutation.mutate({ runId: run.id, newStatus });
     };
 
+    const MAX_RUN_NAME_LENGTH = 100;
+
     const handleEditNameToggle = () => {
         setIsEditingName(!isEditingName);
         setEditableRunName(optimisticRunName || run.run_name || '');
     };
 
     const handleSaveName = () => {
-        if (editableRunName.trim()) {
-            updateRunNameMutation.mutate({ runId: run.id, runName: editableRunName.trim() });
-        } else {
+        const trimmedName = editableRunName.trim();
+        
+        if (!trimmedName) {
             setIsEditingName(false);
+            return;
         }
+        
+        if (trimmedName.length > MAX_RUN_NAME_LENGTH) {
+            handleOpenSnackbar(`Run name is too long. Maximum ${MAX_RUN_NAME_LENGTH} characters allowed.`, 'error');
+            return;
+        }
+        
+        updateRunNameMutation.mutate({ runId: run.id, runName: trimmedName });
     };
 
     const handleCancelNameEdit = () => {
@@ -417,35 +428,45 @@ export const RunItem: React.FC<{
                 <div className="flex items-start sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
                     <div className="flex-1 min-w-0">
                         {isEditingName ? (
-                            <div className="flex items-center gap-1.5">
-                                <input
-                                    type="text"
-                                    value={editableRunName}
-                                    onChange={(e) => setEditableRunName(e.target.value)}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="text-sm sm:text-base font-semibold text-gray-800 bg-white border border-gray-300 rounded px-2 py-1 w-full"
-                                    placeholder="Enter run name"
-                                    autoFocus
-                                />
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSaveName();
-                                    }}
-                                    disabled={updateRunNameMutation.isPending}
-                                    className="text-green-600 hover:text-green-800 disabled:opacity-50 flex-shrink-0 p-1"
-                                >
-                                    <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCancelNameEdit();
-                                    }}
-                                    className="text-red-600 hover:text-red-800 flex-shrink-0 p-1"
-                                >
-                                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                </button>
+                            <div className="flex flex-col gap-1 w-full">
+                                <div className="flex items-center gap-1.5">
+                                    <input
+                                        type="text"
+                                        value={editableRunName}
+                                        onChange={(e) => setEditableRunName(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        maxLength={MAX_RUN_NAME_LENGTH}
+                                        className="text-sm sm:text-base font-semibold text-gray-800 bg-white border border-gray-300 rounded px-2 py-1 w-full"
+                                        placeholder="Enter run name"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSaveName();
+                                        }}
+                                        disabled={updateRunNameMutation.isPending}
+                                        className="text-green-600 hover:text-green-800 disabled:opacity-50 flex-shrink-0 p-1"
+                                    >
+                                        <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCancelNameEdit();
+                                        }}
+                                        className="text-red-600 hover:text-red-800 flex-shrink-0 p-1"
+                                    >
+                                        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    </button>
+                                </div>
+                                <span className={`text-xs ${
+                                    editableRunName.length === 0 ? 'text-gray-500' :
+                                    editableRunName.length > MAX_RUN_NAME_LENGTH * 0.9 ? 'text-amber-600' : 
+                                    'text-green-600'
+                                }`}>
+                                    {editableRunName.length}/{MAX_RUN_NAME_LENGTH} characters
+                                </span>
                             </div>
                         ) : (
                             <div className="flex items-center gap-1.5 min-w-0">

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, Suspense, useTransition, Fragment } from 'react';
-import { PlusCircle, Trash2, GripVertical, Inbox, Search, Check, Users, Package, Sparkles, ChevronDown, X, Zap, FileText, Plus } from 'lucide-react';
+import { PlusCircle, Trash2, GripVertical, Inbox, Search, Check, Users, Users as UserIcon, Package, Sparkles, ChevronDown, X, Zap, FileText, Plus } from 'lucide-react';
 import { DndContext, DragEndEvent, DragStartEvent, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay, useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -570,18 +570,20 @@ export const CreateRun: React.FC = () => {
                                 </div>
                             </div>
                             <div>
-                                <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
-                                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                                    <p className="text-sm sm:text-base font-medium text-gray-900">Pending Quotes</p>
-                                </div>
-                                <div className="h-[250px] sm:h-[300px] flex flex-col">
-                                    <Suspense fallback={<AvailableQuotesSkeleton />}>
-                                        <QuickFindQuotes
-                                            stagedQuoteIds={stagedQuoteIds}
-                                            onStageQuote={handleStageQuote}
-                                            quoteSearchQuery={quoteSearchQuery}
-                                        />
-                                    </Suspense>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
+                                    <div className="flex items-center gap-1.5 sm:gap-2 mb-3">
+                                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                                        <p className="text-sm sm:text-base font-medium text-gray-900">Pending Quotes</p>
+                                    </div>
+                                    <div className="h-[250px] sm:h-[300px] flex flex-col">
+                                        <Suspense fallback={<AvailableQuotesSkeleton />}>
+                                            <QuickFindQuotes
+                                                stagedQuoteIds={stagedQuoteIds}
+                                                onStageQuote={handleStageQuote}
+                                                quoteSearchQuery={quoteSearchQuery}
+                                            />
+                                        </Suspense>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -591,18 +593,18 @@ export const CreateRun: React.FC = () => {
                     {searchMode === 'customer' && (
                         <div className="flex flex-col space-y-3 sm:space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 items-start">
                             <div className="w-full lg:col-span-5">
-                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                                        <h3 className="text-sm sm:text-base font-semibold text-gray-800">Select Customer</h3>
+                                        <UserIcon className="w-5 h-5 text-indigo-600" />
+                                        <h3 className="text-base font-semibold text-gray-800">Select Customer</h3>
                                     </div>
                                     <div ref={triggerRef} className="relative">
-                                        <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                                        <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2">
                                             <input
-                                                className="w-full border-none py-2 pl-3 pr-16 text-sm leading-5 text-gray-900 focus:ring-0 placeholder-gray-500"
+                                                className="w-full border-none py-2 pl-3 pr-16 text-sm leading-5 text-gray-900 focus:ring-0"
                                                 value={selectedCustomer?.customerName || customerQuery}
-                                                onChange={(event) => {
-                                                    setCustomerQuery(event.target.value);
+                                                onChange={(e) => {
+                                                    setCustomerQuery(e.target.value);
                                                     if (selectedCustomer) handleCustomerChange(null);
                                                     setIsDropdownOpen(true);
                                                 }}
@@ -638,14 +640,14 @@ export const CreateRun: React.FC = () => {
                                                 filteredCustomers.map((customer: Customer) => (
                                                     <div
                                                         key={customer.customerId}
-                                                        className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-blue-50 transition-colors"
+                                                        className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-indigo-50 transition-colors"
                                                         onClick={() => handleCustomerChange(customer)}
                                                     >
                                                         <span className={`block truncate ${selectedCustomer?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
                                                             {customer.customerName}
                                                         </span>
                                                         {selectedCustomer?.customerId === customer.customerId ? (
-                                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600">
+                                                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-600">
                                                               <Check className="h-5 w-5" aria-hidden="true" />
                                                             </span>
                                                         ) : null}

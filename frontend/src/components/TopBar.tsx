@@ -247,11 +247,17 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
          return;
        }
        
-       const sessionDetails = sessions.activeSessions.map((s: any) => 
-         `${s.isCurrentSession ? '🟢' : '🔵'} ${s.name || 'Unknown'} - ${s.email}\n   Expires: ${new Date(s.expiresAt).toLocaleString()}`
-       ).join('\n\n');
+       const sessionDetails = sessions.activeSessions.map((s: any) => {
+         const indicator = s.isCurrentSession ? '[CURRENT]' : '[OTHER]';
+         const name = s.name || 'Unknown';
+         const email = s.email || '';
+         const expireDate = new Date(s.expiresAt);
+         const expires = expireDate.toLocaleDateString() + ' ' + expireDate.toLocaleTimeString();
+         return indicator + ' ' + name + ' - ' + email + '\n   Expires: ' + expires;
+       }).join('\n\n');
        
-       alert(`You have ${sessions.totalSessions} active session(s).\n\nSession details:\n${sessionDetails}`);
+       const message = 'You have ' + sessions.totalSessions + ' active session(s).\n\nSession details:\n' + sessionDetails;
+       alert(message);
      } catch (error: any) {
        console.error('Error fetching sessions:', error);
        
