@@ -18,23 +18,23 @@ const features: Feature[] = [
     title: "Mobile-First Design",
     description: "Scan barcodes and manage inventory directly from your smartphone or tablet. No more paper-based processes. Work from anywhere in your warehouse with a device that fits in your pocket.",
     color: "from-blue-600 to-indigo-600",
-    gradient: "bg-gradient-to-br from-blue-50 to-indigo-50",
+    gradient: "bg-white",
   },
   {
     id: 1,
     icon: <CloudCog size={64} strokeWidth={2} />,
     title: "Real-Time Sync",
     description: "All your data syncs instantly across devices and integrates seamlessly with QuickBooks Online. Never worry about outdated information or manual data entry again.",
-    color: "from-purple-600 to-pink-600",
-    gradient: "bg-gradient-to-br from-purple-50 to-pink-50",
+    color: "from-blue-600 to-indigo-600",
+    gradient: "bg-white",
   },
   {
     id: 2,
     icon: <ClipboardList size={64} strokeWidth={2} />,
     title: "Run-Based System",
     description: "Group orders into efficient 'runs' for pickers to prepare multiple orders simultaneously, maximizing warehouse productivity. Turn hours of work into minutes.",
-    color: "from-emerald-600 to-teal-600",
-    gradient: "bg-gradient-to-br from-emerald-50 to-teal-50",
+    color: "from-blue-600 to-indigo-600",
+    gradient: "bg-white",
   },
 ];
 
