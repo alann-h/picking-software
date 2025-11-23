@@ -181,138 +181,81 @@ const ProductsTab: React.FC<ProductsTabProps> = ({
         <div className="space-y-3 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
                 Current Products in System
               </h2>
-              <p className="text-gray-500">
+              <p className="text-sm sm:text-base text-gray-500">
                 Manage your product inventory, search by name or SKU, and update product details
               </p>
             </div>
           </div>
 
-          {/* Enhanced Search Section */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50">
-            <div className="p-4 sm:p-6">
-              <div className="space-y-4">
-                {/* Search Field Selector */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <p className="text-sm font-medium text-gray-600">
-                    Search by:
-                  </p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={() => handleSearchFieldChange('all')}
-                      className={clsx(
-                        'px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
-                        {
-                          'bg-blue-600 text-white': searchField === 'all',
-                          'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100': searchField !== 'all',
-                        }
-                      )}
-                    >
-                      All Fields
-                    </button>
-                    <button
-                      onClick={() => handleSearchFieldChange('name')}
-                      className={clsx(
-                        'px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
-                        {
-                          'bg-blue-600 text-white': searchField === 'name',
-                          'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100': searchField !== 'name',
-                        }
-                      )}
-                    >
-                      Product Name
-                    </button>
-                    <button
-                      onClick={() => handleSearchFieldChange('sku')}
-                      className={clsx(
-                        'px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
-                        {
-                          'bg-blue-600 text-white': searchField === 'sku',
-                          'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100': searchField !== 'sku',
-                        }
-                      )}
-                    >
-                      SKU
-                    </button>
-                    <button
-                      onClick={() => handleSearchFieldChange('barcode')}
-                      className={clsx(
-                        'px-3 py-1 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
-                        {
-                          'bg-blue-600 text-white': searchField === 'barcode',
-                          'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100': searchField !== 'barcode',
-                        }
-                      )}
-                    >
-                      Barcode
-                    </button>
-                  </div>
+          {/* Search & Filter Bar */}
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="p-3 sm:p-4">
+              {/* Search Input */}
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="h-5 w-5 text-gray-400" />
                 </div>
-
-                {/* Search Input */}
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Search className="h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={getSearchPlaceholder()}
+                  value={searchTerm}
+                  onChange={onSearchChange}
+                  className="block w-full rounded-lg border-gray-300 py-2.5 pl-10 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                />
+                {searchTerm && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <button
+                      onClick={() => onSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>)}
+                      className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                  <input
-                    type="text"
-                    placeholder={getSearchPlaceholder()}
-                    value={searchTerm}
-                    onChange={onSearchChange}
-                    className="block w-full rounded-lg border-gray-300 py-3 pl-10 pr-10 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
-                  {searchTerm && (
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      <button
-                        onClick={() => onSearchChange({ target: { value: '' } } as React.ChangeEvent<HTMLInputElement>)}
-                        className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                        aria-label="Clear search"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+                )}
+              </div>
 
-                {/* Search Results Summary */}
-                <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <Package className="h-6 w-6 text-blue-600" />
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        {finalFilteredProducts.length} products found
-                        {searchTerm && ` (filtered from ${filteredProducts.length} total)`}
-                      </p>
-                      {searchTerm && (
-                        <p className="text-sm font-medium text-blue-700">
-                          Search results for "{searchTerm}" in {searchField === 'all' ? 'all fields' : searchField === 'name' ? 'product names' : searchField === 'sku' ? 'SKUs' : 'barcodes'}
-                        </p>
-                      )}
-                      {!searchTerm && (
-                        <p className="text-sm text-gray-500">
-                          Products are paginated (50 per page)
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Export Button */}
-                  <button
-                    onClick={handleExportCSV}
-                    disabled={finalFilteredProducts.length === 0}
-                    className={clsx(
-                      'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-                      finalFilteredProducts.length === 0
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
-                    )}
+              {/* Toolbar: Filter + Results + Export */}
+              <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-100">
+                {/* Left: Filter Dropdown + Results */}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <select
+                    value={searchField}
+                    onChange={(e) => handleSearchFieldChange(e.target.value as 'all' | 'name' | 'sku' | 'barcode')}
+                    className="text-xs font-medium rounded-lg border-gray-200 bg-gray-50 py-1.5 pl-3 pr-8 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:bg-white cursor-pointer transition-colors hover:bg-gray-100"
                   >
-                    <Download className="h-4 w-4" />
-                    Export CSV
-                  </button>
+                    <option value="all">All Fields</option>
+                    <option value="name">Name</option>
+                    <option value="sku">SKU</option>
+                    <option value="barcode">Barcode</option>
+                  </select>
+                  
+                  <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 rounded-md">
+                    <Package className="h-3.5 w-3.5 text-blue-600" />
+                    <span className="text-xs font-medium text-blue-700">
+                      {finalFilteredProducts.length} of {filteredProducts.length}
+                    </span>
+                  </div>
                 </div>
+                
+                {/* Right: Export Button */}
+                <button
+                  onClick={handleExportCSV}
+                  disabled={finalFilteredProducts.length === 0}
+                  title="Export CSV"
+                  className={clsx(
+                    'flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 flex-shrink-0',
+                    finalFilteredProducts.length === 0
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700 cursor-pointer shadow-sm'
+                  )}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Export</span>
+                </button>
               </div>
             </div>
           </div>

@@ -282,7 +282,8 @@ const ProductList: React.FC<ProductListProps> = ({
         </div>
       ) : (
         <>
-          <div className="flex justify-between items-center my-4">
+          {/* Actions Bar */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 my-4">
             <button
               onClick={handleOpenAdd}
               disabled={!isAdmin}
@@ -291,30 +292,35 @@ const ProductList: React.FC<ProductListProps> = ({
               <Plus className="-ml-1 mr-2 h-5 w-5" />
               Add Product
             </button>
-            <div className="flex items-center">
-              <label htmlFor="show-archived" className="mr-2 text-sm font-medium text-gray-700">Show Archived</label>
-              <button
-                type="button"
-                id="show-archived"
-                onClick={() => setShowArchived(!showArchived)}
-                className={clsx(
-                  'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-                  showArchived ? 'bg-blue-600' : 'bg-gray-200'
-                )}
-              >
-                <span
+            <div className="flex items-center justify-between sm:justify-end gap-4">
+              <div className="flex items-center">
+                <label htmlFor="show-archived" className="mr-2 text-sm font-medium text-gray-700">Show Archived</label>
+                <button
+                  type="button"
+                  id="show-archived"
+                  onClick={() => setShowArchived(!showArchived)}
                   className={clsx(
-                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-                    showArchived ? 'translate-x-5' : 'translate-x-0'
+                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                    showArchived ? 'bg-blue-600' : 'bg-gray-200'
                   )}
-                />
-              </button>
+                >
+                  <span
+                    className={clsx(
+                      'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                      showArchived ? 'translate-x-5' : 'translate-x-0'
+                    )}
+                  />
+                </button>
+              </div>
             </div>
           </div>
+
           <p className="text-sm text-gray-600 mb-4">
             Showing {filteredProducts.length} {showArchived ? 'archived' : 'active'} products
           </p>
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -416,7 +422,7 @@ const ProductList: React.FC<ProductListProps> = ({
                     key={product.productId}
                     onClick={() => handleOpenEdit(product)}
                     className={clsx(
-                      'cursor-pointer hover:bg-gray-50',
+                      'cursor-pointer hover:bg-gray-50 transition-colors',
                       product.isArchived && 'bg-gray-100 text-gray-500'
                     )}
                   >
@@ -431,16 +437,63 @@ const ProductList: React.FC<ProductListProps> = ({
             </table>
           </div>
 
+          {/* Mobile Card View - Compact */}
+          <div className="lg:hidden space-y-2">
+            {paginatedProducts.map((product) => (
+              <div
+                key={product.productId}
+                onClick={() => handleOpenEdit(product)}
+                className={clsx(
+                  'rounded-lg border border-gray-200 bg-white p-3 cursor-pointer hover:shadow transition-shadow',
+                  product.isArchived && 'bg-gray-50 opacity-75'
+                )}
+              >
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-gray-900 truncate">
+                      {product.productName}
+                    </h3>
+                    <p className="text-xs text-gray-500 truncate">
+                      {product.sku}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <p className="text-sm font-bold text-green-600">
+                      ${Number(product.price).toFixed(2)}
+                    </p>
+                    <p className="text-xs font-medium text-blue-600">
+                      Qty: {Number(product.quantityOnHand).toFixed(1)}
+                    </p>
+                  </div>
+                </div>
+                
+                {product.barcode && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <p className="text-xs font-mono text-gray-600 truncate">
+                      {product.barcode}
+                    </p>
+                  </div>
+                )}
+                
+                {product.isArchived && (
+                  <span className="inline-block mt-2 px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded">
+                    Archived
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-between">
-              <div className="flex items-center text-sm text-gray-700">
+            <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center text-sm text-gray-700 justify-center sm:justify-start">
                 <span>
                   Showing {startIndex + 1} to {Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length} products
                 </span>
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center space-x-2">
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
@@ -451,8 +504,8 @@ const ProductList: React.FC<ProductListProps> = ({
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
                   )}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Previous</span>
                 </button>
                 
                 <div className="flex items-center space-x-1">
@@ -495,8 +548,8 @@ const ProductList: React.FC<ProductListProps> = ({
                       : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'
                   )}
                 >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4 sm:ml-1" />
                 </button>
               </div>
             </div>

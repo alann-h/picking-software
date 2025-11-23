@@ -10,7 +10,7 @@ import { Plus, Power, ShieldAlert, AlertCircle, Info, KeyRound } from 'lucide-re
 import AddUserDialog from './userManagement/AddUserDialog';
 import ConfirmationDialog from './userManagement/ConfirmationDialog';
 import EditUserDialog from './userManagement/EditUserDialog';
-import UserTable from './userManagement/UserTable';
+import UserTable, { UserCardList } from './userManagement/UserTable';
 import { UserTableSkeleton } from './Skeletons';
 import { ExtendedUserData, PermissionChangeConfirm } from './userManagement/types';
 
@@ -298,8 +298,8 @@ const UsersManagement = () => {
                     )}
                 </div>
 
-                {/* Unified User Table */}
-                <div className="overflow-hidden border border-gray-200 rounded-lg">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-hidden border border-gray-200 rounded-lg">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
@@ -330,6 +330,19 @@ const UsersManagement = () => {
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden">
+                    <UserCardList
+                        userList={optimisticUsers}
+                        currentUser={currentUser}
+                        isLoading={isLoading}
+                        updatePermissionsMutation={updatePermissionsMutation}
+                        onEditUser={setUserToEdit}
+                        onDeleteUser={setUserToDelete}
+                        onPermissionUpdate={handlePermissionUpdate}
+                    />
                 </div>
 
                 {/* Permission Levels Info */}

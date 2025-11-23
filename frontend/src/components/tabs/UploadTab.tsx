@@ -33,10 +33,10 @@ const UploadTab: React.FC = () => {
       <div className="space-y-6">
         {/* Header Section */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
             Upload Product Data
           </h2>
-          <p className="text-gray-500">
+          <p className="text-sm sm:text-base text-gray-500">
             Bulk upload your product inventory using CSV files. The format guide is included below for your reference.
           </p>
         </div>
@@ -66,15 +66,15 @@ const UploadTab: React.FC = () => {
         {/* Additional Information */}
         <div>
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 sm:p-6">
-            <div className="flex">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-shrink-0">
                 <AlertTriangle className="h-6 w-6 text-amber-500" />
               </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-bold text-amber-800">
+              <div className="flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-amber-800 mb-2">
                   💡 Upload Tips
                 </h3>
-                <div className="mt-2 text-sm text-amber-700">
+                <div className="text-sm text-amber-700">
                   <ul className="list-disc space-y-1 pl-5">
                     <li>Ensure your CSV file has the correct column headers</li>
                     <li>Product names and SKUs are required fields</li>

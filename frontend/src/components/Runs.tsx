@@ -39,33 +39,33 @@ const Runs: React.FC = () => {
   return (
     <>
       <title>Smart Picker | Manage Runs</title>
-      <div className="mx-auto my-4 max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto my-2 sm:my-4 max-w-7xl px-2 sm:px-4 lg:px-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="mb-2 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-              <Truck className="h-6 w-6 text-blue-800" />
+        <div className="mb-3 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-blue-100 flex-shrink-0">
+              <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-blue-800" />
             </div>
-            <div>
-              <h1 className="mb-1 text-3xl font-bold">Manage Picking Runs</h1>
-              <p className="text-gray-500">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Manage Picking Runs</h1>
+              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">
                 Create, organize, and track your warehouse picking operations
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col space-y-4 sm:space-y-5">
+        <div className="flex flex-col space-y-3 sm:space-y-4">
 
           {/* Create Run Section */}
           <div>
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 sm:p-6">
-                <h2 className="text-xl font-semibold">
+            <div className="border border-gray-200 rounded-lg sm:rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-3 sm:p-4">
+                <h2 className="text-base sm:text-lg lg:text-xl font-semibold">
                   Create New Run
                 </h2>
               </div>
-              <div className="p-4 sm:p-6">
+              <div className="p-2 sm:p-4">
                 <Suspense fallback={<CreateRunSkeleton />}>
                   <CreateRun />
                 </Suspense>
@@ -75,16 +75,16 @@ const Runs: React.FC = () => {
 
           {/* Run List Section */}
           <div>
-            <div className="border border-gray-200 rounded-xl overflow-hidden min-h-[400px]">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-4 sm:p-6">
-                <h2 className="text-xl font-semibold">
+            <div className="border border-gray-200 rounded-lg sm:rounded-xl overflow-hidden min-h-[300px] sm:min-h-[400px] shadow-sm">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-3 sm:p-4">
+                <h2 className="text-base sm:text-lg lg:text-xl font-semibold">
                   Active & Completed Runs
                 </h2>
-                <p className="text-sm opacity-90 mt-0.5">
+                <p className="text-xs sm:text-sm opacity-90 mt-0.5 hidden sm:block">
                   Monitor progress and manage your picking operations
                 </p>
               </div>
-              <div className="p-4 sm:p-6">
+              <div className="p-2 sm:p-4">
                 <Suspense fallback={<RunListSkeleton />}>
                   <RunList
                     userCompanyId={userCompanyId}

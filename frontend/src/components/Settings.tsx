@@ -106,20 +106,13 @@ const Settings: React.FC = () => {
           {/* Header Section */}
           <div>
             <div className="text-center sm:text-left">
-              <div className="flex items-center space-x-3 mb-2">
-                <div
-                  className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white"
-                >
-                  <SettingsIcon className="h-6 w-6" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-br from-blue-700 to-blue-900 bg-clip-text text-transparent">
-                    Settings
-                  </h1>
-                  <p className="text-md text-gray-500">
-                    Configure your Smart Picker system
-                  </p>
-                </div>
+              <div className="mb-2">
+                <h1 className="text-3xl font-bold bg-gradient-to-br from-blue-700 to-blue-900 bg-clip-text text-transparent">
+                  Settings
+                </h1>
+                <p className="text-md text-gray-500">
+                  Configure your Smart Picker system
+                </p>
               </div>
             </div>
           </div>
@@ -127,9 +120,9 @@ const Settings: React.FC = () => {
           {/* Settings Content */}
           <div>
             <div className="flex flex-col lg:flex-row gap-6">
-              {/* Vertical Menu Sidebar */}
-              <aside className="lg:w-80 lg:flex-shrink-0">
-                <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+              {/* Desktop Vertical Menu Sidebar */}
+              <aside className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+                <div className="rounded-xl border border-gray-200 bg-white overflow-hidden sticky top-4">
                   <div
                     className="bg-gray-50 border-b border-gray-200 p-4"
                   >
@@ -162,7 +155,7 @@ const Settings: React.FC = () => {
                               )}>
                                 {item.label}
                               </span>
-                              <p className="text-xs text-gray-500 hidden lg:block">
+                              <p className="text-xs text-gray-500">
                                 {item.description}
                               </p>
                             </div>
@@ -174,8 +167,41 @@ const Settings: React.FC = () => {
                 </div>
               </aside>
 
+              {/* Mobile Horizontal Tab Navigation */}
+              <div className="lg:hidden mb-4">
+                <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <nav className="flex p-2 gap-2 min-w-max">
+                      {menuItems.map((item) => (
+                        <button
+                          key={item.path}
+                          onClick={() => handleMenuClick(item.path)}
+                          className={clsx(
+                            'flex flex-col items-center justify-center px-4 py-3 rounded-lg transition-colors duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-w-[100px]',
+                            {
+                              'bg-blue-600 text-white': currentPath === item.path,
+                              'text-gray-700 hover:bg-gray-100': currentPath !== item.path,
+                            }
+                          )}
+                        >
+                          <span className={clsx('mb-1', { 'text-white': currentPath === item.path, 'text-gray-500': currentPath !== item.path })}>
+                            {item.icon}
+                          </span>
+                          <span className={clsx(
+                            'text-xs font-semibold text-center',
+                            { 'text-white': currentPath === item.path, 'text-gray-700': currentPath !== item.path }
+                          )}>
+                            {item.label}
+                          </span>
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+                </div>
+              </div>
+
               {/* Content Area */}
-              <main className="flex-1">
+              <main className="flex-1 min-w-0">
                 <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
                   <div className="p-4 sm:p-6 md:p-8">
                     <Routes>

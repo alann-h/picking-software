@@ -96,7 +96,7 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
 
     return (
         <>
-            <div className="space-y-2 mt-2">
+            <div className="space-y-1.5 sm:space-y-2 mt-1 sm:mt-2">
                 {paginatedRuns.map((run) => (
                     <RunItem
                         key={run.id}
@@ -110,50 +110,58 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
             
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 px-4 py-3 bg-white border border-gray-200 rounded-lg">
-                    <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-700">
-                            Showing <span className="font-medium">{((currentPage - 1) * RUNS_PER_PAGE) + 1}</span> to{' '}
-                            <span className="font-medium">
-                                {Math.min(currentPage * RUNS_PER_PAGE, optimisticRuns.length)}
-                            </span> of{' '}
-                            <span className="font-medium">{optimisticRuns.length}</span> runs
-                        </p>
-                    </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-4 mt-3 sm:mt-4 px-2 sm:px-3 py-2 sm:py-2.5 bg-white border border-gray-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
+                        <span className="font-medium">{((currentPage - 1) * RUNS_PER_PAGE) + 1}</span>-<span className="font-medium">{Math.min(currentPage * RUNS_PER_PAGE, optimisticRuns.length)}</span> of <span className="font-medium">{optimisticRuns.length}</span>
+                    </p>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
                         <button
                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
-                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed min-w-[70px] sm:min-w-[80px]"
                         >
-                            <ChevronLeft className="w-4 h-4 mr-1" />
-                            Previous
+                            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                            <span className="hidden sm:inline">Previous</span>
                         </button>
                         
                         <div className="flex items-center gap-1">
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                <button
-                                    key={page}
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                                        currentPage === page
-                                            ? 'bg-blue-600 text-white'
-                                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                                    }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
+                            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                // Show first, last, current, and nearby pages on mobile
+                                let page;
+                                if (totalPages <= 5) {
+                                    page = i + 1;
+                                } else if (currentPage <= 3) {
+                                    page = i + 1;
+                                } else if (currentPage >= totalPages - 2) {
+                                    page = totalPages - 4 + i;
+                                } else {
+                                    page = currentPage - 2 + i;
+                                }
+                                
+                                return (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md min-w-[32px] sm:min-w-[40px] ${
+                                            currentPage === page
+                                                ? 'bg-blue-600 text-white'
+                                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                );
+                            })}
                         </div>
                         
                         <button
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}
-                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed min-w-[70px] sm:min-w-[80px]"
                         >
-                            Next
-                            <ChevronRight className="w-4 h-4 ml-1" />
+                            <span className="hidden sm:inline">Next</span>
+                            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 sm:ml-1" />
                         </button>
                     </div>
                 </div>

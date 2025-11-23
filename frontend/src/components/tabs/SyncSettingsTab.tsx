@@ -83,18 +83,13 @@ const SyncSettingsTab: React.FC = () => {
       
       {/* Header Section */}
       <div className="space-y-3 mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center text-white">
-            <Settings className="h-6 w-6" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              Sync Settings
-            </h2>
-            <p className="text-gray-500">
-              Configure automatic customer and product synchronization from your accounting system
-            </p>
-          </div>
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+            Sync Settings
+          </h2>
+          <p className="text-sm sm:text-base text-gray-500">
+            Configure automatic customer and product synchronization from your accounting system
+          </p>
         </div>
 
         {/* Info Box */}
@@ -112,17 +107,17 @@ const SyncSettingsTab: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap justify-end gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-end gap-3">
           <button
             onClick={() => setIsSyncModalOpen(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
           >
             <RefreshCw className="h-4 w-4" />
             <span className="font-medium">Sync Products Now</span>
           </button>
           <button
             onClick={() => setIsQuoteSyncModalOpen(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
           >
             <FileText className="h-4 w-4" />
             <span className="font-medium">Sync Quotes Now</span>
@@ -236,11 +231,11 @@ const SyncSettingsTab: React.FC = () => {
         )}
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="text-sm text-gray-500 text-center sm:text-left">
             {hasChanges ? 'You have unsaved changes' : 'All changes saved'}
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {hasChanges && (
               <button
                 onClick={handleReset}
@@ -260,12 +255,12 @@ const SyncSettingsTab: React.FC = () => {
               )}
             >
               {saving ? (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-center space-x-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Saving...</span>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-center space-x-2">
                   <Save className="h-4 w-4" />
                   <span>Save Settings</span>
                 </div>

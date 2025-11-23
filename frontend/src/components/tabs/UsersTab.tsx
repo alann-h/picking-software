@@ -10,10 +10,10 @@ const UsersTab: React.FC = () => {
       <div className="space-y-6">
         {/* Header Section */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
             User Management
           </h2>
-          <p className="text-gray-500">
+          <p className="text-sm sm:text-base text-gray-500">
             Manage user accounts, permissions, and access control for your organization.
           </p>
         </div>

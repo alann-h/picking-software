@@ -539,6 +539,7 @@ const RecentQuotesList: React.FC = () => {
     const navigate = useNavigate();
     const [loadingQuoteId, setLoadingQuoteId] = useState<string | null>(null);
     const [displayCount, setDisplayCount] = useState(15);
+    const [searchQuery, setSearchQuery] = useState('');
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
     
     const { data: allQuotes = [] } = useSuspenseQuery<QuoteSummary[]>({
@@ -552,8 +553,17 @@ const RecentQuotesList: React.FC = () => {
         refetchInterval: 60000, // Refetch every minute to keep data fresh
     });
 
-    const recentQuotes = allQuotes?.slice(0, displayCount) || [];
-    const hasMore = displayCount < allQuotes.length;
+    const filteredQuotes = searchQuery === ''
+        ? allQuotes
+        : allQuotes.filter((quote) =>
+            quote.customerName
+                .toLowerCase()
+                .replace(/\s+/g, '')
+                .includes(searchQuery.toLowerCase().replace(/\s+/g, ''))
+        );
+
+    const recentQuotes = filteredQuotes?.slice(0, displayCount) || [];
+    const hasMore = displayCount < filteredQuotes.length;
 
     if (allQuotes.length === 0) {
         return (
@@ -570,14 +580,44 @@ const RecentQuotesList: React.FC = () => {
         const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
         // Load more when scrolled to bottom (with 50px threshold)
         if (scrollHeight - scrollTop <= clientHeight + 50 && hasMore) {
-            setDisplayCount(prev => Math.min(prev + 15, allQuotes.length));
+            setDisplayCount(prev => Math.min(prev + 15, filteredQuotes.length));
         }
     };
 
     return (
         <div className="flex flex-col">
+            {/* Search Bar */}
+            <div className="mb-4">
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        type="text"
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Search by customer name..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setDisplayCount(15); // Reset display count when searching
+                        }}
+                    />
+                    {searchQuery && (
+                        <button
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            onClick={() => {
+                                setSearchQuery('');
+                                setDisplayCount(15);
+                            }}
+                        >
+                            <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        </button>
+                    )}
+                </div>
+            </div>
             <div className="text-sm text-gray-500 mb-3 px-1">
-                Showing {recentQuotes.length} of {allQuotes.length} quotes
+                Showing {recentQuotes.length} of {filteredQuotes.length} quotes
+                {searchQuery && ` (filtered from ${allQuotes.length} total)`}
             </div>
             <div 
                 ref={scrollContainerRef}
@@ -749,9 +789,9 @@ const Dashboard: React.FC = () => {
                     {/* Active Runs Section */}
                     <div>
                         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-                            <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-gray-50">
+                            <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-green-50 to-gray-50">
                                 <div className="flex items-center gap-3">
-                                    <Truck className="w-6 h-6 text-blue-600" />
+                                    <Truck className="w-6 h-6 text-green-600" />
                                     <h2 className="text-xl font-semibold text-gray-800">
                                         Active Picking Runs
                                     </h2>
@@ -823,9 +863,9 @@ const Dashboard: React.FC = () => {
                     {/* Recent Quotes Section */}
                     <div>
                         <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-                            <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-gray-50">
+                            <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-gray-50">
                                 <div className="flex items-center gap-3">
-                                    <FileText className="w-6 h-6 text-purple-600" />
+                                    <FileText className="w-6 h-6 text-blue-600" />
                                     <div>
                                         <h2 className="text-xl font-semibold text-gray-800">
                                             Recent Quotes from QuickBooks
@@ -865,104 +905,115 @@ const Dashboard: React.FC = () => {
 
                     {/* Quote Finder Section */}
                     <div>
-                        <div>
-                            <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center sm:text-left">
-                                Quote Finder
-                            </h2>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {/* Customer Selection */}
-                                <div className="md:col-span-1">
-                                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <UserIcon className="w-5 h-5 text-blue-600" />
-                                            <h3 className="text-lg font-semibold text-gray-800">Select Customer</h3>
-                                        </div>
-                                        <div ref={triggerRef} className="relative">
-                                            <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
-                                                <input
-                                                    className="w-full border-none py-2 pl-3 pr-16 text-sm leading-5 text-gray-900 focus:ring-0"
-                                                    value={selectedCustomer?.customerName || query}
-                                                    onChange={(e) => {
-                                                        setQuery(e.target.value);
-                                                        if (selectedCustomer) handleCustomerChange(null);
-                                                        setIsDropdownOpen(true);
-                                                    }}
-                                                    onFocus={() => setIsDropdownOpen(true)}
-                                                    placeholder="Search customers..."
-                                                />
-                                                {selectedCustomer && (
-                                                    <button 
-                                                        className="absolute inset-y-0 right-8 flex items-center pr-1"
-                                                        onClick={() => handleCustomerChange(null)}
-                                                        title="Clear selection"
-                                                    >
-                                                        <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                                                    </button>
-                                                )}
-                                                <button 
-                                                    className="absolute inset-y-0 right-0 flex items-center pr-2"
-                                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                                >
-                                                    <ChevronDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
-                                                </button>
-                                            </div>
-                                            
-                                            <PortalDropdown isOpen={isDropdownOpen} triggerRef={triggerRef} setIsDropdownOpen={setIsDropdownOpen}>
-                                                {filteredCustomers.length === 0 && query !== '' ? (
-                                                    <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
-                                                        Nothing found.
-                                                    </div>
-                                                ) : (
-                                                    filteredCustomers.map((customer) => (
-                                                        <div
-                                                            key={customer.customerId}
-                                                            className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-blue-50 transition-colors"
-                                                            onClick={() => handleCustomerChange(customer)}
-                                                        >
-                                                            <span className={`block truncate ${selectedCustomer?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
-                                                                {customer.customerName}
-                                                            </span>
-                                                            {selectedCustomer?.customerId === customer.customerId ? (
-                                                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-600">
-                                                                  <Check className="h-5 w-5" aria-hidden="true" />
-                                                                </span>
-                                                            ) : null}
-                                                        </div>
-                                                    ))
-                                                )}
-                                            </PortalDropdown>
-                                        </div>
+                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <div className="p-4 sm:p-5 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-gray-50">
+                                <div className="flex items-center gap-3">
+                                    <Search className="w-6 h-6 text-indigo-600" />
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-gray-800">
+                                            Quote Finder
+                                        </h2>
+                                        <p className="text-sm text-gray-600 mt-0.5">
+                                            Search for customer quotes
+                                        </p>
                                     </div>
                                 </div>
-
-                                {/* Quotes Display */}
-                                <div className="md:col-span-2">
-                                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm min-h-[24rem]">
-                                        <div className="p-5">
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <FileText className="w-5 h-5 text-blue-600" />
-                                                <h3 className="text-lg font-semibold text-gray-800">
-                                                    {selectedCustomer ? `Quotes for ${selectedCustomer.customerName}` : 'Select a Customer'}
-                                                </h3>
+                            </div>
+                            <div className="p-4 sm:p-5">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Customer Selection */}
+                                    <div className="md:col-span-1">
+                                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <UserIcon className="w-5 h-5 text-indigo-600" />
+                                                <h3 className="text-base font-semibold text-gray-800">Select Customer</h3>
                                             </div>
-                                            
-                                            {isPending && (
-                                                <div className="w-full flex flex-col items-center justify-center pt-10">
-                                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                                        <div className="bg-blue-600 h-1.5 rounded-full animate-pulse"></div>
-                                                    </div>
-                                                    <p className="mt-2 text-sm text-gray-600">Loading quotes...</p>
+                                            <div ref={triggerRef} className="relative">
+                                                <div className="relative w-full cursor-default overflow-hidden rounded-lg bg-white text-left border border-gray-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2">
+                                                    <input
+                                                        className="w-full border-none py-2 pl-3 pr-16 text-sm leading-5 text-gray-900 focus:ring-0"
+                                                        value={selectedCustomer?.customerName || query}
+                                                        onChange={(e) => {
+                                                            setQuery(e.target.value);
+                                                            if (selectedCustomer) handleCustomerChange(null);
+                                                            setIsDropdownOpen(true);
+                                                        }}
+                                                        onFocus={() => setIsDropdownOpen(true)}
+                                                        placeholder="Search customers..."
+                                                    />
+                                                    {selectedCustomer && (
+                                                        <button 
+                                                            className="absolute inset-y-0 right-8 flex items-center pr-1"
+                                                            onClick={() => handleCustomerChange(null)}
+                                                            title="Clear selection"
+                                                        >
+                                                            <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                                                        </button>
+                                                    )}
+                                                    <button 
+                                                        className="absolute inset-y-0 right-0 flex items-center pr-2"
+                                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                                    >
+                                                        <ChevronDown className="h-5 w-5 text-gray-400 cursor-pointer" aria-hidden="true" />
+                                                    </button>
                                                 </div>
-                                            )}
-                                            
-                                            {!isPending && selectedCustomer ? (
-                                                <Suspense fallback={<AvailableQuotesSkeleton/>}>
-                                                    <QuoteList customer={selectedCustomer} />
-                                                </Suspense>
-                                            ) : !isPending && !selectedCustomer ? (
-                                                <InfoBox icon={Search} title="No Customer Selected" message="Choose a customer from the dropdown to view their available quotes." />
-                                            ) : null}
+                                                
+                                                <PortalDropdown isOpen={isDropdownOpen} triggerRef={triggerRef} setIsDropdownOpen={setIsDropdownOpen}>
+                                                    {filteredCustomers.length === 0 && query !== '' ? (
+                                                        <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
+                                                            Nothing found.
+                                                        </div>
+                                                    ) : (
+                                                        filteredCustomers.map((customer) => (
+                                                            <div
+                                                                key={customer.customerId}
+                                                                className="group relative cursor-pointer select-none py-2 pl-10 pr-4 text-gray-900 hover:bg-indigo-50 transition-colors"
+                                                                onClick={() => handleCustomerChange(customer)}
+                                                            >
+                                                                <span className={`block truncate ${selectedCustomer?.customerId === customer.customerId ? 'font-medium' : 'font-normal'}`}>
+                                                                    {customer.customerName}
+                                                                </span>
+                                                                {selectedCustomer?.customerId === customer.customerId ? (
+                                                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-600">
+                                                                      <Check className="h-5 w-5" aria-hidden="true" />
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </PortalDropdown>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Quotes Display */}
+                                    <div className="md:col-span-2">
+                                        <div className="bg-gray-50 border border-gray-200 rounded-lg min-h-[24rem]">
+                                            <div className="p-4">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <FileText className="w-5 h-5 text-indigo-600" />
+                                                    <h3 className="text-base font-semibold text-gray-800">
+                                                        {selectedCustomer ? `Quotes for ${selectedCustomer.customerName}` : 'Select a Customer'}
+                                                    </h3>
+                                                </div>
+                                                
+                                                {isPending && (
+                                                    <div className="w-full flex flex-col items-center justify-center pt-10">
+                                                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                            <div className="bg-indigo-600 h-1.5 rounded-full animate-pulse"></div>
+                                                        </div>
+                                                        <p className="mt-2 text-sm text-gray-600">Loading quotes...</p>
+                                                    </div>
+                                                )}
+                                                
+                                                {!isPending && selectedCustomer ? (
+                                                    <Suspense fallback={<AvailableQuotesSkeleton/>}>
+                                                        <QuoteList customer={selectedCustomer} />
+                                                    </Suspense>
+                                                ) : !isPending && !selectedCustomer ? (
+                                                    <InfoBox icon={Search} title="No Customer Selected" message="Choose a customer from the dropdown to view their available quotes." />
+                                                ) : null}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
