@@ -120,7 +120,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
             >
               {product.productName}
             </button>
-            <span className="text-xs font-mono font-medium text-gray-600 block">
+            <span className="text-sm font-mono font-medium text-gray-600 block">
               SKU: {product.sku}
             </span>
           </div>

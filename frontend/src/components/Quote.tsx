@@ -259,7 +259,7 @@ const Quote: React.FC = () => {
         <ProductFilter searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)} />
         
         {/* Mobile Card View - Hidden on sm and larger */}
-        <div className="sm:hidden space-y-3">
+        <div className="sm:hidden space-y-1">
           {displayedProducts.map((product) => (
             <ProductRow
               key={product.productId}
