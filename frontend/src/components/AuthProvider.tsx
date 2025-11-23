@@ -41,7 +41,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { isAdmin, userId, userCompanyId, isLoadingStatus, userName, userEmail, connectionType, isError } = useUserStatus();
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
-  const [permissionsLoading, setPermissionsLoading] = useState(true);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
 
   const loadUserPermissions = useCallback(async () => {
     if (!userCompanyId || !userId) return;
@@ -73,10 +73,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Load user permissions when authenticated
   useEffect(() => {
-    if (userCompanyId && userId && !permissions) {
+    if (userCompanyId && userId && !permissions && !permissionsLoading) {
       loadUserPermissions();
     }
-  }, [userCompanyId, userId, permissions, loadUserPermissions]);
+  }, [userCompanyId, userId, permissions, permissionsLoading, loadUserPermissions]);
 
   // Clear permissions when authentication fails
   useEffect(() => {
