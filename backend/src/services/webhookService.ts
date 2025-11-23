@@ -77,7 +77,25 @@ export class WebhookService {
           await this.handleUpdateEstimate(event.id, realmId);
           break;
         case 'Delete':
-          console.log(`Skipping delete operation for estimate: ${event.id}`);
+          await this.handleDeleteEstimate(event.id, realmId);
+          break;
+        default:
+          console.warn(`Unknown operation: ${event.operation}`);
+      }
+      return;
+    }
+
+    // Process Customer events
+    if (event.name === 'Customer') {
+      switch (event.operation) {
+        case 'Create':
+          await this.handleCreateCustomer(event.id, realmId);
+          break;
+        case 'Update':
+          console.log(`Skipping update operation for customer: ${event.id}`);
+          break;
+        case 'Delete':
+          await this.handleDeleteCustomer(event.id, realmId);
           break;
         default:
           console.warn(`Unknown operation: ${event.operation}`);
@@ -479,6 +497,205 @@ export class WebhookService {
     } catch (error) {
       console.error(`Error updating estimate ${estimateId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Handle estimate (quote) deletion webhook
+   */
+  private static async handleDeleteEstimate(estimateId: string, realmId: string): Promise<void> {
+    try {
+      console.log(`Deleting estimate with ID: ${estimateId}`);
+      
+      // Get company ID from realmId
+      const company = await prisma.company.findFirst({
+        where: { qboRealmId: realmId },
+        select: { id: true }
+      });
+
+      if (!company) {
+        console.error(`Company not found for realmId: ${realmId}`);
+        return;
+      }
+
+      // Check if quote exists and its status
+      const existingQuote = await prisma.quote.findUnique({
+        where: { id: estimateId },
+        select: { 
+          status: true,
+          quoteNumber: true,
+          companyId: true
+        }
+      });
+
+      if (!existingQuote) {
+        console.log(`Estimate with ID ${estimateId} not found in database`);
+        return;
+      }
+
+      // Verify the quote belongs to the correct company
+      if (existingQuote.companyId !== company.id) {
+        console.error(`Estimate ${estimateId} does not belong to company ${company.id}`);
+        return;
+      }
+
+      // Check if quote is being checked or completed - if so, warn but still delete
+      if (['checking', 'completed'].includes(existingQuote.status)) {
+        console.warn(`⚠️  Deleting quote ${estimateId} (${existingQuote.quoteNumber}) with status ${existingQuote.status}`);
+      }
+
+      // Delete the quote from database
+      await prisma.quote.delete({
+        where: { id: estimateId }
+      });
+
+      console.log(`✅ Successfully deleted estimate: ${existingQuote.quoteNumber} (ID: ${estimateId})`);
+    } catch (error) {
+      console.error(`Error deleting estimate ${estimateId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle customer creation webhook
+   */
+  private static async handleCreateCustomer(customerId: string, realmId: string): Promise<void> {
+    try {
+      console.log(`Creating customer with ID: ${customerId}`);
+      
+      // Get company ID from realmId
+      const company = await prisma.company.findFirst({
+        where: { qboRealmId: realmId },
+        select: { id: true, connectionType: true }
+      });
+
+      if (!company) {
+        console.error(`Company not found for realmId: ${realmId}`);
+        return;
+      }
+
+      // Check if customer already exists
+      const existingCustomer = await prisma.customer.findUnique({
+        where: { id: customerId }
+      });
+
+      if (existingCustomer) {
+        console.log(`Customer with ID ${customerId} already exists in database`);
+        return;
+      }
+
+      // Get customer details from QuickBooks
+      const customerData = await this.getCustomerFromQBO(customerId, company.id, company.connectionType as 'qbo' | 'xero');
+      
+      if (!customerData) {
+        console.error(`Failed to fetch customer data from QBO for ID: ${customerId}`);
+        return;
+      }
+
+      // Create new customer
+      await prisma.customer.create({
+        data: {
+          id: customerId,
+          companyId: company.id,
+          customerName: customerData.customer_name
+        }
+      });
+
+      console.log(`✅ Successfully created customer: ${customerData.customer_name} (ID: ${customerId})`);
+    } catch (error) {
+      console.error(`Error creating customer ${customerId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle customer deletion webhook
+   */
+  private static async handleDeleteCustomer(customerId: string, realmId: string): Promise<void> {
+    try {
+      console.log(`Deleting customer with ID: ${customerId}`);
+      
+      // Get company ID from realmId
+      const company = await prisma.company.findFirst({
+        where: { qboRealmId: realmId },
+        select: { id: true }
+      });
+
+      if (!company) {
+        console.error(`Company not found for realmId: ${realmId}`);
+        return;
+      }
+
+      // Check if customer exists
+      const existingCustomer = await prisma.customer.findUnique({
+        where: { id: customerId },
+        select: { 
+          customerName: true,
+          companyId: true,
+          _count: {
+            select: { quotes: true }
+          }
+        }
+      });
+
+      if (!existingCustomer) {
+        console.log(`Customer with ID ${customerId} not found in database`);
+        return;
+      }
+
+      // Verify the customer belongs to the correct company
+      if (existingCustomer.companyId !== company.id) {
+        console.error(`Customer ${customerId} does not belong to company ${company.id}`);
+        return;
+      }
+
+      // Warn if customer has associated quotes
+      if (existingCustomer._count.quotes > 0) {
+        console.warn(`⚠️  Deleting customer ${customerId} (${existingCustomer.customerName}) that has ${existingCustomer._count.quotes} associated quote(s)`);
+      }
+
+      // Delete the customer from database
+      await prisma.customer.delete({
+        where: { id: customerId }
+      });
+
+      console.log(`✅ Successfully deleted customer: ${existingCustomer.customerName} (ID: ${customerId})`);
+    } catch (error) {
+      console.error(`Error deleting customer ${customerId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get customer data from QuickBooks Online
+   */
+  private static async getCustomerFromQBO(customerId: string, companyId: string, connectionType: 'qbo' | 'xero'): Promise<{ customer_name: string } | null> {
+    try {
+      if (connectionType !== 'qbo') {
+        console.log(`Skipping QBO fetch for non-QBO connection type: ${connectionType}`);
+        return null;
+      }
+
+      const oauthClient = await getOAuthClient(companyId, 'qbo');
+      const baseURL = await getBaseURL(oauthClient, 'qbo');
+      const realmId = getRealmId(oauthClient as IntuitOAuthClient);
+      
+      const url = `${baseURL}v3/company/${realmId}/customer/${customerId}?minorversion=75`;
+      
+      const response = await (oauthClient as IntuitOAuthClient).makeApiCall({ url });
+      const customerData = response.json?.QueryResponse?.Customer?.[0] || response.json?.Customer;
+
+      if (!customerData) {
+        console.error(`No customer data found for ID: ${customerId}`);
+        return null;
+      }
+
+      return {
+        customer_name: customerData.DisplayName || customerData.FullyQualifiedName || ''
+      };
+    } catch (error) {
+      console.error(`Error fetching customer from QBO for ID ${customerId}:`, error);
+      return null;
     }
   }
 
