@@ -355,6 +355,14 @@ const QuoteCard: React.FC<{
             <span className="text-lg font-semibold text-blue-600">{quote.timeTaken}</span>
           </div>
 
+          {/* Created Date */}
+          {quote.createdAt && (
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium text-gray-500">Created</span>
+              <span className="text-sm font-medium text-gray-700">{quote.createdAt}</span>
+            </div>
+          )}
+
           {/* Preparers */}
           <div className="flex items-center gap-2 pt-2">
             <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />

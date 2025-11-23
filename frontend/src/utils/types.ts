@@ -87,6 +87,7 @@ export interface QuoteSummary {
     customerName: string;
     customerId: string;
     lastModified: string;
+    createdAt?: string;
     preparerNames?: string;
     orderStatus: string;
     timeStarted: string;

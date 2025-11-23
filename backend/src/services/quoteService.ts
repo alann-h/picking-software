@@ -1024,6 +1024,7 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all', companyId
 
       const formattedTimeStarted = formatTimestampForSydney(startTime);
       const formattedLastModified = formatTimestampForSydney(quote.updatedAt);
+      const formattedCreatedAt = formatTimestampForSydney(quote.createdAt);
 
       return {
         id: quote.id,
@@ -1034,6 +1035,7 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all', companyId
         orderStatus: quote.status,
         timeStarted: formattedTimeStarted,
         lastModified: formattedLastModified,
+        createdAt: formattedCreatedAt,
         timeTaken: timeTaken,
         companyId: quote.companyId,
         preparerNames: quote.preparerNames,
