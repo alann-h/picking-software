@@ -19,11 +19,17 @@ import { getStatusColor } from '../utils/other';
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
+const getFirstName = (name: string | null): string => {
+  if (!name) return 'N/A';
+  const parts = name.trim().split(/\s+/);
+  return parts[0] || 'N/A';
+};
+
 const Quote: React.FC = () => {
   const query = useQuery();
   const quoteId = query.get('id') || '';
   const { modalState, closeModal, openModal } = useModalState();
-  const { isAdmin, connectionType } = useAuth();
+  const { isAdmin, connectionType, userName } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const { quoteData, actions, pendingStates } = useQuoteManager(quoteId, openModal, closeModal);
@@ -152,35 +158,40 @@ const Quote: React.FC = () => {
 
       {/* Header Info */}
       <div className="mb-6 p-6 bg-gray-50 rounded-xl border border-gray-200 shadow-lg">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 items-center">
-          {/* Customer Name */}
-          <div className="text-center sm:text-left">
-            <span className="text-xs text-gray-500 uppercase tracking-wide font-medium block mb-1">
-              Customer
-            </span>
-            <h3 className="text-lg font-semibold text-blue-600">
+        <div className="flex flex-col gap-4">
+          {/* Top Row: Customer Name (big) */}
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold text-blue-600">
               {quoteData.customerName}
-            </h3>
+            </h2>
           </div>
           
-          {/* Order Status */}
-          <div className="text-center sm:text-left">
-            <span className="text-xs text-gray-500 uppercase tracking-wide font-medium block mb-1">
-              Status
-            </span>
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold text-white capitalize ${getStatusColor(quoteData.orderStatus)}`}>
-              {quoteData.orderStatus}
-            </span>
-          </div>
-
-          {/* Last Modified */}
-          <div className="text-center sm:text-left">
-            <span className="text-xs text-gray-500 uppercase tracking-wide font-medium block mb-1">
-              Last Modified
-            </span>
-            <p className="text-sm font-medium text-gray-900">
-              {quoteData.lastModified}
-            </p>
+          {/* Bottom Row: Status, Picker, and Last Modified */}
+          <div className="flex flex-wrap items-baseline gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                Status:
+              </span>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold text-white capitalize ${getStatusColor(quoteData.orderStatus)}`}>
+                {quoteData.orderStatus}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                Picker:
+              </span>
+              <span className="text-sm font-medium text-gray-900">
+                {getFirstName(userName)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                Last Modified:
+              </span>
+              <span className="text-xs text-gray-600">
+                {quoteData.lastModified}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -248,8 +259,21 @@ const Quote: React.FC = () => {
         
         <ProductFilter searchTerm={searchTerm} onSearchChange={(e) => setSearchTerm(e.target.value)} />
         
-        {/* Product Table */}
-        <div className="overflow-x-auto">
+        {/* Mobile Card View - Hidden on md and larger */}
+        <div className="md:hidden space-y-3">
+          {displayedProducts.map((product) => (
+            <ProductRow
+              key={product.productId}
+              product={product}
+              actions={actions}
+              pendingStates={pendingStates}
+              isMobile={true}
+            />
+          ))}
+        </div>
+
+        {/* Desktop Table View - Hidden on mobile */}
+        <div className="hidden md:block overflow-x-auto">
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -268,6 +292,7 @@ const Quote: React.FC = () => {
                       product={product}
                       actions={actions}
                       pendingStates={pendingStates}
+                      isMobile={false}
                     />
                   ))}
                 </tbody>
