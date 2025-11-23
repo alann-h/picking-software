@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Plus, Camera, Receipt, Barcode, ExternalLink } from 'lucide-react';
 
@@ -30,7 +30,6 @@ const Quote: React.FC = () => {
   const quoteId = query.get('id') || '';
   const { modalState, closeModal, openModal } = useModalState();
   const { isAdmin, connectionType, userName } = useAuth();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   const { quoteData, actions, pendingStates } = useQuoteManager(quoteId, openModal, closeModal);
 
@@ -178,7 +177,7 @@ const Quote: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
-                Picker:
+                Picker(s):
               </span>
               <span className="text-sm font-medium text-gray-900">
                 {getFirstName(userName)}
@@ -188,7 +187,7 @@ const Quote: React.FC = () => {
               <span className="text-xs text-gray-500 uppercase tracking-wide font-medium">
                 Last Modified:
               </span>
-              <span className="text-xs text-gray-600">
+              <span className="text-sm font-medium text-gray-900">
                 {quoteData.lastModified}
               </span>
             </div>
