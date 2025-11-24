@@ -59,6 +59,7 @@ export const testWebhook = async (req: Request, res: Response, next: NextFunctio
 };
 
 // Xero webhook verification middleware
+// Note: This expects express.raw() middleware to be used before this, so req.body is a Buffer
 export const verifyXeroWebhook = (req: Request, res: Response, next: NextFunction) => {
   const signature = req.get('x-xero-signature');
   const webhookKey = process.env.XERO_WEBHOOK_KEY;
@@ -72,28 +73,49 @@ export const verifyXeroWebhook = (req: Request, res: Response, next: NextFunctio
     return res.status(500).send('Server configuration error.');
   }
 
-  if (!req.rawBody) {
-    console.error('Request rawBody is missing. Ensure express.json({ verify: ... }) is used.');
+  // With express.raw(), req.body is the raw Buffer
+  const rawBodyBuffer = req.body;
+  
+  if (!rawBodyBuffer || !Buffer.isBuffer(rawBodyBuffer)) {
+    console.error('Request body is missing or not a Buffer. Ensure express.raw() is used.');
     return res.status(400).send('Bad Request: Missing raw body.');
   }
 
   // Xero uses HMAC-SHA256 with the webhook key
-  const hash = crypto.createHmac('sha256', webhookKey).update(req.rawBody).digest('base64');
+  // Use the raw body buffer directly
+  const hash = crypto.createHmac('sha256', webhookKey).update(rawBodyBuffer).digest('base64');
 
   if (signature !== hash) {
-    console.warn('Xero webhook signature invalid. Expected:', hash, 'Received:', signature);
+    console.warn('=== XERO SIGNATURE MISMATCH ===');
+    console.warn('Expected:', hash);
+    console.warn('Received:', signature);
+    console.warn('Raw body length:', rawBodyBuffer.length);
+    console.warn('Raw body (first 200 chars):', rawBodyBuffer.toString('utf8').substring(0, 200));
+    console.warn('==============================');
     return res.status(403).send('Webhook signature invalid.');
   }
+  
+  console.log('✓ Xero webhook signature verified successfully');
   next();
 };
 
 // Xero webhook handler - logs the response
+// Note: req.body is a Buffer from express.raw(), parse it as JSON for logging
 export const handleXeroWebhook = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Parse the raw body buffer as JSON for logging
+    const bodyBuffer = req.body as Buffer;
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(bodyBuffer.toString('utf8'));
+    } catch (e) {
+      parsedBody = { error: 'Failed to parse body as JSON', raw: bodyBuffer.toString('utf8') };
+    }
+    
     console.log('=== XERO WEBHOOK RECEIVED ===');
     console.log('Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-    console.log('Raw Body:', req.rawBody?.toString());
+    console.log('Body (parsed):', JSON.stringify(parsedBody, null, 2));
+    console.log('Raw Body (first 500 chars):', bodyBuffer.toString('utf8').substring(0, 500));
     console.log('============================');
     
     res.status(200).send('OK');
