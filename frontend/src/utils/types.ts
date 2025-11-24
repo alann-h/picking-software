@@ -28,6 +28,7 @@ export interface QuoteData {
   pickerNote?: string;
   orderNote?: string;
   externalSyncUrl?: string;
+  preparerNames?: string | null;
 }
 
 export interface BarcodeListenerProps {

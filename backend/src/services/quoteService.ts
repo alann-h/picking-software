@@ -331,7 +331,8 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
       companyId,
       orderNote: customerMemo?.value as string || null,
       pickerNote: null,
-      externalSyncUrl: null
+      externalSyncUrl: null,
+      preparerNames: null
     };
 }
 
@@ -395,7 +396,8 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
     companyId,
     orderNote: quote.reference || null,
     pickerNote: null,
-    externalSyncUrl: null
+    externalSyncUrl: null,
+    preparerNames: null
   };
 }
 
@@ -604,6 +606,7 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
       orderNote: quote.orderNote,
       pickerNote: quote.pickerNote,
       externalSyncUrl: quote.externalSyncUrl,
+      preparerNames: quote.preparerNames,
     };
 
     quote.quoteItems.forEach(item => {

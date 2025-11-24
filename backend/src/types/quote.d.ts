@@ -38,6 +38,7 @@ export interface FilteredQuote {
     orderNote: string | null;
     pickerNote: string | null;
     externalSyncUrl: string | null;
+    preparerNames: string | null;
 }
 
 export interface QuoteFetchError {

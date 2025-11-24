@@ -19,17 +19,11 @@ import { getStatusColor } from '../utils/other';
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
-const getFirstName = (name: string | null): string => {
-  if (!name) return 'N/A';
-  const parts = name.trim().split(/\s+/);
-  return parts[0] || 'N/A';
-};
-
 const Quote: React.FC = () => {
   const query = useQuery();
   const quoteId = query.get('id') || '';
   const { modalState, closeModal, openModal } = useModalState();
-  const { isAdmin, connectionType, userName } = useAuth();
+  const { isAdmin, connectionType } = useAuth();
   
   const { quoteData, actions, pendingStates } = useQuoteManager(quoteId, openModal, closeModal);
 
@@ -180,7 +174,7 @@ const Quote: React.FC = () => {
                 Picker(s):
               </span>
               <span className="text-sm font-medium text-gray-900">
-                {getFirstName(userName)}
+                {quoteData.preparerNames || 'Not Started'}
               </span>
             </div>
             <div className="flex items-center gap-2">
