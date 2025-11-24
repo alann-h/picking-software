@@ -9,11 +9,6 @@ router.get('/test', testWebhook);
 
 // Xero webhook endpoints
 router.get('/xero', handleXeroChallenge); // Challenge endpoint for "intent to receive"
-// Use express.raw() to capture exact raw body for signature verification
-router.post('/xero', 
-  express.raw({ type: 'application/json', limit: '1mb' }),
-  verifyXeroWebhook, 
-  handleXeroWebhook
-); // Webhook receiver
+router.post('/xero', verifyXeroWebhook, handleXeroWebhook); // Webhook receiver
 
 export default router;
