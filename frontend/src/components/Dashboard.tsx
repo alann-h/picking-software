@@ -677,7 +677,7 @@ const Dashboard: React.FC = () => {
     const [query, setQuery] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const triggerRef = React.useRef<HTMLDivElement>(null);
-    const { userCompanyId } = useAuth();
+    const { userCompanyId, connectionType } = useAuth();
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],
@@ -869,7 +869,7 @@ const Dashboard: React.FC = () => {
                                     <FileText className="w-6 h-6 text-blue-600" />
                                     <div>
                                         <h2 className="text-xl font-semibold text-gray-800">
-                                            Recent Quotes from QuickBooks
+                                            Recent Quotes from {connectionType === 'xero' ? 'Xero' : 'QuickBooks'}
                                         </h2>
                                         <p className="text-sm text-gray-600 mt-0.5">
                                             Latest pending quotes ready to be picked
