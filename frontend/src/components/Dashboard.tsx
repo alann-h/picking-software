@@ -158,7 +158,7 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string>; ex
                                                                   <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
                                                               )}
                                                           </div>
-                                                          <span className="text-xs text-gray-700 sm:hidden truncate">{quote.customerName}</span>
+                                                          <span className="text-xs text-gray-700 sm:hidden truncate max-w-[120px]" title={quote.customerName}>{quote.customerName}</span>
                                                       </div>
                                                   </td>
                                                   <td className="px-3 sm:px-4 py-3 whitespace-nowrap text-sm text-gray-700 hidden sm:table-cell">{quote.customerName}</td>
