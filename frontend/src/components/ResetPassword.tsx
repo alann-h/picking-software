@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Lock } from 'lucide-react';
+import { Eye, EyeOff, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -66,9 +66,9 @@ const ResetPassword: React.FC = () => {
       await resetPassword(token, data.password);
       handleOpenSnackbar('Password reset successfully! You can now log in with your new password.', 'success');
       navigate('/login');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Password reset error:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to reset password. Please try again.';
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to reset password. Please try again.';
       handleOpenSnackbar(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
@@ -86,33 +86,43 @@ const ResetPassword: React.FC = () => {
           description="Reset your Smart Picker password"
           canonicalUrl="https://smartpicker.com.au/reset-password"
         />
-        <div className="flex min-h-screen items-center bg-gradient-to-br from-blue-700 via-blue-500 to-blue-400 py-4">
-          <div className="container mx-auto max-w-sm">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="rounded-2xl border border-white/20 bg-black/30 p-6 shadow-2xl bg-black/30">
-                <div className="mb-3 text-center">
-                  <h1 className="mb-2 bg-gradient-to-r from-blue-500 to-blue-300 bg-clip-text text-2xl font-bold text-transparent">
+        <div className="flex min-h-screen bg-white">
+          <div className="flex w-full flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24">
+            <main className="mx-auto w-full max-w-sm lg:w-96">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mt-8"
+              >
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                     Invalid Reset Link
                   </h1>
+                  <p className="mt-2 text-lg text-slate-600">
+                    This password reset link is invalid or has expired
+                  </p>
                 </div>
-                
-                <div className="mb-3 rounded-md bg-red-900/50 p-3 text-center text-red-300">
-                  {tokenError}
+
+                <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-600 bg-red-50 p-4">
+                  <AlertCircle
+                    className="h-5 w-5 flex-shrink-0 text-red-700"
+                    aria-hidden="true"
+                  />
+                  <p className="text-sm font-medium text-red-800">
+                    {tokenError}
+                  </p>
                 </div>
                 
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="w-full cursor-pointer rounded-lg bg-gradient-to-r from-blue-800 to-blue-500 py-3 text-white transition hover:from-blue-500 hover:to-blue-800"
+                  className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:from-blue-600 hover:to-blue-400 hover:shadow-md hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 cursor-pointer"
                 >
                   Back to Login
                 </button>
-              </div>
-            </motion.div>
+              </motion.div>
+            </main>
           </div>
         </div>
       </>
@@ -126,85 +136,159 @@ const ResetPassword: React.FC = () => {
         description="Reset your Smart Picker password"
         canonicalUrl="https://smartpicker.com.au/reset-password"
       />
-      <div className="flex min-h-screen items-center bg-gradient-to-r from-indigo-500 to-purple-600 py-4">
-        <div className="container mx-auto max-w-sm">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="rounded-2xl border border-white/20 bg-black/30 p-6 shadow-2xl bg-black/30">
-              <div className="mb-4 text-center">
-                <h1 className="mb-1 bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-3xl font-bold text-transparent">
+      <div className="flex min-h-screen bg-white">
+        <div className="flex w-full flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:px-20 xl:px-24">
+          <main className="mx-auto w-full max-w-sm lg:w-96">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mt-8"
+            >
+              {/* Header */}
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                   Reset Password
                 </h1>
-                <p className="text-lg text-gray-300">
+                <p className="mt-2 text-lg text-slate-600">
                   Enter your new password below
                 </p>
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      {...register('password')}
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="New Password"
-                      disabled={isSubmitting}
-                      className={`w-full rounded-lg border bg-transparent py-2 pl-10 pr-10 text-white placeholder-gray-400 ${errors.password ? 'border-red-500' : 'border-gray-600'} focus:border-blue-400 focus:ring-blue-400`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={isSubmitting}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400"
+                <div className="space-y-6">
+                  {/* Password Input */}
+                  <div>
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-medium leading-6 text-gray-900"
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                    {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>}
+                      New Password
+                    </label>
+                    <div className="relative mt-2">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                      </div>
+                      <input
+                        {...register('password')}
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        autoFocus
+                        disabled={isSubmitting}
+                        className={`block w-full rounded-lg border-0 py-2.5 pl-10 pr-10 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 ${
+                          errors.password
+                            ? 'ring-red-500 focus:ring-red-500'
+                            : 'ring-gray-300 focus:ring-blue-600'
+                        }`}
+                        placeholder="Enter your new password"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isSubmitting}
+                          className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                        >
+                          <span className="sr-only">
+                            {showPassword ? 'Hide password' : 'Show password'}
+                          </span>
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    {errors.password && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {errors.password.message}
+                      </p>
+                    )}
                   </div>
 
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      {...register('confirmPassword')}
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Confirm New Password"
-                      disabled={isSubmitting}
-                      className={`w-full rounded-lg border bg-transparent py-2 pl-10 pr-10 text-white placeholder-gray-400 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-600'} focus:border-blue-400 focus:ring-blue-400`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      disabled={isSubmitting}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400"
+                  {/* Confirm Password Input */}
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-sm font-medium leading-6 text-gray-900"
                     >
-                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                    {errors.confirmPassword && <p className="mt-1 text-sm text-red-400">{errors.confirmPassword.message}</p>}
+                      Confirm New Password
+                    </label>
+                    <div className="relative mt-2">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                      </div>
+                      <input
+                        {...register('confirmPassword')}
+                        id="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        disabled={isSubmitting}
+                        className={`block w-full rounded-lg border-0 py-2.5 pl-10 pr-10 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 ${
+                          errors.confirmPassword
+                            ? 'ring-red-500 focus:ring-red-500'
+                            : 'ring-gray-300 focus:ring-blue-600'
+                        }`}
+                        placeholder="Confirm your new password"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          disabled={isSubmitting}
+                          className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                        >
+                          <span className="sr-only">
+                            {showConfirmPassword ? 'Hide password' : 'Show password'}
+                          </span>
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {errors.confirmPassword.message}
+                      </p>
+                    )}
                   </div>
 
+                  {/* Submit Button */}
                   <button
                     type="submit"
                     disabled={!isValid || isSubmitting || !passwordValue || !confirmPasswordValue}
-                    className="w-full cursor-pointer rounded-lg bg-gradient-to-r from-blue-800 to-blue-500 py-3 text-lg font-semibold text-white transition hover:from-blue-500 hover:to-blue-800 disabled:bg-gray-700 disabled:text-gray-400"
+                    className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:from-blue-600 hover:to-blue-400 hover:shadow-md hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:bg-none disabled:text-gray-500 disabled:transform-none disabled:shadow-none cursor-pointer"
                   >
-                    {isSubmitting ? 'Resetting Password...' : 'Reset Password'}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Resetting Password...
+                      </>
+                    ) : (
+                      'Reset Password'
+                    )}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => navigate('/login')}
-                    disabled={isSubmitting}
-                    className="w-full cursor-pointer text-center text-gray-300"
-                  >
-                    Back to Login
-                  </button>
+                  {/* Back to Login Link */}
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/login')}
+                      disabled={isSubmitting}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-500 focus:outline-none cursor-pointer"
+                    >
+                      Back to Login
+                    </button>
+                  </div>
                 </div>
               </form>
-            </div>
-          </motion.div>
+            </motion.div>
+          </main>
         </div>
       </div>
     </>
