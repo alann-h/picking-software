@@ -363,6 +363,14 @@ const QuoteCard: React.FC<{
             </div>
           )}
 
+          {/* Completed Date - only show if checking or completed */}
+          {['checking', 'completed'].includes(quote.orderStatus) && quote.lastModified && (
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-medium text-gray-500">Completed</span>
+              <span className="text-sm font-medium text-gray-700">{quote.lastModified}</span>
+            </div>
+          )}
+
           {/* Preparers */}
           <div className="flex items-center gap-2 pt-2">
             <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />

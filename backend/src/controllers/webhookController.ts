@@ -89,34 +89,18 @@ export const verifyXeroWebhook = (req: Request, res: Response, next: NextFunctio
   const hash = crypto.createHmac('sha256', webhookKey).update(buffer).digest('base64');
 
   if (signature !== hash) {
-    console.warn('=== XERO SIGNATURE MISMATCH ===');
-    console.warn('Expected:', hash);
-    console.warn('Received:', signature);
-    console.warn('Raw body length:', buffer.length);
-    console.warn('Raw body (first 200 chars):', buffer.toString('utf8').substring(0, 200));
-    console.warn('==============================');
-    // STRICT MODE RESTORED: Return 401/403 to satisfy Xero's security check
     return res.status(401).send('Webhook signature invalid.');
   }
   
-  console.log('✓ Xero webhook signature verified successfully');
   next();
 };
 
 // Xero webhook handler - logs the response
 export const handleXeroWebhook = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // req.body is already parsed JSON from express.json()
-    const rawBodyBuffer = (req as any).rawBody;
-    
     console.log('=== XERO WEBHOOK RECEIVED ===');
     console.log('Headers:', JSON.stringify(req.headers, null, 2));
     console.log('Body (parsed):', JSON.stringify(req.body, null, 2));
-    if (rawBodyBuffer) {
-      console.log('Raw Body (first 500 chars):', Buffer.isBuffer(rawBodyBuffer) 
-        ? rawBodyBuffer.toString('utf8').substring(0, 500)
-        : String(rawBodyBuffer).substring(0, 500));
-    }
     console.log('============================');
     
     res.status(200).send('OK');

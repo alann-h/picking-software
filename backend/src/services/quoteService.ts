@@ -972,6 +972,23 @@ export async function adjustProductQuantity(quoteId: string, productId: number, 
 
 export async function setOrderStatus(quoteId: string, newStatus: OrderStatus): Promise<{ orderStatus: OrderStatus }> {
   try {
+    // If we're setting the status to 'checking' or 'completed', set the completion timestamp
+    // This ensures we capture the time when picking was finished
+    if (['checking', 'completed'].includes(newStatus)) {
+      // Check if timestamp is already set to avoid overwriting
+      const currentQuote = await prisma.quote.findUnique({
+        where: { id: quoteId },
+        select: { pickingCompletedAt: true }
+      });
+
+      if (currentQuote && !currentQuote.pickingCompletedAt) {
+        await prisma.quote.update({
+          where: { id: quoteId },
+          data: { pickingCompletedAt: new Date() }
+        });
+      }
+    }
+
     const updatedQuote = await prisma.quote.update({
       where: { id: quoteId },
       data: { status: newStatus },
@@ -1003,9 +1020,17 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all', companyId
       // Use pickingStartedAt if available, otherwise fall back to createdAt
       const startTime = quote.pickingStartedAt || quote.createdAt;
       
-      if (startTime && quote.updatedAt) {
+      // Use pickingCompletedAt if available (new accurate method)
+      // Otherwise fall back to updatedAt (legacy method)
+      let endTime = (quote as any).pickingCompletedAt ? new Date((quote as any).pickingCompletedAt) : new Date(quote.updatedAt);
+      
+      // If the order is still in progress (not checking/completed) and no completion time is set,
+      // we might want to show "In Progress" or calculate duration so far.
+      // But for now, let's stick to calculating duration based on endTime.
+      
+      if (startTime && endTime) {
         const start = new Date(startTime);
-        const end = new Date(quote.updatedAt);
+        const end = endTime;
         
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
           const diffMs = end.getTime() - start.getTime();
@@ -1306,12 +1331,24 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     
     // Update status and save URL in a transaction
     await prisma.$transaction(async (tx) => {
+      // Check if we need to set pickingCompletedAt
+      const currentQuote = await tx.quote.findUnique({
+        where: { id: quoteId },
+        select: { pickingCompletedAt: true }
+      });
+      
+      const updateData: any = { 
+        status: 'completed',
+        externalSyncUrl: quickbooksUrl 
+      };
+
+      if (!currentQuote?.pickingCompletedAt) {
+        updateData.pickingCompletedAt = new Date();
+      }
+
       await tx.quote.update({
         where: { id: quoteId },
-        data: { 
-          status: 'completed',
-          externalSyncUrl: quickbooksUrl 
-        }
+        data: updateData
       });
       
       console.log(`Quote ${quoteId} completed and synced to QuickBooks`);
@@ -1409,21 +1446,46 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
       
       // Update status and save URL in a transaction
       await prisma.$transaction(async (tx) => {
+        // Check if we need to set pickingCompletedAt
+        const currentQuote = await tx.quote.findUnique({
+          where: { id: quoteId },
+          select: { pickingCompletedAt: true }
+        });
+        
+        const updateData: any = { 
+          status: 'completed',
+          externalSyncUrl: xeroUrl 
+        };
+
+        if (!currentQuote?.pickingCompletedAt) {
+          updateData.pickingCompletedAt = new Date();
+        }
+
         await tx.quote.update({
           where: { id: quoteId },
-          data: { 
-            status: 'completed',
-            externalSyncUrl: xeroUrl 
-          }
+          data: updateData
         });
         
         console.log(`Quote ${quoteId} completed and synced to Xero`);
       });
     } else {
       // If we don't have a URL, still update status
-      await prisma.quote.update({
-        where: { id: quoteId },
-        data: { status: 'completed' }
+      await prisma.$transaction(async (tx) => {
+        const currentQuote = await tx.quote.findUnique({
+          where: { id: quoteId },
+          select: { pickingCompletedAt: true }
+        });
+        
+        const updateData: any = { status: 'completed' };
+
+        if (!currentQuote?.pickingCompletedAt) {
+          updateData.pickingCompletedAt = new Date();
+        }
+
+        await tx.quote.update({
+          where: { id: quoteId },
+          data: updateData
+        });
       });
         
       console.log(`Quote ${quoteId} completed (no Xero URL available)`);
