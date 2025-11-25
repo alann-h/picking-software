@@ -95,12 +95,8 @@ export const verifyXeroWebhook = (req: Request, res: Response, next: NextFunctio
     console.warn('Raw body length:', buffer.length);
     console.warn('Raw body (first 200 chars):', buffer.toString('utf8').substring(0, 200));
     console.warn('==============================');
-    
-    // Allow through for testing despite mismatch
-    console.warn('⚠️ SIGNATURE MISMATCH IGNORED FOR TESTING - PROCEEDING');
-    next();
-    return; 
-    // return res.status(403).send('Webhook signature invalid.');
+    // STRICT MODE RESTORED: Return 401/403 to satisfy Xero's security check
+    return res.status(401).send('Webhook signature invalid.');
   }
   
   console.log('✓ Xero webhook signature verified successfully');
