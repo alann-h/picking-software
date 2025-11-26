@@ -403,7 +403,7 @@ async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectio
 
 export async function estimateToDB(quote: FilteredQuote): Promise<void> {
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Check if quote exists to determine if this is an update or create
       const existingQuote = await tx.quote.findUnique({
         where: { id: quote.quoteId },
@@ -462,8 +462,8 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
         // SMART MERGE: Preserve picking progress while updating QB changes
         
         // Build a map of existing items with their picking progress
-        const existingItemsMap = new Map(
-          existingQuote.quoteItems.map(item => [
+        const existingItemsMap = new Map<string, { pickingQuantity: Decimal; pickingStatus: PickingStatus; originalQuantity: Decimal }>(
+          existingQuote.quoteItems.map((item: any) => [
             item.productId.toString(),
             {
               pickingQuantity: item.pickingQuantity,
@@ -475,15 +475,15 @@ export async function estimateToDB(quote: FilteredQuote): Promise<void> {
 
         // Get all product IDs from QB
         const incomingProductIds = new Set(Object.keys(quote.productInfo));
-        const existingProductIds = new Set(existingQuote.quoteItems.map(item => item.productId.toString()));
+        const existingProductIds = new Set(existingQuote.quoteItems.map((item: any) => item.productId.toString()));
 
         // 1. DELETE items that no longer exist in QB
-        const itemsToDelete = Array.from(existingProductIds).filter(id => !incomingProductIds.has(id));
+        const itemsToDelete = Array.from(existingProductIds).filter((id: unknown) => !incomingProductIds.has(id as string));
         if (itemsToDelete.length > 0) {
           await tx.quoteItem.deleteMany({
             where: {
               quoteId: quote.quoteId,
-              productId: { in: itemsToDelete.map(id => BigInt(id)) },
+              productId: { in: itemsToDelete.map((id: unknown) => BigInt(id as string | number | boolean)) },
             },
           });
           console.log(`🗑️  Removed ${itemsToDelete.length} items no longer in QuickBooks`);
@@ -609,7 +609,7 @@ export async function fetchQuoteData(quoteId: string): Promise<FilteredQuote | n
       preparerNames: quote.preparerNames,
     };
 
-    quote.quoteItems.forEach(item => {
+    quote.quoteItems.forEach((item: any) => {
       filteredQuote.productInfo[item.productId.toString()] = {
         productId: Number(item.productId),
         productName: item.productName,
@@ -640,7 +640,7 @@ async function updateQuotePreparerNames(quoteId: string, userName: string): Prom
     });
 
     const currentNames = quote?.preparerNames
-      ? quote.preparerNames.split(',').map(name => name.trim().toLowerCase())
+      ? quote.preparerNames.split(',').map((name: any) => name.trim().toLowerCase())
       : [];
 
     const normalizedNewName = userName.trim().toLowerCase();
@@ -736,6 +736,12 @@ export async function processBarcode(barcode: string, quoteId: string, newQty: n
     },
   });
 
+  // Explicitly update the quote's updatedAt timestamp to track active picking duration
+  await prisma.quote.update({
+    where: { id: quoteId },
+    data: { updatedAt: new Date() }
+  });
+
   await updateQuotePreparerNames(quoteId, userName);
   await ensurePickingStartedTimestamp(quoteId);
 
@@ -767,7 +773,7 @@ export async function addProductToQuote(productId: number, quoteId: string, qty:
     let addExistingProduct: Record<string, unknown> | null = null;
     let totalAmount: Record<string, unknown> | null = null;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       const pickingStatus = 'pending';
       const existingItem = await tx.quoteItem.findUnique({
         where: {
@@ -1015,7 +1021,7 @@ export async function getQuotesWithStatus(status: OrderStatus | 'all', companyId
       orderBy: { updatedAt: 'desc' },
     });
 
-    return quotes.map(quote => {
+    return quotes.map((quote: any) => {
       let timeTaken = 'N/A';
       // Use pickingStartedAt if available, otherwise fall back to createdAt
       const startTime = quote.pickingStartedAt || quote.createdAt;
@@ -1103,7 +1109,7 @@ export async function savePickerNote(quoteId: string, note: string): Promise<{ p
 
 export async function deleteQuotesBulk(quoteIds: string[]): Promise<BulkDeleteResult> {
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const deletedQuotes: { id: string }[] = [];
       const errors: { quoteId: string, error: string }[] = [];
       
@@ -1329,30 +1335,30 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       : 'https://qbo.intuit.com/app/';
     const quickbooksUrl = `${webUrl}estimate?txnId=${quoteId}`;
     
-    // Update status and save URL in a transaction
-    await prisma.$transaction(async (tx) => {
-      // Check if we need to set pickingCompletedAt
-      const currentQuote = await tx.quote.findUnique({
-        where: { id: quoteId },
-        select: { pickingCompletedAt: true }
-      });
-      
-      const updateData: any = { 
-        status: 'completed',
-        externalSyncUrl: quickbooksUrl 
-      };
+      // Update status and save URL in a transaction
+      await prisma.$transaction(async (tx: any) => {
+        // Check if we need to set pickingCompletedAt
+        const currentQuote = await tx.quote.findUnique({
+          where: { id: quoteId },
+          select: { pickingCompletedAt: true }
+        });
+        
+        const updateData: any = { 
+          status: 'completed',
+          externalSyncUrl: quickbooksUrl 
+        };
 
-      if (!currentQuote?.pickingCompletedAt) {
-        updateData.pickingCompletedAt = new Date();
-      }
+        if (!currentQuote?.pickingCompletedAt) {
+          updateData.pickingCompletedAt = new Date();
+        }
 
-      await tx.quote.update({
-        where: { id: quoteId },
-        data: updateData
+        await tx.quote.update({
+          where: { id: quoteId },
+          data: updateData
+        });
+        
+        console.log(`Quote ${quoteId} completed and synced to QuickBooks`);
       });
-      
-      console.log(`Quote ${quoteId} completed and synced to QuickBooks`);
-    });
     
     return { 
       message: 'Quote updated successfully in QuickBooks',
@@ -1445,7 +1451,7 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
       xeroUrl = `https://go.xero.com/app/${shortCode}/quotes/edit/${xeroQuote.quoteID}`;
       
       // Update status and save URL in a transaction
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // Check if we need to set pickingCompletedAt
         const currentQuote = await tx.quote.findUnique({
           where: { id: quoteId },
@@ -1470,7 +1476,7 @@ async function updateQuoteInXero(quoteId: string, quoteLocalDb: FilteredQuote, r
       });
     } else {
       // If we don't have a URL, still update status
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         const currentQuote = await tx.quote.findUnique({
           where: { id: quoteId },
           select: { pickingCompletedAt: true }
@@ -1509,7 +1515,7 @@ export async function ensureQuotesExistInDB(quoteIds: string[], companyId: strin
         },
         select: { id: true },
     });
-    const existingIds = new Set(quotesCheckResult.map(r => r.id));
+    const existingIds = new Set(quotesCheckResult.map((r: any) => r.id));
 
     const missingIds = quoteIds.filter(id => !existingIds.has(id));
 
@@ -1735,7 +1741,7 @@ export async function getQuotesWithBackorders(companyId: string): Promise<Array<
       },
     });
 
-    return quotesWithBackorders.map(quote => ({
+    return quotesWithBackorders.map((quote: any) => ({
       quoteId: quote.id,
       quoteNumber: quote.quoteNumber,
       customerName: quote.customer.customerName,
@@ -1743,14 +1749,14 @@ export async function getQuotesWithBackorders(companyId: string): Promise<Array<
       orderStatus: quote.status,
       totalAmount: Number(quote.totalAmount),
       lastModified: formatTimestampForSydney(quote.updatedAt),
-      backorderItems: quote.quoteItems.map(item => ({
+      backorderItems: quote.quoteItems.map((item: any) => ({
         productId: Number(item.productId),
         productName: item.productName,
         sku: item.sku,
         pickingQuantity: Number(item.pickingQuantity),
         originalQuantity: Number(item.originalQuantity),
       })),
-      runs: quote.runItems.map(runItem => ({
+      runs: quote.runItems.map((runItem: any) => ({
         runId: runItem.run.id,
         runNumber: Number(runItem.run.runNumber),
         runName: runItem.run.runName,
