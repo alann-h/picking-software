@@ -1,16 +1,38 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Truck } from 'lucide-react';
+import { AlertTriangle, Truck, Download } from 'lucide-react';
 import { useSnackbarContext } from './SnackbarContext';
 import { CreateRun } from './runs/CreateRun';
 import { RunList } from './runs/RunList';
 import { CreateRunSkeleton, RunListSkeleton } from './Skeletons';
 import { useAuth } from '../hooks/useAuth';
+import { exportRunsToCSV } from '../utils/exportToExcel';
+import { getRuns } from '../api/runs';
 
 const Runs: React.FC = () => {
   const { isAdmin, userCompanyId } = useAuth();
   const navigate = useNavigate();
   const { handleOpenSnackbar } = useSnackbarContext();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!userCompanyId) return;
+    try {
+      setIsExporting(true);
+      const runs = await getRuns(userCompanyId);
+      const success = exportRunsToCSV(runs);
+      if (success) {
+        handleOpenSnackbar('Export completed successfully', 'success');
+      } else {
+        handleOpenSnackbar('No completed runs found to export', 'info');
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      handleOpenSnackbar('Failed to export runs', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Redirect non-admin users
   if (!isAdmin) {
@@ -76,13 +98,24 @@ const Runs: React.FC = () => {
           {/* Run List Section */}
           <div>
             <div className="border border-gray-200 rounded-lg sm:rounded-xl overflow-hidden min-h-[300px] sm:min-h-[400px] shadow-sm">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-3 sm:p-4">
-                <h2 className="text-base sm:text-lg lg:text-xl font-semibold">
-                  Active & Completed Runs
-                </h2>
-                <p className="text-xs sm:text-sm opacity-90 mt-0.5 hidden sm:block">
-                  Monitor progress and manage your picking operations
-                </p>
+              <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-3 sm:p-4 flex justify-between items-start sm:items-center">
+                <div>
+                  <h2 className="text-base sm:text-lg lg:text-xl font-semibold">
+                    Active & Completed Runs
+                  </h2>
+                  <p className="text-xs sm:text-sm opacity-90 mt-0.5 hidden sm:block">
+                    Monitor progress and manage your picking operations
+                  </p>
+                </div>
+                <button
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="flex items-center space-x-1 bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm px-3 py-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Export Completed Runs"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export CSV'}</span>
+                </button>
               </div>
               <div className="p-2 sm:p-4">
                 <Suspense fallback={<RunListSkeleton />}>
