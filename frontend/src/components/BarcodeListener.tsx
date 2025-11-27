@@ -2,66 +2,76 @@ import React, { useEffect, useRef } from 'react';
 import { BarcodeListenerProps } from '../utils/types';
 
 const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned, disabled = false }) => {
-  // Use a ref to maintain state without triggering re-renders or effect cleanup
-  const barcodeBuffer = useRef<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  // Focus the hidden input whenever possible
   useEffect(() => {
     if (disabled) return;
 
-    // 1. Handle Paste (Scanning often triggers paste on some devices)
-    const handlePaste = (event: ClipboardEvent) => {
-      const pastedData = event.clipboardData?.getData('text');
-      if (pastedData) {
-        // Clean and check if valid (allow alphanumeric to be safe, but primarily digits)
-        const cleanData = pastedData.trim();
-        if (cleanData.length > 0) {
-          onBarcodeScanned(cleanData);
-          barcodeBuffer.current = ''; // Reset buffer after paste
-        }
+    const focusInput = () => {
+      // Only focus if no other input is active
+      const activeElement = document.activeElement;
+      const isInputActive = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
+      
+      if (!isInputActive && inputRef.current) {
+        inputRef.current.focus({ preventScroll: true });
       }
     };
 
-    // 2. KeyPress is legacy but handles the Android "229" issue better than keydown
-    const handleKeyPress = (event: KeyboardEvent) => {
-      // On Android, keydown often gives 229. Keypress usually gives the real char code.
-      // We will prefer keypress for characters, and keydown for special keys (Enter).
-      
-      const charCode = event.which || event.keyCode;
-      const charStr = String.fromCharCode(charCode);
-      
-      // Accept alphanumeric characters (0-9, a-z, A-Z)
-      // Using a broader regex to be safe for various barcode types
-      if (/[a-zA-Z0-9]/.test(charStr)) {
-        barcodeBuffer.current = (barcodeBuffer.current + charStr).slice(-50);
-      }
-    };
+    // Initial focus
+    focusInput();
 
-    // 3. KeyDown for Enter and modern browsers
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const { key } = event;
-      
-      if (key === 'Enter') {
-        if (barcodeBuffer.current.length > 0) {
-          onBarcodeScanned(barcodeBuffer.current);
-          barcodeBuffer.current = '';
-        }
-      }
-      // Note: We rely on keypress for character accumulation because on Android keydown
-      // often returns 'Unidentified' (229) for virtual keyboards/scanners.
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keypress', handleKeyPress);
-    window.addEventListener('paste', handlePaste);
+    // Refocus on click/touch if we lost it (and user isn't clicking another input)
+    const handleClick = () => setTimeout(focusInput, 100);
+    document.addEventListener('click', handleClick);
+    document.addEventListener('touchstart', handleClick);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keypress', handleKeyPress);
-      window.removeEventListener('paste', handlePaste);
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('touchstart', handleClick);
     };
-  }, [onBarcodeScanned, disabled]);
+  }, [disabled]);
 
-  return null;
+  const handleChange = (_e: React.ChangeEvent<HTMLInputElement>) => {
+    // We just let the value accumulate in the input
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const value = inputRef.current?.value.trim();
+      if (value) {
+        onBarcodeScanned(value);
+        if (inputRef.current) inputRef.current.value = '';
+      }
+    }
+  };
+
+  // Handle case where scanner sends Enter as a separate event but value is already in
+  // or if it doesn't send Enter but fires a specific event.
+  // Usually 'Enter' keydown is enough.
+
+  // Force focus style to be invisible but technically "visible" to DOM so it receives events
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      inputMode="none" // Prevents virtual keyboard from popping up on mobile
+      autoComplete="off"
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      style={{
+        position: 'fixed',
+        top: '-1000px',
+        left: '-1000px',
+        opacity: 0,
+        width: '1px',
+        height: '1px',
+        pointerEvents: 'none',
+        zIndex: -1
+      }}
+      aria-hidden="true"
+    />
+  );
 };
 
 export default BarcodeListener;
