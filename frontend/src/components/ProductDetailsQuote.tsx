@@ -48,9 +48,13 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
     if (localProductDetails.pickingStatus === 'completed') {
       return { bg: 'bg-green-500', text: 'text-green-700' };
     }
-    if (localProductDetails.pickingStatus === 'pending' || localProductDetails.pickingStatus === 'backorder') {
-      return { bg: 'bg-gray-300', text: 'text-gray-700' };
+    if (localProductDetails.pickingStatus === 'backorder') {
+      return { bg: 'bg-orange-500', text: 'text-orange-700' };
     }
+    if (localProductDetails.pickingStatus === 'unavailable') {
+      return { bg: 'bg-red-500', text: 'text-red-700' };
+    }
+    // pending or default
     return { bg: 'bg-gray-300', text: 'text-gray-700' };
   };
   
@@ -78,8 +82,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
       <div className="relative z-50 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-4 sm:p-6 text-left align-middle shadow-xl transition-all cursor-default max-h-[90vh] overflow-y-auto">
         <div className="flex items-start justify-between text-lg font-medium leading-6 text-gray-900 cursor-default mb-4">
           <div className="flex items-start gap-2 flex-1 pr-2">
-            <InventoryIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700 flex-shrink-0 mt-0.5" />
-            <h3 className="text-base sm:text-xl font-semibold text-gray-900 break-words leading-tight">{productName}</h3>
+            <InventoryIcon className="h-6 w-6 sm:h-7 sm:w-7 text-gray-700 flex-shrink-0 mt-0.5" />
+            <h3 className="text-lg sm:text-2xl font-bold text-gray-900 break-words leading-tight">{productName}</h3>
           </div>
         </div>
         
@@ -135,28 +139,25 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
           </div>
 
           {/* Status Section */}
-          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    <InfoIcon className="h-6 w-6 text-gray-600" />
-                    <h4 className="text-lg font-semibold text-gray-800">Current Status</h4>
-                    <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusClasses(localProductDetails.pickingStatus)}`}>
-                        {localProductDetails.pickingStatus || 'N/A'}
-                    </span>
+          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                    <InfoIcon className="h-4 w-4 text-gray-600" />
+                    <h4 className="text-sm font-semibold text-gray-800 capitalize">{localProductDetails.pickingStatus || 'Unknown'}</h4>
                 </div>
                 <div className="text-right">
-                    <span className={`font-bold text-lg ${quantityColorClasses.text}`}>
+                    <span className={`font-bold text-sm ${quantityColorClasses.text}`}>
                         {localProductDetails.pickingStatus === 'completed' ? localProductDetails.originalQty : 0}
                     </span>
-                    <span className="text-gray-500 text-sm"> / {localProductDetails.originalQty}</span>
+                    <span className="text-gray-500 text-xs"> / {localProductDetails.originalQty}</span>
                 </div>
             </div>
             
             {/* Progress Bar */}
-            <div className="w-full bg-gray-200 rounded-full h-3 relative overflow-hidden">
+            <div className="w-full bg-gray-200 rounded-full h-2.5 relative overflow-hidden mt-1">
                 <div 
                     className={`h-full rounded-full ${quantityColorClasses.bg}`} 
-                    style={{ width: `${getQuantityProgress()}%`, transition: 'width 0.3s ease-in-out' }}
+                    style={{ width: '100%', transition: 'width 0.3s ease-in-out' }}
                 />
             </div>
           </div>
