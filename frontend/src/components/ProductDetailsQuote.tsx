@@ -75,26 +75,20 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/30 bg-black/30" />
-      <div className="relative z-50 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-4 sm:p-6 text-left align-middle shadow-xl transition-all cursor-default">
-        <div className="flex items-start justify-between text-lg font-medium leading-6 text-gray-900 cursor-default mb-6">
+      <div className="relative z-50 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-4 sm:p-6 text-left align-middle shadow-xl transition-all cursor-default max-h-[90vh] overflow-y-auto">
+        <div className="flex items-start justify-between text-lg font-medium leading-6 text-gray-900 cursor-default mb-4">
           <div className="flex items-start gap-2 flex-1 pr-2">
             <InventoryIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-700 flex-shrink-0 mt-0.5" />
             <h3 className="text-base sm:text-xl font-semibold text-gray-900 break-words leading-tight">{productName}</h3>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer flex-shrink-0"
-          >
-            <CloseIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-          </button>
         </div>
         
         <div className="mt-4">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Basic Info */}
-            <div className="space-y-4 rounded-lg border border-gray-200 p-4">
-              <h4 className="text-lg font-semibold text-gray-800">Basic Information</h4>
+            <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+              <h4 className="text-md font-semibold text-gray-800">Basic Information</h4>
               <div className="flex items-start gap-4">
                 <AssignmentIcon className="h-6 w-6 text-gray-600 mt-1" />
                 <div className="flex-1">
@@ -128,8 +122,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
             </div>
 
             {/* Quantity Details */}
-            <div className="space-y-4 rounded-lg border border-gray-200 p-4">
-              <h4 className="text-lg font-semibold text-gray-800">Quantity Details</h4>
+            <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+              <h4 className="text-md font-semibold text-gray-800">Quantity Details</h4>
               <div className="flex items-start gap-4">
                 <InventoryIcon className="h-6 w-6 text-gray-600 mt-1" />
                 <div>
@@ -153,7 +147,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
           </div>
 
           {/* Status Section */}
-          <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
             <div className="flex items-center gap-2">
               <InfoIcon className="h-6 w-6 text-gray-600" />
               <h4 className="text-lg font-semibold text-gray-800">Current Status</h4>
@@ -161,19 +155,13 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                   {localProductDetails.pickingStatus || 'N/A'}
               </span>
             </div>
-            <div className="mt-2">
-                <p className="text-sm text-gray-600 mb-1 text-right">{getQuantityProgress().toFixed(1)}%</p>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className={`h-2.5 rounded-full ${quantityColorClasses.bg}`} style={{ width: `${getQuantityProgress()}%`, transition: 'width 0.3s ease-in-out' }}></div>
-                </div>
-            </div>
           </div>
         </div>
 
-        <div className="mt-8 flex justify-end">
+        <div className="mt-6 flex justify-end">
           <button
             type="button"
-            className="inline-flex justify-center rounded-md border border-transparent bg-gray-800 px-6 py-2 text-md font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 cursor-pointer"
+            className="inline-flex justify-center rounded-md border border-transparent bg-gray-800 px-6 py-2 text-md font-medium text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 cursor-pointer w-full sm:w-auto"
             onClick={onClose}
           >
             Close

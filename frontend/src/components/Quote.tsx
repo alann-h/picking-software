@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import { Plus, Camera, Receipt, Barcode, ExternalLink } from 'lucide-react';
 
 import BarcodeListener from './BarcodeListener';
-import ScannerDebug from './ScannerDebug';
 import CameraScannerModal from './CameraScannerModal';
 import ProductDetailsQuote from './ProductDetailsQuote';
 import AdjustQuantityModal from './AdjustQuantityModal';
@@ -104,7 +103,6 @@ const Quote: React.FC = () => {
       
       {/* Modals now receive actions directly from the hook */}
       <BarcodeListener onBarcodeScanned={actions.handleBarcodeScan} disabled={modalState.isOpen} />
-      <ScannerDebug />
       
       {modalState.type === 'barcodeModal' && modalState.data && <BarcodeModal isOpen={modalState.isOpen} onClose={closeModal} onConfirm={modalState.data.onConfirm} availableQty={modalState.data.availableQty} productName={modalState.data.productName} />}
       {modalState.type === 'cameraScanner' && <CameraScannerModal isOpen={modalState.isOpen} onClose={closeModal} onScanSuccess={handleCameraScanSuccess} />}

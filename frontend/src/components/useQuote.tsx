@@ -359,7 +359,6 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
         
         const product = Object.values(quoteData?.productInfo || {}).find(p => {
             if (!p.barcode) return false;
-            handleOpenSnackbar(`${p.productName} scanned! Please confirm quantity.`, 'info');
             return p.barcode.trim().toLowerCase() === normalizedBarcode;
         });
         
