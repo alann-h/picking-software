@@ -131,29 +131,33 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                   <p className="font-semibold text-lg text-gray-900">{localProductDetails.quantityOnHand}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-4">
-                <ShippingIcon className="h-6 w-6 text-gray-600 mt-1" />
-                <div>
-                    <p className="text-sm font-medium text-gray-500 uppercase">Picking Progress</p>
-                    <div className="flex items-baseline gap-1">
-                        <p className={`font-semibold text-lg ${quantityColorClasses.text}`}>
-                        {localProductDetails.pickingStatus === 'completed' ? localProductDetails.originalQty : 0}
-                        </p>
-                        <p className="text-sm text-gray-500">/ {localProductDetails.originalQty}</p>
-                    </div>
-                </div>
-              </div>
             </div>
           </div>
 
           {/* Status Section */}
           <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div className="flex items-center gap-2">
-              <InfoIcon className="h-6 w-6 text-gray-600" />
-              <h4 className="text-lg font-semibold text-gray-800">Current Status</h4>
-              <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusClasses(localProductDetails.pickingStatus)}`}>
-                  {localProductDetails.pickingStatus || 'N/A'}
-              </span>
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <InfoIcon className="h-6 w-6 text-gray-600" />
+                    <h4 className="text-lg font-semibold text-gray-800">Current Status</h4>
+                    <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusClasses(localProductDetails.pickingStatus)}`}>
+                        {localProductDetails.pickingStatus || 'N/A'}
+                    </span>
+                </div>
+                <div className="text-right">
+                    <span className={`font-bold text-lg ${quantityColorClasses.text}`}>
+                        {localProductDetails.pickingStatus === 'completed' ? localProductDetails.originalQty : 0}
+                    </span>
+                    <span className="text-gray-500 text-sm"> / {localProductDetails.originalQty}</span>
+                </div>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 rounded-full h-3 relative overflow-hidden">
+                <div 
+                    className={`h-full rounded-full ${quantityColorClasses.bg}`} 
+                    style={{ width: `${getQuantityProgress()}%`, transition: 'width 0.3s ease-in-out' }}
+                />
             </div>
           </div>
         </div>
