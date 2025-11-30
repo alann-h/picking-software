@@ -76,7 +76,8 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
               <strong className="font-semibold"> 'pending' </strong> items before you can proceed.
             </div>
           </div>
-          <div className="overflow-hidden border border-gray-200 rounded-lg">
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-hidden border border-gray-200 rounded-lg">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -104,6 +105,32 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="md:hidden space-y-3">
+            {displayedProducts.map((product: ProductDetail) => (
+              <div key={product.productId} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                <div className="flex justify-between items-start gap-2 mb-2">
+                   <div className="text-sm font-medium text-gray-900 break-words">{product.productName}</div>
+                   <span className={clsx(
+                      "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize shrink-0",
+                      getStatusChipClasses(product.pickingStatus)
+                    )}>
+                      {product.pickingStatus}
+                    </span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                     <span className="text-gray-400">SKU:</span>
+                     <span className="font-mono text-gray-700">{product.sku}</span>
+                  </div>
+                  <div className="font-medium bg-gray-50 px-2 py-0.5 rounded">
+                     Qty: {product.pickingQty}/{product.originalQty}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
           {remainingCount > 0 && (
             <div className="mt-3 p-3 text-sm text-gray-700 bg-gray-100 rounded-lg">
