@@ -20,6 +20,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ open, onClose, onSubm
     queryKey: ['products'],
     queryFn: getAllProducts,
     staleTime: 5 * 60 * 1000,
+    select: (products) => products.filter(p => !p.isArchived),
   });
 
   const [isFractionMode, setIsFractionMode] = useState<boolean>(false);

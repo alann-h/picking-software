@@ -20,9 +20,9 @@ export const getProductInfo =  async (productId: number) => {
   return response;  
 }
 
-export const getAllProducts = async () => {
+export const getAllProducts = async (): Promise<Product[]> => {
   const response = await apiCallGet(PRODUCTS_BASE);
-  return response;  
+  return response as Product[];
 }
 
 export const saveProductForLater = async (quoteId: string, productId: number) => {
