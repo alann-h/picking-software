@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { loginWithCredentials, verifyUser, requestPasswordReset, logout } from '../api/auth';
 import { clearCachedCsrfToken } from '../utils/apiHelpers';
 import { useSnackbarContext } from './SnackbarContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ScanLine, Quote, Loader } from 'lucide-react';
 
@@ -39,6 +39,7 @@ const Login: React.FC = () => {
   // --- All Logic and State Hooks remain identical ---
   const { handleOpenSnackbar } = useSnackbarContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const { error, clearError, handleLoginError } = useLoginError();
 
   const [loading, setLoading] = useState(true);
@@ -75,6 +76,20 @@ const Login: React.FC = () => {
         setLoading(false);
       });
   }, [navigate, handleLoginError]);
+
+  // Check for error query params from OAuth redirect
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const errorParam = searchParams.get('error');
+    const messageParam = searchParams.get('message');
+
+    if (errorParam && messageParam) {
+      handleOpenSnackbar(decodeURIComponent(messageParam), 'error');
+      
+      // Clean up the URL
+      navigate('/login', { replace: true });
+    }
+  }, [location, handleOpenSnackbar, navigate]);
 
   const handleSwitchAccount = async () => {
     try {

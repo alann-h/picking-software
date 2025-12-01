@@ -69,7 +69,12 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
     req.session.save(err => {
       if (err) {
         console.error('[OAuth Callback] Session save error:', err);
-        return next(err);
+        // Even if session save fails, we should try to redirect to login with error
+        const redirectUri =
+        process.env.VITE_APP_ENV === 'production'
+          ? 'https://smartpicker.com.au/login'
+          : 'http://localhost:5173/login';
+        return res.redirect(`${redirectUri}?error=session_save_failed&message=${encodeURIComponent('Failed to save session')}`);
       }
       const redirectUri =
         process.env.VITE_APP_ENV === 'production'
@@ -78,7 +83,14 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
       res.redirect(redirectUri);
     });
   } catch (err) {
-    next(err);
+    console.error('OAuth Callback Error:', err);
+    const redirectUri =
+      process.env.VITE_APP_ENV === 'production'
+        ? 'https://smartpicker.com.au/login'
+        : 'http://localhost:5173/login';
+    
+    const errorMessage = err instanceof Error ? err.message : 'Unknown authentication error';
+    res.redirect(`${redirectUri}?error=auth_failed&message=${encodeURIComponent(errorMessage)}`);
   }
 }
 
