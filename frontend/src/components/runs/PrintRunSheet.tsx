@@ -263,8 +263,8 @@ const PrintRunSheet: React.FC = () => {
             </div>
 
             {/* Printable Content */}
-            <div className="print:w-full overflow-x-auto pb-4 print:overflow-visible print:pb-0">
-                <div className="min-w-[800px] print:min-w-0">
+            <div className="print:w-full overflow-x-auto pb-4 lg:overflow-visible lg:pb-0 print:overflow-visible print:pb-0">
+                <div className="min-w-[1200px] lg:min-w-0 print:min-w-0">
                     <div className="flex justify-between items-start mb-8 border-b pb-4">
                         <div>
                             <h1 className="text-2xl font-bold mb-2 w-full sm:w-96 truncate">
