@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
-import { X } from 'lucide-react';
-import { useSnackbarContext } from './SnackbarContext';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { X, Camera, RefreshCw, Zap, ZapOff } from 'lucide-react';
 
 interface CameraScannerModalProps {
   isOpen: boolean;
@@ -10,70 +9,114 @@ interface CameraScannerModalProps {
 }
 
 const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose, onScanSuccess }) => {
-  const { handleOpenSnackbar } = useSnackbarContext();
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
+  const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([]);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+  const [torchOn, setTorchOn] = useState(false);
+  const [hasTorch, setHasTorch] = useState(false);
 
-  const startScanning = async () => {
+  // Initialize scanner instance
+  useEffect(() => {
+    if (!html5QrCodeRef.current) {
+      html5QrCodeRef.current = new Html5Qrcode('qr-reader', {
+        verbose: false,
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+        ],
+      });
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (html5QrCodeRef.current?.isScanning) {
+        html5QrCodeRef.current.stop().catch(console.error);
+      }
+    };
+  }, []);
+
+  const startScanning = async (cameraId?: string) => {
     try {
       setError('');
       
-      // Get available cameras
-      const devices = await Html5Qrcode.getCameras();
-      
-      if (!devices || devices.length === 0) {
-        throw new Error('No cameras found on this device');
+      if (!html5QrCodeRef.current) return;
+
+      // If already scanning, stop first
+      if (html5QrCodeRef.current.isScanning) {
+        await html5QrCodeRef.current.stop();
       }
 
-      // Try to find rear camera, otherwise use first available
-      const rearCamera = devices.find(device => 
-        device.label.toLowerCase().includes('back') || 
-        device.label.toLowerCase().includes('rear') ||
-        device.label.toLowerCase().includes('environment')
-      );
-      
-      const cameraId = rearCamera ? rearCamera.id : devices[0].id;
-
-      // Initialize scanner
-      if (!html5QrCodeRef.current) {
-        html5QrCodeRef.current = new Html5Qrcode('qr-reader', { verbose: false });
+      // Get cameras if not already loaded
+      let targetCameraId = cameraId;
+      if (cameras.length === 0) {
+        const devices = await Html5Qrcode.getCameras();
+        if (!devices || devices.length === 0) {
+          throw new Error('No cameras found');
+        }
+        setCameras(devices);
+        
+        // Default to rear camera if available and no specific camera requested
+        if (!targetCameraId) {
+          const rearCamera = devices.find(device => 
+            device.label.toLowerCase().includes('back') || 
+            device.label.toLowerCase().includes('rear') ||
+            device.label.toLowerCase().includes('environment')
+          );
+          targetCameraId = rearCamera ? rearCamera.id : devices[0].id;
+          
+          // Update index to match the selected camera
+          const index = devices.findIndex(d => d.id === targetCameraId);
+          if (index !== -1) setCurrentCameraIndex(index);
+        }
+      } else if (!targetCameraId) {
+        // Use current index if cameras loaded but no ID passed
+        targetCameraId = cameras[currentCameraIndex].id;
       }
 
       const config = {
         fps: 10,
-        qrbox: { width: 250, height: 250 }
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
       };
 
       await html5QrCodeRef.current.start(
-        cameraId,
+        targetCameraId!,
         config,
         (decodedText) => {
-          // Success callback
           onScanSuccess(decodedText);
-          stopScanning();
+          onClose(); // Close modal on success
         },
-        (errorMessage) => {
-          // Error callback (ignore "not found" errors as they happen during scanning)
-          // Only log actual errors
+        () => {
+          // Ignore frame errors
         }
       );
 
       setIsScanning(true);
+      
+      // Check for torch capability
+      try {
+        const settings = html5QrCodeRef.current.getRunningTrackCameraCapabilities();
+        setHasTorch(!!settings.torchFeature().isSupported());
+      } catch (e) {
+        setHasTorch(false);
+      }
+
     } catch (err: any) {
       console.error('Scanner error:', err);
       let errorMsg = 'Failed to start camera';
       
       if (err.name === 'NotAllowedError' || err.message?.includes('Permission')) {
-        errorMsg = 'Camera permission denied. Please allow camera access and try again.';
+        errorMsg = 'Camera permission denied';
       } else if (err.name === 'NotFoundError') {
-        errorMsg = 'No camera found on this device.';
-      } else if (err.message) {
-        errorMsg = err.message;
+        errorMsg = 'No camera found';
       }
       
       setError(errorMsg);
-      handleOpenSnackbar(errorMsg, 'error');
+      // Don't show snackbar for initial load errors, just show in UI
     }
   };
 
@@ -82,80 +125,134 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
       if (html5QrCodeRef.current?.isScanning) {
         await html5QrCodeRef.current.stop();
       }
+      setIsScanning(false);
+      setTorchOn(false);
     } catch (err) {
       console.error('Error stopping scanner:', err);
     }
-    setIsScanning(false);
   };
 
-  // Auto-start when modal opens
-  useEffect(() => {
-    if (isOpen && !isScanning) {
-      startScanning();
-    }
-    
-    return () => {
-      if (isOpen) {
-        stopScanning();
-      }
-    };
-  }, [isOpen]);
+  const handleSwitchCamera = () => {
+    if (cameras.length < 2) return;
+    const nextIndex = (currentCameraIndex + 1) % cameras.length;
+    setCurrentCameraIndex(nextIndex);
+    startScanning(cameras[nextIndex].id);
+  };
 
-  // Handle ESC key
+  const toggleTorch = async () => {
+    if (!html5QrCodeRef.current || !hasTorch) return;
+    try {
+      await html5QrCodeRef.current.applyVideoConstraints({
+        advanced: [{ torch: !torchOn }]
+      } as any);
+      setTorchOn(!torchOn);
+    } catch (err) {
+      console.error('Error toggling torch:', err);
+    }
+  };
+
+  // Handle open/close
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    
-    document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose]);
+    if (isOpen) {
+      startScanning();
+    } else {
+      stopScanning();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      
-      {/* Modal */}
-      <div className="relative z-50 w-full max-w-md bg-white rounded-lg shadow-xl p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Scan Barcode</h3>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="h-6 w-6 text-gray-500" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+      {/* Header / Controls */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-between items-start bg-gradient-to-b from-black/70 to-transparent">
+        <button 
+          onClick={onClose}
+          className="p-2 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
 
-        {/* Scanner Area */}
-        <div id="qr-reader" className="w-full" />
-
-        {/* Error Message */}
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700">{error}</p>
+        <div className="flex gap-4">
+          {hasTorch && (
             <button
-              onClick={startScanning}
-              className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={toggleTorch}
+              className={`p-2 rounded-full backdrop-blur-sm transition-colors ${
+                torchOn ? 'bg-yellow-400/80 text-black' : 'bg-black/30 text-white hover:bg-black/50'
+              }`}
+            >
+              {torchOn ? <Zap className="w-6 h-6" /> : <ZapOff className="w-6 h-6" />}
+            </button>
+          )}
+          
+          {cameras.length > 1 && (
+            <button
+              onClick={handleSwitchCamera}
+              className="p-2 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-colors"
+            >
+              <RefreshCw className="w-6 h-6" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Scanner Viewport */}
+      <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+        <div id="qr-reader" className="w-full h-full object-cover" />
+        
+        {/* Overlay Guide */}
+        {!error && isScanning && (
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div className="w-64 h-64 border-2 border-white/50 rounded-lg relative">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1 rounded-tl-lg" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1 rounded-tr-lg" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1 rounded-bl-lg" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1 rounded-br-lg" />
+              
+              {/* Scanning Line Animation */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500/80 shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-scan" />
+            </div>
+            <p className="absolute mt-80 text-white/80 text-sm font-medium bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">
+              Align code within frame
+            </p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gray-900 text-center">
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+              <Camera className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Camera Error</h3>
+            <p className="text-gray-400 mb-6 max-w-xs">{error}</p>
+            <button
+              onClick={() => startScanning()}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
               Try Again
             </button>
           </div>
         )}
-
-        {/* Instructions */}
-        {isScanning && !error && (
-          <p className="mt-4 text-sm text-center text-gray-600">
-            Position the barcode within the camera view
-          </p>
-        )}
       </div>
+
+      <style>{`
+        #qr-reader video {
+          object-fit: cover;
+          width: 100% !important;
+          height: 100% !important;
+          border-radius: 0 !important;
+        }
+        @keyframes scan {
+          0% { top: 0; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 100%; opacity: 0; }
+        }
+        .animate-scan {
+          animation: scan 2s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };
