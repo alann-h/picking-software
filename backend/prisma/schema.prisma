@@ -17,6 +17,8 @@ model Company {
   xeroTokenData    String?            @map("xero_token_data")
   qboRealmId       String?            @map("qbo_realm_id")
   xeroTenantId     String?            @map("xero_tenant_id")
+  forkliftPrice    Decimal            @default(35.00) @map("forklift_price") @db.Decimal(10, 2)
+  handUnloadPrice  Decimal            @default(50.00) @map("hand_unload_price") @db.Decimal(10, 2)
   apiAuditLogs     ApiAuditLog[]
   connectionHealth ConnectionHealth[]
   customers        Customer[]
@@ -148,6 +150,8 @@ model Customer {
   id           String  @id
   companyId    String  @map("company_id") @db.Uuid
   customerName String  @map("customer_name")
+  address      String?
+  defaultDeliveryType delivery_type? @map("default_delivery_type")
   company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   quotes       Quote[]
 
@@ -224,6 +228,7 @@ model Run {
   companyId String     @map("company_id") @db.Uuid
   runNumber BigInt     @map("run_number")
   runName   String?    @map("run_name")
+  driverName String?   @map("driver_name")
   status    run_status @default(pending)
   createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   runItems  RunItem[]
@@ -234,13 +239,17 @@ model Run {
 }
 
 model RunItem {
-  id        BigInt   @id @default(autoincrement())
-  runId     String   @map("run_id") @db.Uuid
-  quoteId   String   @map("quote_id")
-  priority  Int      @default(0)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  run       Run      @relation(fields: [runId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id           BigInt   @id @default(autoincrement())
+  runId        String   @map("run_id") @db.Uuid
+  quoteId      String   @map("quote_id")
+  priority     Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  size         String?
+  type         delivery_type?
+  deliveryCost Decimal? @map("delivery_cost") @db.Decimal(10, 2)
+  notes        String?
+  quote        Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  run          Run      @relation(fields: [runId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([runId, quoteId])
   @@index([runId, priority(sort: Desc)], map: "run_items_run_priority_idx")
@@ -348,6 +357,11 @@ enum security_event_type {
   password_reset_request
   password_reset_success
   user_lockout
+}
+
+enum delivery_type {
+  hand_unload
+  forklift
 }
 
 model sync_settings {

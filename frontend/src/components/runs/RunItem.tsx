@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useOptimistic } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X, Plus, Search, Users } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X, Plus, Search, Users, Printer } from 'lucide-react';
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -505,16 +505,24 @@ export const RunItem: React.FC<{
                     <div>
                         <div className="flex justify-between items-center mb-2 sm:mb-3">
                             <h4 className="text-sm sm:text-base font-medium text-gray-700">Quotes in this Run</h4>
-                            {isAdmin && optimisticStatus === 'pending' && !isEditing && (
-                                <div className="flex gap-1.5 sm:gap-2">
-                                    <button onClick={handleEditToggle} className="flex items-center text-xs sm:text-sm text-blue-600 hover:text-blue-800 cursor-pointer px-2 py-1 rounded hover:bg-blue-50">
-                                        <Edit className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /> <span className="hidden sm:inline">Edit</span>
-                                    </button>
-                                    <button onClick={() => onDeleteRun(run.id)} className="flex items-center text-xs sm:text-sm text-red-600 hover:text-red-800 cursor-pointer px-2 py-1 rounded hover:bg-red-50">
-                                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /> <span className="hidden sm:inline">Delete</span>
-                                    </button>
-                                </div>
-                            )}
+                            <div className="flex gap-1.5 sm:gap-2">
+                                <button 
+                                    onClick={() => navigate(`/runs/print/${run.id}`)}
+                                    className="flex items-center text-xs sm:text-sm text-gray-600 hover:text-gray-800 cursor-pointer px-2 py-1 rounded hover:bg-gray-100"
+                                >
+                                    <Printer className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /> <span className="hidden sm:inline">Print Run</span>
+                                </button>
+                                {isAdmin && optimisticStatus === 'pending' && !isEditing && (
+                                    <>
+                                        <button onClick={handleEditToggle} className="flex items-center text-xs sm:text-sm text-blue-600 hover:text-blue-800 cursor-pointer px-2 py-1 rounded hover:bg-blue-50">
+                                            <Edit className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /> <span className="hidden sm:inline">Edit</span>
+                                        </button>
+                                        <button onClick={() => onDeleteRun(run.id)} className="flex items-center text-xs sm:text-sm text-red-600 hover:text-red-800 cursor-pointer px-2 py-1 rounded hover:bg-red-50">
+                                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /> <span className="hidden sm:inline">Delete</span>
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
   
                         {isEditing ? (

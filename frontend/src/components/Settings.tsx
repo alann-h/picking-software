@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Settings as SettingsIcon, Package as InventoryIcon, Upload as UploadFileIcon, Users as GroupIcon, RefreshCw as SyncIcon } from 'lucide-react';
+import { Settings as SettingsIcon, Package as InventoryIcon, Upload as UploadFileIcon, Users as GroupIcon, RefreshCw as SyncIcon, DollarSign } from 'lucide-react';
 import clsx from 'clsx';
 
 import { getAllProducts } from '../api/products';
@@ -10,6 +10,7 @@ import ProductsTab from './tabs/ProductsTab';
 import UploadTab from './tabs/UploadTab';
 import UsersTab from './tabs/UsersTab';
 import SyncSettingsTab from './tabs/SyncSettingsTab';
+import DeliveryRatesTab from './tabs/DeliveryRatesTab';
 import { useAuth } from '../hooks/useAuth';
 
 const Settings: React.FC = () => {
@@ -39,6 +40,7 @@ const Settings: React.FC = () => {
     if (path.includes('/settings/upload')) return 'upload';
     if (path.includes('/settings/users')) return 'users';
     if (path.includes('/settings/sync')) return 'sync';
+    if (path.includes('/settings/rates')) return 'rates';
     return 'products';
   }, [location.pathname]);
 
@@ -81,6 +83,12 @@ const Settings: React.FC = () => {
       icon: <SyncIcon className="h-5 w-5" />,
       path: 'sync',
       description: 'Configure automatic sync categories'
+    },
+    {
+      label: 'Delivery Rates',
+      icon: <DollarSign className="h-5 w-5" />,
+      path: 'rates',
+      description: 'Set prices for delivery types'
     },
     ...(isAdmin ? [
       {
@@ -222,7 +230,11 @@ const Settings: React.FC = () => {
                         element={<SyncSettingsTab />} 
                       />
                       <Route 
-                        path="upload" 
+                        path="rates" 
+                        element={<DeliveryRatesTab />} 
+                      />
+                      <Route 
+                        path="upload"  
                         element={isAdmin ? <UploadTab /> : <Navigate to="/settings/products" replace />} 
                       />
                       <Route 

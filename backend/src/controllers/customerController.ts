@@ -14,7 +14,8 @@ export async function getCustomers(req: Request, res: Response, next: NextFuncti
     const data = await fetchCustomersLocal(companyId);
     const transformedData = data.map(customer => ({
       customerId: customer.id,
-      customerName: customer.customer_name
+      customerName: customer.customer_name,
+      address: customer.address
     }));
     res.json(transformedData);
   } catch (err) {

@@ -16,13 +16,15 @@ export async function fetchCustomersLocal(companyId: string): Promise<LocalCusto
       where: { companyId },
       select: {
         id: true,
-        customerName: true
+        customerName: true,
+        address: true
       },
       orderBy: { customerName: 'asc' }
     });
     return customers.map(customer => ({
       id: customer.id,
-      customer_name: customer.customerName
+      customer_name: customer.customerName,
+      address: customer.address || undefined
     }));
   } catch (error: unknown) {
     console.error('Error fetching customers from database:', error);
@@ -55,6 +57,28 @@ export async function fetchCustomers(companyId: string, connectionType: Connecti
 interface QBOCustomer {
     Id: string;
     DisplayName: string;
+    BillAddr?: {
+        Line1?: string;
+        City?: string;
+        CountrySubDivisionCode?: string;
+        PostalCode?: string;
+        Lat?: string;
+        Long?: string;
+    };
+}
+
+function formatAddress(billAddr: QBOCustomer['BillAddr']): string | undefined {
+  if (!billAddr) return undefined;
+  
+  const parts = [
+    billAddr.Line1,
+    billAddr.City,
+    billAddr.CountrySubDivisionCode,
+    billAddr.PostalCode
+  ].filter(part => part && part.trim().length > 0);
+
+  if (parts.length === 0) return undefined;
+  return parts.join(', ');
 }
 
 async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<Customer, 'company_id'>[]> {
@@ -75,7 +99,8 @@ async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<C
 
     allCustomers.push(...customers.map((customer: QBOCustomer) => ({
       id: customer.Id,
-      customer_name: customer.DisplayName
+      customer_name: customer.DisplayName,
+      address: formatAddress(customer.BillAddr)
     })));
 
     if (customers.length < pageSize) {
@@ -155,12 +180,14 @@ export async function saveCustomers(customers: Omit<Customer, 'company_id'>[], c
         await tx.customer.upsert({
           where: { id: customer.id },
           update: { 
-            customerName: customer.customer_name 
+            customerName: customer.customer_name,
+            address: customer.address
           },
           create: {
             id: customer.id,
             customerName: customer.customer_name,
-            companyId: companyId
+            companyId: companyId,
+            address: customer.address
           }
         });
       }

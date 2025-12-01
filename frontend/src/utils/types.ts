@@ -40,6 +40,7 @@ export type QuoteUpdateFunction = (_updater: (_prevQuoteData: QuoteData) => Part
 export interface Customer {
     customerName: string;
     customerId: string;
+    address?: string;
 }
 export type SnackbarSeverity = 'error' | 'success' | 'info' | 'warning';
 export interface SnackbarContextType {
@@ -103,6 +104,7 @@ export interface Run {
   created_at: string;
   run_number: number;
   run_name?: string;
+  driver_name?: string;
   status: 'pending' | 'completed';
   customer_name?: string;
   total_amount?: number;
@@ -113,9 +115,14 @@ export interface RunQuote {
   quoteId: string;
   quoteNumber: string;
   customerName: string;
+  customerAddress?: string;
   totalAmount: number;
   priority: number;
   orderStatus: string;
+  size?: string;
+  type?: string;
+  deliveryCost?: number;
+  notes?: string;
 }
 
 export interface UserStatusResponse {

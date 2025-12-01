@@ -5,6 +5,10 @@ import {
     updateRunQuotes as updateRunQuotesService,
     deleteRunById as deleteRunByIdService,
     updateRunName,
+    updateRunDriver,
+    updateRunItemsDetails,
+    getLatestDriverName,
+    RunItemUpdate
 } from '../services/runService.js'; // New service file for runs
 import { Request, Response, NextFunction } from 'express';
 import { RunStatus } from '../types/run.js';
@@ -102,11 +106,52 @@ export async function updateRunNameController(req: Request, res: Response, next:
     }
 }
 
+export async function updateRunDriverController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { runId } = req.params;
+        const { driverName } = req.body;
+        
+        const updatedRun = await updateRunDriver(runId, driverName);
+        res.status(200).json(updatedRun);
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateRunItemsDetailsController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { runId } = req.params;
+        const { items } = req.body as { items: RunItemUpdate[] };
+        
+        if (!Array.isArray(items)) {
+             return res.status(400).json({ error: 'items must be an array' });
+        }
+
+        await updateRunItemsDetails(runId, items);
+        res.status(200).json({ message: 'Run items updated successfully' });
+    } catch (error) {
+        next(error);
+    }
+}
+
 export async function deleteRunController(req: Request, res: Response, next: NextFunction) {
     try {
         const { runId } = req.params;
         await deleteRunByIdService(runId);
         res.status(204).send();
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getLatestDriverNameController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const companyId = req.session.companyId;
+        if (!companyId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const driverName = await getLatestDriverName(companyId);
+        res.status(200).json({ driverName });
     } catch (error) {
         next(error);
     }

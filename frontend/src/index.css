@@ -24,3 +24,27 @@
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f1f1;
 }
+
+/* Print styles */
+@media print {
+  /* Hide all elements by default during print, then whitelist what we want */
+  /* It's often easier to hide specific structural elements */
+  
+  /* Hide TopBar/Header */
+  header, nav, .no-print {
+    display: none !important;
+  }
+
+  /* Suppress browser headers/footers if supported */
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  /* Reset body margin/padding */
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+}

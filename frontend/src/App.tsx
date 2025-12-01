@@ -34,6 +34,7 @@ const PublicLayout = React.lazy(() => import('./components/PublicLayout'));
 const ErrorBoundary = React.lazy(() => import('./components/ErrorBoundary'));
 const OrderHistory = React.lazy(() => import('./components/OrderHistory'));
 const KyteToQuickBooksConverter = React.lazy(() => import('./components/KyteToQuickBooksConverter'));
+const PrintRunSheet = React.lazy(() => import('./components/runs/PrintRunSheet'));
 
 
 // Conditional footer component
@@ -47,6 +48,7 @@ const ConditionalFooter: React.FC = () => {
     '/orders-to-check',
     '/order-history',
     '/run',
+    '/runs/print',
     '/kyte-converter'
   ];
   
@@ -118,6 +120,7 @@ const App: React.FC = () => {
                 <Route path="/orders-to-check" element={<OrdersToCheckPage />} />
                 <Route path="/order-history" element={<OrderHistory />} />
                 <Route path="/run" element={<Runs />} />
+                <Route path="/runs/print/:runId" element={<PrintRunSheet />} />
                 <Route path="/kyte-converter" element={<KyteToQuickBooksConverter />} />
               </Route>
               {/* Catch-all route - redirects any unknown path to home */}

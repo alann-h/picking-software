@@ -597,7 +597,8 @@ export class WebhookService {
         data: {
           id: customerId,
           companyId: company.id,
-          customerName: customerData.customer_name
+          customerName: customerData.customer_name,
+          address: customerData.address
         }
       });
 
@@ -669,7 +670,7 @@ export class WebhookService {
   /**
    * Get customer data from QuickBooks Online
    */
-  private static async getCustomerFromQBO(customerId: string, companyId: string, connectionType: 'qbo' | 'xero'): Promise<{ customer_name: string } | null> {
+  private static async getCustomerFromQBO(customerId: string, companyId: string, connectionType: 'qbo' | 'xero'): Promise<{ customer_name: string; address?: string } | null> {
     try {
       if (connectionType !== 'qbo') {
         console.log(`Skipping QBO fetch for non-QBO connection type: ${connectionType}`);
@@ -690,8 +691,24 @@ export class WebhookService {
         return null;
       }
 
+      let address: string | undefined;
+      const billAddr = customerData.BillAddr;
+      if (billAddr) {
+        const parts = [
+          billAddr.Line1,
+          billAddr.City,
+          billAddr.CountrySubDivisionCode,
+          billAddr.PostalCode
+        ].filter(part => part && part.trim().length > 0);
+        
+        if (parts.length > 0) {
+          address = parts.join(', ');
+        }
+      }
+
       return {
-        customer_name: customerData.DisplayName || customerData.FullyQualifiedName || ''
+        customer_name: customerData.DisplayName || customerData.FullyQualifiedName || '',
+        address
       };
     } catch (error) {
       console.error(`Error fetching customer from QBO for ID ${customerId}:`, error);

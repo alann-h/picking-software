@@ -50,3 +50,18 @@ export const deleteRun  = async (runId: string): Promise<void> => {
   const data = await apiCallDelete(`${RUNS_BASE}/${runId}`);
   return data;
 };
+
+export const updateRunDriver = async (runId: string, driverName: string): Promise<Run> => {
+  const data = await apiCallPut(`${RUNS_BASE}/${runId}/driver`, { driverName });
+  return data;
+};
+
+export const updateRunItemsDetails = async (runId: string, items: { quoteId: string; size?: string; type?: string; deliveryCost?: number; notes?: string }[]): Promise<void> => {
+  const data = await apiCallPut(`${RUNS_BASE}/${runId}/items`, { items });
+  return data;
+};
+
+export const getLatestDriverName = async (): Promise<{ driverName: string | null }> => {
+  const data = await apiCallGet(`${RUNS_BASE}/latest-driver`);
+  return data;
+};

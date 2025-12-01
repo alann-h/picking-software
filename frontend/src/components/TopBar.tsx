@@ -277,7 +277,7 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
   };
   
   return (
-    <header className="static border-b border-blue-500/10 bg-gradient-to-br from-white to-slate-50">
+    <header className="static border-b border-blue-500/10 bg-gradient-to-br from-white to-slate-50 print:hidden">
       <div className="flex w-full items-center justify-between px-4 py-2 sm:px-6">
         {/* Logo/Brand Section - Absolute Left */}
         <div 

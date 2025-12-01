@@ -22,7 +22,16 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
             // Get quotes with FOR UPDATE equivalent (Prisma handles this automatically in transactions)
             const quotes = await tx.quote.findMany({
                 where: { id: { in: stringQuoteIds } },
-                select: { id: true, status: true },
+                select: { 
+                    id: true, 
+                    status: true,
+                    customer: {
+                        select: {
+                            id: true,
+                            defaultDeliveryType: true
+                        }
+                    }
+                },
             });
 
             if (quotes.length !== stringQuoteIds.length) {
@@ -51,6 +60,7 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                     createdAt: true,
                     runNumber: true,
                     runName: true,
+                    driverName: true,
                     status: true,
                 },
             });
@@ -58,11 +68,15 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
             const runId = newRun.id;
 
             // Create run items with priorities
-            const runItemsData = stringQuoteIds.map((quoteId, index) => ({
-                runId,
-                quoteId,
-                priority: index,
-            }));
+            const runItemsData = stringQuoteIds.map((quoteId, index) => {
+                const quote = quotes.find(q => q.id === quoteId);
+                return {
+                    runId,
+                    quoteId,
+                    priority: index,
+                    type: quote?.customer?.defaultDeliveryType || undefined,
+                };
+            });
 
             await tx.runItem.createMany({
                 data: runItemsData,
@@ -80,6 +94,7 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                 created_at: newRun.createdAt,
                 run_number: Number(newRun.runNumber),
                 run_name: newRun.runName,
+                driver_name: newRun.driverName,
                 status: newRun.status,
             };
         });
@@ -102,6 +117,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
                 createdAt: true,
                 runNumber: true,
                 runName: true,
+                driverName: true,
                 status: true,
             },
         });
@@ -118,7 +134,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
                 quote: {
                     include: {
                         customer: {
-                            select: { customerName: true },
+                            select: { customerName: true, address: true },
                         },
                     },
                 },
@@ -135,9 +151,14 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
                 quoteId: item.quoteId,
                 quoteNumber: item.quote.quoteNumber || '',
                 customerName: item.quote.customer.customerName,
+                customerAddress: item.quote.customer.address || undefined,
                 totalAmount: item.quote.totalAmount.toNumber(),
                 priority: item.priority,
                 orderStatus: item.quote.status,
+                size: item.size || undefined,
+                type: item.type || undefined,
+                deliveryCost: item.deliveryCost?.toNumber(),
+                notes: item.notes || undefined,
             });
         }
 
@@ -147,6 +168,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
             created_at: run.createdAt,
             run_number: Number(run.runNumber),
             run_name: run.runName,
+            driver_name: run.driverName,
             status: run.status,
             quotes: itemsByRunId.get(run.id) || [],
         }));
@@ -175,6 +197,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
                 createdAt: true,
                 runNumber: true,
                 runName: true,
+                driverName: true,
                 status: true,
             },
         });
@@ -185,6 +208,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
             created_at: updatedRun.createdAt,
             run_number: Number(updatedRun.runNumber),
             run_name: updatedRun.runName,
+            driver_name: updatedRun.driverName,
             status: updatedRun.status,
         };
     } catch (error: unknown) {
@@ -269,6 +293,7 @@ export async function updateRunName(runId: string, runName: string): Promise<Run
                 createdAt: true,
                 runNumber: true,
                 runName: true,
+                driverName: true,
                 status: true,
             },
         });
@@ -279,6 +304,7 @@ export async function updateRunName(runId: string, runName: string): Promise<Run
             created_at: updatedRun.createdAt,
             run_number: Number(updatedRun.runNumber),
             run_name: updatedRun.runName,
+            driver_name: updatedRun.driverName,
             status: updatedRun.status,
         };
     } catch (error: unknown) {
@@ -287,6 +313,85 @@ export async function updateRunName(runId: string, runName: string): Promise<Run
             throw new InputError(`Run with ID ${runId} not found.`);
         }
         console.error('Error in updateRunName service:', error);
+        throw error;
+    }
+}
+
+export async function updateRunDriver(runId: string, driverName: string | null): Promise<Run> {
+    try {
+        const updatedRun = await prisma.run.update({
+            where: { id: runId },
+            data: { driverName },
+            select: {
+                id: true,
+                companyId: true,
+                createdAt: true,
+                runNumber: true,
+                runName: true,
+                driverName: true,
+                status: true,
+            },
+        });
+
+        return {
+            id: updatedRun.id,
+            company_id: updatedRun.companyId,
+            created_at: updatedRun.createdAt,
+            run_number: Number(updatedRun.runNumber),
+            run_name: updatedRun.runName,
+            driver_name: updatedRun.driverName,
+            status: updatedRun.status,
+        };
+    } catch (error: unknown) {
+        if (error instanceof Object && 'code' in error && error.code === 'P2025') {
+             throw new InputError(`Run with ID ${runId} not found.`);
+        }
+        console.error('Error in updateRunDriver service:', error);
+        throw error;
+    }
+}
+
+export interface RunItemUpdate {
+    quoteId: string;
+    size?: string;
+    type?: string;
+    deliveryCost?: number;
+    notes?: string;
+}
+
+export async function updateRunItemsDetails(runId: string, items: RunItemUpdate[]): Promise<void> {
+    try {
+        await prisma.$transaction(async (tx) => {
+            for (const item of items) {
+                const updatedRunItem = await tx.runItem.update({
+                    where: {
+                        runId_quoteId: {
+                            runId,
+                            quoteId: item.quoteId
+                        }
+                    },
+                    data: {
+                        size: item.size,
+                        type: item.type === '' ? null : (item.type as 'hand_unload' | 'forklift' | null),
+                        deliveryCost: item.deliveryCost,
+                        notes: item.notes
+                    },
+                    include: { quote: true } // Include quote to get customerId
+                });
+
+                // If type is provided, update customer default
+                if (item.type && item.type !== '') {
+                     if (updatedRunItem.quote.customerId) {
+                         await tx.customer.update({
+                             where: { id: updatedRunItem.quote.customerId },
+                             data: { defaultDeliveryType: item.type as 'hand_unload' | 'forklift' }
+                         });
+                     }
+                }
+            }
+        });
+    } catch (error) {
+        console.error(`Error updating run items for run ${runId}:`, error);
         throw error;
     }
 }
@@ -324,5 +429,25 @@ export async function deleteRunById(runId: string): Promise<{message: string}> {
     } catch (error: unknown) {
         console.error(`Error deleting run ${runId}:`, error);
         throw error;
+    }
+}
+
+export async function getLatestDriverName(companyId: string): Promise<string | null> {
+    try {
+        const lastRun = await prisma.run.findFirst({
+            where: { 
+                companyId,
+                AND: [
+                    { driverName: { not: null } },
+                    { driverName: { not: '' } }
+                ]
+            },
+            orderBy: { createdAt: 'desc' },
+            select: { driverName: true }
+        });
+        return lastRun?.driverName || null;
+    } catch (error) {
+        console.error('Error getting latest driver name:', error);
+        return null;
     }
 }
