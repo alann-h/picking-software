@@ -174,14 +174,16 @@ const PrintRunSheet: React.FC = () => {
     const debouncedItems = useDebounce(items, 1000);
 
     // Auto-save effect
+    const { mutate: saveRun } = saveMutation;
+
     useEffect(() => {
         if (isInitialLoad.current) return;
         
         // Only save if we have data
         if (runId) {
-            saveMutation.mutate();
+            saveRun();
         }
-    }, [debouncedDriverName, debouncedItems, runId, saveMutation]);
+    }, [debouncedDriverName, debouncedItems, runId, saveRun]);
 
     const handlePrint = async () => {
         // Ensure latest state is saved before printing
