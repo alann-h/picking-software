@@ -287,20 +287,20 @@ const PrintRunSheet: React.FC = () => {
                     <table className="w-full border-collapse text-sm table-fixed">
                         <thead>
                             <tr className="bg-gray-50 print:bg-gray-100">
-                                <th className={`border border-gray-300 p-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${getColClass('order', hasNotes)}`}>Order #</th>
-                                <th className={`border border-gray-300 p-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${getColClass('customer', hasNotes)}`}>Customer Name</th>
-                                <th className={`border border-gray-300 p-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider print:hidden ${getColClass('size', hasNotes)}`}>Size</th>
-                                <th className={`border border-gray-300 p-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider print:hidden ${getColClass('type', hasNotes)}`}>Type</th>
-                                <th className={`border border-gray-300 p-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider ${getColClass('cost', hasNotes)}`}>Delivery Cost</th>
-                                <th className={`border border-gray-300 p-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${getColClass('address', hasNotes)}`}>Address</th>
-                                <th className={`border border-gray-300 p-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${getColClass('signature', hasNotes)}`}>Signature</th>
-                                <th className={`border border-gray-300 p-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${getColClass('notes', hasNotes)}`}>Notes</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('order', hasNotes)}`}>Order #</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('customer', hasNotes)}`}>Customer Name</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider print:hidden ${getColClass('size', hasNotes)}`}>Size</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider print:hidden ${getColClass('type', hasNotes)}`}>Type</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('cost', hasNotes)}`}>Delivery Cost</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('address', hasNotes)}`}>Address</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('signature', hasNotes)}`}>Signature</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('notes', hasNotes)}`}>Notes</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-200">
                             {run.quotes.map((quote) => (
                                 <tr key={quote.quoteId} className="print:break-inside-avoid hover:bg-gray-50 print:hover:bg-transparent">
-                                    <td className={`border border-gray-300 p-3 font-medium ${getColClass('order', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 font-medium ${getColClass('order', hasNotes)}`}>
                                         <button 
                                             onClick={() => navigate(`/quote?id=${quote.quoteId}`)}
                                             className="text-blue-600 hover:text-blue-800 hover:underline focus:outline-none print:text-gray-900 print:no-underline cursor-pointer"
@@ -308,12 +308,12 @@ const PrintRunSheet: React.FC = () => {
                                             #{quote.quoteNumber || quote.quoteId.slice(0,8)}
                                         </button>
                                     </td>
-                                    <td className={`border border-gray-300 p-3 text-gray-800 ${getColClass('customer', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-gray-800 ${getColClass('customer', hasNotes)}`}>
                                         <div className="w-full truncate print:whitespace-normal print:overflow-visible" title={quote.customerName}>
                                             {quote.customerName}
                                         </div>
                                     </td>
-                                    <td className={`border border-gray-300 p-3 text-gray-700 print:hidden ${getColClass('size', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-gray-700 print:hidden ${getColClass('size', hasNotes)}`}>
                                         <input 
                                             type="text" 
                                             value={items[quote.quoteId]?.size || ''}
@@ -323,7 +323,7 @@ const PrintRunSheet: React.FC = () => {
                                         />
                                         <span className="hidden print:block">{items[quote.quoteId]?.size}</span>
                                     </td>
-                                    <td className={`border border-gray-300 p-0 text-gray-700 relative print:hidden ${getColClass('type', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-0 text-gray-700 relative print:hidden ${getColClass('type', hasNotes)}`}>
                                         <div className="relative w-full h-full print:hidden min-w-[100px]">
                                             <select
                                                 value={items[quote.quoteId]?.type || ''}
@@ -349,7 +349,7 @@ const PrintRunSheet: React.FC = () => {
                                              items[quote.quoteId]?.type === 'forklift' ? 'Forklift' : ''}
                                         </span>
                                     </td>
-                                    <td className={`border border-gray-300 p-3 text-right text-gray-700 ${getColClass('cost', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-700 ${getColClass('cost', hasNotes)}`}>
                                         <div className="print:hidden min-w-[80px]">
                                             <span className="mr-1 text-gray-500">$</span>
                                             <input 
@@ -364,15 +364,15 @@ const PrintRunSheet: React.FC = () => {
                                             {items[quote.quoteId]?.deliveryCost ? `$${Number(items[quote.quoteId]?.deliveryCost).toFixed(2)}` : ''}
                                         </span>
                                     </td>
-                                    <td className={`border border-gray-300 p-3 text-xs text-gray-600 ${getColClass('address', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-xs text-gray-600 ${getColClass('address', hasNotes)}`}>
                                         <div className="w-full truncate print:whitespace-normal print:overflow-visible" title={quote.customerAddress || ''}>
                                             {quote.customerAddress || 'No address'}
                                         </div>
                                     </td>
-                                    <td className={`border border-gray-300 p-3 h-16 ${getColClass('signature', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 h-16 ${getColClass('signature', hasNotes)}`}>
                                         {/* Blank space for signature, added height */}
                                     </td>
-                                    <td className={`border border-gray-300 p-3 text-gray-700 ${getColClass('notes', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-gray-700 ${getColClass('notes', hasNotes)}`}>
                                         <AutoResizeTextarea
                                             value={items[quote.quoteId]?.notes || ''}
                                             onChange={(val) => handleItemChange(quote.quoteId, 'notes', val)}
@@ -384,20 +384,20 @@ const PrintRunSheet: React.FC = () => {
                                 </tr>
                             ))}
                             {/* Total Row */}
-                            <tr className="font-bold">
-                                <td className={`p-3 text-right text-gray-900 ${getColClass('order', hasNotes)}`} colSpan={2}>
+                            <tr className="font-bold border-t border-gray-200">
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('order', hasNotes)}`} colSpan={2}>
                                     
                                 </td>
                                 {/* Hidden cells to maintain structure in screen view where size/type exist */}
                                 <td className="print:hidden"></td>
                                 <td className="print:hidden"></td>
                                 
-                                <td className={`border border-gray-300 p-3 text-right text-gray-900 ${getColClass('cost', hasNotes)}`}>
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('cost', hasNotes)}`}>
                                     ${totalDeliveryCost.toFixed(2)}
                                 </td>
-                                <td className={`p-3 ${getColClass('address', hasNotes)}`}></td>
-                                <td className={`p-3 ${getColClass('signature', hasNotes)}`}></td>
-                                <td className={`p-3 ${getColClass('notes', hasNotes)}`}></td>
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('address', hasNotes)}`}></td>
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('signature', hasNotes)}`}></td>
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('notes', hasNotes)}`}></td>
                             </tr>
                         </tbody>
                     </table>
