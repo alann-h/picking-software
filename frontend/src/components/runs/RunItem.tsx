@@ -138,13 +138,34 @@ export const RunItem: React.FC<{
         enabled: isEditing, // Fetch when editing (needed for URL restoration)
     });
 
-    // Fetch quotes for selected customer from accounting system
+    // Fetch quotes for selected customer from accounting system (and local DB to get all statuses)
     const { data: customerQuotesData, isLoading: isLoadingCustomerQuotes } = useQuery<QuoteSummary[]>({
-        queryKey: ['quotes', selectedCustomer?.customerId],
+        queryKey: ['quotes', selectedCustomer?.customerId, 'combined'],
         queryFn: async () => {
             if (!selectedCustomer) return [];
-            const response = await getCustomerQuotes(selectedCustomer.customerId) as QuoteSummary[];
-            return response;
+            
+            const [remoteQuotes, localQuotes] = await Promise.all([
+                getCustomerQuotes(selectedCustomer.customerId) as Promise<QuoteSummary[]>,
+                getQuotesWithStatus('all') as Promise<QuoteSummary[]>
+            ]);
+
+            const combined = new Map<string, QuoteSummary>();
+
+            // Add remote quotes first
+            remoteQuotes.forEach(q => {
+                 const id = String(q.id);
+                 combined.set(id, { ...q, id, customerId: selectedCustomer.customerId });
+            });
+
+            // Add/Overwrite with local quotes (to get checking/completed statuses)
+            localQuotes.forEach(q => {
+                if (q.customerId === selectedCustomer.customerId) {
+                    const id = String(q.id);
+                    combined.set(id, q);
+                }
+            });
+
+            return Array.from(combined.values());
         },
         enabled: !!selectedCustomer && isEditing, // Only fetch when customer is selected
         staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -656,6 +677,11 @@ export const RunItem: React.FC<{
                                                                     <div className="min-w-0 flex-1">
                                                                         <p className="text-xs sm:text-sm font-semibold text-gray-800 truncate">#{quote.quoteNumber || quote.id}</p>
                                                                         <p className="text-xs text-gray-600 truncate">{quote.customerName}</p>
+                                                                        {quote.createdAt && (
+                                                                            <p className="text-xs text-gray-400 whitespace-nowrap">
+                                                                                {new Date(quote.createdAt).toLocaleDateString()}
+                                                                            </p>
+                                                                        )}
                                                                     </div>
                                                                     <div className="text-right flex items-center gap-1.5 flex-shrink-0 ml-2">
                                                                         <p className="text-xs sm:text-sm font-semibold text-green-700">{formatCurrency(quote.totalAmount)}</p>

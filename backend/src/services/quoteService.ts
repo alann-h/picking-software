@@ -66,6 +66,7 @@ async function getQboCustomerQuotes(oauthClient: IntuitOAuthClient, customerId: 
         totalAmount: quote.TotalAmt,
         customerName: (quote.CustomerRef as Record<string, unknown>).name as string,
         lastModified: (quote.MetaData as Record<string, unknown>).LastUpdatedTime as string,
+        createdAt: quote.TxnDate as string,
       }));
     
     return customerQuotes;
@@ -100,6 +101,7 @@ async function getXeroCustomerQuotes(oauthClient: XeroClient, customerId: string
       totalAmount: quote.total || 0,
       customerName: quote.contact?.name || 'Unknown Customer',
       lastModified: quote.updatedDateUTC!,
+      createdAt: quote.dateString || quote.date || '',
     }));
 
   } catch (error: unknown) {

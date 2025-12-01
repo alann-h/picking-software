@@ -38,6 +38,11 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
                 <span className="text-xs sm:text-sm text-gray-600 truncate flex-1">
                     {quote.customerName}
                 </span>
+                {quote.createdAt && (
+                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                        {new Date(quote.createdAt).toLocaleDateString()}
+                    </span>
+                )}
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 <span className="text-xs sm:text-sm font-semibold text-emerald-600 whitespace-nowrap">
