@@ -215,7 +215,7 @@ const PrintRunSheet: React.FC = () => {
         };
 
         const printWidthsNoNotes: Record<string, string> = {
-            order: 'print:w-[8%]',
+            order: 'print:w-[10%]',
             customer: 'print:w-[20%]',
             size: 'print:hidden',
             type: 'print:hidden',
