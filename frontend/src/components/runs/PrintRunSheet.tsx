@@ -270,7 +270,8 @@ const PrintRunSheet: React.FC = () => {
                             <h1 className="text-2xl font-bold mb-2 w-full sm:w-96 truncate">
                                 {run.run_name || `Run Sheet #${run.run_number}`}
                             </h1>
-                            <div className="text-gray-600">Date: {new Date(run.created_at).toLocaleDateString()}</div>
+                            <div className="text-gray-600">Date: {new Date().toLocaleDateString('en-AU')}</div>
+                            <div className="text-gray-600">Run Created: {run.created_at}</div>
                         </div>
                         <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
                             <span className="font-semibold">Driver:</span>
