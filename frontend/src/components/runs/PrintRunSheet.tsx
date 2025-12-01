@@ -204,14 +204,14 @@ const PrintRunSheet: React.FC = () => {
 
     const getColClass = (colName: string, hasNotes: boolean) => {
         const screenWidths: Record<string, string> = {
-            order: 'w-[8%]',
-            customer: 'w-[15%]',
-            size: 'w-[5%]',
-            type: 'w-[7%]',
-            cost: 'w-[7%]',
-            address: 'w-[20%]',
-            signature: 'w-[15%]',
-            notes: 'w-[15%]'
+            order: 'w-24',
+            customer: '', // Fluid - shares remaining space
+            size: 'w-20',
+            type: 'w-28',
+            cost: 'w-24',
+            address: '', // Fluid - shares remaining space
+            signature: 'w-32',
+            notes: 'w-40'
         };
 
         const printWidthsNoNotes: Record<string, string> = {
@@ -284,7 +284,7 @@ const PrintRunSheet: React.FC = () => {
                         </div>
                     </div>
 
-                    <table className="w-full border-collapse text-sm">
+                    <table className="w-full border-collapse text-sm table-fixed">
                         <thead>
                             <tr className="bg-gray-50 print:bg-gray-100">
                                 <th className={`border border-gray-300 p-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${getColClass('order', hasNotes)}`}>Order #</th>
@@ -309,7 +309,7 @@ const PrintRunSheet: React.FC = () => {
                                         </button>
                                     </td>
                                     <td className={`border border-gray-300 p-3 text-gray-800 ${getColClass('customer', hasNotes)}`}>
-                                        <div className="truncate max-w-[150px] print:max-w-none" title={quote.customerName}>
+                                        <div className="w-full truncate print:whitespace-normal print:overflow-visible" title={quote.customerName}>
                                             {quote.customerName}
                                         </div>
                                     </td>
@@ -365,7 +365,7 @@ const PrintRunSheet: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className={`border border-gray-300 p-3 text-xs text-gray-600 ${getColClass('address', hasNotes)}`}>
-                                        <div className="truncate max-w-[200px] print:max-w-none" title={quote.customerAddress || ''}>
+                                        <div className="w-full truncate print:whitespace-normal print:overflow-visible" title={quote.customerAddress || ''}>
                                             {quote.customerAddress || 'No address'}
                                         </div>
                                     </td>
