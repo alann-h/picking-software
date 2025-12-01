@@ -50,58 +50,70 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         await html5QrCodeRef.current.stop();
       }
 
-      // Get cameras if not already loaded
-      let targetCameraId = cameraId;
-      if (cameras.length === 0) {
-        const devices = await Html5Qrcode.getCameras();
-        if (!devices || devices.length === 0) {
-          throw new Error('No cameras found');
-        }
-        setCameras(devices);
-        
-        // Default to rear camera if available and no specific camera requested
-        if (!targetCameraId) {
-          const rearCamera = devices.find(device => 
-            device.label.toLowerCase().includes('back') || 
-            device.label.toLowerCase().includes('rear') ||
-            device.label.toLowerCase().includes('environment')
-          );
-          targetCameraId = rearCamera ? rearCamera.id : devices[0].id;
-          
-          // Update index to match the selected camera
-          const index = devices.findIndex(d => d.id === targetCameraId);
-          if (index !== -1) setCurrentCameraIndex(index);
-        }
-      } else if (!targetCameraId) {
-        // Use current index if cameras loaded but no ID passed
-        targetCameraId = cameras[currentCameraIndex].id;
-      }
-
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
       };
 
-      await html5QrCodeRef.current.start(
-        targetCameraId!,
-        config,
-        (decodedText) => {
-          onScanSuccess(decodedText);
-          onClose(); // Close modal on success
-        },
-        () => {
-          // Ignore frame errors
-        }
-      );
+      // If a specific camera ID is provided, use it
+      if (cameraId) {
+        await html5QrCodeRef.current.start(
+          cameraId,
+          config,
+          (decodedText) => {
+            onScanSuccess(decodedText);
+            onClose();
+          },
+          () => {}
+        );
+      } else {
+        // Otherwise start with environment facing mode (best for mobile)
+        // This works better on Android than enumerating devices first
+        await html5QrCodeRef.current.start(
+          { facingMode: "environment" },
+          config,
+          (decodedText) => {
+            onScanSuccess(decodedText);
+            onClose();
+          },
+          () => {}
+        );
+      }
 
       setIsScanning(true);
+      
+      // After successful start, we can safely enumerate cameras if needed
+      if (cameras.length === 0) {
+        try {
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            setCameras(devices);
+            
+            // Try to find the active camera to set the index
+            // This is a bit tricky since we started with facingMode
+            // We'll just default to the first one or try to match "back"
+            const rearCameraIndex = devices.findIndex(device => 
+              device.label.toLowerCase().includes('back') || 
+              device.label.toLowerCase().includes('rear') ||
+              device.label.toLowerCase().includes('environment')
+            );
+            
+            if (rearCameraIndex !== -1) {
+              setCurrentCameraIndex(rearCameraIndex);
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to enumerate cameras after start:', e);
+          // Non-fatal, we are already scanning
+        }
+      }
       
       // Check for torch capability
       try {
         const settings = html5QrCodeRef.current.getRunningTrackCameraCapabilities();
         setHasTorch(!!settings.torchFeature().isSupported());
-      } catch (e) {
+      } catch {
         setHasTorch(false);
       }
 
@@ -113,10 +125,11 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         errorMsg = 'Camera permission denied';
       } else if (err.name === 'NotFoundError') {
         errorMsg = 'No camera found';
+      } else if (err.name === 'NotReadableError') {
+        errorMsg = 'Camera is in use by another app';
       }
       
       setError(errorMsg);
-      // Don't show snackbar for initial load errors, just show in UI
     }
   };
 
