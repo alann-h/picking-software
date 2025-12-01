@@ -40,7 +40,7 @@ const QuoteFinderItem: React.FC<{ quote: QuoteSummary, onStage: () => void }> = 
                 </span>
                 {quote.createdAt && (
                     <span className="text-xs text-gray-400 whitespace-nowrap">
-                        {new Date(quote.createdAt).toLocaleDateString()}
+                        {quote.createdAt}
                     </span>
                 )}
             </div>

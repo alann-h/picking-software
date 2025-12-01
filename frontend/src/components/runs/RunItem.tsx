@@ -679,7 +679,7 @@ export const RunItem: React.FC<{
                                                                         <p className="text-xs text-gray-600 truncate">{quote.customerName}</p>
                                                                         {quote.createdAt && (
                                                                             <p className="text-xs text-gray-400 whitespace-nowrap">
-                                                                                {new Date(quote.createdAt).toLocaleDateString()}
+                                                                                {quote.createdAt}
                                                                             </p>
                                                                         )}
                                                                     </div>
