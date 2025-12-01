@@ -209,15 +209,36 @@ const AvailableQuotes: React.FC<{ customer: Customer, stagedQuoteIds: Set<string
     const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
     const { data: quotesData } = useSuspenseQuery<QuoteSummary[]>({
-        queryKey: ['quotes', customer.customerId],
-        queryFn: () => getCustomerQuotes(customer.customerId) as Promise<QuoteSummary[]>,
+        queryKey: ['quotes', customer.customerId, 'combined'],
+        queryFn: async () => {
+            const [remoteQuotes, localQuotes] = await Promise.all([
+                getCustomerQuotes(customer.customerId) as Promise<QuoteSummary[]>,
+                getQuotesWithStatus('all') as Promise<QuoteSummary[]>
+            ]);
+
+            const combined = new Map<string, QuoteSummary>();
+
+            // Add remote quotes first
+            remoteQuotes.forEach(q => {
+                 const id = String(q.id);
+                 combined.set(id, { ...q, id, customerId: customer.customerId });
+            });
+
+            // Add/Overwrite with local quotes (to get checking/completed statuses)
+            localQuotes.forEach(q => {
+                if (q.customerId === customer.customerId) {
+                    const id = String(q.id);
+                    combined.set(id, q);
+                }
+            });
+
+            return Array.from(combined.values());
+        },
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
     });
-    const availableQuotes = quotesData
-        .filter((q: QuoteSummary) => !stagedQuoteIds.has(q.id))
-        .map((quote: QuoteSummary) => ({ ...quote, customerId: customer.customerId }));
 
+    const availableQuotes = quotesData.filter(q => !stagedQuoteIds.has(q.id));
     const displayedQuotes = availableQuotes.slice(0, displayCount);
     const hasMore = displayCount < availableQuotes.length;
 

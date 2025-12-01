@@ -38,11 +38,12 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                 throw new Error('Internal Server Error: Could not retrieve all quotes for run creation.');
             }
             
-            for (const quote of quotes) {
-                if (!['pending', 'checking'].includes(quote.status)) {
-                    throw new InputError(`Quote ID ${quote.id} has status '${quote.status}' and cannot be added to a run.`);
-                }
-            }
+            // Allow any status to be added to a run
+            // for (const quote of quotes) {
+            //     if (!['pending', 'checking'].includes(quote.status)) {
+            //         throw new InputError(`Quote ID ${quote.id} has status '${quote.status}' and cannot be added to a run.`);
+            //     }
+            // }
 
             const nextRunNumber = await getNextRunNumber(companyId);
 
@@ -82,9 +83,12 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                 data: runItemsData,
             });
 
-            // Update quotes status to assigned
+            // Update quotes status to assigned ONLY if they are currently pending
             await tx.quote.updateMany({
-                where: { id: { in: stringQuoteIds } },
+                where: { 
+                    id: { in: stringQuoteIds },
+                    status: 'pending'
+                },
                 data: { status: 'assigned' },
             });
 
