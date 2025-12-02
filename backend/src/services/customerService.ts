@@ -66,6 +66,7 @@ interface QBOCustomer {
         City?: string;
         CountrySubDivisionCode?: string;
         PostalCode?: string;
+        Country?: string;
     };
     PrimaryPhone?: {
         FreeFormNumber: string;
@@ -73,55 +74,54 @@ interface QBOCustomer {
 }
 
 function formatAddress(
-  billAddr: QBOCustomer['BillAddr'], 
+  billAddr: QBOCustomer['BillAddr'],
   primaryPhone?: { FreeFormNumber: string },
 ): string | undefined {
   if (!billAddr) return undefined;
 
   const phoneToDisplay = primaryPhone?.FreeFormNumber || '';
-  
   const normalizedPhone = phoneToDisplay ? phoneToDisplay.replace(/\s/g, '').toLowerCase() : '';
 
-  const addressParts = [
+  const potentialParts = [
     billAddr.Line1,
     billAddr.Line2,
     billAddr.Line3,
     billAddr.Line4,
-    billAddr.Line5
-  ].filter(part => {
+    billAddr.Line5,
+    billAddr.City,
+    billAddr.CountrySubDivisionCode, // State/Province
+    billAddr.PostalCode,
+    billAddr.Country
+  ];
+
+  const seenValues = new Set<string>();
+
+  const finalParts = potentialParts.filter(part => {
     if (!part || part.trim().length === 0) return false;
 
-    // IF we have a phone number to display later, we want to REMOVE it from here
-    if (phoneToDisplay) {
-      const normalizedPart = part.replace(/\s/g, '').toLowerCase();
+    const cleanPart = part.trim();
+    const normalizedPart = cleanPart.replace(/\s/g, '').toLowerCase();
 
+    if (seenValues.has(normalizedPart)) return false;
+
+    if (phoneToDisplay) {
       if (normalizedPart === normalizedPhone) return false;
 
-      // We remove this because we are going to append the "official" phone number manually later.
-      if (/^(phone|mobile|mob|fax|tel):/i.test(part.trim())) {
+      if (/^(phone|mobile|mob|ph):/i.test(cleanPart)) {
         return false;
       }
     }
 
+    seenValues.add(normalizedPart);
     return true;
   });
 
-  if (addressParts.length === 0) {
-    const structured = [
-      billAddr.City,
-      billAddr.CountrySubDivisionCode,
-      billAddr.PostalCode
-    ].filter(p => p && p.trim().length > 0);
-    addressParts.push(...structured);
-  }
-
   if (phoneToDisplay) {
-    addressParts.push(phoneToDisplay);
+    finalParts.push(phoneToDisplay);
   }
 
-  if (addressParts.length === 0) return undefined;
-
-  return addressParts.join(', ');
+  if (finalParts.length === 0) return undefined;
+  return finalParts.join(', ');
 }
 
 async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<Customer, 'company_id'>[]> {
@@ -139,9 +139,6 @@ async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<C
     });
     const responseData = response.json;
     const customers: QBOCustomer[] = responseData.QueryResponse.Customer || [];
-    // find customer with id of 919 and console log
-    console.log(customers.find((customer: QBOCustomer) => customer.Id === '919'));
-
     allCustomers.push(...customers.map((customer: QBOCustomer) => ({
       id: customer.Id,
       customer_name: customer.DisplayName,
