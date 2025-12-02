@@ -1215,7 +1215,6 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       throw new InputError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
-    // Check if any products are unavailable (being removed from estimate)
     const hasUnavailableProducts = Object.values(quoteLocalDb.productInfo).some(
       item => item.pickingStatus === 'unavailable'
     );
@@ -1223,7 +1222,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     const updatePayload: Record<string, unknown> = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
-      sparse: !hasUnavailableProducts,
+      sparse: !hasUnavailableProducts, 
       Line: []
     };
     
@@ -1233,89 +1232,139 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       updatePayload.DocNumber = qbQuote.DocNumber;
     }
 
-    const lineItems: Array<Record<string, unknown>> = [];
-    
-    // Build a map of externalId -> original QuickBooks price to preserve custom pricing
-    const originalQbLines = qbQuote.Line as Array<Record<string, unknown>>;
-    const qbPriceMap = new Map<string, number>();
-    
-    for (const line of originalQbLines) {
-      if (line.DetailType === 'SalesItemLineDetail') {
-        const salesDetail = line.SalesItemLineDetail as Record<string, unknown>;
-        const itemRef = salesDetail.ItemRef as Record<string, unknown>;
-        const externalId = itemRef.value as string;
-        const unitPrice = salesDetail.UnitPrice as number;
-        
-        if (externalId && unitPrice !== undefined) {
-          qbPriceMap.set(externalId, unitPrice);
-        }
-      }
+    // =========================================================
+    // STEP 1: FILL THE BUCKETS (Map Local Inventory)
+    // =========================================================
+    interface ProductBucket {
+      totalPickedQty: number;
+      localItem: any;
+      externalId: string;
     }
-    
-    // Sort products by SKU before processing
-    const sortedProducts = Object.values(quoteLocalDb.productInfo).sort((a, b) => {
-      return a.sku.localeCompare(b.sku);
-    });
-    
-    for (const localItem of sortedProducts) {
-      if (localItem.pickingStatus === 'unavailable') {
-        continue;
-      }
-      
-      if (localItem.pickingStatus === 'pending') {
-        throw new InputError('Quote must not have any products pending!');
-      }
-      
+
+    const productBuckets = new Map<string, ProductBucket>();
+
+    for (const localItem of Object.values(quoteLocalDb.productInfo)) {
+      if (localItem.pickingStatus === 'pending') throw new InputError('Quote must not have any products pending!');
+      if (localItem.pickingStatus === 'unavailable') continue; 
+
       const externalId = await productIdToExternalId(localItem.productId);
       
-      if (!externalId) {
-        throw new InputError(`Product ${localItem.productName} not found in QuickBooks`);
+      if (externalId) {
+        productBuckets.set(externalId, {
+          totalPickedQty: Number(localItem.originalQty),
+          localItem: localItem,
+          externalId: externalId
+        });
       }
-      
-      // Use QuickBooks price if it was customized, otherwise use local database price
-      const qbOriginalPrice = qbPriceMap.get(externalId);
-      const localPrice = Number(localItem.price);
-      let finalPrice = localPrice;
-      
-      if (qbOriginalPrice !== undefined && qbOriginalPrice !== localPrice) {
-        // Admin customized the price in QuickBooks, preserve it
-        finalPrice = qbOriginalPrice;
-        console.log(`Preserving custom price for ${localItem.productName}: QB=$${qbOriginalPrice} (DB=$${localPrice})`);
+    }
+
+    // =========================================================
+    // STEP 2: PROCESS EXISTING LINES (Preserve Structure)
+    // =========================================================
+    
+    const lineItems: Array<Record<string, unknown>> = [];
+    const originalQbLines = qbQuote.Line as Array<Record<string, unknown>>;
+
+    for (const line of originalQbLines) {
+      // Preserve Headers/Subtotals
+      if (line.DetailType !== 'SalesItemLineDetail') {
+        lineItems.push(line);
+        continue;
       }
-      
-      const amount = finalPrice * Number(localItem.originalQty);
-      
-      const lineItem = {
-        Description: localItem.productName,
+
+      const salesDetail = line.SalesItemLineDetail as Record<string, unknown>;
+      const itemRef = salesDetail.ItemRef as Record<string, unknown>;
+      const externalId = itemRef.value as string;
+
+      const bucket = productBuckets.get(externalId);
+
+      // If item no longer exists locally (or fully unavailable), skip this line (deletes it from QB)
+      if (!bucket || bucket.totalPickedQty <= 0) {
+        continue;
+      }
+
+      // Calculate Qty for THIS specific line
+      const originalLineQty = Number(salesDetail.Qty || 0);
+      let qtyToFulfill = 0;
+
+      // Consume from bucket
+      if (bucket.totalPickedQty >= originalLineQty) {
+        qtyToFulfill = originalLineQty;
+      } else {
+        qtyToFulfill = bucket.totalPickedQty; // Short pick
+      }
+
+      bucket.totalPickedQty -= qtyToFulfill;
+
+      // Use QB Price for existing lines
+      const currentLinePrice = Number(salesDetail.UnitPrice);
+      const amount = currentLinePrice * qtyToFulfill;
+
+      lineItems.push({
+        Id: line.Id, // KEEPS THE LINE "ALIVE" IN QB
+        Description: line.Description,
         Amount: amount,
         DetailType: "SalesItemLineDetail",
         SalesItemLineDetail: {
-          ItemRef: {
-            value: externalId,
-            name: localItem.productName
-          },
-          Qty: Number(localItem.originalQty),
-          UnitPrice: finalPrice,
-          TaxCodeRef: {
-            value: localItem.tax_code_ref || "4"
-          }
+          ...salesDetail,
+          Qty: qtyToFulfill,
+          UnitPrice: currentLinePrice 
         }
-      };
-      
-      lineItems.push(lineItem);
+      });
     }
-    
+
+    // =========================================================
+    // STEP 3: PROCESS NEW/LEFTOVER ITEMS (Additions)
+    // =========================================================
+    // Iterate through buckets to check for leftovers.
+    // This catches:
+    // 1. Completely new items added locally.
+    // 2. Extra quantity that exceeded the original QB lines.
+
+    for (const [externalId, bucket] of productBuckets) {
+      if (bucket.totalPickedQty > 0) {
+        console.log(`Adding new line for ${bucket.localItem.productName} (Qty: ${bucket.totalPickedQty})`);
+
+        // Since this is a new line, we MUST use the Local DB Price
+        const localPrice = Number(bucket.localItem.price);
+        const amount = localPrice * bucket.totalPickedQty;
+
+        const newLine = {
+          // No 'Id' field -> Tells QB to create a NEW line
+          Description: bucket.localItem.productName,
+          Amount: amount,
+          DetailType: "SalesItemLineDetail",
+          SalesItemLineDetail: {
+            ItemRef: {
+              value: externalId,
+              name: bucket.localItem.productName
+            },
+            Qty: bucket.totalPickedQty,
+            UnitPrice: localPrice,
+            TaxCodeRef: {
+              value: bucket.localItem.tax_code_ref || "4" // Ensure tax code is handled
+            }
+          }
+        };
+
+        lineItems.push(newLine);
+      }
+    }
+
+    // =========================================================
+    // FINALIZATION
+    // =========================================================
+
     if (lineItems.length === 0) { 
       throw new InputError('No products found to update in QuickBooks');
     }
     
     updatePayload.Line = lineItems;
-    
 
     const baseURL = await getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
     
-    // Make API call with proper error handling
+    // API Call
     let response;
     try {
       response = await oauthClient.makeApiCall({
@@ -1326,57 +1375,47 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       });
     } catch (apiError: unknown) {
       const error = apiError as { message?: string; response?: { data?: { Fault?: { Error?: Array<{ Message?: string }> } } } };
-      console.error('QuickBooks API Call Error:', error.message);
-      console.error('Error response data:', error.response?.data);
       const errorMsg = error.response?.data?.Fault?.Error?.[0]?.Message || error.message || 'Unknown error';
       throw new Error(`Failed to update quote in QuickBooks: ${errorMsg}`);
     }
     
-    // Check if response contains a Fault
     if (response.json?.Fault) {
-      const errorDetail = response.json.Fault.Error[0];
-      throw new Error(`QuickBooks error: ${errorDetail.Message}`);
+      throw new Error(`QuickBooks error: ${response.json.Fault.Error[0].Message}`);
     }
-    
-    // Construct the QuickBooks URL using the estimate ID
-    const webUrl = baseURL.includes('sandbox') 
-      ? 'https://sandbox.qbo.intuit.com/app/'
-      : 'https://qbo.intuit.com/app/';
+
+    // Construct URL and Update DB
+    const webUrl = baseURL.includes('sandbox') ? 'https://sandbox.qbo.intuit.com/app/' : 'https://qbo.intuit.com/app/';
     const quickbooksUrl = `${webUrl}estimate?txnId=${quoteId}`;
     
-      // Update status and save URL in a transaction
-      await prisma.$transaction(async (tx: any) => {
-        // Check if we need to set pickingCompletedAt
-        const currentQuote = await tx.quote.findUnique({
-          where: { id: quoteId },
-          select: { pickingCompletedAt: true }
-        });
-        
-        const updateData: any = { 
-          status: 'completed',
-          externalSyncUrl: quickbooksUrl 
-        };
-
-        if (!currentQuote?.pickingCompletedAt) {
-          updateData.pickingCompletedAt = new Date();
-        }
-
-        await tx.quote.update({
-          where: { id: quoteId },
-          data: updateData
-        });
-        
-        console.log(`Quote ${quoteId} completed and synced to QuickBooks`);
+    await prisma.$transaction(async (tx: any) => {
+      const currentQuote = await tx.quote.findUnique({
+        where: { id: quoteId },
+        select: { pickingCompletedAt: true }
       });
+      
+      const updateData: any = { 
+        status: 'completed',
+        externalSyncUrl: quickbooksUrl 
+      };
+
+      if (!currentQuote?.pickingCompletedAt) {
+        updateData.pickingCompletedAt = new Date();
+      }
+
+      await tx.quote.update({
+        where: { id: quoteId },
+        data: updateData
+      });
+    });
     
     return { 
       message: 'Quote updated successfully in QuickBooks',
       redirectUrl: quickbooksUrl
     };
+
   } catch (error: unknown) {
     console.error('Error updating quote in QuickBooks:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(errorMessage);
+    throw new Error(error instanceof Error ? error.message : 'Unknown error');
   }
 }
 
