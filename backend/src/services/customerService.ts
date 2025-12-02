@@ -59,26 +59,69 @@ interface QBOCustomer {
     DisplayName: string;
     BillAddr?: {
         Line1?: string;
+        Line2?: string;
+        Line3?: string;
+        Line4?: string;
+        Line5?: string;
         City?: string;
         CountrySubDivisionCode?: string;
         PostalCode?: string;
-        Lat?: string;
-        Long?: string;
+    };
+    PrimaryPhone?: {
+        FreeFormNumber: string;
     };
 }
 
-function formatAddress(billAddr: QBOCustomer['BillAddr']): string | undefined {
+function formatAddress(
+  billAddr: QBOCustomer['BillAddr'], 
+  primaryPhone?: { FreeFormNumber: string },
+): string | undefined {
   if (!billAddr) return undefined;
-  
-  const parts = [
-    billAddr.Line1,
-    billAddr.City,
-    billAddr.CountrySubDivisionCode,
-    billAddr.PostalCode
-  ].filter(part => part && part.trim().length > 0);
 
-  if (parts.length === 0) return undefined;
-  return parts.join(', ');
+  const phoneToDisplay = primaryPhone?.FreeFormNumber || '';
+  
+  const normalizedPhone = phoneToDisplay ? phoneToDisplay.replace(/\s/g, '').toLowerCase() : '';
+
+  const addressParts = [
+    billAddr.Line1,
+    billAddr.Line2,
+    billAddr.Line3,
+    billAddr.Line4,
+    billAddr.Line5
+  ].filter(part => {
+    if (!part || part.trim().length === 0) return false;
+
+    // IF we have a phone number to display later, we want to REMOVE it from here
+    if (phoneToDisplay) {
+      const normalizedPart = part.replace(/\s/g, '').toLowerCase();
+
+      if (normalizedPart === normalizedPhone) return false;
+
+      // We remove this because we are going to append the "official" phone number manually later.
+      if (/^(phone|mobile|mob|fax|tel):/i.test(part.trim())) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  if (addressParts.length === 0) {
+    const structured = [
+      billAddr.City,
+      billAddr.CountrySubDivisionCode,
+      billAddr.PostalCode
+    ].filter(p => p && p.trim().length > 0);
+    addressParts.push(...structured);
+  }
+
+  if (phoneToDisplay) {
+    addressParts.push(phoneToDisplay);
+  }
+
+  if (addressParts.length === 0) return undefined;
+
+  return addressParts.join(', ');
 }
 
 async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<Customer, 'company_id'>[]> {
@@ -98,11 +141,11 @@ async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<C
     const customers: QBOCustomer[] = responseData.QueryResponse.Customer || [];
     // find customer with id of 309 and print the bill addr
     console.log(customers.find((customer: QBOCustomer) => customer.Id === '309'));
-    
+
     allCustomers.push(...customers.map((customer: QBOCustomer) => ({
       id: customer.Id,
       customer_name: customer.DisplayName,
-      address: formatAddress(customer.BillAddr)
+      address: formatAddress(customer.BillAddr, customer.PrimaryPhone)
     })));
 
     if (customers.length < pageSize) {
