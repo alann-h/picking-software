@@ -139,7 +139,9 @@ async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<C
     });
     const responseData = response.json;
     const customers: QBOCustomer[] = responseData.QueryResponse.Customer || [];
-    
+    // find customer with id of 919 and console log
+    console.log(customers.find((customer: QBOCustomer) => customer.Id === '919'));
+
     allCustomers.push(...customers.map((customer: QBOCustomer) => ({
       id: customer.Id,
       customer_name: customer.DisplayName,
