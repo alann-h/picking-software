@@ -96,7 +96,9 @@ async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<C
     });
     const responseData = response.json;
     const customers: QBOCustomer[] = responseData.QueryResponse.Customer || [];
-
+    // find customer with id of 309 and print the bill addr
+    console.log(customers.find((customer: QBOCustomer) => customer.Id === '309'));
+    
     allCustomers.push(...customers.map((customer: QBOCustomer) => ({
       id: customer.Id,
       customer_name: customer.DisplayName,
