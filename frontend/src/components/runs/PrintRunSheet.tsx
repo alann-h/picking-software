@@ -279,7 +279,7 @@ const PrintRunSheet: React.FC = () => {
                                 type="text" 
                                 value={driverName}
                                 onChange={(e) => setDriverName(e.target.value)}
-                                className="border-b border-gray-400 px-2 py-1 w-48 sm:w-64 focus:outline-none print:border-none text-right sm:text-left"
+                                className="border-b border-gray-400 px-2 py-1 w-48 sm:w-64 focus:outline-none text-right sm:text-left"
                                 placeholder="Enter driver name"
                             />
                         </div>
@@ -309,7 +309,7 @@ const PrintRunSheet: React.FC = () => {
                                             #{quote.quoteNumber || quote.quoteId.slice(0,8)}
                                         </button>
                                     </td>
-                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-gray-800 ${getColClass('customer', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('customer', hasNotes)}`}>
                                         <div className="w-full truncate print:whitespace-normal print:overflow-visible" title={quote.customerName}>
                                             {quote.customerName}
                                         </div>
@@ -365,7 +365,7 @@ const PrintRunSheet: React.FC = () => {
                                             {items[quote.quoteId]?.deliveryCost ? `$${Number(items[quote.quoteId]?.deliveryCost).toFixed(2)}` : ''}
                                         </span>
                                     </td>
-                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-xs text-gray-600 ${getColClass('address', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-xs ${getColClass('address', hasNotes)}`}>
                                         <div className="w-full truncate print:whitespace-normal print:overflow-visible" title={quote.customerAddress || ''}>
                                             {quote.customerAddress || 'No address'}
                                         </div>
@@ -386,13 +386,12 @@ const PrintRunSheet: React.FC = () => {
                             ))}
                             {/* Total Row */}
                             <tr className="font-bold border-t border-gray-200">
-                                <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('order', hasNotes)}`} colSpan={2}>
-                                    
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('order', hasNotes)}`}></td>
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('customer', hasNotes)}`}>
+                                    TOTAL:
                                 </td>
-                                {/* Hidden cells to maintain structure in screen view where size/type exist */}
-                                <td className="print:hidden"></td>
-                                <td className="print:hidden"></td>
-                                
+                                <td className={`print:hidden border-r border-gray-200 last:border-r-0 p-3 ${getColClass('size', hasNotes)}`}></td>
+                                <td className={`print:hidden border-r border-gray-200 last:border-r-0 p-3 ${getColClass('type', hasNotes)}`}></td>
                                 <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('cost', hasNotes)}`}>
                                     ${totalDeliveryCost.toFixed(2)}
                                 </td>
