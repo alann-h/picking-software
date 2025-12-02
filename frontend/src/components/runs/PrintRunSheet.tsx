@@ -215,8 +215,8 @@ const PrintRunSheet: React.FC = () => {
         };
 
         const printWidthsNoNotes: Record<string, string> = {
-            order: 'print:w-[10%]',
-            customer: 'print:w-[20%]',
+            order: 'print:hidden',
+            customer: 'print:w-[30%]',
             size: 'print:hidden',
             type: 'print:hidden',
             cost: 'print:w-[10%]',
@@ -274,7 +274,7 @@ const PrintRunSheet: React.FC = () => {
                             <div className="text-gray-600">Run Created: {new Date(run.created_at).toLocaleDateString('en-AU')}</div>
                         </div>
                         <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
-                            <span className="font-semibold">Driver:</span>
+                            <span className="font-semibold font-underline">Driver:</span>
                             <input 
                                 type="text" 
                                 value={driverName}

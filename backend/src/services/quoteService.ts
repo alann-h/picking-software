@@ -1235,65 +1235,74 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
 
     const lineItems: Array<Record<string, unknown>> = [];
     
-    // 1. Map local products by their External ID (QBO Item ID) for easy lookup
-    const localProductMap = new Map<string, ProductInfo>();
-    const localProducts = Object.values(quoteLocalDb.productInfo);
-    
-    for (const localItem of localProducts) {
-      if (localItem.pickingStatus === 'unavailable') continue;
-      
-      const externalId = await productIdToExternalId(localItem.productId);
-      if (externalId) {
-        localProductMap.set(externalId, localItem);
-      }
-    }
-    
-    // 2. Iterate through ORIGINAL QBO lines
-    // If a line corresponds to a product we have locally, KEEP IT AS IS (preserve duplicates)
-    // This satisfies the requirement: "ignore my local quote and pick the qbo side" for existing items
+    // Build a map of externalId -> original QuickBooks price to preserve custom pricing
     const originalQbLines = qbQuote.Line as Array<Record<string, unknown>>;
-    const processedExternalIds = new Set<string>();
+    const qbPriceMap = new Map<string, number>();
     
     for (const line of originalQbLines) {
       if (line.DetailType === 'SalesItemLineDetail') {
         const salesDetail = line.SalesItemLineDetail as Record<string, unknown>;
         const itemRef = salesDetail.ItemRef as Record<string, unknown>;
         const externalId = itemRef.value as string;
+        const unitPrice = salesDetail.UnitPrice as number;
         
-        if (localProductMap.has(externalId)) {
-          lineItems.push(line);
-          
-          processedExternalIds.add(externalId);
+        if (externalId && unitPrice !== undefined) {
+          qbPriceMap.set(externalId, unitPrice);
         }
-      } 
+      }
     }
     
-    // 3. Add NEW items that exist locally but weren't in the original QBO quote
-    for (const [externalId, localItem] of localProductMap.entries()) {
-      if (!processedExternalIds.has(externalId)) {
-        if (localItem.pickingStatus === 'pending') {
-           throw new InputError('Quote must not have any products pending!');
-        }
-
-        // This is a new item added locally, so we create a new line for it
-        const lineItem = {
-          Description: localItem.productName,
-          Amount: Number(localItem.price) * Number(localItem.originalQty),
-          DetailType: "SalesItemLineDetail",
-          SalesItemLineDetail: {
-            ItemRef: {
-              value: externalId,
-              name: localItem.productName
-            },
-            Qty: Number(localItem.originalQty),
-            UnitPrice: Number(localItem.price),
-            TaxCodeRef: {
-              value: localItem.tax_code_ref || "4"
-            }
-          }
-        };
-        lineItems.push(lineItem);
+    // Sort products by SKU before processing
+    const sortedProducts = Object.values(quoteLocalDb.productInfo).sort((a, b) => {
+      return a.sku.localeCompare(b.sku);
+    });
+    
+    for (const localItem of sortedProducts) {
+      if (localItem.pickingStatus === 'unavailable') {
+        continue;
       }
+      
+      if (localItem.pickingStatus === 'pending') {
+        throw new InputError('Quote must not have any products pending!');
+      }
+      
+      const externalId = await productIdToExternalId(localItem.productId);
+      
+      if (!externalId) {
+        throw new InputError(`Product ${localItem.productName} not found in QuickBooks`);
+      }
+      
+      // Use QuickBooks price if it was customized, otherwise use local database price
+      const qbOriginalPrice = qbPriceMap.get(externalId);
+      const localPrice = Number(localItem.price);
+      let finalPrice = localPrice;
+      
+      if (qbOriginalPrice !== undefined && qbOriginalPrice !== localPrice) {
+        // Admin customized the price in QuickBooks, preserve it
+        finalPrice = qbOriginalPrice;
+        console.log(`Preserving custom price for ${localItem.productName}: QB=$${qbOriginalPrice} (DB=$${localPrice})`);
+      }
+      
+      const amount = finalPrice * Number(localItem.originalQty);
+      
+      const lineItem = {
+        Description: localItem.productName,
+        Amount: amount,
+        DetailType: "SalesItemLineDetail",
+        SalesItemLineDetail: {
+          ItemRef: {
+            value: externalId,
+            name: localItem.productName
+          },
+          Qty: Number(localItem.originalQty),
+          UnitPrice: finalPrice,
+          TaxCodeRef: {
+            value: localItem.tax_code_ref || "4"
+          }
+        }
+      };
+      
+      lineItems.push(lineItem);
     }
     
     if (lineItems.length === 0) { 
