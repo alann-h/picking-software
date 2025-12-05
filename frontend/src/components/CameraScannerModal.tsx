@@ -150,7 +150,6 @@ const startScanning = async (cameraId?: string) => {
   const toggleTorch = async () => {
     if (!html5QrCodeRef.current || !hasTorch) return;
     try {
-      // @ts-ignore
       await html5QrCodeRef.current.applyVideoConstraints({ advanced: [{ torch: !torchOn }] });
       setTorchOn(!torchOn);
     } catch (e) { console.error(e); }
