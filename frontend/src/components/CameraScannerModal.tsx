@@ -149,7 +149,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
       <div className="absolute top-0 left-0 right-0 z-20 px-4 py-4 flex justify-between items-center bg-gradient-to-b from-black/80 via-black/40 to-transparent pt-safe-area">
         <div className="flex items-center gap-2 text-white/90">
             <ScanFace className="w-5 h-5 opacity-80" />
-            <span className="text-sm font-medium tracking-wide">Scan Code</span>
+            <span className="text-sm font-medium tracking-wide">Scan Barcode</span>
         </div>
         <button 
           onClick={onClose}
@@ -164,26 +164,24 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         {/* The Video Element */}
         <div id="qr-reader-view" className="absolute inset-0 w-full h-full" />
         
-        {/* --- NEW CLEAN OVERLAY --- */}
+        {/* --- MINIMAL OVERLAY (No Box, Just Corners) --- */}
         {isScanning && !error && (
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center">
            
-           {/* The Modern Scanner Box 
-               - We use a massive outer shadow (ring-[9999px]) to create the dark overlay 
-               - This ensures the cutout and the border are perfectly aligned, no "double edges".
-           */}
-           <div className="relative w-[280px] h-[280px] rounded-[35px] ring-[9999px] ring-black/60">
-              {/* Thin Glowing Border */}
-              <div className="absolute inset-0 rounded-[35px] border-[1.5px] border-white/50 shadow-[inset_0_0_15px_rgba(255,255,255,0.1)]"></div>
+           {/* Minimal Corner Brackets */}
+           <div className="relative w-[260px] h-[260px]">
+              <div className="absolute top-0 left-0 w-10 h-10 border-t-[2px] border-l-[2px] border-white/80"></div>
+              <div className="absolute top-0 right-0 w-10 h-10 border-t-[2px] border-r-[2px] border-white/80"></div>
+              <div className="absolute bottom-0 left-0 w-10 h-10 border-b-[2px] border-l-[2px] border-white/80"></div>
+              <div className="absolute bottom-0 right-0 w-10 h-10 border-b-[2px] border-r-[2px] border-white/80"></div>
            </div>
 
            {/* Helper Text */}
            <div className="absolute mt-[340px] text-white/80 text-sm font-medium tracking-wide px-5 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-              Align code within the frame
+              Align barcode within the frame
            </div>
         </div>
         )}
-        {/* ------------------------- */}
 
         {/* Loading */}
         {!isScanning && !error && (
