@@ -17,103 +17,111 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
   const [torchOn, setTorchOn] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
 
-  // Initialize scanner instance
-  useEffect(() => {
-    if (!html5QrCodeRef.current) {
-      html5QrCodeRef.current = new Html5Qrcode('qr-reader', {
-        verbose: false,
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.EAN_13,
-        ],
-      });
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      if (html5QrCodeRef.current?.isScanning) {
-        html5QrCodeRef.current.stop().catch(console.error);
+  // Helper to safely stop the scanner
+  const cleanupScanner = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+        html5QrCodeRef.current.clear();
+      } catch (err) {
+        console.error('Failed to clear scanner', err);
       }
-    };
-  }, []);
+      html5QrCodeRef.current = null;
+    }
+    setIsScanning(false);
+    setTorchOn(false);
+  };
 
   const startScanning = async (cameraId?: string) => {
     try {
       setError('');
       
-      if (!html5QrCodeRef.current) return;
+      // Safety check: Ensure the DOM element exists before initializing
+      const element = document.getElementById('qr-reader');
+      if (!element) {
+        // Retry shortly if DOM isn't ready yet (React render delay)
+        setTimeout(() => startScanning(cameraId), 50);
+        return;
+      }
+
+      // Initialize only if not already initialized
+      if (!html5QrCodeRef.current) {
+        html5QrCodeRef.current = new Html5Qrcode('qr-reader', {
+          verbose: false,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+          ],
+        });
+      }
 
       // If already scanning, stop first
       if (html5QrCodeRef.current.isScanning) {
         await html5QrCodeRef.current.stop();
       }
 
+      // CONFIGURATION FIX FOR ANDROID:
+      // Removed aspectRatio: 1.0. This causes OverconstrainedError on many Androids.
+      // We rely on object-fit: cover in CSS to handle the square look.
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
+        // aspectRatio: 1.0, <--- REMOVED THIS
       };
 
-      // If a specific camera ID is provided, use it
+      const startSuccess = (decodedText: string) => {
+        // Stop scanning immediately upon success to prevent duplicate reads
+        cleanupScanner().then(() => {
+          onScanSuccess(decodedText);
+          onClose();
+        });
+      };
+
       if (cameraId) {
         await html5QrCodeRef.current.start(
           cameraId,
           config,
-          (decodedText) => {
-            onScanSuccess(decodedText);
-            onClose();
-          },
+          startSuccess,
           () => {}
         );
       } else {
-        // Otherwise start with environment facing mode (best for mobile)
-        // This works better on Android than enumerating devices first
         await html5QrCodeRef.current.start(
           { facingMode: "environment" },
           config,
-          (decodedText) => {
-            onScanSuccess(decodedText);
-            onClose();
-          },
+          startSuccess,
           () => {}
         );
       }
 
       setIsScanning(true);
       
-      // After successful start, we can safely enumerate cameras if needed
+      // Camera enumeration logic
       if (cameras.length === 0) {
-        try {
-          const devices = await Html5Qrcode.getCameras();
-          if (devices && devices.length > 0) {
-            setCameras(devices);
-            
-            // Try to find the active camera to set the index
-            // This is a bit tricky since we started with facingMode
-            // We'll just default to the first one or try to match "back"
-            const rearCameraIndex = devices.findIndex(device => 
-              device.label.toLowerCase().includes('back') || 
-              device.label.toLowerCase().includes('rear') ||
-              device.label.toLowerCase().includes('environment')
-            );
-            
-            if (rearCameraIndex !== -1) {
-              setCurrentCameraIndex(rearCameraIndex);
+         Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length > 0) {
+              setCameras(devices);
+              const rearCameraIndex = devices.findIndex(device => 
+                device.label.toLowerCase().includes('back') || 
+                device.label.toLowerCase().includes('rear') ||
+                device.label.toLowerCase().includes('environment')
+              );
+              if (rearCameraIndex !== -1) setCurrentCameraIndex(rearCameraIndex);
             }
-          }
-        } catch (e) {
-          console.warn('Failed to enumerate cameras after start:', e);
-          // Non-fatal, we are already scanning
-        }
+         }).catch(err => {
+           console.warn("Error getting cameras", err);
+         });
       }
       
-      // Check for torch capability
+      // Check torch
       try {
         const settings = html5QrCodeRef.current.getRunningTrackCameraCapabilities();
-        setHasTorch(!!settings.torchFeature().isSupported());
-      } catch {
+        // @ts-ignore - torchFeature is not always in types but exists in library
+        setHasTorch(!!settings?.torchFeature?.()?.isSupported?.());
+      } catch (e) {
         setHasTorch(false);
       }
 
@@ -126,22 +134,13 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
       } else if (err.name === 'NotFoundError') {
         errorMsg = 'No camera found';
       } else if (err.name === 'NotReadableError') {
-        errorMsg = 'Camera is in use by another app';
+        errorMsg = 'Camera is in use or not accessible';
+      } else if (err.name === 'OverconstrainedError') {
+        errorMsg = 'Camera incorrectly configured';
       }
       
       setError(errorMsg);
-    }
-  };
-
-  const stopScanning = async () => {
-    try {
-      if (html5QrCodeRef.current?.isScanning) {
-        await html5QrCodeRef.current.stop();
-      }
       setIsScanning(false);
-      setTorchOn(false);
-    } catch (err) {
-      console.error('Error stopping scanner:', err);
     }
   };
 
@@ -164,13 +163,23 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
     }
   };
 
-  // Handle open/close
+  // Main Effect to handle Open/Close lifecycle
   useEffect(() => {
+    let mounted = true;
+
     if (isOpen) {
-      startScanning();
+      // Small delay to ensure Modal DOM is rendered before library tries to attach
+      setTimeout(() => {
+        if (mounted) startScanning();
+      }, 100);
     } else {
-      stopScanning();
+      cleanupScanner();
     }
+
+    return () => {
+      mounted = false;
+      cleanupScanner();
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -211,18 +220,21 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
 
       {/* Scanner Viewport */}
       <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
-        <div id="qr-reader" className="w-full h-full object-cover" />
+        {/* The div ID must match the one used in new Html5Qrcode() */}
+        <div id="qr-reader" className="w-full h-full" />
         
         {/* Overlay Guide */}
         {!error && isScanning && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            {/* We removed aspect ratio from JS, so we ensure the camera fills the screen 
+               and we put this square overlay on top to guide the user.
+            */}
             <div className="w-64 h-64 border-2 border-white/50 rounded-lg relative">
               <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1 rounded-tl-lg" />
               <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1 rounded-tr-lg" />
               <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1 rounded-bl-lg" />
               <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1 rounded-br-lg" />
               
-              {/* Scanning Line Animation */}
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500/80 shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-scan" />
             </div>
             <p className="absolute mt-80 text-white/80 text-sm font-medium bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">
@@ -233,7 +245,7 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
 
         {/* Error State */}
         {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gray-900 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gray-900 text-center z-20">
             <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
               <Camera className="w-8 h-8 text-red-500" />
             </div>
@@ -250,6 +262,11 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
       </div>
 
       <style>{`
+        #qr-reader {
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+        }
         #qr-reader video {
           object-fit: cover;
           width: 100% !important;
