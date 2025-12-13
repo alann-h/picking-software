@@ -240,32 +240,83 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: (string | 
         }
 
         await prisma.$transaction(async (tx) => {
-            // Get existing run items to identify which quotes are new
+            // 1. Get existing run items to PRESERVE their details (notes, size, type, cost)
             const existingRunItems = await tx.runItem.findMany({
                 where: { runId },
-                select: { quoteId: true },
+                select: { 
+                    quoteId: true,
+                    size: true,
+                    type: true,
+                    deliveryCost: true,
+                    notes: true,
+                },
             });
-            const existingQuoteIds = new Set(existingRunItems.map(item => item.quoteId));
 
-            // Delete existing run items
+            // Map for quick lookup of existing details
+            const existingItemsMap = new Map(existingRunItems.map(item => [item.quoteId, item]));
+            const existingQuoteIdsRaw = new Set(existingRunItems.map(item => item.quoteId));
+
+            // 2. Identify NEW quotes (those not currently in the run)
+            const newQuoteIds = stringQuoteIds.filter(id => !existingQuoteIdsRaw.has(id));
+
+            // 3. Fetch Customer Defaults for ONLY the NEW quotes
+            // We need this to populate 'type' (forklift/hand_unload) correctly for new items
+            let newQuotesDefaults = new Map<string, string | null>();
+            if (newQuoteIds.length > 0) {
+                const newQuotesData = await tx.quote.findMany({
+                    where: { id: { in: newQuoteIds } },
+                    select: {
+                        id: true,
+                        customer: {
+                            select: { defaultDeliveryType: true }
+                        }
+                    }
+                });
+                newQuotesDefaults = new Map(newQuotesData.map(q => [q.id, q.customer?.defaultDeliveryType || null]));
+            }
+
+            // 4. Delete ALL existing run items (so we can recreate them in the correct new order)
             await tx.runItem.deleteMany({
                 where: { runId },
             });
 
-            // Create new run items if there are any
+            // 5. Create new run items, merging PRESERVED data with NEW DEFAULTS
             if (stringQuoteIds.length > 0) {
-                const runItemsData = stringQuoteIds.map((quoteId, index) => ({
-                    runId,
-                    quoteId,
-                    priority: index,
-                }));
+                const runItemsData = stringQuoteIds.map((quoteId, index) => {
+                    // Check if we have preserved data
+                    const existingItem = existingItemsMap.get(quoteId);
+
+                    if (existingItem) {
+                        // PRESERVE existing details
+                        return {
+                            runId,
+                            quoteId,
+                            priority: index,
+                            size: existingItem.size,
+                            type: existingItem.type, // Keep the manually set type if it exists
+                            deliveryCost: existingItem.deliveryCost,
+                            notes: existingItem.notes,
+                        };
+                    } else {
+                        // NEW ITEM: Use Customer Default for type, others null
+                        const defaultType = newQuotesDefaults.get(quoteId);
+                        return {
+                            runId,
+                            quoteId,
+                            priority: index,
+                            size: null,
+                            type: (defaultType as 'hand_unload' | 'forklift' | null) || undefined, // Use customer default
+                            deliveryCost: null,
+                            notes: null,
+                        };
+                    }
+                });
 
                 await tx.runItem.createMany({
                     data: runItemsData,
                 });
 
-                // Only update status to 'assigned' for NEW quotes (not already in the run)
-                const newQuoteIds = stringQuoteIds.filter(id => !existingQuoteIds.has(id));
+                // 6. Update status to 'assigned' ONLY for NEW quotes
                 if (newQuoteIds.length > 0) {
                     await tx.quote.updateMany({
                         where: { 

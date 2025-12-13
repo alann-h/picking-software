@@ -217,7 +217,7 @@ const PrintRunSheet: React.FC = () => {
         const printWidthsNoNotes: Record<string, string> = {
             order: 'print:hidden',
             customer: 'print:w-[30%]',
-            size: 'print:hidden',
+            size: 'print:w-[10%]',
             type: 'print:hidden',
             cost: 'print:w-[10%]',
             address: 'print:w-[30%]',
@@ -288,9 +288,9 @@ const PrintRunSheet: React.FC = () => {
                     <table className="w-full border-collapse text-sm table-fixed">
                         <thead>
                             <tr className="bg-gray-50 print:bg-gray-100">
-                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('order', hasNotes)}`}>Order #</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider print:hidden ${getColClass('order', hasNotes)}`}>Order #</th>
                                 <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('customer', hasNotes)}`}>Customer Name</th>
-                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider print:hidden ${getColClass('size', hasNotes)}`}>Size</th>
+                                <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('size', hasNotes)}`}>Size</th>
                                 <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider print:hidden ${getColClass('type', hasNotes)}`}>Type</th>
                                 <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-right text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('cost', hasNotes)}`}>Delivery Cost</th>
                                 <th className={`border-b border-r border-gray-200 last:border-r-0 p-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider ${getColClass('address', hasNotes)}`}>Address</th>
