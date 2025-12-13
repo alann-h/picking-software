@@ -161,16 +161,17 @@ const QuoteInvoiceModal: React.FC<QuoteInvoiceModalProps> = ({
   return (
     <div className="fixed inset-0 z-10 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/20 bg-black/30" />
-      <div className="relative z-10 w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-        <h3 className="text-lg font-medium leading-6 text-gray-900 flex items-center gap-2">
+      <div className="relative z-10 w-full max-w-2xl max-h-[85vh] flex flex-col transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+        <h3 className="text-lg font-medium leading-6 text-gray-900 flex items-center gap-2 shrink-0">
           <AlertTriangle className="text-blue-600" />
           Review Before Sending To Admin
         </h3>
-        <div className="mt-4">
+        
+        <div className="mt-4 flex-1 overflow-y-auto min-h-0 pr-1">
           {renderContent()}
         </div>
 
-        <div className="mt-6 flex justify-end gap-4">
+        <div className="mt-6 flex justify-end gap-4 shrink-0 pt-2 border-t border-gray-100">
           <button
             type="button"
             className="inline-flex justify-center rounded-md border border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 disabled:opacity-50 cursor-pointer"
