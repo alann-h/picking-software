@@ -52,13 +52,21 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
           formatsToSupport: [
             Html5QrcodeSupportedFormats.QR_CODE, 
             Html5QrcodeSupportedFormats.CODE_128, 
-            Html5QrcodeSupportedFormats.EAN_13
-          ]
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.ITF
+          ],
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+          }
         });
       }
 
       const config = {
-        fps: 10,
+        fps: 15,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0 
       };
