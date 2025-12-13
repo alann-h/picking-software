@@ -506,3 +506,94 @@ export async function getLatestDriverName(companyId: string): Promise<string | n
         return null;
     }
 }
+
+export interface ReportData {
+    summary: {
+        totalRuns: number;
+        totalCost: number;
+        totalItems: number;
+    };
+    dailyBreakdown: {
+        date: string;
+        runsCount: number;
+        totalCost: number;
+        itemCount: number;
+    }[];
+}
+
+export async function getRunReports(companyId: string, startDate: Date, endDate: Date): Promise<ReportData> {
+    try {
+        // Ensure endDate includes the full end day
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setHours(23, 59, 59, 999);
+
+        const runs = await prisma.run.findMany({
+            where: {
+                companyId,
+                createdAt: {
+                    gte: startDate,
+                    lte: adjustedEndDate,
+                },
+                // status: { not: 'cancelled' } // Uncomment if you have 'cancelled' status
+            },
+            include: {
+                runItems: {
+                    select: {
+                        deliveryCost: true
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'asc'
+            }
+        });
+
+        const summary = {
+            totalRuns: 0,
+            totalCost: 0,
+            totalItems: 0,
+        };
+
+        const breakdownMap = new Map<string, { runsCount: number; totalCost: number; itemCount: number }>();
+
+        for (const run of runs) {
+            summary.totalRuns++;
+            
+            const runDate = run.createdAt.toISOString().split('T')[0];
+            
+            let runCost = 0;
+            let runItemsCount = 0;
+
+            for (const item of run.runItems) {
+                runItemsCount++;
+                if (item.deliveryCost) {
+                    runCost += item.deliveryCost.toNumber();
+                }
+            }
+
+            summary.totalCost += runCost;
+            summary.totalItems += runItemsCount;
+
+            // Update daily breakdown
+            const currentDay = breakdownMap.get(runDate) || { runsCount: 0, totalCost: 0, itemCount: 0 };
+            currentDay.runsCount++;
+            currentDay.totalCost += runCost;
+            currentDay.itemCount += runItemsCount;
+            breakdownMap.set(runDate, currentDay);
+        }
+
+        const dailyBreakdown = Array.from(breakdownMap.entries()).map(([date, stats]) => ({
+            date,
+            ...stats
+        })).sort((a, b) => a.date.localeCompare(b.date));
+
+        return {
+            summary,
+            dailyBreakdown
+        };
+
+    } catch (error) {
+        console.error('Error generating run reports:', error);
+        throw new Error('Failed to generate reports');
+    }
+}

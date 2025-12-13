@@ -8,6 +8,7 @@ import {
     updateRunDriver,
     updateRunItemsDetails,
     getLatestDriverName,
+    getRunReports,
     RunItemUpdate
 } from '../services/runService.js'; // New service file for runs
 import { Request, Response, NextFunction } from 'express';
@@ -152,6 +153,33 @@ export async function getLatestDriverNameController(req: Request, res: Response,
         }
         const driverName = await getLatestDriverName(companyId);
         res.status(200).json({ driverName });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getRunReportsController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const companyId = req.session.companyId;
+        if (!companyId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { startDate, endDate } = req.query;
+
+        if (!startDate || !endDate) {
+            return res.status(400).json({ error: 'startDate and endDate are required parameters' });
+        }
+
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
+
+        const reportData = await getRunReports(companyId, start, end);
+        res.status(200).json(reportData);
     } catch (error) {
         next(error);
     }

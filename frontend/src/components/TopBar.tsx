@@ -22,6 +22,7 @@ import {
   MonitorSmartphone,
   X,
   Settings,
+  TrendingUp,
 } from 'lucide-react';
 
 // ====================================================================================
@@ -162,6 +163,9 @@ const AdminMenuContent: React.FC<{ onMenuItemClick: (path: string) => void; onCl
       </DropdownButton>
       <DropdownButton onClick={() => handleClick('/kyte-converter')} icon={<RefreshCcw size={18} />}>
         Kyte to QuickBooks
+      </DropdownButton>
+      <DropdownButton onClick={() => handleClick('/reports')} icon={<TrendingUp size={18} />}>
+        Reports
       </DropdownButton>
     </div>
   );
@@ -348,7 +352,17 @@ const TopBar: React.FC<TopBarProps> = ({ disableTopBar }) => {
             // Protected route navigation items
             <>
               {/* Desktop Admin Nav */}
-              <div className="hidden md:flex">
+              <div className="hidden md:flex items-center gap-2">
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/reports')}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-blue-600 transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:bg-blue-500/10 cursor-pointer"
+                  >
+                    <TrendingUp size={18} />
+                    Reports
+                  </button>
+                )}
                 <AuthenticatedNavItems handleMenuItemClick={handleMenuItemClick} />
               </div>
 
