@@ -204,7 +204,7 @@ const PrintRunSheet: React.FC = () => {
 
     const getColClass = (colName: string, hasNotes: boolean) => {
         const screenWidths: Record<string, string> = {
-            order: 'w-24',
+            order: 'w-24 print:hidden',
             customer: '', // Fluid - shares remaining space
             size: 'w-20',
             type: 'w-28',
