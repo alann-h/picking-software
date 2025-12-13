@@ -560,7 +560,8 @@ export async function getRunReports(companyId: string, startDate: Date, endDate:
             summary.totalRuns++;
             
             // Convert to Australian date for grouping
-            const runDate = run.createdAt.toLocaleDateString('en-AU', { timeZone: 'Australia/Sydney' });
+            // usage of 'en-CA' is intentional to get YYYY-MM-DD format which parses correctly and sorts correctly
+            const runDate = run.createdAt.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
             
             let runCost = 0;
             let runItemsCount = 0;

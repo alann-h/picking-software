@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, DollarSign, Package, TrendingUp, Download } from 'lucide-react';
 import { getRunReports } from '../../api/runs';
-import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parse } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
 
 type TimeRange = 'today' | 'week' | 'month' | 'custom';
@@ -188,7 +188,7 @@ const RunReports: React.FC = () => {
                                             reportData.dailyBreakdown.map((day: any) => (
                                                 <tr key={day.date} className="hover:bg-slate-50">
                                                     <td className="px-6 py-3 font-medium text-slate-900">
-                                                        {format(new Date(day.date), 'EEE, d MMM yyyy')}
+                                                        {format(parse(day.date, 'yyyy-MM-dd', new Date()), 'EEE, d MMM yyyy')}
                                                     </td>
                                                     <td className="px-6 py-3 text-right text-slate-600">{day.runsCount}</td>
                                                     <td className="px-6 py-3 text-right text-slate-600">{day.itemCount}</td>
