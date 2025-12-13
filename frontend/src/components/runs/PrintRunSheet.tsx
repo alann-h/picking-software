@@ -387,10 +387,10 @@ const PrintRunSheet: React.FC = () => {
                             {/* Total Row */}
                             <tr className="font-bold border-t border-gray-200">
                                 <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('order', hasNotes)}`}></td>
-                                <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('customer', hasNotes)}`}>
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('customer', hasNotes)}`}></td>
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('size', hasNotes)}`}>
                                     TOTAL:
                                 </td>
-                                <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('size', hasNotes)}`}></td>
                                 <td className={`print:hidden border-r border-gray-200 last:border-r-0 p-3 ${getColClass('type', hasNotes)}`}></td>
                                 <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('cost', hasNotes)}`}>
                                     ${totalDeliveryCost.toFixed(2)}
