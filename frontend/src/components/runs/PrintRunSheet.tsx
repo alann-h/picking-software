@@ -314,15 +314,15 @@ const PrintRunSheet: React.FC = () => {
                                             {quote.customerName}
                                         </div>
                                     </td>
-                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-gray-700 print:hidden ${getColClass('size', hasNotes)}`}>
+                                    <td className={`border-r border-gray-200 last:border-r-0 p-3 text-gray-700 ${getColClass('size', hasNotes)}`}>
                                         <input 
                                             type="text" 
                                             value={items[quote.quoteId]?.size || ''}
                                             onChange={(e) => handleItemChange(quote.quoteId, 'size', e.target.value)}
-                                            className="w-full bg-transparent focus:outline-none print:hidden min-w-[60px]"
+                                            className="w-full bg-transparent focus:outline-none min-w-[60px]"
                                             placeholder="Size"
                                         />
-                                        <span className="hidden print:block">{items[quote.quoteId]?.size}</span>
+                                        <span className="hidden print:block min-h-[1.25rem]">{items[quote.quoteId]?.size}</span>
                                     </td>
                                     <td className={`border-r border-gray-200 last:border-r-0 p-0 text-gray-700 relative print:hidden ${getColClass('type', hasNotes)}`}>
                                         <div className="relative w-full h-full print:hidden min-w-[100px]">
@@ -390,7 +390,7 @@ const PrintRunSheet: React.FC = () => {
                                 <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('customer', hasNotes)}`}>
                                     TOTAL:
                                 </td>
-                                <td className={`print:hidden border-r border-gray-200 last:border-r-0 p-3 ${getColClass('size', hasNotes)}`}></td>
+                                <td className={`border-r border-gray-200 last:border-r-0 p-3 ${getColClass('size', hasNotes)}`}></td>
                                 <td className={`print:hidden border-r border-gray-200 last:border-r-0 p-3 ${getColClass('type', hasNotes)}`}></td>
                                 <td className={`border-r border-gray-200 last:border-r-0 p-3 text-right text-gray-900 ${getColClass('cost', hasNotes)}`}>
                                     ${totalDeliveryCost.toFixed(2)}
