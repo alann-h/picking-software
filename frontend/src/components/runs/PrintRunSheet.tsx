@@ -319,7 +319,7 @@ const PrintRunSheet: React.FC = () => {
                                             type="text" 
                                             value={items[quote.quoteId]?.size || ''}
                                             onChange={(e) => handleItemChange(quote.quoteId, 'size', e.target.value)}
-                                            className="w-full bg-transparent focus:outline-none min-w-[60px]"
+                                            className="w-full bg-transparent focus:outline-none print:hidden min-w-[60px]"
                                             placeholder="Size"
                                         />
                                         <span className="hidden print:block min-h-[1.25rem]">{items[quote.quoteId]?.size}</span>
