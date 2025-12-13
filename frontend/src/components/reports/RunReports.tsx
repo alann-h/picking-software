@@ -58,7 +58,7 @@ const RunReports: React.FC = () => {
                     <div>
                         <button 
                             onClick={() => navigate('/dashboard')} 
-                            className="mb-2 flex items-center text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                            className="mb-2 flex items-center text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
                         >
                             <ArrowLeft className="mr-1 h-4 w-4" /> Back to Dashboard
                         </button>
@@ -75,7 +75,7 @@ const RunReports: React.FC = () => {
                                 <button
                                     key={range}
                                     onClick={() => setTimeRange(range)}
-                                    className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
+                                    className={`rounded-md px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
                                         timeRange === range
                                             ? 'bg-white text-blue-600 shadow-sm'
                                             : 'text-slate-600 hover:text-slate-900'
@@ -152,11 +152,11 @@ const RunReports: React.FC = () => {
                                     <div className="rounded-lg bg-purple-50 p-2 text-purple-600">
                                         <Package className="h-6 w-6" />
                                     </div>
-                                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500">Volume</span>
+                                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500">Total Orders</span>
                                 </div>
                                 <div className="mt-4">
                                     <span className="text-3xl font-bold text-slate-900">{reportData.summary.totalItems}</span>
-                                    <p className="mt-1 text-sm text-slate-500">Total items delivered</p>
+                                    <p className="mt-1 text-sm text-slate-500">Total orders delivered</p>
                                 </div>
                             </div>
                         </div>
@@ -172,7 +172,7 @@ const RunReports: React.FC = () => {
                                         <tr>
                                             <th className="px-6 py-3 font-medium">Date</th>
                                             <th className="px-6 py-3 font-medium text-right">Runs</th>
-                                            <th className="px-6 py-3 font-medium text-right">Items</th>
+                                            <th className="px-6 py-3 font-medium text-right">Orders</th>
                                             <th className="px-6 py-3 font-medium text-right">Total Cost</th>
                                             <th className="px-6 py-3 font-medium text-right">Avg. Cost / Run</th>
                                         </tr>

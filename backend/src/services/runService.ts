@@ -559,7 +559,8 @@ export async function getRunReports(companyId: string, startDate: Date, endDate:
         for (const run of runs) {
             summary.totalRuns++;
             
-            const runDate = run.createdAt.toISOString().split('T')[0];
+            // Convert to Australian date for grouping
+            const runDate = run.createdAt.toLocaleDateString('en-AU', { timeZone: 'Australia/Sydney' });
             
             let runCost = 0;
             let runItemsCount = 0;
