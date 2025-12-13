@@ -76,7 +76,6 @@ const CameraScannerModal: React.FC<CameraScannerModalProps> = ({ isOpen, onClose
         setTimeout(() => {
            cleanupScanner().then(() => {
              onScanSuccess(decodedText);
-             onClose();
            });
         }, 300);
       };

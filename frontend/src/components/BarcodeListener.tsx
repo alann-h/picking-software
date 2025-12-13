@@ -3,13 +3,14 @@ import { BarcodeListenerProps } from '../utils/types';
 
 const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned, disabled = false }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const bufferVals = useRef<string>("");
+  const submitTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Focus the hidden input whenever possible
+  // Focus management
   useEffect(() => {
     if (disabled) return;
 
     const focusInput = () => {
-      // Only focus if no other input is active
       const activeElement = document.activeElement;
       const isInputActive = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
       
@@ -18,56 +19,69 @@ const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned, dis
       }
     };
 
-    // Initial focus
     focusInput();
+    const interval = setInterval(focusInput, 500); // Aggressively check focus
+    const handleClick = () => setTimeout(focusInput, 50);
 
-    // Refocus on click/touch if we lost it (and user isn't clicking another input)
-    const handleClick = () => setTimeout(focusInput, 100);
     document.addEventListener('click', handleClick);
     document.addEventListener('touchstart', handleClick);
 
     return () => {
+      clearInterval(interval);
       document.removeEventListener('click', handleClick);
       document.removeEventListener('touchstart', handleClick);
     };
   }, [disabled]);
 
-  const handleChange = (_e: React.ChangeEvent<HTMLInputElement>) => {
-    // We just let the value accumulate in the input
+  const handleSubmit = (text: string) => {
+    const cleanText = text.trim();
+    if (cleanText.length > 1) { // Ignore single characters (stray keypresses)
+      onBarcodeScanned(cleanText);
+    }
+    if (inputRef.current) {
+      inputRef.current.value = "";
+      bufferVals.current = "";
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    bufferVals.current = val;
+
+    // Clear existing timer
+    if (submitTimer.current) clearTimeout(submitTimer.current);
+
+    // Set new timer: if no more input for 100ms, assume scan finished
+    submitTimer.current = setTimeout(() => {
+      handleSubmit(bufferVals.current);
+    }, 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      const value = inputRef.current?.value.trim();
-      if (value) {
-        onBarcodeScanned(value);
-        if (inputRef.current) inputRef.current.value = '';
-      }
+      if (submitTimer.current) clearTimeout(submitTimer.current);
+      handleSubmit(bufferVals.current || inputRef.current?.value || "");
     }
   };
 
-  // Handle case where scanner sends Enter as a separate event but value is already in
-  // or if it doesn't send Enter but fires a specific event.
-  // Usually 'Enter' keydown is enough.
-
-  // Force focus style to be invisible but technically "visible" to DOM so it receives events
   return (
     <input
       ref={inputRef}
       type="text"
-      inputMode="none" // Prevents virtual keyboard from popping up on mobile
+      // inputMode="text" helps capture all chars, but might show keyboard.
+      // inputMode="none" is best for scanners but some Androids block it.
+      // We rely on off-screen positioning to hide interactions.
+      inputMode="text" 
       autoComplete="off"
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       style={{
         position: 'fixed',
-        top: '-1000px',
-        left: '-1000px',
-        opacity: 0,
-        width: '1px',
-        height: '1px',
-        pointerEvents: 'none',
-        zIndex: -1
+        top: '-2000px',
+        left: '-2000px',
+        opacity: 0, 
+        fontSize: '16px', // Prevents iOS zoom
+        pointerEvents: 'none'
       }}
       aria-hidden="true"
     />
