@@ -1215,14 +1215,10 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
       throw new InputError('Invalid QuickBooks quote data or missing SyncToken');
     }
     
-    const hasUnavailableProducts = Object.values(quoteLocalDb.productInfo).some(
-      item => item.pickingStatus === 'unavailable'
-    );
-    
     const updatePayload: Record<string, unknown> = {
       Id: quoteId,
       SyncToken: qbQuote.SyncToken,
-      sparse: !hasUnavailableProducts, 
+      sparse: false,
       Line: []
     };
     
@@ -1265,11 +1261,25 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     const lineItems: Array<Record<string, unknown>> = [];
     const originalQbLines = qbQuote.Line as Array<Record<string, unknown>>;
 
+
+    // Count occurrences of each product to identify single lines vs duplicates
+    const productLineCounts = new Map<string, number>();
     for (const line of originalQbLines) {
-      // Preserve Headers/Subtotals
+      if (line.DetailType === 'SalesItemLineDetail') {
+        const salesDetail = line.SalesItemLineDetail as Record<string, unknown>;
+        const itemRef = salesDetail.ItemRef as Record<string, unknown>;
+        const externalId = itemRef.value as string;
+        productLineCounts.set(externalId, (productLineCounts.get(externalId) || 0) + 1);
+      }
+    }
+
+    for (const line of originalQbLines) {
+
+
       if (line.DetailType !== 'SalesItemLineDetail') {
         lineItems.push(line);
         continue;
+
       }
 
       const salesDetail = line.SalesItemLineDetail as Record<string, unknown>;
@@ -1283,23 +1293,31 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
         continue;
       }
 
-      // Calculate Qty for THIS specific line
-      const originalLineQty = Number(salesDetail.Qty || 0);
+      const lineCount = productLineCounts.get(externalId) || 0;
       let qtyToFulfill = 0;
+      let currentLinePrice = Number(salesDetail.UnitPrice);
 
-      // Consume from bucket
-      if (bucket.totalPickedQty >= originalLineQty) {
-        qtyToFulfill = originalLineQty;
+      if (lineCount === 1) {
+        // SCENARIO 1: SINGLE LINE (Unique Product in QB)
+        // If the product exists as a SINGLE line in QB, we simply update that line
+        // with the TOTAL picked quantity. We do NOT split it.
+        qtyToFulfill = bucket.totalPickedQty; 
       } else {
-        qtyToFulfill = bucket.totalPickedQty; // Short pick
+        // SCENARIO 2: DUPLICATE LINES (e.g. "Buy one get one free" existing as separate lines)
+        // We must respect the original structure. Fill this line up to its original max,
+        // and let the overflow go to the next line or a new line.
+        const originalLineQty = Number(salesDetail.Qty || 0);
+        if (bucket.totalPickedQty >= originalLineQty) {
+          qtyToFulfill = originalLineQty;
+        } else {
+          qtyToFulfill = bucket.totalPickedQty; // Short pick
+        }
       }
 
       bucket.totalPickedQty -= qtyToFulfill;
 
-      // Use QB Price for existing lines
-      const currentLinePrice = Number(salesDetail.UnitPrice);
       const amount = currentLinePrice * qtyToFulfill;
-
+      
       lineItems.push({
         Id: line.Id, // KEEPS THE LINE "ALIVE" IN QB
         Description: line.Description,
@@ -1329,6 +1347,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
         const localPrice = Number(bucket.localItem.price);
         const amount = localPrice * bucket.totalPickedQty;
 
+
         const newLine = {
           // No 'Id' field -> Tells QB to create a NEW line
           Description: bucket.localItem.productName,
@@ -1354,6 +1373,7 @@ async function updateQuoteInQuickBooks(quoteId: string, quoteLocalDb: FilteredQu
     // =========================================================
     // FINALIZATION
     // =========================================================
+
 
     if (lineItems.length === 0) { 
       throw new InputError('No products found to update in QuickBooks');
