@@ -2,54 +2,67 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-        <!-- Google tag (gtag.js) - Optimized for performance -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B1JJ247L26"></script>
+    <!-- Google tag (gtag.js) - Optimized for performance -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-B1JJ247L26"
+    ></script>
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-B1JJ247L26', {
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-B1JJ247L26", {
         send_page_view: false, // Prevent blocking initial page load
-        page_title: document.title
+        page_title: document.title,
       });
-      
+
       // Send page view after page loads
-      window.addEventListener('load', () => {
-        gtag('event', 'page_view');
+      window.addEventListener("load", () => {
+        gtag("event", "page_view");
       });
     </script>
-    
+
     <!-- DNS Prefetching for external domains -->
-    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
-    <link rel="dns-prefetch" href="https://www.smartpicker.com.au">
-    <link rel="dns-prefetch" href="https://smartpicker-images.s3.ap-southeast-1.amazonaws.com">
-    
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://www.smartpicker.com.au" />
+    <link
+      rel="dns-prefetch"
+      href="https://smartpicker-images.s3.ap-southeast-1.amazonaws.com"
+    />
+
     <!-- Preconnect to external domains -->
-    <link rel="preconnect" href="https://www.googletagmanager.com">
-    <link rel="preconnect" href="https://www.smartpicker.com.au">
-    <link rel="preconnect" href="https://smartpicker-images.s3.ap-southeast-1.amazonaws.com">
-    
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="preconnect" href="https://www.smartpicker.com.au" />
+    <link
+      rel="preconnect"
+      href="https://smartpicker-images.s3.ap-southeast-1.amazonaws.com"
+    />
+
     <!-- Modern resource hints -->
-    <link rel="preload" href="/src/index.tsx" as="script" crossorigin>
-    <link rel="modulepreload" href="/src/App.tsx">
-     
+    <link rel="preload" href="/src/index.tsx" as="script" crossorigin />
+    <link rel="modulepreload" href="/src/App.tsx" />
+
     <!-- Performance meta tags -->
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
     <!-- Security & Privacy -->
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
     <!-- Author -->
-    <meta name="author" content="Smart Picker">
-    <meta name="copyright" content="Smart Picker">
-    <link rel="author" href="https://smartpicker.com.au">
-    
+    <meta name="author" content="Smart Picker" />
+    <meta name="copyright" content="Smart Picker" />
+    <link rel="author" href="https://smartpicker.com.au" />
+
     <!-- Critical CSS for above-the-fold content -->
     <style>
-
       #root {
         min-height: 100vh;
         display: flex;
@@ -58,163 +71,188 @@
         max-width: 100vw;
         overflow-x: hidden;
       }
-    
     </style>
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />    
-    <meta name="theme-color" content="#000000" />
+
     <meta
-      name="description"
-      content="Streamline your warehouse operations with our intelligent picking system. Increase accuracy, save time, and manage stock from any device, anywhere. QuickBooks & Xero integration included."
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <!-- Note: keywords meta tag is ignored by Google since 2009, but kept for other search engines -->
-    <meta name="keywords" content="smart picker, order picking software, warehouse management, barcode scanning, QuickBooks integration, Xero integration, inventory management, warehouse efficiency, mobile order picking, digital picking lists, Australian warehouse software" />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="googlebot" content="index, follow" />
-    <meta property="og:title" content="Smart Picker - Order Picking Software with QuickBooks & Xero Integration" />
-    <meta property="og:description" content="Smart Picker - The smart order picking software with barcode scanning, QuickBooks & Xero integration. Eliminate picking errors and boost warehouse efficiency." />
-    <meta property="og:image" content="https://smartpicker.com.au/SP.png" />
-    <meta property="og:image:width" content="512" />
-    <meta property="og:image:height" content="512" />
-    <meta property="og:image:alt" content="Smart Picker Logo - Order Picking Software" />
-    <meta property="og:url" content="https://smartpicker.com.au" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Smart Picker" />
-    <meta property="og:locale" content="en_AU" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Smart Picker - Order Picking Software with QuickBooks & Xero Integration" />
-    <meta name="twitter:description" content="Smart Picker - The smart order picking software with barcode scanning, QuickBooks & Xero integration." />
-    <meta name="twitter:image" content="https://smartpicker.com.au/SP.png" />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- SEO tags will be injected by scripts/generate-seo-pages.mjs during build -->
+    <title>Smart Picker</title>
+    <meta name="description" content="Smart Picker" />
+    <meta name="keywords" content="" />
+
+    <!-- Open Graph placeholders -->
+    <meta property="og:title" content="Smart Picker" />
+    <meta property="og:description" content="" />
+    <meta property="og:image" content="" />
+    <meta property="og:url" content="" />
+
     <link rel="canonical" href="https://smartpicker.com.au" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
-    <link rel="shortcut icon" href="/favicon.ico">
-    
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+
     <!-- Structured Data for Search Engines -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Smart Picker",
-      "alternateName": "SmartPicker",
-      "description": "Smart Picker - The leading order picking software with barcode scanning, QuickBooks integration, and Xero integration. Streamline warehouse operations and eliminate picking errors.",
-      "url": "https://smartpicker.com.au/",
-      "applicationCategory": "BusinessApplication",
-      "applicationSubCategory": "Warehouse Management System",
-      "operatingSystem": ["Web Browser", "iOS", "Android"],
-      "offers": {
-        "@type": "Offer",
-        "category": "Business Software",
-        "priceCurrency": "AUD",
-        "availability": "https://schema.org/InStock",
-        "seller": {
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Smart Picker",
+        "alternateName": "SmartPicker",
+        "description": "Smart Picker - The leading order picking software with barcode scanning, QuickBooks integration, and Xero integration. Streamline warehouse operations and eliminate picking errors.",
+        "url": "https://smartpicker.com.au/",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "Warehouse Management System",
+        "operatingSystem": ["Web Browser", "iOS", "Android"],
+        "offers": {
+          "@type": "Offer",
+          "category": "Business Software",
+          "priceCurrency": "AUD",
+          "availability": "https://schema.org/InStock",
+          "seller": {
+            "@type": "Organization",
+            "@id": "https://smartpicker.com.au/#organization"
+          }
+        },
+        "featureList": [
+          "Barcode scanning",
+          "QuickBooks integration",
+          "Xero integration",
+          "Digital order lists",
+          "Real-time synchronization",
+          "Mobile-first design",
+          "Customer management",
+          "Run organization",
+          "Progress tracking"
+        ],
+        "screenshot": "https://smartpicker.com.au/SP.png",
+        "softwareVersion": "1.0",
+        "author": {
+          "@type": "Organization",
+          "@id": "https://smartpicker.com.au/#organization"
+        },
+        "publisher": {
           "@type": "Organization",
           "@id": "https://smartpicker.com.au/#organization"
         }
-      },
-      "featureList": [
-        "Barcode scanning",
-        "QuickBooks integration", 
-        "Xero integration",
-        "Digital order lists",
-        "Real-time synchronization",
-        "Mobile-first design",
-        "Customer management",
-        "Run organization",
-        "Progress tracking"
-      ],
-      "screenshot": "https://smartpicker.com.au/SP.png",
-      "softwareVersion": "1.0",
-      "author": {
-        "@type": "Organization",
-        "@id": "https://smartpicker.com.au/#organization"
-      },
-      "publisher": {
-        "@type": "Organization",
-        "@id": "https://smartpicker.com.au/#organization"
       }
-    }
     </script>
-    
+
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "@id": "https://smartpicker.com.au/#organization",
-      "name": "Smart Picker",
-      "alternateName": "SmartPicker",
-      "url": "https://smartpicker.com.au/",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://smartpicker.com.au/SP.png",
-        "width": "512",
-        "height": "512"
-      },
-      "description": "Professional warehouse management software with barcode scanning and accounting integration",
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "customer service",
-        "email": "support@smartpicker.com.au",
-        "availableLanguage": ["en-AU", "en"],
-        "areaServed": ["AU"]
-      },
-      "address": {
-        "@type": "PostalAddress",
-        "addressRegion": "NSW",
-        "addressCountry": "AU"
-      },
-      "foundingDate": "2024",
-      "knowsAbout": ["Warehouse Management", "Order Picking", "Inventory Management", "QuickBooks Integration", "Xero Integration", "Barcode Scanning"]
-    }
-    </script>
-    
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Smart Picker",
-      "alternateName": "SmartPicker",
-      "url": "https://smartpicker.com.au/",
-      "description": "Smart Picker - The smart order picking software with barcode scanning, QuickBooks & Xero integration",
-      "publisher": {
+      {
+        "@context": "https://schema.org",
         "@type": "Organization",
-        "@id": "https://smartpicker.com.au/#organization"
+        "@id": "https://smartpicker.com.au/#organization",
+        "name": "Smart Picker",
+        "alternateName": "SmartPicker",
+        "url": "https://smartpicker.com.au/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://smartpicker.com.au/SP.png",
+          "width": "512",
+          "height": "512"
+        },
+        "description": "Professional warehouse management software with barcode scanning and accounting integration",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "customer service",
+          "email": "support@smartpicker.com.au",
+          "availableLanguage": ["en-AU", "en"],
+          "areaServed": ["AU"]
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "addressRegion": "NSW",
+          "addressCountry": "AU"
+        },
+        "foundingDate": "2024",
+        "knowsAbout": [
+          "Warehouse Management",
+          "Order Picking",
+          "Inventory Management",
+          "QuickBooks Integration",
+          "Xero Integration",
+          "Barcode Scanning"
+        ]
       }
-    }
     </script>
-    
-    <title>Smart Picker - Order Picking Software | QuickBooks & Xero Integration</title>
-    
+
     <!-- 
       Note: In production, Vite automatically injects CSS links here during build.
       The manual CSS loading below is for production optimization.
       For development, Vite handles CSS injection automatically.
     -->
-    </head>
+  </head>
   <body>
     <noscript>
-      <div style="padding: 20px; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+      <div
+        style="
+          padding: 20px;
+          font-family: Arial, sans-serif;
+          max-width: 800px;
+          margin: 0 auto;
+        "
+      >
         <h1>Smart Picker - Professional Warehouse Management Software</h1>
-        <p><strong>Boost warehouse efficiency with Smart Picker</strong> - the professional order picking software with barcode scanning, QuickBooks integration, and Xero integration.</p>
-        
+        <p>
+          <strong>Boost warehouse efficiency with Smart Picker</strong> - the
+          professional order picking software with barcode scanning, QuickBooks
+          integration, and Xero integration.
+        </p>
+
         <h2>Key Features:</h2>
         <ul>
-          <li><strong>Barcode Scanning:</strong> Eliminate picking errors with mobile barcode validation</li>
-          <li><strong>QuickBooks Integration:</strong> Seamless sync with QuickBooks Online and Desktop</li>
-          <li><strong>Xero Integration:</strong> Direct integration with Xero accounting software</li>
-          <li><strong>Digital Order Lists:</strong> Replace paper-based picking with digital workflows</li>
-          <li><strong>Real-time Synchronization:</strong> Keep inventory and orders perfectly aligned</li>
-          <li><strong>Mobile-First Design:</strong> Optimized for warehouse mobile devices</li>
+          <li>
+            <strong>Barcode Scanning:</strong> Eliminate picking errors with
+            mobile barcode validation
+          </li>
+          <li>
+            <strong>QuickBooks Integration:</strong> Seamless sync with
+            QuickBooks Online and Desktop
+          </li>
+          <li>
+            <strong>Xero Integration:</strong> Direct integration with Xero
+            accounting software
+          </li>
+          <li>
+            <strong>Digital Order Lists:</strong> Replace paper-based picking
+            with digital workflows
+          </li>
+          <li>
+            <strong>Real-time Synchronization:</strong> Keep inventory and
+            orders perfectly aligned
+          </li>
+          <li>
+            <strong>Mobile-First Design:</strong> Optimized for warehouse mobile
+            devices
+          </li>
         </ul>
-        
+
         <h2>Perfect For:</h2>
-        <p>Small to medium businesses using QuickBooks or Xero who need to streamline their warehouse operations, eliminate picking errors, and improve order fulfillment efficiency.</p>
-        
-        <p><strong>To access Smart Picker, please enable JavaScript in your browser.</strong></p>
-        
-        <p>Contact us at: <a href="mailto:support@smartpicker.com.au">support@smartpicker.com.au</a></p>
+        <p>
+          Small to medium businesses using QuickBooks or Xero who need to
+          streamline their warehouse operations, eliminate picking errors, and
+          improve order fulfillment efficiency.
+        </p>
+
+        <p>
+          <strong
+            >To access Smart Picker, please enable JavaScript in your
+            browser.</strong
+          >
+        </p>
+
+        <p>
+          Contact us at:
+          <a href="mailto:support@smartpicker.com.au"
+            >support@smartpicker.com.au</a
+          >
+        </p>
       </div>
     </noscript>
     <div id="root"></div>

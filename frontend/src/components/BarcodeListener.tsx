@@ -20,7 +20,7 @@ const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned, dis
     };
 
     focusInput();
-    const interval = setInterval(focusInput, 500); // Aggressively check focus
+    const interval = setInterval(focusInput, 500);
     const handleClick = () => setTimeout(focusInput, 50);
 
     document.addEventListener('click', handleClick);

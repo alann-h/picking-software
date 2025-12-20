@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // Route configurations with SEO metadata
 const routes = {
   '/': {
-    title: 'Smart Picker - Order Picking Software | QuickBooks & Xero Integration',
+    title: 'Smart Picker',
     description: 'Smart Picker - The smart order picking software with barcode scanning, QuickBooks & Xero integration. Eliminate picking errors and boost warehouse efficiency.',
     keywords: 'smart picker, order picking software, warehouse management, barcode scanning, QuickBooks integration, Xero integration, inventory management, warehouse efficiency, mobile order picking, digital picking lists, Australian warehouse software',
     url: 'https://smartpicker.com.au',
