@@ -35,7 +35,7 @@ const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned, dis
 
   const handleSubmit = (text: string) => {
     const cleanText = text.trim();
-    if (cleanText.length > 1) { // Ignore single characters (stray keypresses)
+    if (cleanText.length > 1) {
       onBarcodeScanned(cleanText);
     }
     if (inputRef.current) {
