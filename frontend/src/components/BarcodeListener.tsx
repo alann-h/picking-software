@@ -79,7 +79,7 @@ const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned, dis
         top: '-2000px',
         left: '-2000px',
         opacity: 0, 
-        fontSize: '16px', // Prevents iOS zoom
+        fontSize: '16px',
         pointerEvents: 'none'
       }}
       aria-hidden="true"
