@@ -69,7 +69,6 @@ const BarcodeListener: React.FC<BarcodeListenerProps> = ({ onBarcodeScanned, dis
       ref={inputRef}
       type="text"
       // inputMode="none" prevents the virtual keyboard from appearing on mobile devices
-      // while still allowing the input to receive focus and key events from hardware scanners.
       inputMode="none" 
       autoComplete="off"
       onChange={handleChange}

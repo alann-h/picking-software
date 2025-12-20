@@ -31,7 +31,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/generate-seo-pages.mjs",
+    "build": "vite build",
     "build:base": "vite build",
     "generate-seo": "node scripts/generate-seo-pages.mjs",
     "preview": "vite preview",
