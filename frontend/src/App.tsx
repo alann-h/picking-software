@@ -50,7 +50,8 @@ const ConditionalFooter: React.FC = () => {
     '/order-history',
     '/run',
     '/runs/print',
-    '/kyte-converter'
+    '/kyte-converter',
+    '/reports'
   ];
   
   const shouldHideFooter = noFooterPaths.some(path => location.pathname.startsWith(path));
