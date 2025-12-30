@@ -31,17 +31,6 @@ export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction
 
 export const handleQBOWebhook = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log('=== QBO WEBHOOK RECEIVED ===');
-    console.log('Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('Body (parsed):', JSON.stringify(req.body, null, 2));
-    console.log('============================');
-    // Check for new CloudEvents format (array)
-    if (Array.isArray(req.body)) {
-      await WebhookService.processCloudEventWebhook(req.body);
-      return res.status(200).send('OK');
-    }
-
-    /* LEGACY LOGIC DISABLED FOR TESTING
     const { eventNotifications } = req.body;
 
     if (!eventNotifications || !Array.isArray(eventNotifications)) {
@@ -51,9 +40,7 @@ export const handleQBOWebhook = async (req: Request, res: Response, next: NextFu
     
     // Process webhook notifications using the webhook service
     await WebhookService.processQBOWebhook(eventNotifications);
-    */
     
-    console.warn('Legacy webhook logic disabled. Ignoring non-array payload.');
     res.status(200).send('OK');
   } catch (err: unknown) {
     console.error('Error handling QBO webhook:', err);

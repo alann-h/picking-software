@@ -18,19 +18,6 @@ export interface WebhookNotification {
   };
 }
 
-// New CloudEvents format
-export interface CloudEventNotification {
-  specversion: string;
-  id: string;
-  source: string;
-  type: string; // e.g. "qbo.account.created.v1"
-  datacontenttype: string;
-  time: string;
-  intuitentityid: string;
-  intuitaccountid: string;
-  data: Record<string, unknown>;
-}
-
 export class WebhookService {
   /**
    * Process webhook notifications for QuickBooks Online
@@ -52,50 +39,6 @@ export class WebhookService {
           console.error(`Error processing webhook event ${event.id}:`, error);
           // Continue processing other events even if one fails
         }
-      }
-    }
-  }
-
-  /**
-   * Process CloudEvents format webhooks
-   */
-  static async processCloudEventWebhook(events: CloudEventNotification[]): Promise<void> {
-    console.log(`Processing ${events.length} CloudEvents`);
-
-    for (const event of events) {
-      try {
-        const realmId = event.intuitaccountid;
-        
-        // Parse type string: qbo.entity.operation.version
-        // e.g. "qbo.account.created.v1" -> entity="Account", operation="Create"
-        // e.g. "qbo.item.updated.v1" -> entity="Item", operation="Update"
-        const parts = event.type.split('.');
-        if (parts.length < 3) {
-          console.warn(`Invalid event type format: ${event.type}`);
-          continue;
-        }
-
-        const entityLower = parts[1];
-        const operationLower = parts[2];
-
-        // Capitalize for compatibility with existing logic
-        const name = entityLower.charAt(0).toUpperCase() + entityLower.slice(1);
-        const operation = (operationLower.charAt(0).toUpperCase() + operationLower.slice(1)) as 'Create' | 'Update' | 'Delete';
-
-        // Map Item to Product if needed (current logic expects "Item")
-        const normalizedName = name === 'Product' ? 'Item' : name;
-
-        const webhookEvent: WebhookEvent = {
-          id: event.intuitentityid,
-          operation: operation,
-          name: normalizedName,
-          lastUpdated: event.time
-        };
-
-        await this.processWebhookEvent(webhookEvent, realmId);
-
-      } catch (error) {
-        console.error('Error processing CloudEvent:', error);
       }
     }
   }
