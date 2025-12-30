@@ -1,37 +1,39 @@
 @import "tailwindcss";
 
-/* Custom scrollbar styles */
-.scrollbar-thin::-webkit-scrollbar {
+/* Global Custom Scrollbar */
+::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.scrollbar-thin::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 4px;
 }
 
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-/* Firefox scrollbar */
-.scrollbar-thin {
+/* Firefox support */
+* {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f1f1;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 /* Print styles */
 @media print {
   /* Hide all elements by default during print, then whitelist what we want */
   /* It's often easier to hide specific structural elements */
-  
+
   /* Hide TopBar/Header */
-  header, nav, .no-print {
+  header,
+  nav,
+  .no-print {
     display: none !important;
   }
 
