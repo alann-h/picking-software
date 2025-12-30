@@ -101,6 +101,7 @@ function parseCSVLine(line: string): string[] {
  */
 function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
   if (!itemsDescription) return [];
+  console.log('Item Description: ' + itemsDescription);
   
   const items: KyteLineItem[] = [];
   // Split by commas first, then by other delimiters
@@ -118,7 +119,7 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
     if (match) {
       const quantity = parseInt(match[1]) || 1;
       let productName = match[3].trim();
-      console.log(productName);
+      console.log('Product Name: ' + productName);
       
       items.push({
         quantity,
