@@ -94,6 +94,7 @@ setInterval(() => {
 // — Body parsing & logging
 app.use(express.json({ 
   limit: config.server.bodyParser.limit,
+  type: ['application/json', 'application/cloudevents-batch+json'],
   verify: (req: any, res, buf) => {
     (req as any).rawBody = buf;
   }
