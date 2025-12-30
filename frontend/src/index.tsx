@@ -21,7 +21,7 @@ const queryClient = new QueryClient({
         }
         return failureCount < 2;
       },
-      refetchOnWindowFocus: 'always',
+      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     },
     mutations: {

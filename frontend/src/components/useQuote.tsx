@@ -63,8 +63,8 @@ export const useQuoteManager = (quoteId: string, openModal: OpenModalFunction, c
         },
         refetchInterval: (query) => {
             const data = query.state.data as QuoteData | undefined;
-            // Poll every 30 seconds instead of 10 to reduce API calls
-            return data?.orderStatus === 'completed' ? false : 30000;
+            // Poll every 60 seconds instead of 10 to reduce API calls
+            return data?.orderStatus === 'completed' ? false : 60000;
         },
         refetchIntervalInBackground: false,
     });
