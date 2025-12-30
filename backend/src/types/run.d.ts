@@ -10,6 +10,7 @@ export interface Run {
     run_name: string | null;
     driver_name: string | null;
     status: RunStatus;
+    completed_at: Date | null;
 }
 
 export interface QuoteInRun {

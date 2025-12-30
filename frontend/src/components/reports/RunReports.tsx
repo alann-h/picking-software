@@ -14,6 +14,7 @@ const RunReports: React.FC = () => {
     const [timeRange, setTimeRange] = useState<TimeRange>('week');
     const [customStartDate, setCustomStartDate] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
     const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [dateFilter, setDateFilter] = useState<'created' | 'completed'>('created');
 
     const getDateRange = () => {
         const now = new Date();
@@ -37,8 +38,8 @@ const RunReports: React.FC = () => {
     const { start, end } = getDateRange();
 
     const { data: reportData, isLoading, isError } = useQuery({
-        queryKey: ['runReports', userCompanyId, timeRange, customStartDate, customEndDate],
-        queryFn: () => getRunReports(start.toISOString(), end.toISOString()),
+        queryKey: ['runReports', userCompanyId, timeRange, customStartDate, customEndDate, dateFilter],
+        queryFn: () => getRunReports(start.toISOString(), end.toISOString(), dateFilter),
         enabled: !!userCompanyId,
         staleTime: 60000, // Cache for 1 minute
     });
@@ -68,7 +69,7 @@ const RunReports: React.FC = () => {
                 </div>
 
                 {/* Filters */}
-                <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                <div className="flex flex-col gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-wrap items-center gap-4">
                         <div className="flex items-center gap-2 rounded-lg bg-slate-100 p-1">
                             {(['today', 'week', 'month', 'custom'] as TimeRange[]).map((range) => (
@@ -103,6 +104,31 @@ const RunReports: React.FC = () => {
                                 />
                             </div>
                         )}
+                    </div>
+
+                    <div className="flex items-center gap-2 rounded-lg bg-slate-100 p-1">
+                        <button
+                            onClick={() => setDateFilter('created')}
+                            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
+                                dateFilter === 'created'
+                                    ? 'bg-white text-blue-600 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            <Calendar size={16} />
+                            Date Created
+                        </button>
+                        <button
+                            onClick={() => setDateFilter('completed')}
+                            className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
+                                dateFilter === 'completed'
+                                    ? 'bg-white text-emerald-600 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            <TrendingUp size={16} />
+                            Date Completed
+                        </button>
                     </div>
                 </div>
 

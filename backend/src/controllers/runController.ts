@@ -165,7 +165,7 @@ export async function getRunReportsController(req: Request, res: Response, next:
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, dateFilter } = req.query;
 
         if (!startDate || !endDate) {
             return res.status(400).json({ error: 'startDate and endDate are required parameters' });
@@ -178,7 +178,11 @@ export async function getRunReportsController(req: Request, res: Response, next:
             return res.status(400).json({ error: 'Invalid date format' });
         }
 
-        const reportData = await getRunReports(companyId, start, end);
+        const filterMode = (dateFilter === 'completed' || dateFilter === 'created') 
+            ? dateFilter 
+            : 'created';
+
+        const reportData = await getRunReports(companyId, start, end, filterMode);
         res.status(200).json(reportData);
     } catch (error) {
         next(error);

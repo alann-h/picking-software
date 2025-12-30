@@ -36,8 +36,8 @@ export const updateRunStatus = async (runId: string, status: 'pending' | 'checki
   return data;
 };
 
-export const getRunReports = async (startDate: string, endDate: string): Promise<any> => {
-  const query = new URLSearchParams({ startDate, endDate }).toString();
+export const getRunReports = async (startDate: string, endDate: string, dateFilter: 'created' | 'completed' = 'created'): Promise<any> => {
+  const query = new URLSearchParams({ startDate, endDate, dateFilter }).toString();
   const data = await apiCallGet(`${RUNS_BASE}/reports?${query}`);
   return data;
 };

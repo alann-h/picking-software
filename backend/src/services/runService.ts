@@ -63,6 +63,7 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                     runName: true,
                     driverName: true,
                     status: true,
+                    completedAt: true,
                 },
             });
             
@@ -100,6 +101,7 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                 run_name: newRun.runName,
                 driver_name: newRun.driverName,
                 status: newRun.status,
+                completed_at: newRun.completedAt,
             };
         });
     } catch (error: unknown) {
@@ -123,6 +125,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
                 runName: true,
                 driverName: true,
                 status: true,
+                completedAt: true,
             },
         });
 
@@ -175,6 +178,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
             driver_name: run.driverName,
             status: run.status,
             quotes: itemsByRunId.get(run.id) || [],
+            completed_at: run.completedAt,
         }));
 
         return finalResult;
@@ -192,9 +196,20 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
     }
 
     try {
+        const completedAtData = newStatus === 'completed' 
+            ? new Date() 
+            : newStatus === 'pending' ? null : undefined; // Set to null if reverting to pending
+
+        // Only update completedAt if we are explicitly setting it to a value or null.
+        // If undefined (e.g. some status change that shouldn't touch it), we'd skip, but here we want explicit logic.
+        const dataToUpdate: any = { status: newStatus };
+        if (completedAtData !== undefined) {
+             dataToUpdate.completedAt = completedAtData;
+        }
+
         const updatedRun = await prisma.run.update({
             where: { id: runId },
-            data: { status: newStatus },
+            data: dataToUpdate,
             select: {
                 id: true,
                 companyId: true,
@@ -203,6 +218,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
                 runName: true,
                 driverName: true,
                 status: true,
+                completedAt: true,
             },
         });
 
@@ -214,6 +230,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
             run_name: updatedRun.runName,
             driver_name: updatedRun.driverName,
             status: updatedRun.status,
+            completed_at: updatedRun.completedAt,
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && error.code === 'P2025') {
@@ -350,6 +367,7 @@ export async function updateRunName(runId: string, runName: string): Promise<Run
                 runName: true,
                 driverName: true,
                 status: true,
+                completedAt: true,
             },
         });
 
@@ -361,6 +379,7 @@ export async function updateRunName(runId: string, runName: string): Promise<Run
             run_name: updatedRun.runName,
             driver_name: updatedRun.driverName,
             status: updatedRun.status,
+            completed_at: updatedRun.completedAt,
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && error.code === 'P2025') {
@@ -385,6 +404,7 @@ export async function updateRunDriver(runId: string, driverName: string | null):
                 runName: true,
                 driverName: true,
                 status: true,
+                completedAt: true,
             },
         });
 
@@ -396,6 +416,7 @@ export async function updateRunDriver(runId: string, driverName: string | null):
             run_name: updatedRun.runName,
             driver_name: updatedRun.driverName,
             status: updatedRun.status,
+            completed_at: updatedRun.completedAt,
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && error.code === 'P2025') {
@@ -521,19 +542,31 @@ export interface ReportData {
     }[];
 }
 
-export async function getRunReports(companyId: string, startDate: Date, endDate: Date): Promise<ReportData> {
+export async function getRunReports(
+    companyId: string, 
+    startDate: Date, 
+    endDate: Date, 
+    dateFilter: 'created' | 'completed' = 'created'
+): Promise<ReportData> {
     try {
         // Ensure endDate includes the full end day
         const adjustedEndDate = new Date(endDate);
         adjustedEndDate.setHours(23, 59, 59, 999);
 
+        const dateField = dateFilter === 'completed' ? 'completedAt' : 'createdAt';
+
+        // Additional filter for 'completed' mode: status must be 'completed' (implicitly handled by completedAt not being null basically, but let's be safe)
+        // Actually, if we use completedAt range, only completed runs have completedAt, so that's fine.
+        
         const runs = await prisma.run.findMany({
             where: {
                 companyId,
-                createdAt: {
+                [dateField]: {
                     gte: startDate,
                     lte: adjustedEndDate,
                 },
+                // If filtering by completedAt, ensure it's not null
+                ...(dateFilter === 'completed' && { completedAt: { not: null } }),
                 // status: { not: 'cancelled' } // Uncomment if you have 'cancelled' status
             },
             include: {
@@ -544,7 +577,7 @@ export async function getRunReports(companyId: string, startDate: Date, endDate:
                 }
             },
             orderBy: {
-                createdAt: 'asc'
+                [dateField]: 'asc'
             }
         });
 
@@ -559,9 +592,14 @@ export async function getRunReports(companyId: string, startDate: Date, endDate:
         for (const run of runs) {
             summary.totalRuns++;
             
+            // Should report based on the FILTERED date logic?
+            // If I ask for runs completed in range X, I expect them grouped by completed date.
+            const rawDate = (run as any)[dateField]; 
+            // fallback if null (shouldn't happen with the query) 
+            const dateObj = rawDate ? new Date(rawDate) : new Date();
+
             // Convert to Australian date for grouping
-            // usage of 'en-CA' is intentional to get YYYY-MM-DD format which parses correctly and sorts correctly
-            const runDate = run.createdAt.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
+            const runDate = dateObj.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
             
             let runCost = 0;
             let runItemsCount = 0;
@@ -599,3 +637,4 @@ export async function getRunReports(companyId: string, startDate: Date, endDate:
         throw new Error('Failed to generate reports');
     }
 }
+
