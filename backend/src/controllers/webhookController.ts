@@ -31,6 +31,10 @@ export const verifyQBOWebhook = (req: Request, res: Response, next: NextFunction
 
 export const handleQBOWebhook = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log('=== QBO WEBHOOK RECEIVED ===');
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Body (parsed):', JSON.stringify(req.body, null, 2));
+    console.log('============================');
     // Check for new CloudEvents format (array)
     if (Array.isArray(req.body)) {
       await WebhookService.processCloudEventWebhook(req.body);
