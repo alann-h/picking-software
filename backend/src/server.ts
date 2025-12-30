@@ -92,16 +92,16 @@ setInterval(() => {
 }, SYNC_INTERVAL);
 
 // — Body parsing & logging
-app.use(express.urlencoded({ 
-  extended: true, 
-  limit: config.server.bodyParser.limit
-}));
-
 app.use(express.json({ 
   limit: config.server.bodyParser.limit,
   verify: (req: any, res, buf) => {
     (req as any).rawBody = buf;
   }
+}));
+
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: config.server.bodyParser.limit
 }));
 
 app.use(morgan(config.logging.morgan));
