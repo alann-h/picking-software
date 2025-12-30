@@ -46,7 +46,7 @@ async function getQboCustomerQuotes(oauthClient: IntuitOAuthClient, customerId: 
     const baseURL = await getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
 
-    const queryStr = `SELECT * FROM estimate WHERE CustomerRef = '${customerId}'`;
+    const queryStr = `SELECT * FROM estimate WHERE CustomerRef = '${customerId}' ORDERBY MetaData.LastUpdatedTime DESC`;
     const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
     
     const response = await oauthClient.makeApiCall({ url });
@@ -166,12 +166,17 @@ export async function getQboEstimate(oauthClient: IntuitOAuthClient, quoteId: st
     const baseURL = await getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
     
-    const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
-
-    const estimateResponse = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+    // Use direct API read instead of query
+    const response = await oauthClient.makeApiCall({
+      url: `${baseURL}v3/company/${realmId}/estimate/${quoteId}?minorversion=75`
     });
-    return estimateResponse.json;
+    
+    // Direct read returns the object directly, wrap it in QueryResponse structure for compatibility
+    return {
+       QueryResponse: {
+         Estimate: [response.json.Estimate]
+       }
+    };
   } catch (e: unknown) {
     if (e instanceof Error) {
       throw new InputError(e.message);
@@ -1668,13 +1673,17 @@ async function getQboEstimatesBulk(quoteIds: string[], companyId: string): Promi
         
         for (const quoteId of quoteIds) {
             try {
-                const queryStr = `SELECT * FROM estimate WHERE Id = '${quoteId}'`;
-                
+                // Use direct API read instead of query
                 const estimateResponse = await oauthClient.makeApiCall({
-                    url: `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`
+                    url: `${baseURL}v3/company/${realmId}/estimate/${quoteId}?minorversion=75`
                 });
                 
-                const responseData = estimateResponse.json;
+                // Construct response matching what filterEstimates expects (QueryResponse structure)
+                const responseData = {
+                    QueryResponse: {
+                        Estimate: [estimateResponse.json.Estimate]
+                    }
+                };
                 if (responseData.QueryResponse.Estimate && responseData.QueryResponse.Estimate.length > 0) {
                     const filteredQuote = await filterEstimates(responseData, companyId, 'qbo') as FilteredQuote | QuoteFetchError;
                     if (filteredQuote) {

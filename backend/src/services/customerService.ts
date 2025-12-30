@@ -135,7 +135,7 @@ async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<C
 
   while (moreRecords) {
     const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${realmId}/query?query=select * from Customer startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
+      url: `${baseURL}v3/company/${realmId}/query?query=select * from Customer ORDERBY MetaData.LastUpdatedTime startPosition ${startPosition} maxResults ${pageSize}&minorversion=75`
     });
     const responseData = response.json;
     const customers: QBOCustomer[] = responseData.QueryResponse.Customer || [];

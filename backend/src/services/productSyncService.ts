@@ -126,7 +126,7 @@ export class ProductSyncService {
     const maxResults = 500; // QBO max per page
 
     while (true) {
-      const queryStr = `SELECT * FROM Item WHERE Active = true ORDERBY Id STARTPOSITION ${startPosition} MAXRESULTS ${maxResults}`;
+      const queryStr = `SELECT * FROM Item WHERE Active = true ORDERBY MetaData.LastUpdatedTime STARTPOSITION ${startPosition} MAXRESULTS ${maxResults}`;
       const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
 
       try {
