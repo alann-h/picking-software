@@ -118,6 +118,7 @@ function parseItemsDescription(itemsDescription: string): KyteLineItem[] {
     if (match) {
       const quantity = parseInt(match[1]) || 1;
       let productName = match[3].trim();
+      console.log(productName);
       
       items.push({
         quantity,
