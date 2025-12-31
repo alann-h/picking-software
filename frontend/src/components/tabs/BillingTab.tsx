@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Loader, CreditCard, ExternalLink, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { getBillingDetails, createCheckoutSession, createPortalSession } from '../../api/billing';
 
 const BillingTab = () => {
     const { subscriptionStatus } = useAuth() as any;
@@ -8,20 +9,15 @@ const BillingTab = () => {
     const [details, setDetails] = useState<any>(null);
 
     React.useEffect(() => {
-        fetch('/api/billing/details')
-            .then(res => res.json())
-            .then(data => setDetails(data))
+        getBillingDetails()
+            .then((data: any) => setDetails(data))
             .catch(err => console.error('Failed to fetch billing details', err));
     }, []);
 
     const handleSubscribe = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/billing/create-checkout-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            const data = await res.json();
+            const data: any = await createCheckoutSession();
             if (data.url) {
                 window.location.href = data.url;
             } else {
@@ -38,12 +34,8 @@ const BillingTab = () => {
     const handleManage = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/billing/create-portal-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            const data = await res.json();
-            if (data.url) {
+            const data: any = await createPortalSession();
+            if (data && data.url) {
                 window.location.href = data.url;
             } else {
                 alert('Failed to open billing portal');
