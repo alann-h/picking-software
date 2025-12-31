@@ -35,6 +35,7 @@ export const useUserStatus = () => {
     userName: isAuthError ? null : (data?.name ?? null),
     userEmail: isAuthError ? null : (data?.email ?? null),
     connectionType: isAuthError ? 'none' : (data?.connectionType ?? 'none'),
+    subscriptionStatus: isAuthError ? undefined : (data?.subscriptionStatus),
     isLoadingStatus: isLoadingStatus && !isAuthError,
     isError: isError && !isAuthError,
   };

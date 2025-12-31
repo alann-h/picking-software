@@ -31,6 +31,8 @@ export interface CompanyFromDB {
     xeroTokenData: string | null;
     createdAt: Date;
     updatedAt: Date;
+    subscriptionStatus?: string;
+    stripeCustomerId?: string | null;
 }
 
 export interface LoginUser extends UserFromDB {

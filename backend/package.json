@@ -50,6 +50,7 @@
     "pg": "^8.11.3",
     "pg-format": "^1.0.4",
     "prisma": "^6.15.0",
+    "stripe": "^20.1.0",
     "swagger-ui-express": "^5.0.0",
     "validator": "^13.11.0",
     "xero-node": "^13.0.0"

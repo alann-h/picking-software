@@ -22,7 +22,8 @@ export const useAdminFunctions = () => {
     getAuditLogs,
     getConnectionHealth,
     hasAccessLevel,
-    connectionType
+    connectionType,
+    subscriptionStatus
   } = useAuth();
   
   return { 
@@ -31,6 +32,7 @@ export const useAdminFunctions = () => {
     getAuditLogs,
     getConnectionHealth,
     connectionType,
+    subscriptionStatus,
     isAdmin: hasAccessLevel('admin')
   };
 };

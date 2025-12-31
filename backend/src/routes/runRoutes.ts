@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import asyncHandler from '../middlewares/asyncHandler.js';
-import { isAuthenticated, isAdmin } from '../middlewares/authMiddleware.js';
+import { isAuthenticated, isAdmin, requireSubscription } from '../middlewares/authMiddleware.js';
 import {
     createBulkRunController,
     getCompanyRunsController,
@@ -24,7 +24,7 @@ import {
 } from '../validators/runValidator.js';
 
 const router = Router();
-router.use(isAuthenticated);
+router.use(isAuthenticated, requireSubscription);
 
 router.post('/bulk', isAdmin, runCreateRules(), validate, asyncHandler(createBulkRunController));
 router.get('/latest-driver', isAdmin, asyncHandler(getLatestDriverNameController));

@@ -132,6 +132,7 @@ export interface UserStatusResponse {
   name: string | null;
   email: string | null;
   connectionType: 'qbo' | 'xero' | 'none';
+  subscriptionStatus?: string;
 }
 
 export interface ApiErrorPayload {

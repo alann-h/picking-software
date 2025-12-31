@@ -84,6 +84,138 @@ Smart Picker Team`,
 }
 
 /**
+ * Send subscription confirmation email
+ * @param {string} email - User's email address
+ * @param {string} userName - User's display name
+ * @param {string} endDate - Subscription end date (or renewal date)
+ * @returns {Promise<any>} Mailjet response body
+ */
+export async function sendSubscriptionConfirmationEmail(email: string, userName: string | null, endDate: string): Promise<any> {
+    try {
+      const request = mailjet.post('send', { version: 'v3.1' }).request({
+        Messages: [
+          {
+            From: {
+              Email: 'noreply@smartpicker.com.au',
+              Name: 'Smart Picker'
+            },
+            To: [
+              {
+                Email: email,
+                Name: userName || 'Customer'
+              }
+            ],
+            Subject: 'Welcome to Smart Picker Pro!',
+            TextPart: `Hello ${userName || 'Customer'},
+  
+  Welcome to Smart Picker Pro! Your subscription is now active.
+  
+  You now have access to unlimited users, advanced reporting, and all integrations.
+  
+  Your next billing date is ${endDate}.
+  
+  Best regards,
+  Smart Picker Team`,
+            HTMLPart: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #007bff;">Welcome to Pro!</h2>
+                <p>Hello ${userName || 'Customer'},</p>
+                <p>Thank you for subscribing to Smart Picker Pro. Your account has been upgraded.</p>
+                <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0;">
+                  <h3 style="margin-top: 0; color: #333;">What's Included:</h3>
+                  <ul style="padding-left: 20px; color: #555;">
+                    <li>Unlimited Users</li>
+                    <li>Advanced Reporting</li>
+                    <li>QuickBooks & Xero Integrations</li>
+                  </ul>
+                </div>
+                <p>Your subscription will auto-renew on <strong>${endDate}</strong>.</p>
+                <p>You can manage your subscription at any time from your settings page.</p>
+                <br>
+                <p style="color: #999; font-size: 12px;">
+                  Best regards,<br>
+                  Smart Picker Team
+                </p>
+              </div>
+            `
+          }
+        ]
+      } as MailjetRequest);
+  
+      const response: MailjetResponse = await request;
+      console.log('Subscription confirmation email sent successfully:', response.body);
+      return response.body;
+    } catch (error) {
+      console.error('Error sending subscription confirmation email:', error);
+      // Don't throw to prevent webhook failure
+      return null;
+    }
+  }
+  
+  /**
+   * Send subscription cancellation email
+   * @param {string} email - User's email address
+   * @param {string} userName - User's display name
+   * @param {string} date - Date when access ends
+   * @returns {Promise<any>} Mailjet response body
+   */
+  export async function sendCancellationEmail(email: string, userName: string | null, date: string): Promise<any> {
+    try {
+      const request = mailjet.post('send', { version: 'v3.1' }).request({
+        Messages: [
+          {
+            From: {
+              Email: 'noreply@smartpicker.com.au',
+              Name: 'Smart Picker'
+            },
+            To: [
+              {
+                Email: email,
+                Name: userName || 'Customer'
+              }
+            ],
+            Subject: 'Subscription Cancellation - Smart Picker',
+            TextPart: `Hello ${userName || 'Customer'},
+  
+  We've received your request to cancel your Smart Picker Pro subscription.
+  
+  Your access will continue until the end of your current billing period on ${date}. After that, your account will not be active.
+  
+  We're sorry to see you go! If there's anything we could have done better, please let us know.
+  
+  Best regards,
+  Smart Picker Team`,
+            HTMLPart: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #666;">Subscription Cancelled</h2>
+                <p>Hello ${userName || 'Customer'},</p>
+                <p>We've received your request to cancel your Smart Picker Pro subscription.</p>
+                <div style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <strong>Note:</strong> Your Pro features will remain active until <strong>${date}</strong>.
+                </div>
+                <p>After this date, your account will not be active and you will not be able to access Pro features.</p>
+                <p>We're sorry to see you go! You are welcome to resubscribe at any time.</p>
+                <br>
+                <p style="color: #999; font-size: 12px;">
+                  Best regards,<br>
+                  Smart Picker Team
+                </p>
+              </div>
+            `
+          }
+        ]
+      } as MailjetRequest);
+  
+      const response: MailjetResponse = await request;
+      console.log('Cancellation email sent successfully:', response.body);
+      return response.body;
+    } catch (error) {
+      console.error('Error sending cancellation email:', error);
+      // Don't throw to prevent webhook failure
+      return null; 
+    }
+  }
+/**
  * Send password reset confirmation email
  * @param {string} email - User's email address
  * @param {string} userName - User's display name

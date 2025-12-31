@@ -4,6 +4,7 @@ import { AuthProvider } from './AuthProvider';
 import { useAuth } from '../hooks/useAuth';
 import TopBar from './TopBar';
 import { Loader } from 'lucide-react';
+import { PaymentWall } from './PaymentWall';
 
 const ProtectedLayout = () => {
     const { isAuthenticated, isLoading } = useAuth();
@@ -21,7 +22,9 @@ const ProtectedLayout = () => {
                     <Loader className="animate-spin text-blue-600" size={48} />
                 </div>
             ) : (
-                <Outlet />
+                <PaymentWall>
+                    <Outlet />
+                </PaymentWall>
             )}
         </>
     );

@@ -20,6 +20,8 @@ export class CompanyService {
                 xeroTenantId: company.xeroTenantId,
                 createdAt: company.createdAt,
                 updatedAt: company.updatedAt,
+                subscriptionStatus: company.subscriptionStatus,
+                stripeCustomerId: company.stripeCustomerId
             }));
         } catch (error: unknown) {
             if (error instanceof Error) {
@@ -47,6 +49,8 @@ export class CompanyService {
                 xeroTenantId: company.xeroTenantId,
                 createdAt: company.createdAt,
                 updatedAt: company.updatedAt,
+                subscriptionStatus: company.subscriptionStatus,
+                stripeCustomerId: company.stripeCustomerId
             };
         } catch (error: unknown) {
             if (error instanceof Error) {
@@ -92,6 +96,8 @@ export class CompanyService {
                         xeroTenantId: updatedCompany.xeroTenantId,
                         createdAt: updatedCompany.createdAt,
                         updatedAt: updatedCompany.updatedAt,
+                        subscriptionStatus: updatedCompany.subscriptionStatus,
+                        stripeCustomerId: updatedCompany.stripeCustomerId
                     };
                 } else {
                     // Insert new company
@@ -116,6 +122,8 @@ export class CompanyService {
                         xeroTenantId: newCompany.xeroTenantId,
                         createdAt: newCompany.createdAt,
                         updatedAt: newCompany.updatedAt,
+                        subscriptionStatus: newCompany.subscriptionStatus,
+                        stripeCustomerId: newCompany.stripeCustomerId
                     };
                 }
             } else if (connectionType === 'xero') {
@@ -172,6 +180,8 @@ export class CompanyService {
                         xeroTenantId: newCompany.xeroTenantId,
                         createdAt: newCompany.createdAt,
                         updatedAt: newCompany.updatedAt,
+                        subscriptionStatus: newCompany.subscriptionStatus,
+                        stripeCustomerId: newCompany.stripeCustomerId
                     };
                 }
             } else {
@@ -288,6 +298,8 @@ export class CompanyService {
                 xeroTenantId: company.xeroTenantId,
                 createdAt: company.createdAt,
                 updatedAt: company.updatedAt,
+                subscriptionStatus: company.subscriptionStatus,
+                stripeCustomerId: company.stripeCustomerId
             };
         } catch (error: unknown) {
             if (error instanceof Error && error.message === AUTH_ERROR_CODES.TOKEN_INVALID) {

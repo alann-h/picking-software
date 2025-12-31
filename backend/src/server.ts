@@ -34,6 +34,7 @@ import permissionRoutes from './routes/permissionRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
 import syncRoutes from './routes/syncRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import billingRoutes from './routes/billingRoutes.js';
 
 import asyncHandler from './middlewares/asyncHandler.js';
 import { isAuthenticated } from './middlewares/authMiddleware.js';
@@ -90,6 +91,9 @@ setInterval(() => {
     console.error('❌ Scheduled product sync failed:', error);
   });
 }, SYNC_INTERVAL);
+
+// — Webhooks (Must be before body parsers)
+app.use('/webhooks', webhookRoutes);
 
 // — Body parsing & logging
 app.use(express.urlencoded({ 
@@ -349,7 +353,8 @@ app.post('/api/upload', isAuthenticated, upload.single('input'), fileUploadError
   })
 );
 
-app.use('/webhooks', webhookRoutes);
+
+app.use('/api/billing', billingRoutes);
 
 app.use(doubleCsrfProtection);
 
@@ -420,6 +425,20 @@ app.get('/api/verifyUser', asyncHandler(async (req: Request, res: Response) => {
                          req.session.email;
   
   if (hasValidSession) {
+    // Fetch fresh subscription status from DB
+    const company = await prisma.company.findUnique({
+      where: { id: req.session.companyId },
+      select: { subscriptionStatus: true }
+    });
+
+    const refreshedStatus = company?.subscriptionStatus || (req.session as any).subscriptionStatus;
+
+    // Update session to keep it relatively fresh
+    if (company) {
+       (req.session as any).subscriptionStatus = refreshedStatus;
+       req.session.save(); // Save in background
+    }
+
     res.json({ 
       isValid: true, 
       user: {
@@ -427,7 +446,8 @@ app.get('/api/verifyUser', asyncHandler(async (req: Request, res: Response) => {
         companyId: req.session.companyId,
         name: req.session.name,
         email: req.session.email,
-        isAdmin: req.session.isAdmin
+        isAdmin: req.session.isAdmin,
+        subscriptionStatus: refreshedStatus
       }
     });
   } else {
@@ -654,13 +674,28 @@ app.get('/sessions/enhanced', asyncHandler(async (req: Request, res: Response) =
 }));
 
 app.get('/api/user-status', isAuthenticated, asyncHandler(async (req: Request, res: Response) => {
+  // Fetch fresh subscription status from DB
+  const company = await prisma.company.findUnique({
+    where: { id: req.session.companyId },
+    select: { subscriptionStatus: true }
+  });
+
+  const refreshedStatus = company?.subscriptionStatus || (req.session as any).subscriptionStatus;
+
+  // Update session to keep it relatively fresh
+  if (company) {
+      (req.session as any).subscriptionStatus = refreshedStatus;
+      req.session.save(); // Save in background
+  }
+
   res.json({
     isAdmin: req.session.isAdmin || false,
     userId: req.session.userId,
     companyId: req.session.companyId,
     name: req.session.name,
     email: req.session.email,
-    connectionType: req.session.connectionType || 'none'
+    connectionType: req.session.connectionType || 'none',
+    subscriptionStatus: refreshedStatus
   });
 }));
 

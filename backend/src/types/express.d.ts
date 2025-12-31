@@ -20,6 +20,7 @@ declare module 'express-session' {
     loginTime?: string;
     userAgent?: string;
     ipAddress?: string;
+    subscriptionStatus?: string;
     csrfSessionEnsured?: boolean;
   }
 }

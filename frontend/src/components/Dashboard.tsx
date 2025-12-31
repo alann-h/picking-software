@@ -679,6 +679,8 @@ const Dashboard: React.FC = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const triggerRef = React.useRef<HTMLDivElement>(null);
     const { userCompanyId, connectionType } = useAuth();
+    
+    // PaymentWall handles subscription blocking globally via AuthLayout.tsx
 
     const { data: customers } = useSuspenseQuery<Customer[]>({
         queryKey: ['customers'],

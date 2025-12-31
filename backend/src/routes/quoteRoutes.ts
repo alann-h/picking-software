@@ -1,7 +1,7 @@
 // src/routes/quoteRoutes.js
 import { Router } from 'express';
 import asyncHandler from '../middlewares/asyncHandler.js';
-import { isAuthenticated } from '../middlewares/authMiddleware.js';
+import { isAuthenticated, requireSubscription } from '../middlewares/authMiddleware.js';
 import {
   getEstimates,
   getEstimateById,
@@ -43,7 +43,7 @@ import {
 } from '../validators/kyteConverterValidator.js';
 
 const router = Router();
-router.use(isAuthenticated);
+router.use(isAuthenticated, requireSubscription);
 
 // Kyte to QuickBooks Converter endpoints
 router.post('/kyte-upload', csvContentRule(), validate, asyncHandler(uploadKyteCSV));

@@ -152,6 +152,11 @@ const baseConfig = {
     level: 'info',
     format: currentEnv === ENV.PRODUCTION ? 'json' : 'dev',
     morgan: ':method :url :status'
+  },
+
+  // Client configuration
+  client: {
+    url: currentEnv === ENV.PRODUCTION ? 'https://smartpicker.com.au' : 'http://localhost:5173'
   }
 };
 

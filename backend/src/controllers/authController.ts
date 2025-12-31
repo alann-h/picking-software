@@ -57,7 +57,9 @@ export async function callback(req: Request, res: Response, next: NextFunction) 
     req.session.userId = user.id;
     req.session.name = user.given_name + ' ' + user.family_name;
     req.session.email = user.display_email;
+    req.session.email = user.display_email;
     req.session.connectionType = connectionType; // Store which platform was used
+    req.session.subscriptionStatus = companyInfo.subscriptionStatus; // Store subscription status
 
     // Check if "Remember Me" was requested (stored in state or query param)
     const state = req.query.state;
@@ -108,6 +110,11 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       }
 
       const companyService = new CompanyService();
+      
+      if (!user.company_id) {
+          return res.status(403).json({ error: 'User account setup incomplete: No company assigned' });
+      }
+
       const company = await companyService.getCompanyById(user.company_id);
       // Set session data in new session
       req.session.isAdmin = user.is_admin;
@@ -115,6 +122,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       req.session.companyId = user.company_id; // Database UUID
       req.session.name = user.given_name + ' ' + user.family_name;
       req.session.connectionType = company.connectionType;
+      req.session.subscriptionStatus = company.subscriptionStatus;
       req.session.email = user.display_email;
       req.session.loginTime = new Date().toISOString();
       req.session.userAgent = req.headers['user-agent'];

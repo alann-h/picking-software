@@ -11,8 +11,12 @@ model Company {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   companyName      String             @map("company_name")
   connectionType   connection_type    @default(none) @map("connection_type")
-  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  stripeCustomerId   String?            @map("stripe_customer_id")
+  subscriptionId     String?            @map("subscription_id")
+  subscriptionStatus String             @default("inactive") @map("subscription_status")
+  subscriptionExpiresAt DateTime?       @map("subscription_expires_at") @db.Timestamptz(6)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   qboTokenData     String?            @map("qbo_token_data")
   xeroTokenData    String?            @map("xero_token_data")
   qboRealmId       String?            @map("qbo_realm_id")
@@ -24,6 +28,7 @@ model Company {
   customers        Customer[]
   jobs             Job[]
   kyteConversions  KyteConversion[]
+  payments         Payment[]
   products         Product[]
   quotes           Quote[]
   runs             Run[]
@@ -33,6 +38,21 @@ model Company {
   users            User[]
 
   @@map("companies")
+}
+
+model Payment {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  amount          Decimal  @db.Decimal(10, 2)
+  currency        String
+  status          String
+  stripePaymentId String   @map("stripe_payment_id")
+  invoiceUrl      String?  @map("invoice_url")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("payments")
 }
 
 model User {

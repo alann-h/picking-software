@@ -1,7 +1,7 @@
 // src/routes/productRoutes.js
 import { Router } from 'express';
 import asyncHandler from '../middlewares/asyncHandler.js';
-import { isAuthenticated } from '../middlewares/authMiddleware.js';
+import { isAuthenticated, requireSubscription } from '../middlewares/authMiddleware.js';
 import {
   barcodeToName,
   getProduct,
@@ -27,7 +27,7 @@ import {
 } from '../validators/productValidator.js';
 
 const router = Router();
-router.use(isAuthenticated);
+router.use(isAuthenticated, requireSubscription);
 
 // Barcode lookup
 router.get('/barcode/:barcode', barcodeRule(), validate, asyncHandler(barcodeToName));
