@@ -34,7 +34,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === 'subscription') {
-          await handleSubscriptionUpdate(session.subscription as string, session.customer as string, event.type);
+          await handleSubscriptionUpdate(session.subscription as string, session.customer as string, event);
         }
         break;
       }
@@ -43,7 +43,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
       case 'customer.subscription.deleted': 
       case 'customer.subscription.created': {
         const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionUpdate(subscription.id, subscription.customer as string, event.type);
+        await handleSubscriptionUpdate(subscription.id, subscription.customer as string, event);
         break;
       }
       
@@ -70,7 +70,7 @@ import { sendSubscriptionConfirmationEmail, sendCancellationEmail } from '../ser
 
 // ... (existing helper function update below)
 
-async function handleSubscriptionUpdate(subscriptionId: string, customerId: string, eventType: string) {
+async function handleSubscriptionUpdate(subscriptionId: string, customerId: string, event: Stripe.Event) {
   const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
   const subscription = subscriptionResponse as Stripe.Subscription;
   
@@ -91,7 +91,7 @@ async function handleSubscriptionUpdate(subscriptionId: string, customerId: stri
   let status = 'inactive';
 
   // Explicitly handle deletion event - if it's deleted, it's over.
-  if (eventType === 'customer.subscription.deleted') {
+  if (event.type === 'customer.subscription.deleted') {
     status = 'inactive';
   }
   // Basic active states
@@ -141,10 +141,15 @@ async function handleSubscriptionUpdate(subscriptionId: string, customerId: stri
     }
 
     if (email) {
-      if (eventType === 'checkout.session.completed') {
+    if (event.type === 'checkout.session.completed') {
         // New Subscription
         await sendSubscriptionConfirmationEmail(email, name || 'Customer', currentPeriodEnd.toLocaleDateString());
-      } else if (eventType === 'customer.subscription.updated' && subscription.cancel_at_period_end) {
+      } else if (
+        event.type === 'customer.subscription.updated' && 
+        subscription.cancel_at_period_end && 
+        // Only send if it JUST changed to true (prevent duplicates on future updates)
+        (event as any).data?.previous_attributes?.cancel_at_period_end === false
+      ) {
         // Just Cancelled (scheduled)
         await sendCancellationEmail(email, name || 'Customer', currentPeriodEnd.toLocaleDateString());
       }
