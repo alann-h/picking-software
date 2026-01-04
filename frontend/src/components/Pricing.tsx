@@ -57,9 +57,9 @@ const Pricing: React.FC = () => {
   const plans: Plan[] = [
     {
       name: 'Smart Picker',
-      price: '$0',
-      period: 'Free During Testing',
-      description: 'Perfect for small to medium businesses',
+      price: '$30',
+      period: 'AUD/month',
+      description: 'Affordable pricing for growing businesses',
       highlight: true,
       website: '/login',
       features: {
@@ -184,7 +184,7 @@ const Pricing: React.FC = () => {
             </p>
             <div className="mt-6 inline-flex items-center justify-center bg-blue-600 text-white font-semibold rounded-full px-4 py-2 shadow-lg">
               <StarIcon />
-              <span>Currently Free During Testing</span>
+              <span>Transparent Pricing</span>
             </div>
           </div>
 
@@ -311,7 +311,7 @@ const Pricing: React.FC = () => {
             </h3>
             <p className="text-lg text-slate-600 max-w-3xl mx-auto mb-8">
               While competitors charge hundreds of dollars per month and require complex setups, Smart Picker delivers 
-              enterprise-grade warehouse management features. Currently free during our testing phase - 
+              enterprise-grade warehouse management features. Affordable pricing at just $30 AUD per month - 
               no contracts, no setup fees, no hidden costs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

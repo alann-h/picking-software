@@ -37,10 +37,10 @@ const PricingTeaser: React.FC = () => {
                   Smart Picker
                 </h3>
                 <p className="text-4xl font-bold text-blue-600 mb-2">
-                  $0
+                  $30
                 </p>
                 <p className="text-slate-600 mb-4">
-                  Free during testing phase
+                  AUD/month
                 </p>
                 <ul className="space-y-2 text-sm text-slate-700">
                   <li className="flex items-center">

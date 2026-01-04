@@ -44,12 +44,16 @@ const faqCategories = [
         answer: 'Our barcode scanning technology achieves 99.9% accuracy when used properly. The system supports only standard barcode formats like Code 128 or any other 1D barcode format. The scanning feature includes error detection and validation to ensure items are correctly identified before being added to orders.'
       },
       {
-        question: 'Can I customize picking workflows for my business?',
-        answer: 'Yes, Smart Picker offers flexible workflow customization. You can create custom runs, set priority levels, and configure notification settings. The system adapts to your business processes rather than forcing you to change your operations.'
+        question: 'Can I customise picking workflows for my business?',
+        answer: 'Yes, Smart Picker offers flexible workflow customisation. You can create custom runs and set priority levels. The system adapts to your business processes rather than forcing you to change your operations.'
       },
       {
         question: 'Does Smart Picker work offline?',
-        answer: 'Smart Picker includes offline capabilities for areas with poor connectivity. You can continue picking orders offline, and the system will automatically sync all data when connectivity is restored. This ensures uninterrupted operations even in challenging warehouse environments.'
+        answer: 'No, Smart Picker requires an active internet connection to function. It does not currently support offline mode.'
+      },
+      {
+        question: 'Are there notification settings?',
+        answer: 'Currently, there are no notification settings available.'
       }
     ]
   },
@@ -59,7 +63,7 @@ const faqCategories = [
     questions: [
       {
         question: 'How does QuickBooks and Xero integration work?',
-        answer: 'Smart Picker seamlessly integrates with both QuickBooks Online and Desktop versions, as well as Xero. The integration automatically syncs customer data, product information, and order details. When orders are completed, inventory levels are updated in real-time, and sales data is automatically recorded in your accounting system.'
+        answer: 'Smart Picker seamlessly integrates with both QuickBooks Online and Desktop versions, as well as Xero. Inventory levels are automatically synced on a daily basis. When orders are completed, admins can view detailed metrics including completion time and print run summaries for drivers.'
       },
       {
         question: 'Can I integrate Smart Picker with other systems?',
@@ -77,15 +81,15 @@ const faqCategories = [
     questions: [
       {
         question: 'What pricing plans are available?',
-        answer: 'Smart Picker currently does not have a pricing plan. It is a free to use software for small businesses.'
+        answer: 'Smart Picker currently offers one plan, costing $30 AUD per month.'
       },
       {
         question: 'What kind of support do you provide?',
-        answer: 'We provide comprehensive support including email support, live chat during business hours, detailed documentation, video tutorials, and webinars. Enterprise customers receive dedicated account management and priority support. Our support team is trained to help with both technical issues and workflow optimization.'
+        answer: 'We provide comprehensive support including email support, live chat during business hours, detailed documentation, video tutorials, and webinars. Enterprise customers receive dedicated account management and priority support. Our support team is trained to help with both technical issues and workflow optimisation.'
       },
       {
         question: 'Can I try Smart Picker before purchasing?',
-        answer: 'No, Smart Picker is a free to use software for small businesses.'
+        answer: 'No, Smart Picker currently does not support free trails but plans to in the future.'
       }
     ]
   }
