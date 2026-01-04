@@ -9,12 +9,12 @@ router.post('/qbo', express.json({
   }
 }), verifyQBOWebhook, handleQBOWebhook);
 
-router.get('/xero', handleXeroChallenge); // Challenge endpoint for "intent to receive"
+router.get('/xero', handleXeroChallenge);
 router.post('/xero', express.json({
   verify: (req: any, res, buf) => {
     (req as any).rawBody = buf;
   }
-}), verifyXeroWebhook, handleXeroWebhook); // Webhook receiver
+}), verifyXeroWebhook, handleXeroWebhook);
 
 router.post('/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
