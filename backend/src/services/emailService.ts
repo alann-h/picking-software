@@ -105,34 +105,46 @@ export async function sendSubscriptionConfirmationEmail(email: string, userName:
                 Name: userName || 'Customer'
               }
             ],
-            Subject: 'Welcome to Smart Picker Pro!',
+            Subject: 'Welcome to Smart Picker Pro! - Thank You for Subscribing',
             TextPart: `Hello ${userName || 'Customer'},
   
-  Welcome to Smart Picker Pro! Your subscription is now active.
+  Thank you so much for subscribing to Smart Picker Pro! We are thrilled to have you on board.
   
-  You now have access to unlimited users, advanced reporting, and all integrations.
+  Your subscription is now active. You have access to unlimited users, advanced reporting, and all integrations.
+  
+  What to do next?
+  To help you get the most out of your new features, please visit our FAQ page:
+  https://smartpicker.com.au/faq
   
   Your next billing date is ${endDate}.
   
   Best regards,
   Smart Picker Team`,
             HTMLPart: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #007bff;">Welcome to Pro!</h2>
-                <p>Hello ${userName || 'Customer'},</p>
-                <p>Thank you for subscribing to Smart Picker Pro. Your account has been upgraded.</p>
-                <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0;">
-                  <h3 style="margin-top: 0; color: #333;">What's Included:</h3>
-                  <ul style="padding-left: 20px; color: #555;">
-                    <li>Unlimited Users</li>
-                    <li>Advanced Reporting</li>
-                    <li>QuickBooks & Xero Integrations</li>
-                  </ul>
+              <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                <h2 style="color: #007bff; margin-bottom: 20px;">Welcome to the Family!</h2>
+                <p style="font-size: 16px; line-height: 1.5;">Hello ${userName || 'Customer'},</p>
+                <p style="font-size: 16px; line-height: 1.5;">Thank you so much for subscribing to Smart Picker Pro. We are thrilled to have you on board support your business growth.</p>
+                
+                <div style="background-color: #f8f9fa; border-left: 4px solid #28a745; padding: 20px; margin: 25px 0; border-radius: 4px;">
+                  <h3 style="margin-top: 0; color: #28a745;">Your Subscription is Active</h3>
+                  <p style="margin-bottom: 0;">You now have full access to Unlimited Users, Advanced Reporting, and QuickBooks & Xero Integrations.</p>
                 </div>
-                <p>Your subscription will auto-renew on <strong>${endDate}</strong>.</p>
-                <p>You can manage your subscription at any time from your settings page.</p>
-                <br>
-                <p style="color: #999; font-size: 12px;">
+
+                <h3 style="margin-top: 30px;">What to do next?</h3>
+                <p style="font-size: 16px; line-height: 1.5;">To make sure you get the most out of your subscription, we recommend checking out our guides and FAQ:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="https://smartpicker.com.au/faq" 
+                     style="background-color: #007bff; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">
+                    Visit Smart Picker FAQ
+                  </a>
+                </div>
+
+                <p style="font-size: 14px; color: #666; margin-top: 30px;">Your subscription will automatically renew on <strong>${endDate}</strong>.</p>
+                
+                <hr style="margin: 40px 0; border: none; border-top: 1px solid #eee;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
                   Best regards,<br>
                   Smart Picker Team
                 </p>
@@ -174,29 +186,43 @@ export async function sendSubscriptionConfirmationEmail(email: string, userName:
                 Name: userName || 'Customer'
               }
             ],
-            Subject: 'Subscription Cancellation - Smart Picker',
+            Subject: 'Sad to see you go - Smart Picker Subscription',
             TextPart: `Hello ${userName || 'Customer'},
   
+  We are truly sad to see you go.
+  
   We've received your request to cancel your Smart Picker Pro subscription.
+  Your access will continue until the end of your current billing period on ${date}.
   
-  Your access will continue until the end of your current billing period on ${date}. After that, your account will not be active.
+  If you did not authorize this change, please contact our support team immediately: support@smartpicker.com.au
   
-  We're sorry to see you go! If there's anything we could have done better, please let us know.
+  We hope to welcome you back in the future.
   
   Best regards,
   Smart Picker Team`,
             HTMLPart: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #666;">Subscription Cancelled</h2>
-                <p>Hello ${userName || 'Customer'},</p>
-                <p>We've received your request to cancel your Smart Picker Pro subscription.</p>
-                <div style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                <h2 style="color: #666; margin-bottom: 20px;">We are truly sad to see you go...</h2>
+                <p style="font-size: 16px; line-height: 1.5;">Hello ${userName || 'Customer'},</p>
+                <p style="font-size: 16px; line-height: 1.5;">We have received your request to cancel your Smart Picker Pro subscription.</p>
+                
+                <div style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 20px; border-radius: 4px; margin: 25px 0;">
                   <strong>Note:</strong> Your Pro features will remain active until <strong>${date}</strong>.
                 </div>
-                <p>After this date, your account will not be active and you will not be able to access Pro features.</p>
-                <p>We're sorry to see you go! You are welcome to resubscribe at any time.</p>
-                <br>
-                <p style="color: #999; font-size: 12px;">
+
+                <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 4px;">
+                  <p style="margin: 0; font-weight: bold; color: #dc3545;">Did you not authorize this change?</p>
+                  <p style="margin-top: 5px; font-size: 14px;">If you did not make this request, please contact our support team immediately:</p>
+                  <p style="margin-bottom: 0;">
+                    <a href="mailto:support@smartpicker.com.au" style="color: #007bff; text-decoration: underline;">support@smartpicker.com.au</a>
+                  </p>
+                </div>
+
+                <p style="font-size: 16px; line-height: 1.5;">We hope to have the opportunity to serve you again in the future.</p>
+                
+                <hr style="margin: 40px 0; border: none; border-top: 1px solid #eee;">
+                
+                <p style="color: #999; font-size: 12px; text-align: center;">
                   Best regards,<br>
                   Smart Picker Team
                 </p>
