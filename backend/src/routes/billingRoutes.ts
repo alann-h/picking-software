@@ -47,7 +47,7 @@ router.post('/create-checkout-session', isAuthenticated, asyncHandler(async (req
         quantity: 1,
       },
     ],
-    success_url: `${config.client.url}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${config.client.url}/dashboard`,
     cancel_url: `${config.client.url}/settings/billing`,
     metadata: {
       companyId: companyId
