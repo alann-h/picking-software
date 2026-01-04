@@ -500,20 +500,9 @@ const SettingsMenuContent: React.FC<{
            <DropdownButton onClick={() => handleClick('/settings/products')} icon={<Package size={18} />}>
             Current Products
           </DropdownButton>
-           <DropdownButton onClick={() => handleClick('/settings/sync')} icon={<Settings size={18} />}>
-            Sync Settings
+           <DropdownButton onClick={() => handleClick('/settings')} icon={<Settings size={18} />}>
+            Settings
           </DropdownButton>
-          
-          {isAdmin && (
-            <>
-               <DropdownButton onClick={() => handleClick('/settings/upload')} icon={<FileUp size={18} />}>
-                Upload Data
-              </DropdownButton>
-               <DropdownButton onClick={() => handleClick('/settings/users')} icon={<Users size={18} />}>
-                User Management
-              </DropdownButton>
-            </>
-          )}
         </div>
         
         {/* Divider */}
