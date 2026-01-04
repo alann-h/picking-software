@@ -82,15 +82,24 @@ async function handleSubscriptionUpdate(subscriptionId: string, customerId: stri
     ? new Date(subscription.cancel_at * 1000)
     : new Date((subscription as any).current_period_end * 1000);
 
+  // subscription.ended_at is set when the subscription is truly revoked (e.g. immediate cancellation)
+  const endedAt = subscription.ended_at ? new Date(subscription.ended_at * 1000) : null;
+  const isTrulyEnded = endedAt && endedAt <= new Date();
+
   const isCanceled = subscription.status === 'canceled' || subscription.status === 'unpaid' || subscription.status === 'incomplete_expired';
   
   let status = 'inactive';
+
+  // Explicitly handle deletion event - if it's deleted, it's over.
+  if (eventType === 'customer.subscription.deleted') {
+    status = 'inactive';
+  }
   // Basic active states
-  if (['active', 'trialing', 'past_due'].includes(subscription.status)) {
+  else if (['active', 'trialing', 'past_due'].includes(subscription.status)) {
     status = 'active';
   } 
   // Handling cancellation with grace period
-  else if (isCanceled && currentPeriodEnd > new Date()) {
+  else if (isCanceled && !isTrulyEnded && currentPeriodEnd > new Date()) {
     status = 'active';
   }
 
