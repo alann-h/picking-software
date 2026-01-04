@@ -112,9 +112,24 @@ async function handleSubscriptionUpdate(subscriptionId: string, customerId: stri
     });
 
     // Email Notifications
-    const adminUser = company.users[0];
-    const email = adminUser?.displayEmail;
-    const name = adminUser?.givenName;
+    let email: string | undefined | null;
+    let name: string | undefined | null;
+
+    // Try to find the specific user who owns the subscription
+    if (subscription.metadata?.userId) {
+      const user = await prisma.user.findUnique({ where: { id: subscription.metadata.userId } });
+      if (user) {
+        email = user.displayEmail;
+        name = user.givenName;
+      }
+    }
+
+    // Fallback to first admin if no specific user found
+    if (!email) {
+      const adminUser = company.users[0];
+      email = adminUser?.displayEmail;
+      name = adminUser?.givenName;
+    }
 
     if (email) {
       if (eventType === 'checkout.session.completed') {

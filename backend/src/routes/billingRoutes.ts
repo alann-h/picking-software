@@ -51,6 +51,12 @@ router.post('/create-checkout-session', isAuthenticated, asyncHandler(async (req
     cancel_url: `${config.client.url}/settings/billing`,
     metadata: {
       companyId: companyId
+    },
+    subscription_data: {
+      metadata: {
+        companyId: companyId,
+        userId: req.session.userId!
+      }
     }
   });
 
