@@ -32,6 +32,7 @@ export interface QuoteInRun {
 
 export interface RunWithDetails extends Run {
     quotes: QuoteInRun[];
+    total_delivery_cost?: number;
 }
 
 export interface RunItemFromDB {

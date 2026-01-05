@@ -297,12 +297,48 @@ export const RunItem: React.FC<{
         mutationFn: async ({ runId, quoteId, status }: { runId: string; quoteId: string; status: 'pending' | 'delivered' | 'undelivered' }) => {
             return updateRunItemStatus(runId, quoteId, status);
         },
-        onSuccess: () => {
+        onMutate: async ({ runId, quoteId, status }) => {
+            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+            await queryClient.cancelQueries({ queryKey: ['runs', userCompanyId] });
+
+            // Snapshot the previous value
+            const previousRuns = queryClient.getQueryData<Run[]>(['runs', userCompanyId]);
+
+            // Optimistically update to the new value
+            if (previousRuns) {
+                queryClient.setQueryData<Run[]>(['runs', userCompanyId], (old) => {
+                    if (!old) return [];
+                    return old.map(r => {
+                        if (r.id === runId) {
+                            return {
+                                ...r,
+                                quotes: r.quotes.map(q => {
+                                    if (q.quoteId === quoteId) {
+                                        return { ...q, runItemStatus: status };
+                                    }
+                                    return q;
+                                })
+                            };
+                        }
+                        return r;
+                    });
+                });
+            }
+
+            // Return a context object with the snapshotted value
+            return { previousRuns };
+        },
+        onError: (err, newTodo, context) => {
+            // If the mutation fails, use the context returned from onMutate to roll back
+            if (context?.previousRuns) {
+                queryClient.setQueryData(['runs', userCompanyId], context.previousRuns);
+            }
+            handleOpenSnackbar('Failed to update item status.', 'error');
+        },
+        onSettled: () => {
+             // Always refetch after error or success:
              queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
         },
-        onError: () => {
-             handleOpenSnackbar('Failed to update item status.', 'error');
-        }
     });
 
     const moveUndeliveredItemsMutation = useMutation({
@@ -824,27 +860,35 @@ export const RunItem: React.FC<{
                                                         <>
                                                             <button 
                                                                 onClick={() => handleItemStatusChange(quote.quoteId, 'delivered')}
-                                                                className="flex-1 flex items-center justify-center p-1.5 rounded bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+                                                                className="flex-1 flex items-center justify-center p-1.5 rounded bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 cursor-pointer"
                                                             >
                                                                 <Check className="w-4 h-4 mr-1" /> Delivered
                                                             </button>
                                                             <button 
                                                                 onClick={() => handleItemStatusChange(quote.quoteId, 'undelivered')}
-                                                                className="flex-1 flex items-center justify-center p-1.5 rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
+                                                                className="flex-1 flex items-center justify-center p-1.5 rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 cursor-pointer"
                                                             >
                                                                 <XCircle className="w-4 h-4 mr-1" /> Undelivered
                                                             </button>
                                                         </>
                                                     )}
                                                     {quote.runItemStatus === 'delivered' && (
-                                                         <div className="flex-1 flex items-center justify-center p-1.5 text-green-700 font-medium">
+                                                         <button 
+                                                            onClick={() => handleItemStatusChange(quote.quoteId, 'pending')}
+                                                            className="flex-1 flex items-center justify-center p-1.5 text-green-700 font-medium hover:bg-green-50 rounded cursor-pointer transition-colors"
+                                                            title="Click to undo (mark as pending)"
+                                                         >
                                                             <Check className="w-4 h-4 mr-1" /> Delivered
-                                                         </div>
+                                                         </button>
                                                     )}
                                                     {quote.runItemStatus === 'undelivered' && (
-                                                         <div className="flex-1 flex items-center justify-center p-1.5 text-red-700 font-medium">
+                                                         <button 
+                                                            onClick={() => handleItemStatusChange(quote.quoteId, 'pending')}
+                                                            className="flex-1 flex items-center justify-center p-1.5 text-red-700 font-medium hover:bg-red-50 rounded cursor-pointer transition-colors"
+                                                            title="Click to undo (mark as pending)"
+                                                         >
                                                             <XCircle className="w-4 h-4 mr-1" /> Undelivered
-                                                         </div>
+                                                         </button>
                                                     )}
                                                 </div>
                                             )}
@@ -899,8 +943,24 @@ export const RunItem: React.FC<{
                                                                      <button onClick={() => handleItemStatusChange(quote.quoteId, 'undelivered')} className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600" title="Mark Undelivered"><XCircle className="w-5 h-5" /></button>
                                                                 </div>
                                                             )}
-                                                            {quote.runItemStatus === 'delivered' && <span className="text-green-600 font-medium flex items-center"><Check className="w-4 h-4 mr-1"/> Delivered</span>}
-                                                            {quote.runItemStatus === 'undelivered' && <span className="text-red-600 font-medium flex items-center"><XCircle className="w-4 h-4 mr-1"/> Undelivered</span>}
+                                                            {quote.runItemStatus === 'delivered' && (
+                                                                <button 
+                                                                    onClick={() => handleItemStatusChange(quote.quoteId, 'pending')}
+                                                                    className="text-green-600 font-medium flex items-center hover:text-green-800 hover:bg-green-50 px-2 py-1 rounded cursor-pointer transition-colors"
+                                                                    title="Click to undo (mark as pending)"
+                                                                >
+                                                                    <Check className="w-4 h-4 mr-1"/> Delivered
+                                                                </button>
+                                                            )}
+                                                            {quote.runItemStatus === 'undelivered' && (
+                                                                <button 
+                                                                    onClick={() => handleItemStatusChange(quote.quoteId, 'pending')}
+                                                                    className="text-red-600 font-medium flex items-center hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded cursor-pointer transition-colors"
+                                                                    title="Click to undo (mark as pending)"
+                                                                >
+                                                                    <XCircle className="w-4 h-4 mr-1"/> Undelivered
+                                                                </button>
+                                                            )}
                                                         </td>
                                                     )}
                                                     <td className="px-3 py-2.5 whitespace-nowrap text-sm text-right font-semibold text-green-700 cursor-pointer" onClick={() => handleQuoteNavigate(quote.quoteId)}>{formatCurrency(quote.totalAmount)}</td>

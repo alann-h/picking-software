@@ -726,7 +726,8 @@ export async function getRunReports(
                 driver_name: run.driverName,
                 status: run.status,
                 completed_at: run.completedAt,
-                quotes: runQuotes
+                quotes: runQuotes,
+                total_delivery_cost: runCost
             });
 
             breakdownMap.set(runDate, currentDay);

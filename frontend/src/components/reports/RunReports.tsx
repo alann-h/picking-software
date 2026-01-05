@@ -17,6 +17,7 @@ interface ReportRun {
     status: string;
     completed_at: string;
     quotes: RunQuote[];
+    total_delivery_cost?: number;
 }
 
 interface ReportDay {
@@ -294,8 +295,9 @@ const RunReports: React.FC = () => {
                                                                                     </div>
                                                                                     <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
                                                                                         <span>{run.quotes?.length || 0} orders</span>
-                                                                                        {/* Calculate individual run cost if needed, simpler to just show items/driver */}
-                                                                                        {/* If we have total_amount on run object we could show it, but report summary is computed differently */}
+                                                                                        {run.total_delivery_cost !== undefined && run.total_delivery_cost > 0 && (
+                                                                                            <span className="font-medium text-slate-700">Cost: {formatCurrency(run.total_delivery_cost)}</span>
+                                                                                        )}
                                                                                     </div>
                                                                                 </div>
                                                                             ))}
