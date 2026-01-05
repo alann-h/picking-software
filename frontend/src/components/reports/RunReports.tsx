@@ -60,7 +60,11 @@ const RunReports: React.FC = () => {
 
     const { data: reportData, isLoading, isError } = useQuery({
         queryKey: ['runReports', userCompanyId, timeRange, customStartDate, customEndDate, dateFilter],
-        queryFn: () => getRunReports(start.toISOString(), end.toISOString(), dateFilter),
+        queryFn: () => getRunReports(
+            format(start, 'yyyy-MM-dd'), 
+            format(end, 'yyyy-MM-dd'), 
+            dateFilter
+        ),
         enabled: !!userCompanyId,
         staleTime: 60000, // Cache for 1 minute
     });

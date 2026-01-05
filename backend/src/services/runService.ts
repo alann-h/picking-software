@@ -623,9 +623,9 @@ export async function getRunReports(
     dateFilter: 'created' | 'completed' = 'created'
 ): Promise<ReportData> {
     try {
-        const adjustedEndDate = new Date(endDate);
-        adjustedEndDate.setHours(23, 59, 59, 999);
-
+        // startDate and endDate are already set to the correct UTC range for the Australian day by the controller.
+        // So we don't need to manually adjust them here.
+        
         const dateField = dateFilter === 'completed' ? 'completedAt' : 'createdAt';
         
         const runs = await prisma.run.findMany({
@@ -633,7 +633,7 @@ export async function getRunReports(
                 companyId,
                 [dateField]: {
                     gte: startDate,
-                    lte: adjustedEndDate,
+                    lte: endDate,
                 },
                 ...(dateFilter === 'completed' && { completedAt: { not: null } }),
             },
@@ -670,10 +670,16 @@ export async function getRunReports(
         for (const run of runs) {
             summary.totalRuns++;
             
+            summary.totalRuns++;
+            
             const rawDate = (run as any)[dateField]; 
-            const dateObj = rawDate ? new Date(rawDate) : new Date();
-
-            const runDate = dateObj.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
+            // Use helper to get Australian date string (DD/MM/YYYY HH:MM AM/PM)
+            // But for grouping we want YYYY-MM-DD key.
+            // formatTimestampForSydney returns "DD/MM/YYYY, HH:MM am/pm"
+            // Let's parse that or just use the same logic as the helper but output YYYY-MM-DD.
+            // Actually, we can just use toLocaleDateString with Australia/Sydney manually here to be safe and simple for the key.
+            
+            const runDate = new Date(rawDate).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }); // YYYY-MM-DD
             
             let runCost = 0;
             let runItemsCount = 0;

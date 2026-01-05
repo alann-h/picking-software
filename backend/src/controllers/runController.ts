@@ -15,6 +15,7 @@ import {
 } from '../services/runService.js'; // New service file for runs
 import { Request, Response, NextFunction } from 'express';
 import { RunStatus, RunItemStatus } from '../types/run.js';
+import { getAustralianDayRange } from '../helpers.js';
 
 /**
  * Controller to create a new run.
@@ -173,12 +174,9 @@ export async function getRunReportsController(req: Request, res: Response, next:
             return res.status(400).json({ error: 'startDate and endDate are required parameters' });
         }
 
-        const start = new Date(startDate as string);
-        const end = new Date(endDate as string);
-
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            return res.status(400).json({ error: 'Invalid date format' });
-        }
+        // startDate and endDate are expected to be YYYY-MM-DD strings
+        const { start } = getAustralianDayRange(startDate as string);
+        const { end } = getAustralianDayRange(endDate as string);
 
         const filterMode = (dateFilter === 'completed' || dateFilter === 'created') 
             ? dateFilter 

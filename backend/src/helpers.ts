@@ -152,3 +152,63 @@ export function parseAustralianDate(dateString: string): string {
   // If all else fails, return current date
   return new Date().toISOString().split('T')[0];
 }
+
+/**
+ * Returns the UTC start and end Date objects for a given date string (YYYY-MM-DD),
+ * assuming the date represents a day in Australia/Sydney.
+ * 
+ * Start: YYYY-MM-DD 00:00:00 Australia/Sydney
+ * End: YYYY-MM-DD 23:59:59.999 Australia/Sydney
+ * 
+ * @param {string} dateString - Date string in YYYY-MM-DD format
+ * @returns {{ start: Date, end: Date }} - UTC Date objects
+ */
+export function getAustralianDayRange(dateString: string): { start: Date, end: Date } {
+  const [year, month, day] = dateString.split('-').map(Number);
+  
+  const candidate1 = new Date(Date.UTC(year, month - 1, day, 14, 0, 0) - 24 * 60 * 60 * 1000); // 14:00 prev day
+  const candidate2 = new Date(Date.UTC(year, month - 1, day, 13, 0, 0) - 24 * 60 * 60 * 1000); // 13:00 prev day
+  
+  const format = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Australia/Sydney',
+      hour: '2-digit',
+      day: '2-digit',
+      hour12: false
+  });
+  
+  const testCandidate = (c: Date) => {
+      const parts = format.formatToParts(c);
+      const h = parts.find(p => p.type === 'hour')?.value;
+      const d = parts.find(p => p.type === 'day')?.value;
+      return h === '00' && d === String(day).padStart(2, '0');
+  };
+
+  let startOfSydneyDay: Date;
+  if (testCandidate(candidate1)) {
+      startOfSydneyDay = candidate1;
+  } else if (testCandidate(candidate2)) {
+      startOfSydneyDay = candidate2;
+  } else {
+      startOfSydneyDay = candidate1;
+  }
+
+  const dObj = new Date(year, month - 1, day);
+  dObj.setDate(dObj.getDate() + 1);
+  const nextYear = dObj.getFullYear();
+  const nextMonth = dObj.getMonth() + 1;
+  const nextDay = dObj.getDate();
+  
+  const nextDayRef1 = new Date(Date.UTC(nextYear, nextMonth - 1, nextDay, 14, 0, 0) - 24 * 60 * 60 * 1000);
+  const nextDayRef2 = new Date(Date.UTC(nextYear, nextMonth - 1, nextDay, 13, 0, 0) - 24 * 60 * 60 * 1000);
+  
+  let startOfNextSydneyDay: Date;
+  if (testCandidate(nextDayRef1)) {
+     startOfNextSydneyDay = nextDayRef1;
+  } else {
+     startOfNextSydneyDay = nextDayRef2;
+  }
+  
+  const endOfSydneyDay = new Date(startOfNextSydneyDay.getTime() - 1);
+  
+  return { start: startOfSydneyDay, end: endOfSydneyDay };
+}
