@@ -370,10 +370,10 @@ const BackorderItemsSection: React.FC = () => {
             const response = await getQuotesWithBackorders() as QuoteWithBackorders[];
             return response;
         },
-        staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+        staleTime: 20000, // Cache for 20 seconds
         gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
         // Polling Strategy: Backorders change rarely, so we poll infrequently (every 5 minutes)
-        refetchInterval: 5 * 60 * 1000, // 5 minutes
+        refetchInterval: 20000, // 20 seconds
     });
 
     const completeItemMutation = useMutation({
@@ -732,9 +732,9 @@ const Dashboard: React.FC = () => {
             const response = await getRuns(userCompanyId!) as Run[];
             return response;
         },
-        refetchInterval: 60000,
+        refetchInterval: 20000,
         refetchIntervalInBackground: false,
-        staleTime: 60000, // 60 seconds - data somewhat fresh
+        staleTime: 20000, // 20 seconds - data somewhat fresh
     });
 
     const { data: backorderQuotes = [] } = useSuspenseQuery<QuoteWithBackorders[]>({
@@ -743,10 +743,10 @@ const Dashboard: React.FC = () => {
             const response = await getQuotesWithBackorders() as QuoteWithBackorders[];
             return response;
         },
-        staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+        staleTime: 20000, // Cache for 20 seconds
         gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
         // Polling Strategy: Backorders change rarely, so we poll infrequently (every 5 minutes)
-        refetchInterval: 5 * 60 * 1000, // 5 minutes
+        refetchInterval: 20000, // 20 seconds
     });
 
     const backorderQuoteIds = useMemo(() => {
