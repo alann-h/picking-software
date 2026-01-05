@@ -173,17 +173,33 @@ export const verifyXeroWebhook = (req: Request, res: Response, next: NextFunctio
 };
 
 // Xero webhook handler - logs the response
-export const handleXeroWebhook = async (req: Request, res: Response, next: NextFunction) => {
+// Xero webhook handler - logs the response
+export const handleXeroWebhook = async (req: Request, res: Response, _next: NextFunction) => {
   try {
-    console.log('=== XERO WEBHOOK RECEIVED ===');
-    console.log('Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('Body (parsed):', JSON.stringify(req.body, null, 2));
-    console.log('============================');
+    const { events } = req.body;
+    
+    // Safety check for empty events
+    if (!events || !Array.isArray(events) || events.length === 0) {
+        console.log('Received Xero webhook with no events');
+        return res.status(200).send('OK');
+    }
+
+    // Get tenantId from the first event (all events in a batch usually belong to the same tenant, 
+    // or at least we need one to start looking up the company).
+    const tenantId = events[0].tenantId;
+
+    if (!tenantId) {
+        console.error('Xero webhook event missing tenantId');
+        return res.status(200).send('OK');
+    }
+
+    await WebhookService.processXeroWebhook(events, tenantId);
     
     res.status(200).send('OK');
   } catch (err: unknown) {
     console.error('Error handling Xero webhook:', err);
-    next(err);
+    // Always return 200 to Xero to prevent retries on app logic errors
+    res.status(200).send('OK');
   }
 };
 

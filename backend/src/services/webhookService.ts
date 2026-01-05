@@ -3,6 +3,9 @@ import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
 import { getEstimate, estimateToDB, fetchQuoteData } from './quoteService.js';
 import { FilteredQuote, QuoteFetchError, ProductInfo } from '../types/quote.js';
+import { fetchXeroCustomerById } from './customerService.js';
+import { XeroClient } from 'xero-node';
+import { tokenService } from './tokenService.js';
 
 export interface WebhookEvent {
   id: string;
@@ -104,6 +107,92 @@ export class WebhookService {
     }
 
     console.log(`Skipping unsupported event type: ${event.name}`);
+  }
+
+  /**
+   * Process webhook notifications for Xero
+   */
+  static async processXeroWebhook(events: any[], tenantId: string): Promise<void> {
+     // Find company by Xero tenant which we don't store directly.
+     // We query all Xero-connected companies and check if their tenantId matches.
+     
+     const companies = await prisma.company.findMany({
+        where: { connectionType: 'xero' },
+        select: { id: true, xeroTenantId: true }
+     });
+
+     let targetCompanyId: string | null = null;
+     
+     for (const company of companies) {
+        if (company.xeroTenantId === tenantId) {
+            targetCompanyId = company.id;
+            break;
+        }
+     }
+
+     if (!targetCompanyId) {
+         console.warn(`Could not find company for Xero tenantId: ${tenantId}`);
+         return;
+     }
+
+     console.log(`Processing Xero webhook for company ${targetCompanyId} (Tenant: ${tenantId})`);
+
+     for (const event of events) {
+         if (event.eventCategory === 'CONTACT') {
+             if (event.eventType === 'CREATE' || event.eventType === 'UPDATE') {
+                 await this.handleXeroContactChange(event.resourceId, targetCompanyId);
+             } else {
+                 console.log(`Skipping Xero contact event type: ${event.eventType}`);
+             }
+         } else {
+             console.log(`Skipping Xero event category: ${event.eventCategory}`);
+         }
+     }
+  }
+
+  private static async handleXeroContactChange(contactId: string, companyId: string): Promise<void> {
+    try {
+        console.log(`Processing Xero contact change for ID: ${contactId}`);
+        
+        const oauthClient = await tokenService.getOAuthClient(companyId, 'xero') as XeroClient;
+        const customerData = await fetchXeroCustomerById(oauthClient, contactId);
+
+        if (!customerData) {
+            console.log(`Contact ${contactId} not found in Xero or is not a customer.`);
+            return;
+        }
+
+        // Check if customer already exists
+        const existingCustomer = await prisma.customer.findUnique({
+            where: { id: contactId }
+        });
+
+        if (existingCustomer) {
+            console.log(`Updating existing Xero customer: ${customerData.customer_name}`);
+            await prisma.customer.update({
+                where: { id: contactId },
+                data: {
+                    customerName: customerData.customer_name,
+                    address: customerData.address
+                }
+            });
+        } else {
+            console.log(`Creating new Xero customer: ${customerData.customer_name}`);
+            await prisma.customer.create({
+                data: {
+                    id: contactId,
+                    companyId: companyId,
+                    customerName: customerData.customer_name,
+                    address: customerData.address
+                }
+            });
+        }
+        
+        console.log(`✅ Successfully synced Xero customer: ${customerData.customer_name}`);
+
+    } catch (error) {
+        console.error(`Error processing Xero contact change for ${contactId}:`, error);
+    }
   }
 
   /**

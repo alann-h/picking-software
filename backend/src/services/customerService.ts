@@ -229,6 +229,37 @@ async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Custome
   }
 }
 
+export async function fetchXeroCustomerById(oauthClient: XeroClient, contactId: string): Promise<Omit<Customer, 'company_id'> | null> {
+  try {
+    const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
+    if (!tenantId) throw new Error('Xero tenant ID not found.');
+
+    const response = await oauthClient.accountingApi.getContact(tenantId, contactId);
+    const customers = response.body.contacts || [];
+
+    if (customers.length === 0) {
+      return null;
+    }
+
+    const customer = customers[0];
+
+    return {
+      id: customer.contactID!,
+      customer_name: customer.name!,
+      address: formatXeroAddress(customer.addresses)
+    };
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+        // If 404/Not Found, return null
+       if ((error as any).response?.statusCode === 404) {
+           return null;
+       }
+       throw new Error(`Failed to fetch Xero customer ${contactId}: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while fetching Xero customer.');
+  }
+}
+
 
 export async function saveCustomers(customers: Omit<Customer, 'company_id'>[], companyId: string): Promise<void> {
   try {
