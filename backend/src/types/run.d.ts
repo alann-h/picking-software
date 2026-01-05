@@ -13,6 +13,8 @@ export interface Run {
     completed_at: Date | null;
 }
 
+export type RunItemStatus = 'pending' | 'delivered' | 'undelivered';
+
 export interface QuoteInRun {
     quoteId: string;
     quoteNumber: string;
@@ -21,6 +23,7 @@ export interface QuoteInRun {
     totalAmount: number;
     priority: number;
     orderStatus: OrderStatus;
+    runItemStatus: RunItemStatus;
     size?: string;
     type?: string;
     deliveryCost?: number;

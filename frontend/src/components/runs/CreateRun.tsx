@@ -361,7 +361,13 @@ export const CreateRun: React.FC = () => {
         setIsDropdownOpen(false);
     };
 
-    const stagedQuoteIds = useMemo(() => new Set(stagedQuotes.map(q => q.id)), [stagedQuotes]);
+    const stagedQuoteIds = useMemo(() => {
+        const ids = new Set(stagedQuotes.map(q => q.id));
+        runsToCreate.forEach(run => {
+            run.quotes.forEach(q => ids.add(q.id));
+        });
+        return ids;
+    }, [stagedQuotes, runsToCreate]);
     
     // Save stagedQuotes to localStorage whenever it changes
     React.useEffect(() => {

@@ -269,6 +269,7 @@ model RunItem {
   type         delivery_type?
   deliveryCost Decimal? @map("delivery_cost") @db.Decimal(10, 2)
   notes        String?
+  status       run_item_status @default(pending)
   quote        Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   run          Run      @relation(fields: [runId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -383,6 +384,12 @@ enum security_event_type {
 enum delivery_type {
   hand_unload
   forklift
+}
+
+enum run_item_status {
+  pending
+  delivered
+  undelivered
 }
 
 model sync_settings {

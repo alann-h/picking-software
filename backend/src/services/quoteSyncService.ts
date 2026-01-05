@@ -31,13 +31,19 @@ export class QuoteSyncService {
       const customers = await fetchCustomers(companyId, connectionType);
       console.log(`Found ${customers.length} customers to sync quotes from`);
 
-      // Process customers in parallel batches of 10 for better performance
-      const BATCH_SIZE = 10;
+      // Process customers in parallel batches
+      // Reduced from 10 to 3 to prevent QBO 429 (Too Many Requests) errors
+      const BATCH_SIZE = 3;
       const { getEstimate } = await import('./quoteService.js');
 
       for (let i = 0; i < customers.length; i += BATCH_SIZE) {
         const batch = customers.slice(i, i + BATCH_SIZE);
         console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(customers.length / BATCH_SIZE)} (${batch.length} customers)`);
+        
+        // Add a small delay between batches to respect rate limits
+        if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
 
         // Process all customers in the batch in parallel
         await Promise.all(batch.map(async (customer) => {

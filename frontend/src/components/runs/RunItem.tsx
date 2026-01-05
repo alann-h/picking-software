@@ -2,13 +2,13 @@
 
 import React, { useState, useMemo, useEffect, useOptimistic } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X, Plus, Search, Users, Printer } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, Trash2, GripVertical, Save, X, Plus, Search, Users, Printer, Check, XCircle, ArrowRight } from 'lucide-react';
 import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient, useSuspenseQuery, useQuery } from '@tanstack/react-query';
-import { Run, RunQuote, QuoteSummary, Customer } from '../../utils/types';
-import { updateRunQuotes, updateRunStatus, updateRunName } from '../../api/runs';
+import { Run, RunQuote, QuoteSummary, Customer, OrderStatus } from '../../utils/types';
+import { updateRunQuotes, updateRunStatus, updateRunName, updateRunItemStatus, moveUndeliveredItems, getRuns } from '../../api/runs';
 import { getQuotesWithStatus, getCustomerQuotes } from '../../api/quote';
 import { getCustomers } from '../../api/customers';
 import { useSnackbarContext } from '../SnackbarContext';
@@ -220,7 +220,8 @@ export const RunItem: React.FC<{
             setSelectedCustomer(null);
             setCustomerQuery('');
         }
-    }, [isEditing, run.quotes]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEditing]);
 
     const updateRunQuotesMutation = useMutation({
         mutationFn: ({ runId, orderedQuoteIds }: { runId: string, orderedQuoteIds: string[] }) => updateRunQuotes(runId, orderedQuoteIds),
@@ -292,6 +293,47 @@ export const RunItem: React.FC<{
         }
     });
 
+    const updateItemStatusMutation = useMutation({
+        mutationFn: async ({ runId, quoteId, status }: { runId: string; quoteId: string; status: 'pending' | 'delivered' | 'undelivered' }) => {
+            return updateRunItemStatus(runId, quoteId, status);
+        },
+        onSuccess: () => {
+             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
+        },
+        onError: () => {
+             handleOpenSnackbar('Failed to update item status.', 'error');
+        }
+    });
+
+    const moveUndeliveredItemsMutation = useMutation({
+        mutationFn: async ({ targetRunId, itemIds }: { targetRunId: string; itemIds: string[] }) => {
+            return moveUndeliveredItems(run.id, targetRunId, itemIds);
+        },
+        onSuccess: () => {
+             queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
+             handleOpenSnackbar('Undelivered items moved successfully.', 'success');
+             setShowMoveDialog(false);
+        },
+        onError: () => {
+             handleOpenSnackbar('Failed to move items.', 'error');
+        }
+    });
+
+    const [showMoveDialog, setShowMoveDialog] = useState(false);
+    const [moveTargetRunId, setMoveTargetRunId] = useState<string>('');
+    const { data: runsData } = useQuery<Run[]>({
+         queryKey: ['runs', userCompanyId],
+         enabled: showMoveDialog, 
+         queryFn: () => getRuns(userCompanyId) as Promise<Run[]>
+    });
+
+    // Prepare active runs (excluding current and completed ones, maybe?) for move target
+    // Actually user might want to move to ANY active run.
+    const availableTargetRuns = useMemo(() => {
+        return (runsData || []).filter(r => r.id !== run.id && r.status !== 'completed');
+    }, [runsData, run.id]);
+
+
     const { quoteCount } = useMemo(() => {
         const quotes = run.quotes || [];
         return {
@@ -346,7 +388,8 @@ export const RunItem: React.FC<{
             customerName: quote.customerName,
             totalAmount: quote.totalAmount,
             priority: editableQuotes.length + 1,
-            orderStatus: quote.orderStatus,
+            orderStatus: quote.orderStatus as OrderStatus,
+            runItemStatus: 'pending' // Default new items to pending
         };
         setEditableQuotes(prev => [...prev, newQuote]);
         handleOpenSnackbar(`Added ${quote.customerName} - #${quote.quoteNumber || quote.id}`, 'success');
@@ -440,8 +483,37 @@ export const RunItem: React.FC<{
         setEditableRunName(optimisticRunName || run.run_name || '');
     };
 
+    const handleItemStatusChange = (quoteId: string, status: 'pending' | 'delivered' | 'undelivered') => {
+        updateItemStatusMutation.mutate({ runId: run.id, quoteId, status });
+    };
+
+    const handleMoveUndelivered = () => {
+        if (!moveTargetRunId) {
+            handleOpenSnackbar('Please select a target run', 'warning');
+            return;
+        }
+        
+        const undeliveredItems = (run.quotes || [])
+            .filter(q => q.runItemStatus === 'undelivered')
+            .map(q => q.quoteId);
+            
+        moveUndeliveredItemsMutation.mutate({
+            targetRunId: moveTargetRunId,
+            itemIds: undeliveredItems
+        });
+    };
+
+    const hasUndeliveredItems = (run.quotes || []).some(q => q.runItemStatus === 'undelivered');
+    const runRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (isExpanded && runRef.current) {
+            runRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, [isExpanded]);
+
     return (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div ref={runRef} className="border border-gray-200 rounded-lg overflow-hidden">
             <div 
                 className="w-full flex justify-between items-center p-2 sm:p-3 bg-white hover:bg-gray-50 focus:outline-none cursor-pointer"
                 onClick={toggleExpanded}
@@ -720,29 +792,62 @@ export const RunItem: React.FC<{
                                     {run.quotes?.map((quote: RunQuote) => (
                                         <div 
                                             key={quote.quoteId}
-                                            onClick={() => handleQuoteNavigate(quote.quoteId)}
-                                            className={`bg-white border border-gray-200 rounded-lg p-2.5 ${loadingQuoteId === quote.quoteId ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:border-blue-300 hover:shadow-sm'} transition-all`}
+                                            className={`bg-white border border-gray-200 rounded-lg p-2.5 ${loadingQuoteId === quote.quoteId ? 'opacity-50 cursor-wait' : 'hover:border-blue-300 hover:shadow-sm'} transition-all`}
                                         >
-                                            <div className="flex items-start justify-between gap-2 mb-1.5">
-                                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                                    <p className="text-sm font-semibold text-blue-600 whitespace-nowrap">
-                                                        #{quote.quoteNumber || quote.quoteId}
-                                                    </p>
-                                                    {loadingQuoteId === quote.quoteId && (
-                                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 flex-shrink-0"></div>
+                                            <div onClick={() => handleQuoteNavigate(quote.quoteId)} className="cursor-pointer">
+                                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                        <p className="text-sm font-semibold text-blue-600 whitespace-nowrap">
+                                                            #{quote.quoteNumber || quote.quoteId}
+                                                        </p>
+                                                        {loadingQuoteId === quote.quoteId && (
+                                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 flex-shrink-0"></div>
+                                                        )}
+                                                    </div>
+                                                    <span className={`px-1.5 py-0.5 text-xs font-semibold rounded-full capitalize whitespace-nowrap flex-shrink-0 ${
+                                                        quote.orderStatus === 'assigned' ? 'bg-blue-100 text-blue-800' : 
+                                                        quote.orderStatus === 'preparing' ? 'bg-orange-100 text-orange-800' : 
+                                                        quote.orderStatus === 'checking' ? 'bg-yellow-100 text-yellow-800' : 
+                                                        quote.orderStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                        {quote.orderStatus}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-600 mb-1 truncate">{quote.customerName}</p>
+                                                <p className="text-sm font-semibold text-green-700">{formatCurrency(quote.totalAmount)}</p>
+                                            </div>
+                                            
+                                            {/* Item Status Controls */}
+                                            {run.status === 'completed' && (
+                                                <div className="mt-2 flex gap-2 border-t pt-2">
+                                                    {(quote.runItemStatus === 'pending' || !quote.runItemStatus) && (
+                                                        <>
+                                                            <button 
+                                                                onClick={() => handleItemStatusChange(quote.quoteId, 'delivered')}
+                                                                className="flex-1 flex items-center justify-center p-1.5 rounded bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
+                                                            >
+                                                                <Check className="w-4 h-4 mr-1" /> Delivered
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleItemStatusChange(quote.quoteId, 'undelivered')}
+                                                                className="flex-1 flex items-center justify-center p-1.5 rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
+                                                            >
+                                                                <XCircle className="w-4 h-4 mr-1" /> Undelivered
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {quote.runItemStatus === 'delivered' && (
+                                                         <div className="flex-1 flex items-center justify-center p-1.5 text-green-700 font-medium">
+                                                            <Check className="w-4 h-4 mr-1" /> Delivered
+                                                         </div>
+                                                    )}
+                                                    {quote.runItemStatus === 'undelivered' && (
+                                                         <div className="flex-1 flex items-center justify-center p-1.5 text-red-700 font-medium">
+                                                            <XCircle className="w-4 h-4 mr-1" /> Undelivered
+                                                         </div>
                                                     )}
                                                 </div>
-                                                <span className={`px-1.5 py-0.5 text-xs font-semibold rounded-full capitalize whitespace-nowrap flex-shrink-0 ${
-                                                    quote.orderStatus === 'assigned' ? 'bg-blue-100 text-blue-800' : 
-                                                    quote.orderStatus === 'preparing' ? 'bg-orange-100 text-orange-800' : 
-                                                    quote.orderStatus === 'checking' ? 'bg-yellow-100 text-yellow-800' : 
-                                                    quote.orderStatus === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                    {quote.orderStatus}
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-gray-600 mb-1 truncate">{quote.customerName}</p>
-                                            <p className="text-sm font-semibold text-green-700">{formatCurrency(quote.totalAmount)}</p>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -754,7 +859,10 @@ export const RunItem: React.FC<{
                                             <tr>
                                                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quote ID</th>
                                                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
-                                                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Status</th>
+                                                {run.status === 'completed' && (
+                                                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Status</th>
+                                                )}
                                                 <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                                             </tr>
                                         </thead>
@@ -762,10 +870,9 @@ export const RunItem: React.FC<{
                                             {run.quotes?.map((quote: RunQuote) => (
                                                 <tr 
                                                     key={quote.quoteId}
-                                                    onClick={() => handleQuoteNavigate(quote.quoteId)}
-                                                    className={`hover:bg-blue-50 ${loadingQuoteId === quote.quoteId ? 'opacity-50 cursor-wait' : 'cursor-pointer'} transition-colors duration-150`}
+                                                    className={`hover:bg-blue-50 ${loadingQuoteId === quote.quoteId ? 'opacity-50 cursor-wait' : ''} transition-colors duration-150`}
                                                 >
-                                                    <td className="px-3 py-2.5 whitespace-nowrap text-sm font-semibold text-blue-600">
+                                                    <td className="px-3 py-2.5 whitespace-nowrap text-sm font-semibold text-blue-600 cursor-pointer" onClick={() => handleQuoteNavigate(quote.quoteId)}>
                                                         <div className="flex items-center gap-2">
                                                             #{quote.quoteNumber || quote.quoteId}
                                                             {loadingQuoteId === quote.quoteId && (
@@ -773,8 +880,8 @@ export const RunItem: React.FC<{
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="px-3 py-2.5 whitespace-nowrap text-sm text-gray-600">{quote.customerName}</td>
-                                                    <td className="px-3 py-2.5 whitespace-nowrap text-sm">
+                                                    <td className="px-3 py-2.5 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => handleQuoteNavigate(quote.quoteId)}>{quote.customerName}</td>
+                                                    <td className="px-3 py-2.5 whitespace-nowrap text-sm cursor-pointer" onClick={() => handleQuoteNavigate(quote.quoteId)}>
                                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${
                                                             quote.orderStatus === 'assigned' ? 'bg-blue-100 text-blue-800' : 
                                                             quote.orderStatus === 'preparing' ? 'bg-orange-100 text-orange-800' : 
@@ -784,7 +891,19 @@ export const RunItem: React.FC<{
                                                             {quote.orderStatus} 
                                                         </span>
                                                     </td>
-                                                    <td className="px-3 py-2.5 whitespace-nowrap text-sm text-right font-semibold text-green-700">{formatCurrency(quote.totalAmount)}</td>
+                                                    {run.status === 'completed' && (
+                                                        <td className="px-3 py-2.5 whitespace-nowrap text-sm">
+                                                            {(quote.runItemStatus === 'pending' || !quote.runItemStatus) && (
+                                                                <div className="flex gap-2">
+                                                                     <button onClick={() => handleItemStatusChange(quote.quoteId, 'delivered')} className="p-1 rounded hover:bg-green-100 text-gray-400 hover:text-green-600" title="Mark Delivered"><Check className="w-5 h-5" /></button>
+                                                                     <button onClick={() => handleItemStatusChange(quote.quoteId, 'undelivered')} className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600" title="Mark Undelivered"><XCircle className="w-5 h-5" /></button>
+                                                                </div>
+                                                            )}
+                                                            {quote.runItemStatus === 'delivered' && <span className="text-green-600 font-medium flex items-center"><Check className="w-4 h-4 mr-1"/> Delivered</span>}
+                                                            {quote.runItemStatus === 'undelivered' && <span className="text-red-600 font-medium flex items-center"><XCircle className="w-4 h-4 mr-1"/> Undelivered</span>}
+                                                        </td>
+                                                    )}
+                                                    <td className="px-3 py-2.5 whitespace-nowrap text-sm text-right font-semibold text-green-700 cursor-pointer" onClick={() => handleQuoteNavigate(quote.quoteId)}>{formatCurrency(quote.totalAmount)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -792,8 +911,62 @@ export const RunItem: React.FC<{
                                 </div>
                                 {isAdmin && (
                                     <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 mt-3 sm:mt-4 sm:justify-end">
+                                        {/* Move Undelivered Button */}
+                                        {run.status === 'completed' && hasUndeliveredItems && (
+                                            <button 
+                                                onClick={() => setShowMoveDialog(true)}
+                                                className="text-xs sm:text-sm px-3 py-1.5 rounded-md border border-orange-300 text-orange-700 hover:bg-orange-50 cursor-pointer flex items-center justify-center"
+                                            >
+                                                <ArrowRight className="w-4 h-4 mr-1" /> Move Undelivered
+                                            </button>
+                                        )}
+                                        
                                         <button onClick={() => handleChangeRunStatus('pending')} disabled={optimisticStatus === 'pending' || updateStatusMutation.isPending} className="text-xs sm:text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Pending</button>
                                         <button onClick={() => handleChangeRunStatus('completed')} disabled={optimisticStatus === 'completed' || updateStatusMutation.isPending} className="text-xs sm:text-sm px-3 py-1.5 rounded-md border border-green-600 text-green-600 hover:bg-green-50 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Completed</button>
+                                    </div>
+                                )}
+                                
+                                {/* Move Undelivered Dialog Component (Inline for simplicity) */}
+                                {showMoveDialog && (
+                                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4">
+                                            <h3 className="text-lg font-semibold mb-4">Move Undelivered Items</h3>
+                                            <p className="text-sm text-gray-600 mb-4">
+                                                Select a valid target run to move items to. They will be added to the end of the run.
+                                            </p>
+                                            
+                                            <div className="mb-4">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Target Run</label>
+                                                <select
+                                                    value={moveTargetRunId}
+                                                    onChange={(e) => setMoveTargetRunId(e.target.value)}
+                                                    className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                                >
+                                                    <option value="">Select a run...</option>
+                                                    {availableTargetRuns.map(r => (
+                                                        <option key={r.id} value={r.id}>
+                                                            {r.run_name || `Run #${r.run_number}`} ({new Date(r.created_at).toLocaleDateString()})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            
+                                            <div className="flex justify-end gap-2">
+                                                <button 
+                                                    onClick={() => setShowMoveDialog(false)}
+                                                    className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button 
+                                                    onClick={handleMoveUndelivered}
+                                                    disabled={!moveTargetRunId || moveUndeliveredItemsMutation.isPending}
+                                                    className="px-3 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 cursor-pointer"
+                                                >
+                                                    {moveUndeliveredItemsMutation.isPending ? 'Moving...' : 'Move Items'}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </>

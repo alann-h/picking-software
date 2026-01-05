@@ -1,7 +1,7 @@
 import { AccessError, InputError } from '../middlewares/errorHandler.js';
 import { ensureQuotesExistInDB } from './quoteService.js';
 import { ConnectionType } from '../types/auth.js';
-import { Run, RunStatus, RunWithDetails, QuoteInRun } from '../types/run.js';
+import { Run, RunStatus, RunWithDetails, QuoteInRun, RunItemStatus } from '../types/run.js';
 import { prisma } from '../lib/prisma.js';
 
 async function getNextRunNumber(companyId: string): Promise<number> {
@@ -162,6 +162,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
                 totalAmount: item.quote.totalAmount.toNumber(),
                 priority: item.priority,
                 orderStatus: item.quote.status,
+                runItemStatus: item.status as RunItemStatus, // Cast to our type
                 size: item.size || undefined,
                 type: item.type || undefined,
                 deliveryCost: item.deliveryCost?.toNumber(),
@@ -189,6 +190,76 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
     }
 }
 
+export async function updateRunItemStatus(runId: string, quoteId: string, status: RunItemStatus): Promise<void> {
+    try {
+        await prisma.$transaction(async (tx) => {
+            // Update Run Item Status
+            await tx.runItem.update({
+                where: {
+                    runId_quoteId: {
+                        runId,
+                        quoteId
+                    }
+                },
+                data: { status: status as any } // Cast to any to avoid Prisma enum mismatch if types aren't perfectly synced yet
+            });
+
+            // If status is DELIVERED, update Quote Status to COMPLETED
+            if (status === 'delivered') {
+                await tx.quote.update({
+                    where: { id: quoteId },
+                    data: { status: 'completed' }
+                });
+            }
+            // If status is UNDELIVERED, Quote Status stays ASSIGNED (or whatever it was)
+        });
+    } catch (error) {
+        console.error(`Error updating run item status for ${runId}/${quoteId}:`, error);
+        throw error;
+    }
+}
+
+export async function moveUndeliveredItems(sourceRunId: string, targetRunId: string, itemIds: string[]): Promise<void> {
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Verify items are in source run and have status 'undelivered' (optional strictness, or just 'undelivered'/'pending')
+            // For now, we trust the UI/Input but ideally check.
+
+            // 2. Fetch details of these items from Source Run (to preserve notes/size/type/cost)
+            const sourceItems = await tx.runItem.findMany({
+                where: {
+                    runId: sourceRunId,
+                    quoteId: { in: itemIds }
+                }
+            });
+
+            if (sourceItems.length === 0) return;
+
+            // 3. Create items in Target Run
+            // We need to determine priority. Let's append them to the end of the target run.
+            const targetRunItemCount = await tx.runItem.count({ where: { runId: targetRunId } });
+            
+            const newItemsData = sourceItems.map((item, index) => ({
+                runId: targetRunId,
+                quoteId: item.quoteId,
+                priority: targetRunItemCount + index,
+                size: item.size,
+                type: item.type,
+                deliveryCost: item.deliveryCost,
+                notes: item.notes,
+                status: 'pending' as const, // Reset to pending for the new day
+            }));
+
+            await tx.runItem.createMany({
+                data: newItemsData as any // Cast for enum compatibility
+            });
+        });
+    } catch (error) {
+        console.error(`Error moving items from run ${sourceRunId} to ${targetRunId}:`, error);
+        throw error;
+    }
+}
+
 export async function updateRunStatus(runId: string, newStatus: RunStatus): Promise<Run> {
     const allowedStatuses: RunStatus[] = ['pending', 'completed'];
     if (!allowedStatuses.includes(newStatus)) {
@@ -198,13 +269,27 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
     try {
         const completedAtData = newStatus === 'completed' 
             ? new Date() 
-            : newStatus === 'pending' ? null : undefined; // Set to null if reverting to pending
+            : newStatus === 'pending' ? null : undefined; 
 
-        // Only update completedAt if we are explicitly setting it to a value or null.
-        // If undefined (e.g. some status change that shouldn't touch it), we'd skip, but here we want explicit logic.
         const dataToUpdate: any = { status: newStatus };
         if (completedAtData !== undefined) {
              dataToUpdate.completedAt = completedAtData;
+        }
+
+        // If marking COMPLETED, automatically set all PENDING items to DELIVERED
+        // This is a "bulk resolve" convenience. Failed items should have been marked failed/undelivered manually beforehand 
+        // OR the user can mark them undelivered AFTER.
+        // DECISION: Let's NOT auto-change to delivered to avoid overwriting 'undelivered' intent accidentally?
+        // Actually, users usually expect "Complete Run" to mean "Everything went fine unless I said otherwise".
+        // Let's set PENDING -> DELIVERED. UNDELIVERED -> stays UNDELIVERED.
+        if (newStatus === 'completed') {
+             // We need to do this in a transaction if we want to update quote statuses too.
+             // But updateRunStatus doesn't natively use a transaction wrapper around the whole function, 
+             // but we can add logic inside.
+             // However, separating concerns: Let the user mark items.
+             // User Request: "I would still have to set it pending then edit then remove then set complete right?" 
+             // implying they want automation.
+             // Let's keep it simple: Status update just updates the RUN. Items status is managed individually or we can add a "Complete All" button in UI.
         }
 
         const updatedRun = await prisma.run.update({
@@ -234,7 +319,6 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && error.code === 'P2025') {
-            // Prisma error for record not found
             throw new InputError(`Run with ID ${runId} not found.`);
         }
         console.error('Error in updateRunStatus service:', error);
@@ -247,17 +331,14 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: (string | 
         throw new InputError('Invalid data format: orderedQuoteIds must be an array.');
     }
 
-    // Convert all quote IDs to strings to handle mixed types (integers and strings)
     const stringQuoteIds = orderedQuoteIds.map(id => String(id));
 
     try {
-        // Fetch quotes from QuickBooks/Xero if they don't exist in DB yet
         if (stringQuoteIds.length > 0) {
             await ensureQuotesExistInDB(stringQuoteIds, companyId, connectionType);
         }
 
         await prisma.$transaction(async (tx) => {
-            // 1. Get existing run items to PRESERVE their details (notes, size, type, cost)
             const existingRunItems = await tx.runItem.findMany({
                 where: { runId },
                 select: { 
@@ -266,18 +347,15 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: (string | 
                     type: true,
                     deliveryCost: true,
                     notes: true,
+                    status: true // Preserve status
                 },
             });
 
-            // Map for quick lookup of existing details
             const existingItemsMap = new Map(existingRunItems.map(item => [item.quoteId, item]));
             const existingQuoteIdsRaw = new Set(existingRunItems.map(item => item.quoteId));
 
-            // 2. Identify NEW quotes (those not currently in the run)
             const newQuoteIds = stringQuoteIds.filter(id => !existingQuoteIdsRaw.has(id));
 
-            // 3. Fetch Customer Defaults for ONLY the NEW quotes
-            // We need this to populate 'type' (forklift/hand_unload) correctly for new items
             let newQuotesDefaults = new Map<string, string | null>();
             if (newQuoteIds.length > 0) {
                 const newQuotesData = await tx.quote.findMany({
@@ -292,53 +370,54 @@ export async function updateRunQuotes(runId: string, orderedQuoteIds: (string | 
                 newQuotesDefaults = new Map(newQuotesData.map(q => [q.id, q.customer?.defaultDeliveryType || null]));
             }
 
-            // 4. Delete ALL existing run items (so we can recreate them in the correct new order)
+            // Using deleteMany on items that are meant to stay might lose history if we aren't careful?
+            // "updateRunQuotes" is usually used for drag-drop reordering or adding/removing.
+            // If we delete and recreate, we reset the ID (if autoincrement) and potentially lose status if we don't copy it.
+            // We MUST copy 'status' back.
+
             await tx.runItem.deleteMany({
                 where: { runId },
             });
 
-            // 5. Create new run items, merging PRESERVED data with NEW DEFAULTS
             if (stringQuoteIds.length > 0) {
                 const runItemsData = stringQuoteIds.map((quoteId, index) => {
-                    // Check if we have preserved data
                     const existingItem = existingItemsMap.get(quoteId);
 
                     if (existingItem) {
-                        // PRESERVE existing details
                         return {
                             runId,
                             quoteId,
                             priority: index,
                             size: existingItem.size,
-                            type: existingItem.type, // Keep the manually set type if it exists
+                            type: existingItem.type,
                             deliveryCost: existingItem.deliveryCost,
                             notes: existingItem.notes,
+                            status: existingItem.status // PRESERVE STATUS
                         };
                     } else {
-                        // NEW ITEM: Use Customer Default for type, others null
                         const defaultType = newQuotesDefaults.get(quoteId);
                         return {
                             runId,
                             quoteId,
                             priority: index,
                             size: null,
-                            type: (defaultType as 'hand_unload' | 'forklift' | null) || undefined, // Use customer default
+                            type: (defaultType as 'hand_unload' | 'forklift' | null) || undefined,
                             deliveryCost: null,
                             notes: null,
+                            status: 'pending' as const // New items are pending
                         };
                     }
                 });
 
                 await tx.runItem.createMany({
-                    data: runItemsData,
+                    data: runItemsData as any,
                 });
 
-                // 6. Update status to 'assigned' ONLY for NEW quotes
                 if (newQuoteIds.length > 0) {
                     await tx.quote.updateMany({
                         where: { 
                             id: { in: newQuoteIds },
-                            status: { in: ['pending', 'checking'] } // Only update if status allows it
+                            status: { in: ['pending', 'checking'] }
                         },
                         data: { status: 'assigned' },
                     });
@@ -383,7 +462,6 @@ export async function updateRunName(runId: string, runName: string): Promise<Run
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && error.code === 'P2025') {
-            // Prisma error for record not found
             throw new InputError(`Run with ID ${runId} not found.`);
         }
         console.error('Error in updateRunName service:', error);
@@ -452,10 +530,9 @@ export async function updateRunItemsDetails(runId: string, items: RunItemUpdate[
                         deliveryCost: item.deliveryCost,
                         notes: item.notes
                     },
-                    include: { quote: true } // Include quote to get customerId
+                    include: { quote: true } 
                 });
 
-                // If type is provided, update customer default
                 if (item.type && item.type !== '') {
                      if (updatedRunItem.quote.customerId) {
                          await tx.customer.update({
@@ -475,24 +552,20 @@ export async function updateRunItemsDetails(runId: string, items: RunItemUpdate[
 export async function deleteRunById(runId: string): Promise<{message: string}> {
     try {
         await prisma.$transaction(async (tx) => {
-            // Get quote IDs from run items before deleting them
             const runItems = await tx.runItem.findMany({
                 where: { runId },
                 select: { quoteId: true },
             });
             const quoteIdsToRelease = runItems.map(item => item.quoteId);
 
-            // Delete run items first (due to foreign key constraints)
             await tx.runItem.deleteMany({
                 where: { runId },
             });
 
-            // Delete the run
             await tx.run.delete({
                 where: { id: runId },
             });
 
-            // Release quotes back to pending status
             if (quoteIdsToRelease.length > 0) {
                 await tx.quote.updateMany({
                     where: { id: { in: quoteIdsToRelease } },
@@ -539,6 +612,7 @@ export interface ReportData {
         runsCount: number;
         totalCost: number;
         itemCount: number;
+        runs: RunWithDetails[];
     }[];
 }
 
@@ -549,14 +623,10 @@ export async function getRunReports(
     dateFilter: 'created' | 'completed' = 'created'
 ): Promise<ReportData> {
     try {
-        // Ensure endDate includes the full end day
         const adjustedEndDate = new Date(endDate);
         adjustedEndDate.setHours(23, 59, 59, 999);
 
         const dateField = dateFilter === 'completed' ? 'completedAt' : 'createdAt';
-
-        // Additional filter for 'completed' mode: status must be 'completed' (implicitly handled by completedAt not being null basically, but let's be safe)
-        // Actually, if we use completedAt range, only completed runs have completedAt, so that's fine.
         
         const runs = await prisma.run.findMany({
             where: {
@@ -565,15 +635,23 @@ export async function getRunReports(
                     gte: startDate,
                     lte: adjustedEndDate,
                 },
-                // If filtering by completedAt, ensure it's not null
                 ...(dateFilter === 'completed' && { completedAt: { not: null } }),
-                // status: { not: 'cancelled' } // Uncomment if you have 'cancelled' status
             },
             include: {
                 runItems: {
-                    select: {
-                        deliveryCost: true
-                    }
+                    include: {
+                        quote: {
+                            include: {
+                                customer: {
+                                    select: {
+                                        customerName: true,
+                                        address: true
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    orderBy: { priority: 'asc' }
                 }
             },
             orderBy: {
@@ -587,38 +665,70 @@ export async function getRunReports(
             totalItems: 0,
         };
 
-        const breakdownMap = new Map<string, { runsCount: number; totalCost: number; itemCount: number }>();
+        const breakdownMap = new Map<string, { runsCount: number; totalCost: number; itemCount: number; runs: RunWithDetails[] }>();
 
         for (const run of runs) {
             summary.totalRuns++;
             
-            // Should report based on the FILTERED date logic?
-            // If I ask for runs completed in range X, I expect them grouped by completed date.
             const rawDate = (run as any)[dateField]; 
-            // fallback if null (shouldn't happen with the query) 
             const dateObj = rawDate ? new Date(rawDate) : new Date();
 
-            // Convert to Australian date for grouping
             const runDate = dateObj.toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
             
             let runCost = 0;
             let runItemsCount = 0;
 
+            const runQuotes: QuoteInRun[] = run.runItems.map(item => ({
+                quoteId: item.quoteId,
+                quoteNumber: item.quote.quoteNumber || '',
+                customerName: item.quote.customer.customerName,
+                customerAddress: item.quote.customer.address || undefined,
+                totalAmount: item.quote.totalAmount.toNumber(),
+                priority: item.priority,
+                orderStatus: item.quote.status,
+                runItemStatus: item.status as RunItemStatus,
+                size: item.size || undefined,
+                type: item.type || undefined,
+                deliveryCost: item.deliveryCost?.toNumber(),
+                notes: item.notes || undefined,
+            }));
+
+            // Calculate cost and count
             for (const item of run.runItems) {
-                runItemsCount++;
-                if (item.deliveryCost) {
-                    runCost += item.deliveryCost.toNumber();
+                let shouldCount = true;
+                if (run.status === 'completed') {
+                    if (item.status === 'undelivered') shouldCount = false;
+                    if (item.status !== 'delivered') shouldCount = false;
+                }
+                
+                if (shouldCount) {
+                    runItemsCount++;
+                    if (item.deliveryCost) {
+                        runCost += item.deliveryCost.toNumber();
+                    }
                 }
             }
 
             summary.totalCost += runCost;
             summary.totalItems += runItemsCount;
 
-            // Update daily breakdown
-            const currentDay = breakdownMap.get(runDate) || { runsCount: 0, totalCost: 0, itemCount: 0 };
+            const currentDay = breakdownMap.get(runDate) || { runsCount: 0, totalCost: 0, itemCount: 0, runs: [] };
             currentDay.runsCount++;
             currentDay.totalCost += runCost;
             currentDay.itemCount += runItemsCount;
+            
+            currentDay.runs.push({
+                id: run.id,
+                company_id: run.companyId,
+                created_at: run.createdAt,
+                run_number: Number(run.runNumber),
+                run_name: run.runName,
+                driver_name: run.driverName,
+                status: run.status,
+                completed_at: run.completedAt,
+                quotes: runQuotes
+            });
+
             breakdownMap.set(runDate, currentDay);
         }
 

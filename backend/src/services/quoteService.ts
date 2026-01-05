@@ -22,6 +22,22 @@ import {
     ProductInfo
 } from '../types/quote.js';
 
+// Helper to handle QBO API calls with rate limit retry
+async function makeQboApiCallWithRetry(oauthClient: IntuitOAuthClient, url: string, retries = 3): Promise<any> {
+  try {
+    return await oauthClient.makeApiCall({ url });
+  } catch (error: any) {
+    // Check for 429 Too Many Requests (or other transient errors)
+    if (retries > 0 && (error?.response?.status === 429 || error?.code === 429)) {
+       const delay = (4 - retries) * 2000; // 2s, 4s, 6s...
+       console.warn(`QBO 429 Rate Limit hit. Retrying in ${delay}ms...`);
+       await new Promise(r => setTimeout(r, delay));
+       return makeQboApiCallWithRetry(oauthClient, url, retries - 1);
+    }
+    throw error;
+  }
+}
+
 export async function getCustomerQuotes(customerId: string, companyId: string, connectionType: ConnectionType): Promise<CustomerQuote[]> {
   try {
     if (connectionType === 'qbo') {
@@ -49,7 +65,10 @@ async function getQboCustomerQuotes(oauthClient: IntuitOAuthClient, customerId: 
     const queryStr = `SELECT * FROM estimate WHERE CustomerRef = '${customerId}' ORDERBY MetaData.LastUpdatedTime DESC`;
     const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
     
-    const response = await oauthClient.makeApiCall({ url });
+
+    
+    // Use retry wrapper
+    const response = await makeQboApiCallWithRetry(oauthClient, url);
     const responseData = response.json;
     
     if (!responseData || !responseData.QueryResponse) {
@@ -167,9 +186,8 @@ export async function getQboEstimate(oauthClient: IntuitOAuthClient, quoteId: st
     const realmId = getRealmId(oauthClient);
     
     // Use direct API read instead of query
-    const response = await oauthClient.makeApiCall({
-      url: `${baseURL}v3/company/${realmId}/estimate/${quoteId}?minorversion=75`
-    });
+    // Use direct API read instead of query, with retry
+    const response = await makeQboApiCallWithRetry(oauthClient, `${baseURL}v3/company/${realmId}/estimate/${quoteId}?minorversion=75`);
     
     // Direct read returns the object directly, wrap it in QueryResponse structure for compatibility
     return {

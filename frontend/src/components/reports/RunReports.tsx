@@ -1,12 +1,31 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, DollarSign, Package, TrendingUp, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign, Package, TrendingUp } from 'lucide-react';
 import { getRunReports } from '../../api/runs';
 import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parse } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
+import { RunQuote } from '../../utils/types';
 
 type TimeRange = 'today' | 'week' | 'month' | 'custom';
+
+interface ReportRun {
+    id: string;
+    run_number: number;
+    run_name: string;
+    driver_name: string;
+    status: string;
+    completed_at: string;
+    quotes: RunQuote[];
+}
+
+interface ReportDay {
+    date: string;
+    runsCount: number;
+    totalCost: number;
+    itemCount: number;
+    runs: ReportRun[];
+}
 
 const RunReports: React.FC = () => {
     const navigate = useNavigate();
@@ -14,7 +33,8 @@ const RunReports: React.FC = () => {
     const [timeRange, setTimeRange] = useState<TimeRange>('week');
     const [customStartDate, setCustomStartDate] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
     const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-    const [dateFilter, setDateFilter] = useState<'created' | 'completed'>('created');
+    const [dateFilter, setDateFilter] = useState<'created' | 'completed'>('completed'); // Default to completed
+    const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
     const getDateRange = () => {
         const now = new Date();
@@ -49,6 +69,14 @@ const RunReports: React.FC = () => {
             style: 'currency',
             currency: 'AUD'
         }).format(amount);
+    };
+    
+    const handleDayClick = (date: string) => {
+        setExpandedDate(expandedDate === date ? null : date);
+    };
+
+    const handleRunClick = (runId: string) => {
+        navigate(`/run?expandedRun=${runId}`);
     };
 
     return (
@@ -211,22 +239,75 @@ const RunReports: React.FC = () => {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            reportData.dailyBreakdown.map((day: any) => (
-                                                <tr key={day.date} className="hover:bg-slate-50">
-                                                    <td className="px-6 py-3 font-medium text-slate-900">
-                                                        {format(parse(day.date, 'yyyy-MM-dd', new Date()), 'EEE, d MMM yyyy')}
-                                                    </td>
-                                                    <td className="px-6 py-3 text-right text-slate-600">{day.runsCount}</td>
-                                                    <td className="px-6 py-3 text-right text-slate-600">{day.itemCount}</td>
-                                                    <td className="px-6 py-3 text-right font-medium text-slate-900">
-                                                        {formatCurrency(day.totalCost)}
-                                                    </td>
-                                                    <td className="px-6 py-3 text-right text-slate-600">
-                                                        {day.runsCount > 0 
-                                                            ? formatCurrency(day.totalCost / day.runsCount) 
-                                                            : '-'}
-                                                    </td>
-                                                </tr>
+                                            reportData.dailyBreakdown.map((day: ReportDay) => (
+                                                <React.Fragment key={day.date}>
+                                                    <tr 
+                                                        onClick={() => handleDayClick(day.date)} 
+                                                        className={`cursor-pointer transition-colors ${expandedDate === day.date ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
+                                                    >
+                                                        <td className="px-6 py-3 font-medium text-slate-900">
+                                                            {format(parse(day.date, 'yyyy-MM-dd', new Date()), 'EEE, d MMM yyyy')}
+                                                        </td>
+                                                        <td className="px-6 py-3 text-right text-slate-600">{day.runsCount}</td>
+                                                        <td className="px-6 py-3 text-right text-slate-600">{day.itemCount}</td>
+                                                        <td className="px-6 py-3 text-right font-medium text-slate-900">
+                                                            {formatCurrency(day.totalCost)}
+                                                        </td>
+                                                        <td className="px-6 py-3 text-right text-slate-600">
+                                                            {day.runsCount > 0 
+                                                                ? formatCurrency(day.totalCost / day.runsCount) 
+                                                                : '-'}
+                                                        </td>
+                                                    </tr>
+                                                    {expandedDate === day.date && (
+                                                        <tr className="bg-slate-50/50">
+                                                            <td colSpan={5} className="px-6 py-4">
+                                                                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                                                                    <div className="mb-3 flex items-center justify-between">
+                                                                        <h4 className="font-semibold text-slate-900">Runs for {format(parse(day.date, 'yyyy-MM-dd', new Date()), 'd MMM yyyy')}</h4>
+                                                                        <span className="text-xs text-slate-500">{day.runs?.length || 0} runs available</span>
+                                                                    </div>
+                                                                    {day.runs && day.runs.length > 0 ? (
+                                                                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                                                            {day.runs.map((run: ReportRun) => (
+                                                                                <div 
+                                                                                    key={run.id}
+                                                                                    onClick={() => handleRunClick(run.id)}
+                                                                                    className="group cursor-pointer rounded-lg border border-slate-200 p-3 hover:border-blue-300 hover:shadow-sm transition-all bg-white"
+                                                                                >
+                                                                                    <div className="flex items-start justify-between">
+                                                                                        <div>
+                                                                                            <span className="font-medium text-blue-600 group-hover:text-blue-700">
+                                                                                                {run.run_name || `Run #${run.run_number}`}
+                                                                                            </span>
+                                                                                            <p className="text-xs text-slate-500 mt-0.5">
+                                                                                                {run.driver_name || 'No driver assigned'}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize ${
+                                                                                            run.status === 'completed' 
+                                                                                                ? 'bg-emerald-100 text-emerald-800' 
+                                                                                                : 'bg-blue-100 text-blue-800'
+                                                                                        }`}>
+                                                                                            {run.status}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
+                                                                                        <span>{run.quotes?.length || 0} orders</span>
+                                                                                        {/* Calculate individual run cost if needed, simpler to just show items/driver */}
+                                                                                        {/* If we have total_amount on run object we could show it, but report summary is computed differently */}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p className="text-sm text-slate-500 italic">No detailed run data available.</p>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>
                                             ))
                                         )}
                                     </tbody>

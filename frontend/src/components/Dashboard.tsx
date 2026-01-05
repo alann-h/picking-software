@@ -77,8 +77,16 @@ const DashboardRunItem: React.FC<{ run: Run; backorderQuoteIds?: Set<string>; ex
         };
     }, [run.quotes, backorderQuoteIds]);
 
+    const runRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        if (isExpanded && runRef.current) {
+            runRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, [isExpanded]);
+
     return (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div ref={runRef} className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="p-3 sm:p-4 cursor-pointer" onClick={() => onToggleExpand(run.id)}>
                 {/* Run Name Row */}
                 <div className="flex items-center justify-between gap-2 mb-3">
@@ -417,123 +425,150 @@ const BackorderItemsSection: React.FC = () => {
 
     return (
         <div className="space-y-3">
-            {backorderQuotes.map((quote) => {
-                const isExpanded = expandedQuoteId === quote.quoteId;
-                const hasMultipleRuns = quote.runs.length > 1;
-                const primaryRun = quote.runs[0];
+            {backorderQuotes.map((quote) => (
+                <BackorderQuoteItem 
+                    key={quote.quoteId}
+                    quote={quote}
+                    isExpanded={expandedQuoteId === quote.quoteId}
+                    onToggleExpand={() => handleToggleQuoteExpand(quote.quoteId)}
+                    onQuoteClick={handleQuoteClick}
+                    onMarkAsAdded={handleMarkAsAdded}
+                    completingItemId={completingItemId}
+                    loadingQuoteId={loadingQuoteId}
+                />
+            ))}
+        </div>
+    );
+};
 
-                return (
-                    <div key={quote.quoteId} className="bg-white border border-amber-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                        <div 
-                            className="p-3 sm:p-4 cursor-pointer"
-                            onClick={() => handleToggleQuoteExpand(quote.quoteId)}
-                        >
-                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                        <h3 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleQuoteClick(quote.quoteId);
-                                            }}
-                                            className="text-base sm:text-lg font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
-                                        >
-                                            #{quote.quoteNumber || quote.quoteId}
-                                        </h3>
-                                        {loadingQuoteId === quote.quoteId && (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                        )}
-                                    </div>
-                                    
-                                    <p className="text-sm text-gray-700 font-medium mb-2">{quote.customerName}</p>
-                                    
-                                    {primaryRun && (
-                                        <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                            <div className="flex items-center gap-1.5 text-sm text-gray-600 min-w-0 flex-1">
-                                                <Truck className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-                                                <span className="truncate min-w-0">{primaryRun.runName || `Run #${primaryRun.runNumber}`}</span>
-                                            </div>
-                                            {hasMultipleRuns && (
-                                                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full whitespace-nowrap flex-shrink-0">
-                                                    +{quote.runs.length - 1} more
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+const BackorderQuoteItem: React.FC<{
+    quote: QuoteWithBackorders;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+    onQuoteClick: (id: string) => void;
+    onMarkAsAdded: (quoteId: string, productId: number) => void;
+    completingItemId: string | null;
+    loadingQuoteId: string | null;
+}> = ({ quote, isExpanded, onToggleExpand, onQuoteClick, onMarkAsAdded, completingItemId, loadingQuoteId }) => {
+    const itemRef = React.useRef<HTMLDivElement>(null);
+    const hasMultipleRuns = quote.runs.length > 1;
+    const primaryRun = quote.runs[0];
 
-                                <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0">
-                                    <div className="flex items-center gap-1.5 text-sm font-medium text-amber-700">
-                                        <Package className="w-4 h-4 flex-shrink-0" />
-                                        <span className="whitespace-nowrap">
-                                            {quote.backorderItems.length} {quote.backorderItems.length === 1 ? 'item' : 'items'}
-                                        </span>
-                                    </div>
-                                    {isExpanded ? (
-                                        <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                                    ) : (
-                                        <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                                    )}
-                                </div>
-                            </div>
+    React.useEffect(() => {
+        if (isExpanded && itemRef.current) {
+            itemRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, [isExpanded]);
+
+    return (
+        <div ref={itemRef} className="bg-white border border-amber-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div 
+                className="p-3 sm:p-4 cursor-pointer"
+                onClick={onToggleExpand}
+            >
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <h3 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onQuoteClick(quote.quoteId);
+                                }}
+                                className="text-base sm:text-lg font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+                            >
+                                #{quote.quoteNumber || quote.quoteId}
+                            </h3>
+                            {loadingQuoteId === quote.quoteId && (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            )}
                         </div>
-
-                        {isExpanded && (
-                            <div className="px-3 sm:px-4 pb-3 sm:pb-4">
-                                <div className="pt-3 sm:pt-4 border-t border-amber-100">
-                                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                                        Items to Add Later:
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {quote.backorderItems.map((item) => {
-                                            const itemKey = `${quote.quoteId}-${item.productId}`;
-                                            const isCompleting = completingItemId === itemKey;
-                                            
-                                            return (
-                                                <div 
-                                                    key={item.productId} 
-                                                    className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg"
-                                                >
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-gray-800 break-words mb-1">{item.productName}</p>
-                                                        <p className="text-xs text-gray-500 mb-2">SKU: {item.sku}</p>
-                                                        <div className="flex items-baseline gap-1">
-                                                            <span className="text-sm font-semibold text-amber-700 whitespace-nowrap">
-                                                                {item.pickingQuantity} / {item.originalQuantity}
-                                                            </span>
-                                                            <span className="text-xs text-gray-500">remaining</span>
-                                                        </div>
-                                                    </div>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleMarkAsAdded(quote.quoteId, item.productId);
-                                                        }}
-                                                        disabled={isCompleting}
-                                                        className={`flex items-center justify-center p-2.5 text-xs font-medium text-white rounded-lg transition-colors flex-shrink-0 ${
-                                                            isCompleting 
-                                                                ? 'bg-gray-400 cursor-not-allowed' 
-                                                                : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
-                                                        }`}
-                                                        title={isCompleting ? "Marking..." : "Mark as added"}
-                                                        aria-label={isCompleting ? "Marking..." : "Mark as added"}
-                                                    >
-                                                        {isCompleting ? (
-                                                            <span className="animate-spin text-base">⏳</span>
-                                                        ) : (
-                                                            <Check className="w-5 h-5" />
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                        
+                        <p className="text-sm text-gray-700 font-medium mb-2">{quote.customerName}</p>
+                        
+                        {primaryRun && (
+                            <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                <div className="flex items-center gap-1.5 text-sm text-gray-600 min-w-0 flex-1">
+                                    <Truck className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                                    <span className="truncate min-w-0">{primaryRun.runName || `Run #${primaryRun.runNumber}`}</span>
                                 </div>
+                                {hasMultipleRuns && (
+                                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full whitespace-nowrap flex-shrink-0">
+                                        +{quote.runs.length - 1} more
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>
-                );
-            })}
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0">
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-amber-700">
+                            <Package className="w-4 h-4 flex-shrink-0" />
+                            <span className="whitespace-nowrap">
+                                {quote.backorderItems.length} {quote.backorderItems.length === 1 ? 'item' : 'items'}
+                            </span>
+                        </div>
+                        {isExpanded ? (
+                            <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                        ) : (
+                            <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {isExpanded && (
+                <div className="px-3 sm:px-4 pb-3 sm:pb-4">
+                    <div className="pt-3 sm:pt-4 border-t border-amber-100">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                            Items to Add Later:
+                        </h4>
+                        <div className="space-y-2">
+                            {quote.backorderItems.map((item) => {
+                                const itemKey = `${quote.quoteId}-${item.productId}`;
+                                const isCompleting = completingItemId === itemKey;
+                                
+                                return (
+                                    <div 
+                                        key={item.productId} 
+                                        className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg"
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-800 break-words mb-1">{item.productName}</p>
+                                            <p className="text-xs text-gray-500 mb-2">SKU: {item.sku}</p>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-sm font-semibold text-amber-700 whitespace-nowrap">
+                                                    {item.pickingQuantity} / {item.originalQuantity}
+                                                </span>
+                                                <span className="text-xs text-gray-500">remaining</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onMarkAsAdded(quote.quoteId, item.productId);
+                                            }}
+                                            disabled={isCompleting}
+                                            className={`flex items-center justify-center p-2.5 text-xs font-medium text-white rounded-lg transition-colors flex-shrink-0 ${
+                                                isCompleting 
+                                                    ? 'bg-gray-400 cursor-not-allowed' 
+                                                    : 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+                                            }`}
+                                            title={isCompleting ? "Marking..." : "Mark as added"}
+                                            aria-label={isCompleting ? "Marking..." : "Mark as added"}
+                                        >
+                                            {isCompleting ? (
+                                                <span className="animate-spin text-base">⏳</span>
+                                            ) : (
+                                                <Check className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

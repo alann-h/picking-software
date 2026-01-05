@@ -10,6 +10,8 @@ export interface ProductDetail {
     price: number;
 }
   
+export type OrderStatus = 'pending' | 'preparing' | 'checking' | 'completed' | 'assigned';
+
 export interface ProductInfo {
     [productId: number]: ProductDetail;
 }
@@ -113,12 +115,13 @@ export interface Run {
 
 export interface RunQuote {
   quoteId: string;
-  quoteNumber: string;
+  quoteNumber: string | null;
   customerName: string;
   customerAddress?: string;
   totalAmount: number;
   priority: number;
-  orderStatus: string;
+  orderStatus: OrderStatus;
+  runItemStatus?: 'pending' | 'delivered' | 'undelivered';
   size?: string;
   type?: string;
   deliveryCost?: number;

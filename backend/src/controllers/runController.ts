@@ -9,10 +9,12 @@ import {
     updateRunItemsDetails,
     getLatestDriverName,
     getRunReports,
+    updateRunItemStatus,
+    moveUndeliveredItems,
     RunItemUpdate
 } from '../services/runService.js'; // New service file for runs
 import { Request, Response, NextFunction } from 'express';
-import { RunStatus } from '../types/run.js';
+import { RunStatus, RunItemStatus } from '../types/run.js';
 
 /**
  * Controller to create a new run.
@@ -184,6 +186,38 @@ export async function getRunReportsController(req: Request, res: Response, next:
 
         const reportData = await getRunReports(companyId, start, end, filterMode);
         res.status(200).json(reportData);
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateRunItemStatusController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { runId, quoteId } = req.params;
+        const { status } = req.body;
+
+        if (!['pending', 'delivered', 'undelivered'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        await updateRunItemStatus(runId, quoteId, status as RunItemStatus);
+        res.status(200).json({ message: 'Item status updated' });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function moveUndeliveredItemsController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { runId } = req.params; // Source Run ID
+        const { targetRunId, itemIds } = req.body;
+
+        if (!targetRunId || !Array.isArray(itemIds) || itemIds.length === 0) {
+            return res.status(400).json({ error: 'Missing targetRunId or itemIds' });
+        }
+
+        await moveUndeliveredItems(runId, targetRunId, itemIds);
+        res.status(200).json({ message: 'Items moved successfully' });
     } catch (error) {
         next(error);
     }

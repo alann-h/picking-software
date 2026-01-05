@@ -71,3 +71,13 @@ export const getLatestDriverName = async (): Promise<{ driverName: string | null
   const data = await apiCallGet(`${RUNS_BASE}/latest-driver`);
   return data;
 };
+
+export const updateRunItemStatus = async (runId: string, quoteId: string, status: 'pending' | 'delivered' | 'undelivered'): Promise<void> => {
+  const data = await apiCallPut(`${RUNS_BASE}/${runId}/items/${quoteId}/status`, { status });
+  return data;
+};
+
+export const moveUndeliveredItems = async (runId: string, targetRunId: string, itemIds: string[]): Promise<void> => {
+  const data = await apiCallPost(`${RUNS_BASE}/${runId}/move-items`, { targetRunId, itemIds });
+  return data;
+};
