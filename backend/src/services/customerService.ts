@@ -154,6 +154,28 @@ async function fetchQBOCustomers(oauthClient: IntuitOAuthClient): Promise<Omit<C
   return allCustomers;
 }
 
+function formatXeroAddress(addresses?: Contact['addresses']): string | undefined {
+  if (!addresses || addresses.length === 0) return undefined;
+
+  // Prefer PO Box or Street address depending on business logic, 
+  // currently we just take the first available non-empty address
+  const address = addresses.find(a => a.addressLine1 || a.city || a.region || a.postalCode || a.country);
+  
+  if (!address) return undefined;
+
+  const parts = [
+    address.addressLine1,
+    address.addressLine2,
+    address.city,
+    address.region,
+    address.postalCode,
+    address.country
+  ].filter(part => part && part.trim().length > 0);
+
+  if (parts.length === 0) return undefined;
+  return parts.join(', ');
+}
+
 async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Customer, 'company_id'>[]> {
   try {
     const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
@@ -174,20 +196,19 @@ async function fetchXeroCustomers(oauthClient: XeroClient): Promise<Omit<Custome
         undefined,  // order
         undefined,  // iDs
         page,       // page
-        true,       // includeArchived
-        true,       // summaryOnly
+        false,       // includeArchived
+        false,      // summaryOnly - set to false to get addresses
         undefined  // searchTerm
       );
       const customers: Contact[] = response.body.contacts || [];
-      
-      // Filter to only include active customers
       const activeCustomers = customers.filter((customer: Contact) => 
         String(customer.contactStatus) === 'ACTIVE'
       );
       
       allCustomers.push(...activeCustomers.map((customer: Contact) => ({
         id: customer.contactID!,
-        customer_name: customer.name!
+        customer_name: customer.name!, 
+        address: formatXeroAddress(customer.addresses)
       })));
 
       // Check if there are more pages
