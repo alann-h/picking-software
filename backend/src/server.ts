@@ -82,8 +82,8 @@ setInterval(() => {
 }, config.session.store.pruneInterval);
 
 
-// Sync products every day
-const SYNC_INTERVAL = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+// Sync products every 10 minutes to emulate webhook-like freshness
+const SYNC_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 setInterval(() => {
   console.log('🔄 Running scheduled product sync with saved settings...');

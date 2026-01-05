@@ -132,6 +132,101 @@ async function getXeroCustomerQuotes(oauthClient: XeroClient, customerId: string
   }
 }
 
+export async function fetchQuotesSince(companyId: string, connectionType: ConnectionType, lastSyncTime: Date): Promise<CustomerQuote[]> {
+  try {
+    if (connectionType === 'qbo') {
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'qbo') as IntuitOAuthClient;
+      return await getQboQuotesSince(oauthClient, lastSyncTime);
+    } else if (connectionType === 'xero') {
+      const oauthClient = await tokenService.getOAuthClient(companyId, 'xero') as XeroClient;
+      return await getXeroQuotesSince(oauthClient, lastSyncTime);
+    } else {
+      throw new AccessError(`Unsupported connection type: ${connectionType}`);
+    }
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new InputError('Failed to fetch changed quotes: ' + error.message);
+    }
+    throw new InputError('An unknown error occurred while fetching changed quotes.');
+  }
+}
+
+async function getQboQuotesSince(oauthClient: IntuitOAuthClient, lastSyncTime: Date): Promise<CustomerQuote[]> {
+  try {
+    const baseURL = await getBaseURL(oauthClient, 'qbo');
+    const realmId = getRealmId(oauthClient);
+    
+    // Format date as ISO 8601 string for QBO query
+    const formattedTime = lastSyncTime.toISOString();
+
+    const queryStr = `SELECT * FROM Estimate WHERE MetaData.LastUpdatedTime > '${formattedTime}' ORDERBY MetaData.LastUpdatedTime DESC MAXRESULTS 1000`;
+    const url = `${baseURL}v3/company/${realmId}/query?query=${encodeURIComponent(queryStr)}&minorversion=75`;
+    
+    // Use retry wrapper
+    const response = await makeQboApiCallWithRetry(oauthClient, url);
+    const responseData = response.json;
+    
+    if (!responseData || !responseData.QueryResponse) {
+      return [];
+    }
+    
+    const estimates = responseData.QueryResponse.Estimate || [];
+
+    return estimates
+      .filter((quote: Record<string, unknown>) => quote.TxnStatus !== 'Closed')
+      .map((quote: Record<string, unknown>) => ({
+        id: Number(quote.Id),
+        quoteNumber: quote.DocNumber,
+        totalAmount: quote.TotalAmt,
+        customerName: (quote.CustomerRef as Record<string, unknown>).name as string,
+        customerId: (quote.CustomerRef as Record<string, unknown>).value as string,
+        lastModified: (quote.MetaData as Record<string, unknown>).LastUpdatedTime as string,
+        createdAt: quote.TxnDate as string,
+      }));
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch QBO quotes since ${lastSyncTime}: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while fetching QBO quotes.');
+  }
+}
+
+async function getXeroQuotesSince(oauthClient: XeroClient, lastSyncTime: Date): Promise<CustomerQuote[]> {
+  try {
+    const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
+
+    const response = await oauthClient.accountingApi.getQuotes(
+      tenantId,
+      lastSyncTime, // ifModifiedSince
+      undefined,  // dateFrom
+      undefined,  // dateTo
+      undefined,  // expiryDateFrom
+      undefined,  // expiryDateTo
+      undefined, // contactID
+      undefined,    // status - fetch all statuses to catch updates
+    );
+
+    const quotes = response.body.quotes || [];
+    
+    return quotes.map((quote: XeroQuote) => ({
+      id: quote.quoteID!,
+      quoteNumber: quote.quoteNumber || '',
+      totalAmount: quote.total || 0,
+      customerName: quote.contact?.name || 'Unknown Customer',
+      customerId: quote.contact?.contactID || '',
+      lastModified: quote.updatedDateUTC!,
+      createdAt: quote.dateString || quote.date || '',
+    }));
+
+  } catch (error: unknown) {
+    console.error('Error fetching Xero global quotes:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch Xero quotes: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while fetching Xero quotes.');
+  }
+}
+
 
 export async function getEstimate(quoteId: string, companyId: string, rawDataNeeded: boolean, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError | null | (FilteredQuote | QuoteFetchError)[] | Record<string, unknown>> {
   try {

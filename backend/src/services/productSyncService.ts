@@ -262,7 +262,7 @@ export class ProductSyncService {
           where: { companyId: company.id }
         });
 
-        if (!syncSettings || !syncSettings.enabled) {
+        if (syncSettings && !syncSettings.enabled) {
           console.log(`⏭️ Skipping company ${company.companyName} - sync disabled`);
           results[company.id] = {
             success: true,
@@ -275,13 +275,50 @@ export class ProductSyncService {
           continue;
         }
 
-        // Always sync all products regardless of categories
+        // SMART POLLING LOGIC
+        // - Xero: Sync every 10 mins (because no product webhooks)
+        // - QBO: Sync every 24 hours (because we have real-time webhooks, so this is just a safety net)
+        
+        const lastSync = syncSettings?.lastSyncTime ? new Date(syncSettings.lastSyncTime).getTime() : 0;
+        const now = Date.now();
+        const timeSinceLastSync = now - lastSync;
+
+        const XERO_SYNC_THRESHOLD = 10 * 60 * 1000;      // 10 minutes
+        const QBO_SYNC_THRESHOLD = 24 * 60 * 60 * 1000;  // 24 hours
+
         if (company.connectionType === 'qbo') {
-          console.log(`🔄 Syncing all QBO products for ${company.companyName}`);
+          if (timeSinceLastSync < QBO_SYNC_THRESHOLD) {
+             console.log(`⏳ QBO sync skipped for ${company.companyName} (Last sync: ${Math.round(timeSinceLastSync/1000/60)}m ago). Threshold: 24h.`);
+             results[company.id] = {
+                success: true, totalProducts: 0, updatedProducts: 0, newProducts: 0, errors: [], duration: 0
+             };
+             continue; // Skip
+          }
+          console.log(`🔄 Syncing all QBO products for ${company.companyName} (Scheduled Safety Sync)`);
           results[company.id] = await this.syncAllProductsFromQBO(company.id);
+
         } else if (company.connectionType === 'xero') {
-          console.log(`🔄 Syncing all Xero products for ${company.companyName}`);
+          // For Xero, we respect the 10 min polling interval
+          if (timeSinceLastSync < XERO_SYNC_THRESHOLD) {
+             console.log(`⏳ Xero sync skipped for ${company.companyName} (Last sync: ${Math.round(timeSinceLastSync/1000/60)}m ago). Threshold: 10m.`);
+             results[company.id] = {
+                success: true, totalProducts: 0, updatedProducts: 0, newProducts: 0, errors: [], duration: 0
+             };
+             continue; // Skip
+          }
+
+          console.log(`🔄 Syncing all Xero products for ${company.companyName} (Polling Sync)`);
           results[company.id] = await this.syncAllProductsFromXero(company.id);
+
+          // Sync Quotes as well (polling)
+          console.log(`🔄 Syncing Xero quotes for ${company.companyName} (Polling Sync)`);
+          try {
+             const { QuoteSyncService } = await import('./quoteSyncService.js');
+             await QuoteSyncService.syncAllPendingQuotes(company.id, 'xero');
+             console.log(`✅ Xero quotes synced for ${company.companyName}`);
+          } catch (quoteError) {
+             console.error(`❌ Failed to sync Xero quotes for ${company.companyName}:`, quoteError);
+          }
         }
       } catch (error) {
         console.error(`❌ Failed to sync company ${company.companyName}:`, error);
