@@ -6,6 +6,7 @@ import { deleteRun, getRuns } from '../../api/runs';
 import { useSnackbarContext } from '../SnackbarContext';
 import { RunItem } from './RunItem';
 import { ConfirmationDialog } from '../ConfirmationDialog';
+import { useSearchParams } from 'react-router-dom';
 
 const EmptyRunsState = () => (
     <div className="mt-4 text-center border-2 border-dashed border-gray-200 rounded-lg p-6 sm:p-12 bg-gray-50">
@@ -17,12 +18,12 @@ const EmptyRunsState = () => (
     </div>
 );
 
-
 const RUNS_PER_PAGE = 10;
 
 export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = ({ userCompanyId, isAdmin }) => {
     const queryClient = useQueryClient();
     const { handleOpenSnackbar } = useSnackbarContext();
+    const [searchParams] = useSearchParams();
 
     const { data: runs } = useSuspenseQuery<Run[]>({
         queryKey: ['runs', userCompanyId],
@@ -41,6 +42,22 @@ export const RunList: React.FC<{ userCompanyId: string; isAdmin: boolean; }> = (
     const [dialogOpen, setDialogOpen] = useState(false);
     const [runIdToDelete, setRunIdToDelete] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    
+    // Auto-pagination for deep linking
+    useEffect(() => {
+        const expandedRunId = searchParams.get('expandedRun');
+        if (expandedRunId && optimisticRuns.length > 0) {
+            const runIndex = optimisticRuns.findIndex(r => r.id === expandedRunId);
+            if (runIndex !== -1) {
+                const targetPage = Math.floor(runIndex / RUNS_PER_PAGE) + 1;
+                if (targetPage !== currentPage) {
+                    setCurrentPage(targetPage);
+                }
+            }
+        }
+        // We only want to run this when runs load or the URL changes, but primarily on first load
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [optimisticRuns.length, searchParams]); // Depend on length to trigger when data arrives
 
     const deleteRunMutation = useMutation({
         mutationFn: (runId: string) => deleteRun(runId),
