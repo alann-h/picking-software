@@ -3,6 +3,7 @@ import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
 import { XeroClient } from 'xero-node';
 import { authSystem } from './authSystem.js';
+import pLimit from 'p-limit';
 
 export interface SyncResult {
   success: boolean;
@@ -70,7 +71,10 @@ export class ProductSyncService {
       console.log(`📦 Found ${allItems.length} items in QuickBooks`);
 
       // Process each item
-      for (const item of allItems) {
+      // Process each item with concurrency limit
+      const limit = pLimit(10); // Process 10 items concurrently
+      
+      const promises = allItems.map(item => limit(async () => {
         try {
           const syncResult = await this.syncSingleProduct(item, companyId);
           if (syncResult === 'updated') {
@@ -83,7 +87,9 @@ export class ProductSyncService {
           console.error(errorMsg);
           result.errors.push(errorMsg);
         }
-      }
+      }));
+
+      await Promise.all(promises);
 
       result.success = result.errors.length === 0;
       result.duration = Date.now() - startTime;
@@ -349,7 +355,7 @@ export class ProductSyncService {
 
 
   /**
-   * Sync all products from Xero for a company
+   * Sync all products from Xero for a company (BULK OPTIMIZED)
    */
   static async syncAllProductsFromXero(companyId: string): Promise<SyncResult> {
     const startTime = Date.now();
@@ -359,10 +365,10 @@ export class ProductSyncService {
       // Get company details
       const company = await prisma.company.findUnique({
         where: { id: companyId },
-        select: { 
-          id: true, 
-          connectionType: true, 
-          xeroTenantId: true 
+        select: {
+          id: true,
+          connectionType: true,
+          xeroTenantId: true
         }
       });
 
@@ -376,45 +382,119 @@ export class ProductSyncService {
 
       // Fetch all items from Xero
       const response = await oauthClient.accountingApi.getItems(tenantId);
-
       const items = response.body.items || [];
       console.log(`📦 Found ${items.length} items in Xero`);
 
-      let totalProducts = 0;
-      let updatedProducts = 0;
-      let newProducts = 0;
-      const errors: string[] = [];
+      // 1. Fetch ALL existing products for this company
+      const existingProducts = await prisma.product.findMany({
+        where: { companyId },
+        select: { id: true, sku: true, externalItemId: true, updatedAt: true }
+      });
 
-      // Process each item
+      // Create lookup maps for fast access
+      const existingBySku = new Map(existingProducts.map(p => [p.sku, p]));
+      const existingByExtId = new Map(existingProducts.map(p => [p.externalItemId, p]));
+
+      const toCreate: any[] = [];
+      const toUpdate: any[] = [];
+      
+      let totalProducts = 0;
+      let updatedProducts = 0; // Will be verified after transaction
+      let newProducts = 0; // Will be verified after transaction
+
+      // 2. Process items in memory
       for (const item of items) {
         if (!item.isSold || !item.code) {
-          continue; // Skip non-sold items or items without codes
+          continue;
+        }
+        totalProducts++;
+
+        const sku = item.code;
+        const name = item.name || sku;
+        const unitPrice = item.salesDetails?.unitPrice || 0;
+        const quantityOnHand = item.isTrackedAsInventory ? (item.quantityOnHand || 0) : 0;
+        const externalId = item.itemID || null;
+        
+        // Find existing product
+        let existing = externalId ? existingByExtId.get(externalId) : undefined;
+        if (!existing && sku) {
+          existing = existingBySku.get(sku);
         }
 
-        totalProducts++;
-        try {
-          const result = await this.syncSingleXeroProduct(item, companyId);
-          if (result === 'updated') {
-            updatedProducts++;
-          } else if (result === 'created') {
-            newProducts++;
-          }
-        } catch (error: unknown) {
-          const errorMsg = `Failed to sync product ${item.code}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          console.error(`❌ ${errorMsg}`);
-          errors.push(errorMsg);
+        const productData = {
+          companyId,
+          sku,
+          productName: name,
+          price: unitPrice,
+          quantityOnHand,
+          externalItemId: externalId,
+          taxCodeRef: item.salesDetails?.taxType || null,
+          barcode: null,
+          isArchived: false,
+          updatedAt: new Date() // Important for marking as updated
+        };
+
+        if (existing) {
+            // Add to update list (we'll process these in a transaction)
+            toUpdate.push({
+                where: { id: existing.id },
+                data: {
+                    productName: productData.productName,
+                    price: productData.price,
+                    quantityOnHand: productData.quantityOnHand,
+                    taxCodeRef: productData.taxCodeRef,
+                    isArchived: productData.isArchived,
+                    externalItemId: productData.externalItemId
+                }
+            });
+        } else {
+            // Add to create list
+            toCreate.push(productData);
         }
       }
+
+      console.log(`📊 Analysis Complete: ${toCreate.length} to Create, ${toUpdate.length} to Update`);
+
+      // 3. Perform Bulk Operations in Transaction
+      const BATCH_SIZE = 1000;
+      
+      await prisma.$transaction(async (tx) => {
+          // Bulk Create
+          if (toCreate.length > 0) {
+              await tx.product.createMany({
+                  data: toCreate,
+                  skipDuplicates: true 
+              });
+              newProducts = toCreate.length;
+          }
+
+          // Bulk Update (Prisma doesn't have updateMany with different values, so we iterate promises)
+          // However, we are inside a single transaction so it's atomic.
+          if (toUpdate.length > 0) {
+              // We can rely on p-limit here effectively because we are just queuing queries to the transaction buffer
+              // But actually executing thousands of updates in one TX can be heavy.
+              // Let's batch the promises to avoid call stack issues
+              
+              for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
+                  const batch = toUpdate.slice(i, i + BATCH_SIZE);
+                  await Promise.all(batch.map(op => tx.product.update(op)));
+              }
+              updatedProducts = toUpdate.length;
+          }
+      }, {
+        maxWait: 20000, // Wait longer for connection
+        timeout: 60000  // Allow 1 minute for the transaction to commit
+      });
 
       const duration = Date.now() - startTime;
       console.log(`✅ Xero sync completed for company ${companyId}:`, {
         total: totalProducts,
         updated: updatedProducts,
         new: newProducts,
-        errors: errors.length
+        duration
       });
 
-      // Update last sync time in sync settings
+      // Update last sync time
       await prisma.sync_settings.upsert({
         where: { companyId },
         update: { lastSyncTime: new Date() },
@@ -426,13 +506,14 @@ export class ProductSyncService {
       });
 
       return {
-        success: errors.length === 0,
+        success: true,
         totalProducts,
         updatedProducts,
         newProducts,
-        errors,
+        errors: [],
         duration
       };
+
     } catch (error: unknown) {
       const duration = Date.now() - startTime;
       const errorMsg = `Xero sync failed for company ${companyId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -449,73 +530,5 @@ export class ProductSyncService {
     }
   }
 
-
-  /**
-   * Sync a single Xero product to the database
-   */
-  private static async syncSingleXeroProduct(itemData: any, companyId: string): Promise<'updated' | 'created' | 'skipped'> {
-    try {
-      const sku = itemData.code;
-      const name = itemData.name || sku;
-      
-      // Get pricing information
-      const unitPrice = itemData.salesDetails?.unitPrice || 0;
-      const quantityOnHand = itemData.isTrackedAsInventory ? (itemData.quantityOnHand || 0) : 0;
-      
-      // Check if product already exists by external ID first
-      let existingProduct = await prisma.product.findFirst({
-        where: {
-          externalItemId: itemData.itemID,
-          companyId: companyId
-        }
-      });
-
-      // If not found by external ID, check by SKU (for products that might have been created manually)
-      if (!existingProduct) {
-        existingProduct = await prisma.product.findFirst({
-          where: {
-            sku: sku,
-            companyId: companyId
-          }
-        });
-      }
-
-      const productData = {
-        sku: sku,
-        productName: name,
-        price: unitPrice,
-        quantityOnHand: quantityOnHand,
-        externalItemId: itemData.itemID || null,
-        taxCodeRef: itemData.salesDetails?.taxType || null,
-        barcode: null,
-        isArchived: false
-      };
-
-      if (existingProduct) {
-        // Update existing product
-        await prisma.product.update({
-          where: { id: existingProduct.id },
-          data: {
-            ...productData,
-            externalItemId: itemData.itemID || existingProduct.externalItemId // Update external ID if it was missing
-          }
-        });
-        return 'updated';
-      } else {
-        // Create new product
-        await prisma.product.create({
-          data: {
-            ...productData,
-            companyId: companyId,
-            externalItemId: itemData.itemID || null
-          }
-        });
-        return 'created';
-      }
-    } catch (error: unknown) {
-      console.error(`❌ Error syncing Xero product ${itemData.code}:`, error);
-      throw error;
-    }
-  }
-
+  // syncSingleXeroProduct is deprecated/removed in favor of bulk flow
 }
