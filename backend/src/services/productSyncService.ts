@@ -3,7 +3,7 @@ import { getOAuthClient, getBaseURL, getRealmId } from './authService.js';
 import { IntuitOAuthClient } from '../types/authSystem.js';
 import { XeroClient } from 'xero-node';
 import { authSystem } from './authSystem.js';
-import pLimit from 'p-limit';
+
 
 export interface SyncResult {
   success: boolean;
@@ -70,28 +70,98 @@ export class ProductSyncService {
 
       console.log(`📦 Found ${allItems.length} items in QuickBooks`);
 
-      // Process each item
-      // Process each item with concurrency limit
-      const limit = pLimit(10); // Process 10 items concurrently
-      
-      const promises = allItems.map(item => limit(async () => {
-        try {
-          const syncResult = await this.syncSingleProduct(item, companyId);
-          if (syncResult === 'updated') {
-            result.updatedProducts++;
-          } else if (syncResult === 'created') {
-            result.newProducts++;
-          }
-        } catch (error) {
-          const errorMsg = `Failed to sync product ${item.Id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          console.error(errorMsg);
-          result.errors.push(errorMsg);
+      // 1. Fetch ALL existing products for this company
+      const existingProducts = await prisma.product.findMany({
+        where: { companyId },
+        select: { id: true, sku: true, externalItemId: true }
+      });
+
+      // Create lookup maps for fast access
+      const existingBySku = new Map(existingProducts.map(p => [p.sku, p]));
+      const existingByExtId = new Map(existingProducts.map(p => [p.externalItemId, p]));
+
+      const toCreate: any[] = [];
+      const toUpdate: any[] = [];
+
+      // 2. Process items in memory
+      for (const itemData of allItems) {
+        const externalItemId = itemData.Id;
+        const sku = itemData.Sku || '';
+        const productName = itemData.Name || '';
+
+        if (!externalItemId || !productName) {
+           console.warn(`Skipping item with missing data: ID=${externalItemId}, Name=${productName}`);
+           continue;
         }
-      }));
 
-      await Promise.all(promises);
+        // Transform QBO data to our format
+        const productData = {
+          companyId,
+          productName: productName,
+          sku: sku,
+          price: parseFloat(itemData.UnitPrice) || 0,
+          quantityOnHand: parseFloat(itemData.QtyOnHand) || 0,
+          taxCodeRef: itemData.SalesTaxCodeRef?.value || null,
+          isArchived: itemData.Active === false,
+          externalItemId: externalItemId,
+          updatedAt: new Date()
+        };
 
-      result.success = result.errors.length === 0;
+        // Find existing product
+        let existing = existingByExtId.get(externalItemId);
+        if (!existing && sku) {
+          existing = existingBySku.get(sku);
+        }
+
+        if (existing) {
+             // Add to update list
+             toUpdate.push({
+                 where: { id: existing.id },
+                 data: {
+                     productName: productData.productName,
+                     sku: productData.sku,
+                     price: productData.price,
+                     quantityOnHand: productData.quantityOnHand,
+                     taxCodeRef: productData.taxCodeRef,
+                     isArchived: productData.isArchived,
+                     externalItemId: productData.externalItemId
+                 }
+             });
+        } else {
+             // Add to create list
+             toCreate.push(productData);
+        }
+      }
+
+      console.log(`📊 Analysis Complete: ${toCreate.length} to Create, ${toUpdate.length} to Update`);
+
+      // 3. Perform Bulk Operations in Transaction
+      const BATCH_SIZE = 1000;
+
+      await prisma.$transaction(async (tx) => {
+          // Bulk Create
+          if (toCreate.length > 0) {
+              await tx.product.createMany({
+                  data: toCreate,
+                  skipDuplicates: true 
+              });
+              result.newProducts = toCreate.length;
+          }
+
+          // Bulk Update
+          if (toUpdate.length > 0) {
+              for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
+                  const batch = toUpdate.slice(i, i + BATCH_SIZE);
+                  await Promise.all(batch.map(op => tx.product.update(op)));
+              }
+              result.updatedProducts = toUpdate.length;
+          }
+      }, {
+        maxWait: 20000, 
+        timeout: 60000
+      });
+
+      result.success = true;
       result.duration = Date.now() - startTime;
 
       console.log(`✅ Product sync completed for company ${companyId}:`, {
@@ -122,6 +192,7 @@ export class ProductSyncService {
       return result;
     }
   }
+
 
   /**
    * Fetch all items from QuickBooks Online using pagination
@@ -158,83 +229,6 @@ export class ProductSyncService {
     }
 
     return allItems;
-  }
-
-  /**
-   * Sync a single product from QBO data
-   */
-  private static async syncSingleProduct(itemData: any, companyId: string): Promise<'updated' | 'created' | 'skipped'> {
-    const externalItemId = itemData.Id;
-    const sku = itemData.Sku || '';
-    const productName = itemData.Name || '';
-
-    if (!externalItemId || !productName) {
-      console.warn(`Skipping item with missing data: ID=${externalItemId}, Name=${productName}`);
-      return 'skipped';
-    }
-
-    console.log(`🔍 Syncing product: ${productName} (SKU: "${sku}", External ID: ${externalItemId})`);
-
-    // Transform QBO data to our format
-    const productData = {
-      productName: productName,
-      sku: sku,
-      price: parseFloat(itemData.UnitPrice) || 0,
-      quantity_on_hand: parseFloat(itemData.QtyOnHand) || 0,
-      tax_code_ref: itemData.SalesTaxCodeRef?.value || null,
-      is_active: itemData.Active !== false,
-      external_item_id: externalItemId
-    };
-
-    // Check if product exists by external ID first
-    let existingProduct = await prisma.product.findFirst({
-      where: {
-        externalItemId: externalItemId,
-        companyId: companyId
-      }
-    });
-
-    // If not found by external ID, check by SKU (for products that might have been created manually)
-    if (!existingProduct) {
-      existingProduct = await prisma.product.findFirst({
-        where: {
-          sku: sku,
-          companyId: companyId
-        }
-      });
-    }
-
-    if (existingProduct) {
-      // Update existing product
-      await prisma.product.update({
-        where: { id: existingProduct.id },
-        data: {
-          productName: productData.productName,
-          sku: productData.sku,
-          externalItemId: externalItemId, // Update external ID if it was missing
-          taxCodeRef: productData.tax_code_ref,
-          price: productData.price,
-          quantityOnHand: productData.quantity_on_hand,
-          isArchived: !productData.is_active,
-        }
-      });
-      return 'updated';
-    } else {
-      // Create new product
-      await prisma.product.create({
-        data: {
-          companyId: companyId,
-          productName: productData.productName,
-          sku: productData.sku,
-          externalItemId: externalItemId,
-          taxCodeRef: productData.tax_code_ref,
-          price: productData.price,
-          quantityOnHand: productData.quantity_on_hand,
-          isArchived: !productData.is_active,
-        }
-      });
-      return 'created';
-    }
   }
 
 
@@ -471,7 +465,7 @@ export class ProductSyncService {
           // Bulk Update (Prisma doesn't have updateMany with different values, so we iterate promises)
           // However, we are inside a single transaction so it's atomic.
           if (toUpdate.length > 0) {
-              // We can rely on p-limit here effectively because we are just queuing queries to the transaction buffer
+              // We are just queuing queries to the transaction buffer
               // But actually executing thousands of updates in one TX can be heavy.
               // Let's batch the promises to avoid call stack issues
               
