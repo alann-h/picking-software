@@ -83,7 +83,7 @@ setInterval(() => {
 
 
 // Sync products every 10 minutes to emulate webhook-like freshness
-const SYNC_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+const SYNC_INTERVAL = 5 * 60 * 1000; // 10 minutes in milliseconds
 
 setInterval(() => {
   console.log('🔄 Running scheduled product sync with saved settings...');
