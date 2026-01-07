@@ -132,14 +132,14 @@ async function getXeroCustomerQuotes(oauthClient: XeroClient, customerId: string
   }
 }
 
-export async function fetchQuotesSince(companyId: string, connectionType: ConnectionType, lastSyncTime: Date): Promise<CustomerQuote[]> {
+export async function fetchQuotesSince(companyId: string, connectionType: ConnectionType, lastSyncTime: Date): Promise<(FilteredQuote | QuoteFetchError)[]> {
   try {
     if (connectionType === 'qbo') {
       const oauthClient = await tokenService.getOAuthClient(companyId, 'qbo') as IntuitOAuthClient;
-      return await getQboQuotesSince(oauthClient, lastSyncTime);
+      return await getQboQuotesSince(oauthClient, lastSyncTime, companyId);
     } else if (connectionType === 'xero') {
       const oauthClient = await tokenService.getOAuthClient(companyId, 'xero') as XeroClient;
-      return await getXeroQuotesSince(oauthClient, lastSyncTime);
+      return await getXeroQuotesSince(oauthClient, lastSyncTime, companyId);
     } else {
       throw new AccessError(`Unsupported connection type: ${connectionType}`);
     }
@@ -151,7 +151,7 @@ export async function fetchQuotesSince(companyId: string, connectionType: Connec
   }
 }
 
-async function getQboQuotesSince(oauthClient: IntuitOAuthClient, lastSyncTime: Date): Promise<CustomerQuote[]> {
+async function getQboQuotesSince(oauthClient: IntuitOAuthClient, lastSyncTime: Date, companyId: string): Promise<(FilteredQuote | QuoteFetchError)[]> {
   try {
     const baseURL = await getBaseURL(oauthClient, 'qbo');
     const realmId = getRealmId(oauthClient);
@@ -171,18 +171,42 @@ async function getQboQuotesSince(oauthClient: IntuitOAuthClient, lastSyncTime: D
     }
     
     const estimates = responseData.QueryResponse.Estimate || [];
+    if (estimates.length === 0) return [];
 
-    return estimates
-      .filter((quote: Record<string, unknown>) => quote.TxnStatus !== 'Closed')
-      .map((quote: Record<string, unknown>) => ({
-        id: Number(quote.Id),
-        quoteNumber: quote.DocNumber,
-        totalAmount: quote.TotalAmt,
-        customerName: (quote.CustomerRef as Record<string, unknown>).name as string,
-        customerId: (quote.CustomerRef as Record<string, unknown>).value as string,
-        lastModified: (quote.MetaData as Record<string, unknown>).LastUpdatedTime as string,
-        createdAt: quote.TxnDate as string,
-      }));
+    const activeEstimates = estimates.filter((quote: Record<string, unknown>) => quote.TxnStatus !== 'Closed');
+    
+    // --- BULK PRODUCT FETCH ---
+    const allItemIds = new Set<string>();
+    
+    for (const estimate of activeEstimates) {
+        const lines = estimate.Line as Array<Record<string, unknown>> || [];
+        for (const line of lines) {
+             const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
+             if (salesItemLineDetail && salesItemLineDetail.ItemRef) {
+                 const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
+                 if (itemRef.value) allItemIds.add(itemRef.value as string);
+             }
+        }
+    }
+
+    let productMap = new Map<string, Product>();
+    if (allItemIds.size > 0) {
+        const products = await getProductsFromDBByIds(Array.from(allItemIds), companyId);
+        // Typescript fix: ensure key is string
+        products.forEach(p => {
+            if (p.externalItemId) productMap.set(p.externalItemId, p);
+        });
+    }
+
+    // --- TRANSFORM ---
+    const results: (FilteredQuote | QuoteFetchError)[] = [];
+    for (const estimate of activeEstimates) {
+        const result = await filterQboEstimate(estimate, companyId, 'qbo', productMap);
+        results.push(result);
+    }
+
+    return results;
+
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw new Error(`Failed to fetch QBO quotes since ${lastSyncTime}: ${error.message}`);
@@ -191,7 +215,7 @@ async function getQboQuotesSince(oauthClient: IntuitOAuthClient, lastSyncTime: D
   }
 }
 
-async function getXeroQuotesSince(oauthClient: XeroClient, lastSyncTime: Date): Promise<CustomerQuote[]> {
+async function getXeroQuotesSince(oauthClient: XeroClient, lastSyncTime: Date, companyId: string): Promise<(FilteredQuote | QuoteFetchError)[]> {
   try {
     const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
 
@@ -203,20 +227,54 @@ async function getXeroQuotesSince(oauthClient: XeroClient, lastSyncTime: Date): 
       undefined,  // expiryDateFrom
       undefined,  // expiryDateTo
       undefined, // contactID
-      undefined,    // status - fetch all statuses to catch updates
+      undefined,    // status
     );
 
     const quotes = response.body.quotes || [];
     
-    return quotes.map((quote: XeroQuote) => ({
-      id: quote.quoteID!,
-      quoteNumber: quote.quoteNumber || '',
-      totalAmount: quote.total || 0,
-      customerName: quote.contact?.name || 'Unknown Customer',
-      customerId: quote.contact?.contactID || '',
-      lastModified: quote.updatedDateUTC!,
-      createdAt: quote.dateString || quote.date || '',
-    }));
+    // Xero getQuotes often returns summaries. We need to check if line items are present.
+    // If NOT present, we must fetch details. 
+    // To handle bulk efficiency, we can fetch details in parallel patches.
+    
+    const results: (FilteredQuote | QuoteFetchError)[] = [];
+    const BATCH_SIZE = 10;
+    
+        // We'll process them in chunks
+    for (let i = 0; i < quotes.length; i += BATCH_SIZE) {
+        const chunk = quotes.slice(i, i + BATCH_SIZE);
+
+        // Optimistic Bulk Fetch: Collect SKUs from this chunk
+        const allSkus = new Set<string>();
+        chunk.forEach(q => {
+             (q.lineItems || []).forEach(item => {
+                 if (item.itemCode) allSkus.add(item.itemCode);
+             });
+        });
+
+        let productMap = new Map<string, Product>();
+        if (allSkus.size > 0) {
+             const products = await getProductsFromDBBySkus(Array.from(allSkus), companyId);
+             products.forEach(p => {
+                 if (p.sku) productMap.set(p.sku, p);
+             });
+        }
+
+        await Promise.all(chunk.map(async (quote) => {
+             try {
+                const result = await filterXeroEstimate(quote, companyId, 'xero', productMap);
+                results.push(result);
+             } catch (err: unknown) {
+                 results.push({
+                     error: true,
+                     quoteId: quote.quoteID || 'unknown',
+                     message: err instanceof Error ? err.message : 'Unknown Xero mapping error',
+                     productName: 'Unknown'
+                 });
+             }
+        }));
+    }
+
+    return results;
 
   } catch (error: unknown) {
     console.error('Error fetching Xero global quotes:', error);
@@ -325,37 +383,40 @@ async function filterEstimates(responseData: Record<string, unknown>, companyId:
   }
 }
 
-async function filterQboEstimate(estimate: Record<string, unknown>, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError> {
+async function filterQboEstimate(estimate: Record<string, unknown>, companyId: string, connectionType: ConnectionType, preFetchedProductMap?: Map<string, Product>): Promise<FilteredQuote | QuoteFetchError> {
   const estimateLine = estimate.Line as Array<Record<string, unknown>>;
-  const itemIds = estimateLine
-    .filter((line: Record<string, unknown>) => {
-      if (line.DetailType === 'SubTotalLineDetail' || line.DetailType === 'TaxLineDetail') {
-        return false;
-      }
-      const amount = line.Amount as number;
-      if (amount && amount < 0) {
-        return false;
-      }
-      const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
-      // Skip lines without ItemRef
-      if (!salesItemLineDetail || !salesItemLineDetail.ItemRef) {
-        return false;
-      }
-      const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
-      const itemId = itemRef.value as string;
-      if (itemId === 'SHIPPING_ITEM_ID') {
-        return false;
-      }
-      return true;
-    })
-    .map((line: Record<string, unknown>) => {
-      const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
-      const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
-      return itemRef.value as string;
-    });
-    
-  const productsFromDB: Product[] = await getProductsFromDBByIds(itemIds, companyId); 
-  const productMap = new Map(productsFromDB.map(p => [p.externalItemId, p]));
+  let productMap: Map<string, Product>;
+
+  if (preFetchedProductMap) {
+      productMap = preFetchedProductMap;
+      // We still need to verify if we missed any (e.g. if the bulk fetch logic missed some)
+      // But assuming bulk fetch was correct, we iterate.
+  } else {
+      // FALBACK: Old logic (fetch specific IDs)
+      const itemIds = estimateLine
+        .filter((line: Record<string, unknown>) => {
+          if (line.DetailType === 'SubTotalLineDetail' || line.DetailType === 'TaxLineDetail') return false;
+          const amount = line.Amount as number;
+          if (amount && amount < 0) return false;
+          const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
+          if (!salesItemLineDetail || !salesItemLineDetail.ItemRef) return false;
+          const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
+          const itemId = itemRef.value as string;
+          if (itemId === 'SHIPPING_ITEM_ID') return false;
+          return true;
+        })
+        .map((line: Record<string, unknown>) => {
+          const salesItemLineDetail = line.SalesItemLineDetail as Record<string, unknown>;
+          const itemRef = salesItemLineDetail.ItemRef as Record<string, unknown>;
+          return itemRef.value as string;
+        });
+        
+      const productsFromDB = await getProductsFromDBByIds(itemIds, companyId); 
+      productMap = new Map();
+      productsFromDB.forEach(p => {
+          if (p.externalItemId) productMap.set(p.externalItemId, p);
+      });
+  }
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const line of estimateLine) {
@@ -463,15 +524,22 @@ async function filterQboEstimate(estimate: Record<string, unknown>, companyId: s
     };
 }
 
-async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectionType: ConnectionType): Promise<FilteredQuote | QuoteFetchError> {
+async function filterXeroEstimate(quote: XeroQuote, companyId: string, connectionType: ConnectionType, preFetchedProductMap?: Map<string, Product>): Promise<FilteredQuote | QuoteFetchError> {
   const lineItems = quote.lineItems || [];
-  console.log('lineItems', lineItems);
-  const skus = lineItems
-    .filter(item => item.itemCode)
-    .map(item => item.itemCode!);
-  console.log('skus', skus);
-  const productsFromDB: Product[] = await getProductsFromDBBySkus(skus, companyId); 
-  const productMap = new Map(productsFromDB.map(p => [p.sku, p]));
+  let productMap: Map<string, Product>;
+
+  if (preFetchedProductMap) {
+      productMap = preFetchedProductMap;
+  } else {
+      const skus = lineItems
+        .filter(item => item.itemCode)
+        .map(item => item.itemCode!);
+      const productsFromDB: Product[] = await getProductsFromDBBySkus(skus, companyId); 
+      productMap = new Map();
+      productsFromDB.forEach(p => {
+          if (p.sku) productMap.set(p.sku, p);
+      });
+  }
   const productInfo: Record<string, ProductInfo> = {};
    
   for (const lineItem of lineItems) {
@@ -767,7 +835,7 @@ async function updateQuotePreparerNames(quoteId: string, userName: string): Prom
     });
 
     const currentNames = quote?.preparerNames
-      ? quote.preparerNames.split(',').map((name: any) => name.trim().toLowerCase())
+      ? quote.preparerNames.split(',').map((name: string) => name.trim().toLowerCase())
       : [];
 
     const normalizedNewName = userName.trim().toLowerCase();

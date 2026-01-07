@@ -28,18 +28,10 @@ export class QuoteSyncService {
     try {
       console.log(`Starting quote sync for company: ${companyId}`);
 
-      // 1. Get the last sync time from sync_settings (passed down or fetched)
-      // For now, let's fetch it again to be safe, or default to 0 if not provided
       const syncSettings = await prisma.sync_settings.findUnique({
         where: { companyId }
       });
 
-      // Default to syncing strictly new things if no history, OR sync last 24h as safety net?
-      // Better: if never synced, sync last 30 days? Or all?
-      // Let's default to last 30 days if no history to be safe but not fetch forever
-      // Actually, if we want "all pending", we might need a "full sync" option.
-      // But usually "sync since last time" is the standard.
-      // If no last sync time, let's look back 30 days.
       const DEFAULT_LOOKBACK_DAYS = 30;
       const lastSyncTime = syncSettings?.lastSyncTime 
         ? new Date(syncSettings.lastSyncTime) 
@@ -47,63 +39,86 @@ export class QuoteSyncService {
 
       console.log(`Fetching quotes updated since: ${lastSyncTime.toISOString()}`);
 
-      // 2. Fetch ALL changed quotes at once for this company
-      const { fetchQuotesSince, getEstimate } = await import('./quoteService.js');
+      // 2. Fetch ALL changed quotes at once for this company (Now returns full data)
+      const { fetchQuotesSince } = await import('./quoteService.js');
       const changedQuotes = await fetchQuotesSince(companyId, connectionType, lastSyncTime);
       
       console.log(`Found ${changedQuotes.length} updated/new quotes`);
+
+      // Filter out errors and valid quotes
+      const validQuotes: FilteredQuote[] = [];
       
-      // 3. Process the changed quotes
-      for (const quoteSummary of changedQuotes) {
-         try {
-            // Check if quote is being checked or completed - if so, skip it to preserve final work
-            const existingQuote = await prisma.quote.findUnique({
-              where: { id: String(quoteSummary.id) },
-              select: { status: true }
-            });
-
-            if (existingQuote && ['checking', 'completed'].includes(existingQuote.status)) {
-              console.log(`⏭️  Skipping quote ${quoteSummary.quoteNumber || quoteSummary.id} - status is ${existingQuote.status}, being checked or completed`);
-              skippedCount++;
-              continue;
-            }
-
-            // Import the full quote
-            const quoteData = await getEstimate(String(quoteSummary.id), companyId, false, connectionType);
-
-            if (!quoteData) {
-              console.warn(`Could not fetch quote ${quoteSummary.id} data`);
-              skippedCount++;
-              continue;
-            }
-
-            if ((quoteData as QuoteFetchError).error) {
-              const error = quoteData as QuoteFetchError;
-              console.warn(`Error fetching quote ${quoteSummary.id}: ${error.message}`);
+      for (const item of changedQuotes) {
+          if ('error' in item && item.error) {
+              const errItem = item as QuoteFetchError;
+              console.warn(`Error fetching quote ${errItem.quoteId}: ${errItem.message}`);
               errors.push({
-                quoteId: String(quoteSummary.id),
-                error: error.message,
-                customerName: quoteSummary.customerName
+                  quoteId: String(errItem.quoteId),
+                  error: errItem.message,
+                  customerName: 'Unknown'
               });
               failedCount++;
-              continue;
-            }
+          } else {
+              validQuotes.push(item as FilteredQuote);
+          }
+      }
 
-            // Save to database
-            await estimateToDB(quoteData as FilteredQuote);
-            syncedCount++;
-            console.log(`✅ Synced quote ${quoteSummary.quoteNumber || quoteSummary.id} for ${quoteSummary.customerName}`);
+      if (validQuotes.length === 0) {
+          return {
+            success: failedCount === 0,
+            syncedCount,
+            failedCount,
+            skippedCount,
+            errors,
+            duration: Date.now() - startTime
+          };
+      }
 
-         } catch (quoteError) {
-            const errorMessage = quoteError instanceof Error ? quoteError.message : 'Unknown error';
-            console.error(`Error syncing quote ${quoteSummary.id}:`, errorMessage);
-            errors.push({
-              quoteId: String(quoteSummary.id),
-              error: errorMessage,
-              customerName: quoteSummary.customerName
-            });
-            failedCount++;
-         }
+      // 3. BULK STATUS CHECK
+      // Identify quotes that are already in 'checking' or 'completed' status locally
+      // We should NOT overwrite these.
+      const quoteIds = validQuotes.map(q => q.quoteId);
+      const lockedQuotes = await prisma.quote.findMany({
+          where: {
+              id: { in: quoteIds },
+              status: { in: ['checking', 'completed'] }
+          },
+          select: { id: true }
+      });
+      const lockedQuoteIds = new Set(lockedQuotes.map(q => q.id));
+
+      const quotesToSync = validQuotes.filter(q => {
+          if (lockedQuoteIds.has(q.quoteId)) {
+               console.log(`⏭️  Skipping quote ${q.quoteNumber || q.quoteId} - status is locked (checking/completed)`);
+               skippedCount++;
+               return false;
+          }
+          return true;
+      });
+
+      // 4. BATCH SAVE TO DB
+      // We process in small batches to avoid overwhelming the DB connection pool
+      const BATCH_SIZE = 20;
+      
+      for (let i = 0; i < quotesToSync.length; i += BATCH_SIZE) {
+          const batch = quotesToSync.slice(i, i + BATCH_SIZE);
+          
+          await Promise.all(batch.map(async (quote) => {
+               try {
+                   await estimateToDB(quote);
+                   syncedCount++;
+                   // console.log(`✅ Synced quote ${quote.quoteNumber} for ${quote.customerName}`); // Reduce noise
+               } catch (err) {
+                   const msg = err instanceof Error ? err.message : 'Unknown DB error';
+                   console.error(`Error saving quote ${quote.quoteId}:`, msg);
+                   errors.push({
+                       quoteId: quote.quoteId,
+                       error: msg,
+                       customerName: quote.customerName
+                   });
+                   failedCount++;
+               }
+          }));
       }
 
       const duration = Date.now() - startTime;
