@@ -218,30 +218,45 @@ async function getQboQuotesSince(oauthClient: IntuitOAuthClient, lastSyncTime: D
 async function getXeroQuotesSince(oauthClient: XeroClient, lastSyncTime: Date, companyId: string): Promise<(FilteredQuote | QuoteFetchError)[]> {
   try {
     const { tenantId } = await authSystem.getXeroTenantId(oauthClient);
+    const allQuotes: XeroQuote[] = [];
+    let page = 1;
+    let hasMore = true;
 
-    const response = await oauthClient.accountingApi.getQuotes(
-      tenantId,
-      lastSyncTime, // ifModifiedSince
-      undefined,  // dateFrom
-      undefined,  // dateTo
-      undefined,  // expiryDateFrom
-      undefined,  // expiryDateTo
-      undefined, // contactID
-      undefined,    // status
-    );
+    console.log(`📡 Fetching Xero quotes modified since: ${lastSyncTime.toISOString()}`);
 
-    const quotes = response.body.quotes || [];
+    while (hasMore) {
+        const response = await oauthClient.accountingApi.getQuotes(
+          tenantId,
+          lastSyncTime, // ifModifiedSince
+          undefined,  // dateFrom
+          undefined,  // dateTo
+          undefined,  // expiryDateFrom
+          undefined,  // expiryDateTo
+          undefined, // contactID
+          undefined,    // status
+          page,         // page
+        );
+
+        const pageQuotes = response.body.quotes || [];
+        allQuotes.push(...pageQuotes);
+        
+        console.log(`   📄 Page ${page}: Fetched ${pageQuotes.length} quotes. Total so far: ${allQuotes.length}`);
+
+        if (pageQuotes.length < 100) {
+            hasMore = false;
+        } else {
+            page++;
+        }
+    }
     
-    // Xero getQuotes often returns summaries. We need to check if line items are present.
-    // If NOT present, we must fetch details. 
-    // To handle bulk efficiency, we can fetch details in parallel patches.
-    
+    console.log(`✅ Total Xero quotes fetched: ${allQuotes.length}`);
+
     const results: (FilteredQuote | QuoteFetchError)[] = [];
     const BATCH_SIZE = 10;
     
         // We'll process them in chunks
-    for (let i = 0; i < quotes.length; i += BATCH_SIZE) {
-        const chunk = quotes.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < allQuotes.length; i += BATCH_SIZE) {
+        const chunk = allQuotes.slice(i, i + BATCH_SIZE);
 
         // Optimistic Bulk Fetch: Collect SKUs from this chunk
         const allSkus = new Set<string>();
