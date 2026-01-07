@@ -297,10 +297,20 @@ export class ProductSyncService {
           console.log(`🔄 Syncing all QBO products for ${company.companyName} (Scheduled Safety Sync)`);
           results[company.id] = await this.syncAllProductsFromQBO(company.id);
 
+          // Sync Quotes as well (Safety Net)
+          console.log(`🔄 Syncing QBO quotes for ${company.companyName} (Safety Sync)`);
+          try {
+             const { QuoteSyncService } = await import('./quoteSyncService.js');
+             await QuoteSyncService.syncAllPendingQuotes(company.id, 'qbo');
+             console.log(`✅ QBO quotes synced for ${company.companyName}`);
+          } catch (quoteError) {
+             console.error(`❌ Failed to sync QBO quotes for ${company.companyName}:`, quoteError);
+          }
+
         } else if (company.connectionType === 'xero') {
           // For Xero, we respect the 10 min polling interval
           if (timeSinceLastSync < XERO_SYNC_THRESHOLD) {
-             console.log(`⏳ Xero sync skipped for ${company.companyName} (Last sync: ${Math.round(timeSinceLastSync/1000/60)}m ago). Threshold: 10m.`);
+             console.log(`⏳ Xero sync skipped for ${company.companyName} (Last sync: ${Math.round(timeSinceLastSync/1000/60)}m ago). Threshold: 9m.`);
              results[company.id] = {
                 success: true, totalProducts: 0, updatedProducts: 0, newProducts: 0, errors: [], duration: 0
              };
