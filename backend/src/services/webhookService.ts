@@ -138,6 +138,8 @@ export class WebhookService {
      console.log(`Processing Xero webhook for company ${targetCompanyId} (Tenant: ${tenantId})`);
 
      for (const event of events) {
+         console.log('📬 Xero Webhook Event:', JSON.stringify(event, null, 2));
+
          if (event.eventCategory === 'CONTACT') {
              if (event.eventType === 'CREATE' || event.eventType === 'UPDATE') {
                  await this.handleXeroContactChange(event.resourceId, targetCompanyId);

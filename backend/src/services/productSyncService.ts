@@ -172,16 +172,7 @@ export class ProductSyncService {
         duration: `${result.duration}ms`
       });
 
-      // Update last sync time in sync settings
-      await prisma.sync_settings.upsert({
-        where: { companyId },
-        update: { lastSyncTime: new Date() },
-        create: { 
-          companyId, 
-          enabled: true, 
-          lastSyncTime: new Date() 
-        }
-      });
+
 
       return result;
 
@@ -283,7 +274,7 @@ export class ProductSyncService {
         const now = Date.now();
         const timeSinceLastSync = now - lastSync;
 
-        const XERO_SYNC_THRESHOLD = 4 * 60 * 1000;      // 4 minutes
+        const XERO_SYNC_THRESHOLD = 9 * 60 * 1000;      // 9 minutes
         const QBO_SYNC_THRESHOLD = 24 * 60 * 60 * 1000;  // 24 hours
 
         if (company.connectionType === 'qbo') {
@@ -306,6 +297,13 @@ export class ProductSyncService {
           } catch (quoteError) {
              console.error(`❌ Failed to sync QBO quotes for ${company.companyName}:`, quoteError);
           }
+          
+          // Update last sync time ONLY after both success
+          await prisma.sync_settings.upsert({
+            where: { companyId: company.id },
+            update: { lastSyncTime: new Date() },
+            create: { companyId: company.id, enabled: true, lastSyncTime: new Date() }
+          });
 
         } else if (company.connectionType === 'xero') {
           // For Xero, we respect the 10 min polling interval
@@ -329,6 +327,13 @@ export class ProductSyncService {
           } catch (quoteError) {
              console.error(`❌ Failed to sync Xero quotes for ${company.companyName}:`, quoteError);
           }
+
+          // Update last sync time ONLY after both success
+          await prisma.sync_settings.upsert({
+            where: { companyId: company.id },
+            update: { lastSyncTime: new Date() },
+            create: { companyId: company.id, enabled: true, lastSyncTime: new Date() }
+          });
         }
       } catch (error) {
         console.error(`❌ Failed to sync company ${company.companyName}:`, error);
@@ -498,16 +503,7 @@ export class ProductSyncService {
         duration
       });
 
-      // Update last sync time
-      await prisma.sync_settings.upsert({
-        where: { companyId },
-        update: { lastSyncTime: new Date() },
-        create: { 
-          companyId, 
-          enabled: true, 
-          lastSyncTime: new Date() 
-        }
-      });
+
 
       return {
         success: true,
