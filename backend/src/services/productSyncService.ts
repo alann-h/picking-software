@@ -283,7 +283,7 @@ export class ProductSyncService {
         const now = Date.now();
         const timeSinceLastSync = now - lastSync;
 
-        const XERO_SYNC_THRESHOLD = 10 * 60 * 1000;      // 10 minutes
+        const XERO_SYNC_THRESHOLD = 9 * 60 * 1000;      // 9 minutes
         const QBO_SYNC_THRESHOLD = 24 * 60 * 60 * 1000;  // 24 hours
 
         if (company.connectionType === 'qbo') {
