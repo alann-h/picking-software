@@ -6,6 +6,7 @@ import { FilteredQuote, QuoteFetchError, ProductInfo } from '../types/quote.js';
 import { fetchXeroCustomerById } from './customerService.js';
 import { XeroClient } from 'xero-node';
 import { tokenService } from './tokenService.js';
+import { QuoteSyncService } from './quoteSyncService.js';
 
 export interface WebhookEvent {
   id: string;
@@ -168,7 +169,7 @@ export class WebhookService {
         const existingCustomer = await prisma.customer.findUnique({
             where: { id: contactId }
         });
-
+        
         if (existingCustomer) {
             console.log(`Updating existing Xero customer: ${customerData.customer_name}`);
             await prisma.customer.update({
@@ -191,6 +192,12 @@ export class WebhookService {
         }
         
         console.log(`✅ Successfully synced Xero customer: ${customerData.customer_name}`);
+        try {
+            await QuoteSyncService.syncAllPendingQuotes(companyId, 'xero');
+            console.log(`✅ Successfully synced pending quotes for company ${companyId}`);
+        } catch (err) {
+            console.error(`Error syncing quotes in webhook:`, err);
+        }
 
     } catch (error) {
         console.error(`Error processing Xero contact change for ${contactId}:`, error);

@@ -318,17 +318,7 @@ export class ProductSyncService {
           console.log(`🔄 Syncing all Xero products for ${company.companyName} (Polling Sync)`);
           results[company.id] = await this.syncAllProductsFromXero(company.id);
 
-          // Sync Quotes as well (polling)
-          console.log(`🔄 Syncing Xero quotes for ${company.companyName} (Polling Sync)`);
-          try {
-             const { QuoteSyncService } = await import('./quoteSyncService.js');
-             await QuoteSyncService.syncAllPendingQuotes(company.id, 'xero');
-             console.log(`✅ Xero quotes synced for ${company.companyName}`);
-          } catch (quoteError) {
-             console.error(`❌ Failed to sync Xero quotes for ${company.companyName}:`, quoteError);
-          }
-
-          // Update last sync time ONLY after both success
+          // Update last sync time
           await prisma.sync_settings.upsert({
             where: { companyId: company.id },
             update: { lastSyncTime: new Date() },
