@@ -10,6 +10,7 @@ import {
     getLatestDriverName,
     getRunReports,
     updateRunItemStatus,
+    updateRunItemsStatusBulk,
     moveUndeliveredItems,
     RunItemUpdate
 } from '../services/runService.js'; // New service file for runs
@@ -200,6 +201,26 @@ export async function updateRunItemStatusController(req: Request, res: Response,
 
         await updateRunItemStatus(runId, quoteId, status as RunItemStatus);
         res.status(200).json({ message: 'Item status updated' });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateRunItemsStatusBulkController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { runId } = req.params;
+        const { quoteIds, status } = req.body;
+
+        if (!Array.isArray(quoteIds) || quoteIds.length === 0) {
+            return res.status(400).json({ error: 'quoteIds must be a non-empty array' });
+        }
+        
+        if (!['pending', 'delivered', 'undelivered'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        await updateRunItemsStatusBulk(runId, quoteIds, status as RunItemStatus);
+        res.status(200).json({ message: 'Items status updated successfully' });
     } catch (error) {
         next(error);
     }

@@ -12,7 +12,7 @@ import { RUNS_BASE } from './config';
  */
 export const createRunFromQuotes  = async (orderedQuoteIds: string[], companyId: string, runName?: string): Promise<Run> => {
   const data = await apiCallPost(`${RUNS_BASE}/bulk`, { orderedQuoteIds, companyId, runName });
-  return data;
+  return data as Run;
 };
 
 /**
@@ -22,7 +22,7 @@ export const createRunFromQuotes  = async (orderedQuoteIds: string[], companyId:
  */
 export const getRuns = async (companyId: string): Promise<Run[]> => {
   const data = await apiCallGet(`${RUNS_BASE}/company/${companyId}`);
-  return data;
+  return data as Run[];
 };
 
 /**
@@ -33,51 +33,56 @@ export const getRuns = async (companyId: string): Promise<Run[]> => {
  */
 export const updateRunStatus = async (runId: string, status: 'pending' | 'checking' | 'completed'): Promise<Run> => {
   const data = await apiCallPut(`${RUNS_BASE}/${runId}/status`, { status });
-  return data;
+  return data as Run;
 };
 
 export const getRunReports = async (startDate: string, endDate: string, dateFilter: 'created' | 'completed' = 'created'): Promise<any> => {
   const query = new URLSearchParams({ startDate, endDate, dateFilter }).toString();
   const data = await apiCallGet(`${RUNS_BASE}/reports?${query}`);
-  return data;
+  return data as any;
 };
 
 export const updateRunQuotes  = async (runId: string, orderedQuoteIds: string[]): Promise<Run> => {
   const data = await apiCallPut(`${RUNS_BASE}/${runId}`, { orderedQuoteIds });
-  return data;
+  return data as Run;
 };
 
 export const updateRunName = async (runId: string, runName: string): Promise<Run> => {
   const data = await apiCallPut(`${RUNS_BASE}/${runId}/name`, { runName });
-  return data;
+  return data as Run;
 };
 
 export const deleteRun  = async (runId: string): Promise<void> => {
   const data = await apiCallDelete(`${RUNS_BASE}/${runId}`);
-  return data;
+  return data as void;
 };
 
 export const updateRunDriver = async (runId: string, driverName: string): Promise<Run> => {
   const data = await apiCallPut(`${RUNS_BASE}/${runId}/driver`, { driverName });
-  return data;
+  return data as Run;
 };
 
 export const updateRunItemsDetails = async (runId: string, items: { quoteId: string; size?: string; type?: string; deliveryCost?: number; notes?: string }[]): Promise<void> => {
   const data = await apiCallPut(`${RUNS_BASE}/${runId}/items`, { items });
-  return data;
+  return data as void;
 };
 
 export const getLatestDriverName = async (): Promise<{ driverName: string | null }> => {
   const data = await apiCallGet(`${RUNS_BASE}/latest-driver`);
-  return data;
+  return data as { driverName: string | null };
 };
 
 export const updateRunItemStatus = async (runId: string, quoteId: string, status: 'pending' | 'delivered' | 'undelivered'): Promise<void> => {
   const data = await apiCallPut(`${RUNS_BASE}/${runId}/items/${quoteId}/status`, { status });
-  return data;
+  return data as void;
 };
 
 export const moveUndeliveredItems = async (runId: string, targetRunId: string, itemIds: string[]): Promise<void> => {
   const data = await apiCallPost(`${RUNS_BASE}/${runId}/move-items`, { targetRunId, itemIds });
-  return data;
+  return data as void;
+};
+
+export const updateRunItemsStatusBulk = async (runId: string, quoteIds: string[], status: 'pending' | 'delivered' | 'undelivered'): Promise<void> => {
+  const data = await apiCallPut(`${RUNS_BASE}/${runId}/items/status-bulk`, { quoteIds, status });
+  return data as void;
 };

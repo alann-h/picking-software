@@ -219,6 +219,39 @@ export async function updateRunItemStatus(runId: string, quoteId: string, status
     }
 }
 
+export async function updateRunItemsStatusBulk(runId: string, quoteIds: string[], status: RunItemStatus): Promise<void> {
+    try {
+        await prisma.$transaction(async (tx) => {
+             // 1. Update all specified items to the new status
+            await tx.runItem.updateMany({
+                where: {
+                    runId,
+                    quoteId: { in: quoteIds }
+                },
+                data: { status: status as any }
+            });
+
+            // 2. If delivered, update quotes to completed.
+            if (status === 'delivered') {
+                await tx.quote.updateMany({
+                    where: { id: { in: quoteIds } },
+                    data: { status: 'completed' }
+                });
+            }
+            // If undelivered or pending, we might consider reverting quote status?
+            // "pending" run item status usually implies the delivery hasn't happened yet.
+            // If we are "undoing" delivery (setting back to pending), we should probably set quote status back to 'assigned' (if it was completed).
+            // However, the Quote might have been completed by other means.
+            // Safer to only set to 'completed' on delivery. 
+            // If reverting to pending/undelivered, maybe check if they were completed and revert to assigned?
+            // Let's stick to the plan: if delivered -> completed.
+        });
+    } catch (error) {
+        console.error(`Error bulk updating run items for run ${runId}:`, error);
+        throw error;
+    }
+}
+
 export async function moveUndeliveredItems(sourceRunId: string, targetRunId: string, itemIds: string[]): Promise<void> {
     try {
         await prisma.$transaction(async (tx) => {

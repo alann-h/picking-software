@@ -8,7 +8,7 @@ import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient, useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { Run, RunQuote, QuoteSummary, Customer, OrderStatus } from '../../utils/types';
-import { updateRunQuotes, updateRunStatus, updateRunName, updateRunItemStatus, moveUndeliveredItems, getRuns } from '../../api/runs';
+import { updateRunQuotes, updateRunStatus, updateRunName, updateRunItemStatus, updateRunItemsStatusBulk, moveUndeliveredItems, getRuns } from '../../api/runs';
 import { getQuotesWithStatus, getCustomerQuotes } from '../../api/quote';
 import { getCustomers } from '../../api/customers';
 import { useSnackbarContext } from '../SnackbarContext';
@@ -341,6 +341,46 @@ export const RunItem: React.FC<{
         },
     });
 
+    const updateItemsStatusBulkMutation = useMutation({
+        mutationFn: async ({ runId, quoteIds, status }: { runId: string; quoteIds: string[]; status: 'pending' | 'delivered' | 'undelivered' }) => {
+            return updateRunItemsStatusBulk(runId, quoteIds, status);
+        },
+        onMutate: async ({ runId, quoteIds, status }) => {
+            await queryClient.cancelQueries({ queryKey: ['runs', userCompanyId] });
+            const previousRuns = queryClient.getQueryData<Run[]>(['runs', userCompanyId]);
+
+            if (previousRuns) {
+                queryClient.setQueryData<Run[]>(['runs', userCompanyId], (old) => {
+                    if (!old) return [];
+                    return old.map(r => {
+                        if (r.id === runId) {
+                            return {
+                                ...r,
+                                quotes: r.quotes.map(q => {
+                                    if (quoteIds.includes(q.quoteId)) {
+                                        return { ...q, runItemStatus: status };
+                                    }
+                                    return q;
+                                })
+                            };
+                        }
+                        return r;
+                    });
+                });
+            }
+            return { previousRuns };
+        },
+        onError: (err, variables, context) => {
+            if (context?.previousRuns) {
+                queryClient.setQueryData(['runs', userCompanyId], context.previousRuns);
+            }
+            handleOpenSnackbar('Failed to update items status.', 'error');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
+        }
+    });
+
     const moveUndeliveredItemsMutation = useMutation({
         mutationFn: async ({ targetRunId, itemIds }: { targetRunId: string; itemIds: string[] }) => {
             return moveUndeliveredItems(run.id, targetRunId, itemIds);
@@ -539,6 +579,25 @@ export const RunItem: React.FC<{
         });
     };
 
+    const handleMarkAllDelivered = () => {
+        const itemIds = (run.quotes || []).map(q => q.quoteId);
+        updateItemsStatusBulkMutation.mutate({
+            runId: run.id,
+            quoteIds: itemIds,
+            status: 'delivered'
+        });
+    };
+
+    const handleUndoMarkAllDelivered = () => {
+        const itemIds = (run.quotes || []).map(q => q.quoteId);
+        updateItemsStatusBulkMutation.mutate({
+            runId: run.id,
+            quoteIds: itemIds,
+            status: 'pending' // Revert to pending
+        });
+    };
+
+    const areAllDelivered = (run.quotes || []).length > 0 && (run.quotes || []).every(q => q.runItemStatus === 'delivered');
     const hasUndeliveredItems = (run.quotes || []).some(q => q.runItemStatus === 'undelivered');
     const runRef = React.useRef<HTMLDivElement>(null);
 
@@ -979,6 +1038,26 @@ export const RunItem: React.FC<{
                                             >
                                                 <ArrowRight className="w-4 h-4 mr-1" /> Move Undelivered
                                             </button>
+                                        )}
+                                        
+                                        {run.status === 'completed' && (
+                                            areAllDelivered ? (
+                                                <button 
+                                                    onClick={handleUndoMarkAllDelivered}
+                                                    disabled={updateItemsStatusBulkMutation.isPending}
+                                                    className="text-xs sm:text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 flex items-center cursor-pointer"
+                                                >
+                                                    <Check className="w-4 h-4 mr-1 text-gray-400" /> Undo Mark All
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    onClick={handleMarkAllDelivered}
+                                                    disabled={updateItemsStatusBulkMutation.isPending}
+                                                    className="text-xs sm:text-sm px-3 py-1.5 rounded-md border border-green-600 text-green-600 hover:bg-green-50 flex items-center cursor-pointer"
+                                                >
+                                                    <Check className="w-4 h-4 mr-1" /> Mark All Delivered
+                                                </button>
+                                            )
                                         )}
                                         
                                         <button onClick={() => handleChangeRunStatus('pending')} disabled={optimisticStatus === 'pending' || updateStatusMutation.isPending} className="text-xs sm:text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Mark Pending</button>

@@ -13,6 +13,7 @@ import {
     getLatestDriverNameController,
     getRunReportsController,
     updateRunItemStatusController,
+    updateRunItemsStatusBulkController,
     moveUndeliveredItemsController
 } from '../controllers/runController.js';
 import {
@@ -38,6 +39,7 @@ router.put('/:runId/items', isAdmin, runIdRule(), validate, asyncHandler(updateR
 
 // New ROUTES
 router.put('/:runId/items/:quoteId/status', isAdmin, runIdRule(), validate, asyncHandler(updateRunItemStatusController));
+router.put('/:runId/items/status-bulk', isAdmin, runIdRule(), validate, asyncHandler(updateRunItemsStatusBulkController));
 router.post('/:runId/move-items', isAdmin, runIdRule(), validate, asyncHandler(moveUndeliveredItemsController));
 
 router.get('/company/:companyId', companyIdRule(), validate, asyncHandler(getCompanyRunsController));
