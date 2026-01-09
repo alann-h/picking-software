@@ -811,7 +811,6 @@ export async function updateRunDeliveryDate(runId: string, deliveryDate: Date | 
             delivery_date: updatedRun.deliveryDate,
             // We can return quotes as empty array or fetch them if needed, but for update it might not be necessary if frontend updates optimistically or refetches.
             // But Type Run requires quotes.
-            quotes: [] 
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && (error as any).code === 'P2025') {
