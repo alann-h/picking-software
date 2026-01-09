@@ -108,6 +108,7 @@ export interface Run {
   run_name?: string;
   driver_name?: string;
   status: 'pending' | 'completed';
+  delivery_date?: string | null;
   customer_name?: string;
   total_amount?: number;
   quotes: RunQuote[];

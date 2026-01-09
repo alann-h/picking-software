@@ -6,6 +6,7 @@ import { getRunReports } from '../../api/runs';
 import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parse } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
 import { RunQuote } from '../../utils/types';
+import DatePickerPopover from '../../ui/DatePickerPopover';
 
 type TimeRange = 'today' | 'week' | 'month' | 'custom';
 
@@ -15,7 +16,7 @@ interface ReportRun {
     run_name: string;
     driver_name: string;
     status: string;
-    completed_at: string;
+    delivery_date: string;
     quotes: RunQuote[];
     total_delivery_cost?: number;
 }
@@ -34,7 +35,7 @@ const RunReports: React.FC = () => {
     const [timeRange, setTimeRange] = useState<TimeRange>('week');
     const [customStartDate, setCustomStartDate] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
     const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-    const [dateFilter, setDateFilter] = useState<'created' | 'completed'>('completed'); // Default to completed
+    const [dateFilter, setDateFilter] = useState<'created' | 'delivery'>('created'); // Default to created as it is safer
     const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
     const getDateRange = () => {
@@ -121,19 +122,19 @@ const RunReports: React.FC = () => {
                         </div>
 
                         {timeRange === 'custom' && (
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="date"
-                                    value={customStartDate}
-                                    onChange={(e) => setCustomStartDate(e.target.value)}
-                                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                                <DatePickerPopover 
+                                    date={customStartDate}
+                                    onSelect={setCustomStartDate}
+                                    label="Start Date"
                                 />
-                                <span className="text-slate-400">to</span>
-                                <input
-                                    type="date"
-                                    value={customEndDate}
-                                    onChange={(e) => setCustomEndDate(e.target.value)}
-                                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                
+                                <span className="text-slate-400 font-medium">to</span>
+                                
+                                <DatePickerPopover 
+                                    date={customEndDate}
+                                    onSelect={setCustomEndDate}
+                                    label="End Date"
                                 />
                             </div>
                         )}
@@ -152,15 +153,15 @@ const RunReports: React.FC = () => {
                             Date Created
                         </button>
                         <button
-                            onClick={() => setDateFilter('completed')}
+                            onClick={() => setDateFilter('delivery')}
                             className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
-                                dateFilter === 'completed'
+                                dateFilter === 'delivery'
                                     ? 'bg-white text-emerald-600 shadow-sm'
                                     : 'text-slate-600 hover:text-slate-900'
                             }`}
                         >
                             <TrendingUp size={16} />
-                            Date Completed
+                            Delivery Date
                         </button>
                     </div>
                 </div>

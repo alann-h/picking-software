@@ -12,7 +12,7 @@ async function getNextRunNumber(companyId: string): Promise<number> {
     return Number(result._max.runNumber || 0) + 1;
 }
 
-export async function createBulkRun(orderedQuoteIds: (string | number)[], companyId: string, connectionType: ConnectionType, runName?: string): Promise<Run> {
+export async function createBulkRun(orderedQuoteIds: (string | number)[], companyId: string, connectionType: ConnectionType, runName?: string, deliveryDate?: Date): Promise<Run> {
     // Convert all quote IDs to strings to handle mixed types (integers and strings)
     const stringQuoteIds = orderedQuoteIds.map(id => String(id));
 
@@ -54,6 +54,7 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                     runNumber: nextRunNumber,
                     runName: runName || null,
                     status: 'pending',
+                    deliveryDate: deliveryDate || null,
                 },
                 select: {
                     id: true,
@@ -63,7 +64,7 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                     runName: true,
                     driverName: true,
                     status: true,
-                    completedAt: true,
+                    deliveryDate: true,
                 },
             });
             
@@ -101,7 +102,7 @@ export async function createBulkRun(orderedQuoteIds: (string | number)[], compan
                 run_name: newRun.runName,
                 driver_name: newRun.driverName,
                 status: newRun.status,
-                completed_at: newRun.completedAt,
+                delivery_date: newRun.deliveryDate,
             };
         });
     } catch (error: unknown) {
@@ -125,7 +126,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
                 runName: true,
                 driverName: true,
                 status: true,
-                completedAt: true,
+                deliveryDate: true,
             },
         });
 
@@ -179,7 +180,7 @@ export async function getRunsByCompanyId(companyId: string): Promise<RunWithDeta
             driver_name: run.driverName,
             status: run.status,
             quotes: itemsByRunId.get(run.id) || [],
-            completed_at: run.completedAt,
+            delivery_date: run.deliveryDate,
         }));
 
         return finalResult;
@@ -300,14 +301,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
     }
 
     try {
-        const completedAtData = newStatus === 'completed' 
-            ? new Date() 
-            : newStatus === 'pending' ? null : undefined; 
-
         const dataToUpdate: any = { status: newStatus };
-        if (completedAtData !== undefined) {
-             dataToUpdate.completedAt = completedAtData;
-        }
 
         // If marking COMPLETED, automatically set all PENDING items to DELIVERED
         // This is a "bulk resolve" convenience. Failed items should have been marked failed/undelivered manually beforehand 
@@ -336,7 +330,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
                 runName: true,
                 driverName: true,
                 status: true,
-                completedAt: true,
+                deliveryDate: true,
             },
         });
 
@@ -348,7 +342,7 @@ export async function updateRunStatus(runId: string, newStatus: RunStatus): Prom
             run_name: updatedRun.runName,
             driver_name: updatedRun.driverName,
             status: updatedRun.status,
-            completed_at: updatedRun.completedAt,
+            delivery_date: updatedRun.deliveryDate,
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && error.code === 'P2025') {
@@ -479,7 +473,7 @@ export async function updateRunName(runId: string, runName: string): Promise<Run
                 runName: true,
                 driverName: true,
                 status: true,
-                completedAt: true,
+                deliveryDate: true,
             },
         });
 
@@ -491,7 +485,7 @@ export async function updateRunName(runId: string, runName: string): Promise<Run
             run_name: updatedRun.runName,
             driver_name: updatedRun.driverName,
             status: updatedRun.status,
-            completed_at: updatedRun.completedAt,
+            delivery_date: updatedRun.deliveryDate,
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && error.code === 'P2025') {
@@ -515,7 +509,7 @@ export async function updateRunDriver(runId: string, driverName: string | null):
                 runName: true,
                 driverName: true,
                 status: true,
-                completedAt: true,
+                deliveryDate: true,
             },
         });
 
@@ -527,7 +521,7 @@ export async function updateRunDriver(runId: string, driverName: string | null):
             run_name: updatedRun.runName,
             driver_name: updatedRun.driverName,
             status: updatedRun.status,
-            completed_at: updatedRun.completedAt,
+            delivery_date: updatedRun.deliveryDate,
         };
     } catch (error: unknown) {
         if (error instanceof Object && 'code' in error && error.code === 'P2025') {
@@ -653,13 +647,13 @@ export async function getRunReports(
     companyId: string, 
     startDate: Date, 
     endDate: Date, 
-    dateFilter: 'created' | 'completed' = 'created'
+    dateFilter: 'created' | 'delivery' = 'created'
 ): Promise<ReportData> {
     try {
         // startDate and endDate are already set to the correct UTC range for the Australian day by the controller.
         // So we don't need to manually adjust them here.
         
-        const dateField = dateFilter === 'completed' ? 'completedAt' : 'createdAt';
+        const dateField = dateFilter === 'delivery' ? 'deliveryDate' : 'createdAt';
         
         const runs = await prisma.run.findMany({
             where: {
@@ -668,7 +662,7 @@ export async function getRunReports(
                     gte: startDate,
                     lte: endDate,
                 },
-                ...(dateFilter === 'completed' && { completedAt: { not: null } }),
+                ...(dateFilter === 'delivery' && { deliveryDate: { not: null } }),
             },
             include: {
                 runItems: {
@@ -764,7 +758,7 @@ export async function getRunReports(
                 run_name: run.runName,
                 driver_name: run.driverName,
                 status: run.status,
-                completed_at: run.completedAt,
+                delivery_date: run.deliveryDate,
                 quotes: runQuotes,
                 total_delivery_cost: runCost
             });
@@ -788,3 +782,42 @@ export async function getRunReports(
     }
 }
 
+
+export async function updateRunDeliveryDate(runId: string, deliveryDate: Date | null): Promise<Run> {
+    try {
+        const updatedRun = await prisma.run.update({
+            where: { id: runId },
+            data: { deliveryDate },
+            select: {
+                id: true,
+                companyId: true,
+                createdAt: true,
+                runNumber: true,
+                runName: true,
+                driverName: true,
+                status: true,
+                deliveryDate: true,
+            },
+        });
+
+        return {
+            id: updatedRun.id,
+            company_id: updatedRun.companyId,
+            created_at: updatedRun.createdAt,
+            run_number: Number(updatedRun.runNumber),
+            run_name: updatedRun.runName,
+            driver_name: updatedRun.driverName,
+            status: updatedRun.status,
+            delivery_date: updatedRun.deliveryDate,
+            // We can return quotes as empty array or fetch them if needed, but for update it might not be necessary if frontend updates optimistically or refetches.
+            // But Type Run requires quotes.
+            quotes: [] 
+        };
+    } catch (error: unknown) {
+        if (error instanceof Object && 'code' in error && (error as any).code === 'P2025') {
+             throw new InputError(`Run with ID ${runId} not found.`);
+        }
+        console.error('Error in updateRunDeliveryDate service:', error);
+        throw new Error('Failed to update delivery date');
+    }
+}

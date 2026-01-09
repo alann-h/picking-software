@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 interface PortalDropdownProps {
@@ -18,7 +18,7 @@ const PortalDropdown: React.FC<PortalDropdownProps> = ({
   className = "max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm",
   maxHeight
 }) => {
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const updatePosition = useCallback(() => {
     if (triggerRef.current) {
@@ -31,50 +31,51 @@ const PortalDropdown: React.FC<PortalDropdownProps> = ({
     }
   }, [triggerRef]);
 
-  React.useEffect(() => {
+  useLayoutEffect(() => {
     if (isOpen) {
       updatePosition();
+    } else {
+      setPosition(null);
     }
   }, [isOpen, updatePosition]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       
-      // Check if click is within the trigger
       if (triggerRef.current && triggerRef.current.contains(target)) {
         return;
       }
       
-      // Check if click is within the dropdown itself
-      const dropdownElement = document.querySelector('[data-portal-dropdown]');
-      if (dropdownElement && dropdownElement.contains(target)) {
-        return;
+      const dropdownElements = document.querySelectorAll('[data-portal-dropdown]');
+      let clickedInside = false;
+      dropdownElements.forEach((el) => {
+        if (el.contains(target)) clickedInside = true;
+      });
+
+      if (!clickedInside) {
+        setIsDropdownOpen(false);
       }
-      
-      // If click is outside both trigger and dropdown, close the dropdown
-      setIsDropdownOpen(false);
     };
 
     const handleScroll = () => {
-      if (isOpen) {
-        updatePosition();
-      }
+      if (isOpen) updatePosition();
     };
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       window.addEventListener('scroll', handleScroll, true);
       window.addEventListener('resize', updatePosition);
+      
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
         window.removeEventListener('scroll', handleScroll, true);
         window.removeEventListener('resize', updatePosition);
       };
     }
-  }, [isOpen, updatePosition, setIsDropdownOpen]);
+  }, [isOpen, updatePosition, setIsDropdownOpen, triggerRef]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !position) return null;
 
   const dropdownClassName = maxHeight 
     ? className.replace('max-h-60', maxHeight)
@@ -83,11 +84,11 @@ const PortalDropdown: React.FC<PortalDropdownProps> = ({
   return createPortal(
     <div
       data-portal-dropdown
-      className={`absolute z-50 ${dropdownClassName}`}
+      className={`absolute z-[110] ${dropdownClassName}`}
       style={{
         top: position.top,
         left: position.left,
-        width: position.width,
+        width: className.includes('!w-auto') ? 'auto' : position.width,
       }}
     >
       {children}

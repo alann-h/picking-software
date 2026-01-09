@@ -12,6 +12,7 @@ import {
     updateRunItemStatus,
     updateRunItemsStatusBulk,
     moveUndeliveredItems,
+    updateRunDeliveryDate,
     RunItemUpdate
 } from '../services/runService.js'; // New service file for runs
 import { Request, Response, NextFunction } from 'express';
@@ -23,14 +24,14 @@ import { getAustralianDayRange } from '../helpers.js';
  * Accessible by Admins only.
  */
 export async function createBulkRunController(req: Request, res: Response, next: NextFunction) {
-    const { orderedQuoteIds, companyId, runName } = req.body;
+    const { orderedQuoteIds, companyId, runName, deliveryDate } = req.body;
     const connectionType = req.session.connectionType;
     if (!connectionType) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
         // Service handles conversion to strings internally
-        const newRun = await createBulkRun(orderedQuoteIds, companyId, connectionType, runName);
+        const newRun = await createBulkRun(orderedQuoteIds, companyId, connectionType, runName, deliveryDate);
         res.status(201).json(newRun);
     } catch (error) {
         next(error);
@@ -179,9 +180,7 @@ export async function getRunReportsController(req: Request, res: Response, next:
         const { start } = getAustralianDayRange(startDate as string);
         const { end } = getAustralianDayRange(endDate as string);
 
-        const filterMode = (dateFilter === 'completed' || dateFilter === 'created') 
-            ? dateFilter 
-            : 'created';
+        const filterMode = dateFilter === 'delivery' ? 'delivery' : 'created';
 
         const reportData = await getRunReports(companyId, start, end, filterMode);
         res.status(200).json(reportData);
@@ -237,6 +236,18 @@ export async function moveUndeliveredItemsController(req: Request, res: Response
 
         await moveUndeliveredItems(runId, targetRunId, itemIds);
         res.status(200).json({ message: 'Items moved successfully' });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function updateRunDeliveryDateController(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { runId } = req.params;
+        const { deliveryDate } = req.body;
+        
+        const updatedRun = await updateRunDeliveryDate(runId, deliveryDate);
+        res.status(200).json(updatedRun);
     } catch (error) {
         next(error);
     }

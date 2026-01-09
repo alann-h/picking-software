@@ -14,6 +14,7 @@ import { useSearchParams } from 'react-router-dom';
 import { AvailableQuotesSkeleton } from '../Skeletons'
 import { useAuth } from '../../hooks/useAuth';
 import PortalDropdown from '../PortalDropdown';
+import DatePickerPopover from '../../ui/DatePickerPopover';
 
 // --- UI COMPONENTS ---
 const EmptyState = ({ text, className = "", icon: Icon = Inbox }: { text: string, className?: string, icon?: React.ComponentType<React.SVGProps<SVGSVGElement>> }) => (
@@ -92,7 +93,7 @@ const DraggableQuoteCard: React.FC<{ quote: QuoteSummary, onRemove?: (id: string
     );
 };
 
-const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: string) => void, onUpdateName: (id: string, name: string) => void }> = ({ run, index, onRemove, onUpdateName }) => {
+const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: string) => void, onUpdateName: (id: string, name: string) => void, onUpdateDate: (id: string, date: string) => void }> = ({ run, index, onRemove, onUpdateName, onUpdateDate }) => {
     const { setNodeRef } = useDroppable({ id: run.id });
 
     return (
@@ -108,9 +109,17 @@ const RunColumn: React.FC<{ run: RunBuilder, index: number, onRemove: (id: strin
                             placeholder={`Run ${index + 1}`}
                             value={run.runName || ''}
                             onChange={(e) => onUpdateName(run.id, e.target.value)}
-                            className="text-xs sm:text-sm font-semibold text-gray-900 bg-transparent border-none outline-none w-full placeholder-gray-400 focus:placeholder-gray-500"
+                            className="text-xs sm:text-sm font-semibold text-gray-900 bg-transparent border-none outline-none w-full placeholder-gray-400 focus:placeholder-gray-500 mb-1"
                         />
-                        <p className="text-xs text-gray-500">{run.quotes.length} {run.quotes.length !== 1 ? 'quotes' : 'quote'}</p>
+                        <div className="flex items-center gap-2">
+                            <DatePickerPopover 
+                                date={run.deliveryDate}
+                                onSelect={(newDate) => onUpdateDate(run.id, newDate)}
+                                label="Set Date"
+                            />
+                            <span className="text-gray-300">|</span>
+                            <p className="text-xs text-gray-500">{run.quotes.length} {run.quotes.length !== 1 ? 'quotes' : 'quote'}</p>
+                        </div>
                     </div>
                 </div>
                 <button 
@@ -136,6 +145,7 @@ interface RunBuilder {
   id: string;
   quotes: QuoteSummary[];
   runName?: string;
+  deliveryDate?: string;
 }
 
 
@@ -397,7 +407,7 @@ export const CreateRun: React.FC = () => {
     }, [searchMode]);
 
     const createRunMutation = useMutation({
-        mutationFn: ({ quoteIds, runName }: { quoteIds: string[], runName?: string }) => createRunFromQuotes(quoteIds, userCompanyId!, runName),
+        mutationFn: ({ quoteIds, runName, deliveryDate }: { quoteIds: string[], runName?: string, deliveryDate?: string }) => createRunFromQuotes(quoteIds, userCompanyId!, runName, deliveryDate),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['runs'] });
         },
@@ -434,7 +444,8 @@ export const CreateRun: React.FC = () => {
         const creationPromises = validRuns.map(run =>
             createRunMutation.mutateAsync({ 
                 quoteIds: run.quotes.map(q => String(q.id)),
-                runName: run.runName || undefined
+                runName: run.runName || undefined,
+                deliveryDate: run.deliveryDate || undefined
             })
         );
         
@@ -474,7 +485,7 @@ export const CreateRun: React.FC = () => {
         if (!quoteToUnstage) return;
         setStagedQuotes(prev => prev.filter(q => q.id !== quoteId));
     };
-    const handleAddNewRun = () => setRunsToCreate(prev => [...prev, { id: `run-builder-${Date.now()}`, quotes: [], runName: '' }]);
+    const handleAddNewRun = () => setRunsToCreate(prev => [...prev, { id: `run-builder-${Date.now()}`, quotes: [], runName: '', deliveryDate: '' }]);
     const handleRemoveRun = (runId: string) => {
         const runToRemove = runsToCreate.find(r => r.id === runId);
         if (!runToRemove) return;
@@ -483,6 +494,9 @@ export const CreateRun: React.FC = () => {
     };
     const handleUpdateRunName = (runId: string, runName: string) => {
         setRunsToCreate(prev => prev.map(r => r.id === runId ? { ...r, runName } : r));
+    };
+    const handleUpdateRunDate = (runId: string, deliveryDate: string) => {
+        setRunsToCreate(prev => prev.map(r => r.id === runId ? { ...r, deliveryDate } : r));
     };
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
     const handleDragStart = (event: DragStartEvent) => {
@@ -801,7 +815,14 @@ export const CreateRun: React.FC = () => {
                                         {runsToCreate.length > 0 ? (
                                             <div className="flex gap-2 sm:gap-3 h-full">
                                                 {runsToCreate.map((run, index) => (
-                                                    <RunColumn key={run.id} run={run} index={index} onRemove={handleRemoveRun} onUpdateName={handleUpdateRunName} />
+                                                    <RunColumn 
+                                                        key={run.id} 
+                                                        run={run} 
+                                                        index={index} 
+                                                        onRemove={handleRemoveRun} 
+                                                        onUpdateName={handleUpdateRunName} 
+                                                        onUpdateDate={handleUpdateRunDate} 
+                                                    />
                                                 ))}
                                             </div>
                                         ) : (

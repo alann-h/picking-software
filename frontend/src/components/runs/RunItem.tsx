@@ -8,11 +8,13 @@ import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient, useSuspenseQuery, useQuery } from '@tanstack/react-query';
 import { Run, RunQuote, QuoteSummary, Customer, OrderStatus } from '../../utils/types';
-import { updateRunQuotes, updateRunStatus, updateRunName, updateRunItemStatus, updateRunItemsStatusBulk, moveUndeliveredItems, getRuns } from '../../api/runs';
+import { updateRunQuotes, updateRunStatus, updateRunName, updateRunItemStatus, updateRunItemsStatusBulk, moveUndeliveredItems, getRuns, updateRunDeliveryDate } from '../../api/runs';
 import { getQuotesWithStatus, getCustomerQuotes } from '../../api/quote';
 import { getCustomers } from '../../api/customers';
 import { useSnackbarContext } from '../SnackbarContext';
 import PortalDropdown from '../PortalDropdown';
+import DatePickerPopover from '../../ui/DatePickerPopover';
+import { format } from 'date-fns';
 
 // --- Helper Functions and Components ---
 
@@ -121,6 +123,10 @@ export const RunItem: React.FC<{
     
     // Optimistic state for run name
     const [optimisticRunName, setOptimisticRunName] = useOptimistic(run.run_name || '');
+    
+    // Optimistic state for delivery date
+    const [optimisticDeliveryDate, setOptimisticDeliveryDate] = useOptimistic(run.delivery_date || '');
+    const [editableDeliveryDate, setEditableDeliveryDate] = useState(run.delivery_date || '');
     
     // Fetch available quotes when editing (quotes already in DB)
     const { data: availableQuotes } = useSuspenseQuery<QuoteSummary[]>({
@@ -290,6 +296,21 @@ export const RunItem: React.FC<{
             handleOpenSnackbar(errorMessage, 'error');
             setIsEditingName(true);
             // Optimistic state will automatically revert on error
+        }
+    });
+
+    const updateDeliveryDateMutation = useMutation({
+        mutationFn: async ({ runId, deliveryDate }: { runId: string; deliveryDate: string }) => {
+            setOptimisticDeliveryDate(deliveryDate);
+            setEditableDeliveryDate(deliveryDate);
+            return updateRunDeliveryDate(runId, deliveryDate ? new Date(deliveryDate).toISOString() : null);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['runs', userCompanyId] });
+            handleOpenSnackbar('Delivery date updated.', 'success');
+        },
+        onError: () => {
+            handleOpenSnackbar('Failed to update delivery date.', 'error');
         }
     });
 
@@ -558,7 +579,7 @@ export const RunItem: React.FC<{
         setIsEditingName(false);
         setEditableRunName(optimisticRunName || run.run_name || '');
     };
-
+    
     const handleItemStatusChange = (quoteId: string, status: 'pending' | 'delivered' | 'undelivered') => {
         updateItemStatusMutation.mutate({ runId: run.id, quoteId, status });
     };
@@ -686,7 +707,31 @@ export const RunItem: React.FC<{
                     <p className="text-xs sm:text-sm text-gray-500 whitespace-nowrap">{quoteCount} quote{quoteCount !== 1 ? 's' : ''}</p>
                     {isExpanded ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />}
                 </div>
-            </div>
+                </div>
+
+            
+            {/* Delivery Date Row (Visible always or just in edit?) - Let's put it in the header right side or below status */}
+            {/* Actually, putting it in the header row might be crowded. Let's put it in the expanded section or near status. */}
+            {/* Let's put it in the expanded section at the top, or if editing, as an input. */}
+            
+            {(isExpanded || isEditing) && (
+                <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-600">
+                    <span className="font-medium">Delivery Date:</span>
+                    {isAdmin ? (
+                        <DatePickerPopover 
+                            date={editableDeliveryDate || optimisticDeliveryDate}
+                            onSelect={(newDate: string) => {
+                            setEditableDeliveryDate(newDate);
+                            updateDeliveryDateMutation.mutate({ runId: run.id, deliveryDate: newDate });
+                            }}
+                        />
+                    ) : (
+                        <span className="font-semibold text-gray-800">
+                            {optimisticDeliveryDate ? format(new Date(optimisticDeliveryDate), "PPP") : 'Not set'}
+                        </span>
+                    )}
+                </div>
+            )}
   
             {isExpanded && (
                 <div className="p-2 sm:p-3 bg-gray-50 border-t border-gray-200">

@@ -37,6 +37,13 @@ export const runCreateRules = () => [
         .isLength({ min: 1, max: 100 }).withMessage('Run name must be between 1 and 100 characters.')
         .trim(),
 
+
+
+    body('deliveryDate')
+        .optional({ nullable: true })
+        .isISO8601().withMessage('Delivery date must be a valid date string (ISO8601).')
+        .toDate(),
+
     ...companyIdBodyRule()
 ];
 
@@ -77,6 +84,13 @@ export const runNameUpdateRules = () => [
         .isString().withMessage('Run name must be a string.')
         .isLength({ min: 1, max: 100 }).withMessage('Run name must be between 1 and 100 characters.')
         .trim()
+];
+
+export const runDeliveryDateUpdateRules = () => [
+    body('deliveryDate')
+        .optional({ nullable: true })
+        .isISO8601().withMessage('Delivery date must be a valid date string (ISO8601).')
+        .toDate()
 ];
 
 export { validate };

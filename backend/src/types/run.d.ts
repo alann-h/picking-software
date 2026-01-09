@@ -10,7 +10,7 @@ export interface Run {
     run_name: string | null;
     driver_name: string | null;
     status: RunStatus;
-    completed_at: Date | null;
+    delivery_date: Date | null;
 }
 
 export type RunItemStatus = 'pending' | 'delivered' | 'undelivered';

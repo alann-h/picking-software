@@ -10,8 +10,8 @@ import { RUNS_BASE } from './config';
  * @param {string} runName Optional name for the run.
  * @returns {Promise<Run>} The newly created run object.
  */
-export const createRunFromQuotes  = async (orderedQuoteIds: string[], companyId: string, runName?: string): Promise<Run> => {
-  const data = await apiCallPost(`${RUNS_BASE}/bulk`, { orderedQuoteIds, companyId, runName });
+export const createRunFromQuotes  = async (orderedQuoteIds: string[], companyId: string, runName?: string, deliveryDate?: string): Promise<Run> => {
+  const data = await apiCallPost(`${RUNS_BASE}/bulk`, { orderedQuoteIds, companyId, runName, deliveryDate });
   return data as Run;
 };
 
@@ -36,10 +36,15 @@ export const updateRunStatus = async (runId: string, status: 'pending' | 'checki
   return data as Run;
 };
 
-export const getRunReports = async (startDate: string, endDate: string, dateFilter: 'created' | 'completed' = 'created'): Promise<any> => {
+export const getRunReports = async (startDate: string, endDate: string, dateFilter: 'created' | 'delivery' = 'created'): Promise<any> => {
   const query = new URLSearchParams({ startDate, endDate, dateFilter }).toString();
   const data = await apiCallGet(`${RUNS_BASE}/reports?${query}`);
   return data as any;
+};
+
+export const updateRunDeliveryDate = async (runId: string, deliveryDate: string | null): Promise<Run> => {
+  const data = await apiCallPut(`${RUNS_BASE}/${runId}/delivery-date`, { deliveryDate });
+  return data as Run;
 };
 
 export const updateRunQuotes  = async (runId: string, orderedQuoteIds: string[]): Promise<Run> => {
